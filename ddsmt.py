@@ -61,6 +61,17 @@ hexadecimal     = Combine ("#x" + Word(hexnums))
 binary          = Combine ("#b" + Word("01"))
 string          = dblQuotedString
 
+numeral.setParseAction(lambda s,l,t: 
+        SMTConstNode(KIND_CONSTN, value = int(t[0])))
+decimal.setParseAction(lambda s,l,t:
+        SMTConstNode(KIND_CONSTD, value = float(t[0])))
+hexadecimal.setParseAction(lambda s,l,t:
+        SMTConstNode(KIND_CONSTH, value = t[0]))
+binary.setParseAction(lambda s,l,t:
+        SMTConstNode(KIND_CONSTB, value = t[0]))
+string.setParseAction(lambda s,l,t:
+        SMTConstNode(KIND_CONSTS, value = t[0]))
+
 specialchars    = "+-/*=%?!.$_~&^<>@"
 
 symbol          = Word(alphas + specialchars, alphas + nums + specialchars)
@@ -72,14 +83,24 @@ s_expr          = spec_constant | symbol | keyword
 
 # identifier
 identifier      = symbol | LBRACE + '_' + symbol + OneOrMore(numeral) + RBRACE
+# TODO where exactly identifier -> string??? and where to node????
+#identifier.setParseAction(lambda s,l,t: 
+#    "(" + " ".join([str(to) for to in t]) + ")" if t[0] == '_' else t)
 
 # sorts
 sort            = Forward()
 sort           << (identifier | LBRACE + identifier + OneOrMore(sort) + RBRACE)
+sort.setParseAction(lambda s,l,t:
+        SMTSortNode(
+            "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 
+                                                        else t[0],
+            len(t) - 1))
+# TODO insert into sorts hash
 
 # attributes
 attribute_value = spec_constant | symbol | LBRACE + ZeroOrMore(s_expr) + RBRACE
 attribute       = keyword | keyword + attribute_value
+attribute.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
 # terms
 term            = Forward()
@@ -88,7 +109,8 @@ var_binding     = LBRACE + symbol + term + RBRACE
 sorted_var      = LBRACE + symbol + sort + RBRACE
 term           << (spec_constant                                               \
                    | qual_identifier                                           \
-                   | LBRACE + qual_identifier + OneOrMore(term) + RBRACE       \
+                   | LBRACE + qual_identifier + Group(OneOrMore(term))         \
+                            + RBRACE       \
                    | LBRACE + LET + LBRACE + Group(OneOrMore(var_binding))     \
                                   + RBRACE + term + RBRACE                     \
                    | LBRACE + FORALL + LBRACE + Group(OneOrMore(sorted_var))   \
@@ -96,7 +118,11 @@ term           << (spec_constant                                               \
                    | LBRACE + EXISTS + LBRACE + Group(OneOrMore(sorted_var))   \
                                   + RBRACE + term + RBRACE                     \
                    | LBRACE + '!' + term + Group(OneOrMore(attribute)) + RBRACE)
-    
+
+sorted_var.setParseAction(lambda s,l,t: SMTFunNode(t[0], t[1]))
+
+#sorted_var.setParseAction(lambda s,l,t:
+#                SMTVarNode(children = t))
 # cmd options
 b_value         = TRUE | FALSE
 option          = PRINTSUCC + b_value   \
@@ -111,6 +137,7 @@ option          = PRINTSUCC + b_value   \
                   | RANDMSEED + numeral \
                   | VERBOSITY + numeral \
                   | attribute
+option.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
 # info flags
 info_flag       = ERRBEHAVR  \
@@ -127,12 +154,14 @@ command         = LBRACE   + SETLOGIC  + symbol + RBRACE                       \
                   | LBRACE + SETOPT    + option + RBRACE                       \
                   | LBRACE + SETINFO   + attribute + RBRACE                    \
                   | LBRACE + DECLSORT  + symbol + numeral + RBRACE             \
-                  | LBRACE + DEFSORT   + symbol + LBRACE + ZeroOrMore(symbol)  \
+                  | LBRACE + DEFSORT   + symbol + LBRACE                       \
+                                                + Group(ZeroOrMore(symbol))    \
                                        + RBRACE + sort + RBRACE                \
-                  | LBRACE + DECLFUN   + symbol + LBRACE + ZeroOrMore(sort)    \
+                  | LBRACE + DECLFUN   + symbol + LBRACE                       \
+                                                + Group(ZeroOrMore(sort))      \
                                        + RBRACE + sort + RBRACE                \
                   | LBRACE + DEFFUN    + symbol + LBRACE                       \
-                                                +  ZeroOrMore(sorted_var)      \
+                                                + Group(ZeroOrMore(sorted_var))\
                                                 + RBRACE + sort + term         \
                                                 + RBRACE                       \
                   | LBRACE + PUSH      + numeral + RBRACE                      \
@@ -142,73 +171,117 @@ command         = LBRACE   + SETLOGIC  + symbol + RBRACE                       \
                   | LBRACE + GETASSERT + RBRACE                                \
                   | LBRACE + GETPROOF  + RBRACE                                \
                   | LBRACE + GETUCORE  + RBRACE                                \
-                  | LBRACE + GETVALUE  + LBRACE + OneOrMore(term) + RBRACE     \
-                                       + RBRACE                                \
+                  | LBRACE + GETVALUE  + LBRACE + Group(OneOrMore(term))       \
+                                       + RBRACE + RBRACE                       \
                   | LBRACE + GETASSIGN + RBRACE                                \
                   | LBRACE + GETOPT    + keyword + RBRACE                      \
                   | LBRACE + GETINFO   + info_flag + RBRACE                    \
                   | LBRACE + EXIT      + RBRACE
 
+def _cmd2SMTCmdNode(s, l, t):
+    # TODO insert fun, sort nodes into funs, sorts hash
+    kind = t[0]
+    if (kind == KIND_DECLSORT):
+        return SMTCmdNode(KIND_DECLSORT, [SMTSortNode(t[1], t[2].value)])
+    elif (kind == KIND_DEFSORT):  # TODO not entirely supported yet
+        string = "{0:s} ({1:s}) {2:s}".format(
+                     t[1], 
+                     " ".join([str(s) for s in t[2]]) if len(t[2]) > 1 else "",
+                     str(t[3]))
+        return SMTCmdNode(KIND_DEFSORT, [string])
+    elif (kind == KIND_DECLFUN):
+        return SMTCmdNode(KIND_DECLFUN, [SMTFunNode(t[1], t[3], t[2])])
+    elif (kind == KIND_DEFFUN):
+        return SMTCmdNode(KIND_DEFFUN, [SMTFunNode(t[1], t[3], t[2], [t[4]])])
+    else:
+        return SMTCmdNode(t[0], children = t[1:len(t)])
+
+#command.setParseAction(lambda s,l,t: SMTNode(t[0], children=t[1:len(t)]))
+command.setParseAction(_cmd2SMTCmdNode)
+
 script          = ZeroOrMore(command)
 
 # TODO identifier bv constant handling
 
-def _qualident2SMTNode(s, l, t):
-    if (t[0] == AS):
-        return SMTNode(KIND_AVAR, t[1], t)  # TODO proper sort handling
-    else:
-        return SMTNode(KIND_VAR, children = t)  # TODO sort ?
+#def _qualident2SMTNode(s, l, t):
+#    if (t[0] == AS):
+#        return SMTNode(KIND_AVAR, t[1], t)  # TODO proper sort handling
+#    else:
+#        return SMTNode(KIND_VAR, children = t)  # TODO sort ?
+#
+## TODO sort?
+#def _term2SMTNode(s, l, t):
+#    if (t[0] == "let"):
+#        return SMTNode(KIND_LET, children = t[1:len(t)])
+#    elif (t[0] == "forall"):
+#        return SMTNode(KIND_FORALL, children = t[1:len(t)])
+#    elif (t[0] == "exists"):
+#        return SMTNode(KIND_EXISTS, children = t[1:len(t)])
+#    elif (t[0] == '!'):
+#        return SMTNode(KIND_ANNOTN, children = t[1:len(t)])
+#    else:
+#        return t
+#
+##numeral.setParseAction(lambda s,l,t: int(t[0]))
+##decimal.setParseAction(lambda s,l,t: float(t[0]))
+
+#identifier.setParseAction(lambda s,l,t: 
+#    "(_{0:s})".format(" ".join([str(to) for to in t[1:len(t)]]) if t[0] == '_' 
+#                                                                else t))
+#
+#qual_identifier.setParseAction(_qualident2SMTNode)
+
+##var_binding.setParseAction(lambda s,l,t:
+##                SMTNode(KIND_VARB, children = t))
+
+#sorted_var.setParseAction(lambda s,l,t:
+#                SMTVarNode(children = t))
+
+#term.setParseAction(_term2SMTNode)
+
+#def _cmd2SMTNode(s, l, t):
+#    kind = t[0]
+#    print ("kind " + kind)
+#    if (kind == KIND_ASSERT):
+#        assert (len(t) == 2)
+#        return SMTCmdNode(kind, children = [t[1]])
+#    else:
+#        print("asdf ".join((str(to) for to in t[1:len(t)]), " "))
+#        return SMTCmdNode(kind, children = " ".join((str(to) for to in t[1:len(t)]), " "))
+#
+
+#def _cmd2SMTNode(s, l, t):
+#    kind = t[0]
+#    if (kind == KIND_DECLFUN or kind == KIND_DECLSORT or
+#        kind == KIND_DEFFUN  or kind == KIND_DEFSORT  or 
+#        kind == KIND_GETVALUE):
+#        children = ["{0:s} ({1:s}){2:s}".format(t[1], " ".join([str(to) for to in t[2]]), " ".join([str(to) for to in t[3:len(t)]]))] 
+#    else:
+#        children = ["{0:s}".format(" ".join([str(to) for to in t[1:len(t)]]))] 
+#    print("++++++++++++++++++++++++++")
+#    print(children)
+#    return SMTNode(kind, children)
 
 # TODO sort?
-def _term2SMTNode(s, l, t):
-    if (t[0] == "LET"):
-        return SMTNode(KIND_LET, children = t[1:len(t)])
-    elif (t[0] == "FORALL"):
-        return SMTNode(KIND_FORALL, children = t[1:len(t)])
-    elif (t[0] == "EXISTS"):
-        return SMTNode(KIND_EXISTS, children = t[1:len(t)])
-    elif (t[0] == '!'):
-        return SMTNode(KIND_ANNOTN, children = t[1:len(t)])
-    else:
-        return t
-
-numeral.setParseAction(lambda s,l,t:
-                SMTConst(KIND_CONSTN, value = int(t[0])))
-decimal.setParseAction(lambda s,l,t:
-                SMTConst(KIND_CONSTD, value = float(t[0])))
-hexadecimal.setParseAction(lambda s,l,t:
-                SMTConst(KIND_CONSTH, value = t[0]))
-binary.setParseAction(lambda s,l,t:
-                SMTConst(KIND_CONSTB, value = t[0]))
-
-qual_identifier.setParseAction(_qualident2SMTNode)
-
-var_binding.setParseAction(lambda s,l,t:
-                SMTNode(KIND_VARB, children = t))
-sorted_var.setParseAction(lambda s,l,t:
-                SMTNode(KIND_SVAR, children = t))
-
-term.setParseAction(_term2SMTNode)
-
-# TODO sort?
-command.setParseAction(lambda s,l,t: 
-            SMTNode(++SMTNode.g_id, t[0], children = t[1:len(t)]))
-
+#command.setParseAction(_cmd2SMTNode)
 
 KIND_CONSTB = "const bin"
 KIND_CONSTD = "const dec"
 KIND_CONSTN = "const num"
 KIND_CONSTH = "const hex"
+KIND_CONSTS = "const string"
 
 KIND_ANNOTN = "!"
 KIND_ATTRIB = "attribute"
 KIND_EXISTS = "exists"
 KIND_FORALL = "forall"
+KIND_FUN    = "fun"
 KIND_LET    = "let"
-KIND_AVAR   = "annotated-var"
-KIND_SVAR   = "sorted-var"
-KIND_VAR    = "var"
-KIND_VARB   = "var-binding"
+KIND_SORT   = "sort"
+#KIND_AVAR   = "annotated-var"
+#KIND_SVAR   = "sorted-var"  # TODO necessary?
+#KIND_VAR    = "var"         # TODO not necessary
+#KIND_VARB   = "var-binding" # TODO necessary?
 
 KIND_FALSE  = "false"
 KIND_TRUE   = "true"
@@ -293,34 +366,38 @@ KIND_SETLOGIC  = "set-logic"
 KIND_SETINFO   = "set-info"
 KIND_SETOPT    = "set-option"
 
-# TODO necessary?
-g_commands = [
-    KIND_ASSERT,
-    KIND_CHECKSAT, 
-    KIND_DECLFUN,
-    KIND_DEFFUN, 
-    KIND_DECLSORT,
-    KIND_DEFSORT,
-    KIND_GETASSERT,
-    KIND_GETASSIGN,
-    KIND_GETPROOF,
-    KIND_GETUCORE,
-    KIND_GETVALUE,
-    KIND_GETOPT,
-    KIND_GETINFO,  
-    KIND_EXIT, 
-    KIND_PUSH,    
-    KIND_POP,    
-    KIND_SETLOGIC,
-    KIND_SETINFO,
-    KIND_SETOPT 
-]
+g_cmds = [
+            KIND_ASSERT,
+            KIND_CHECKSAT,
+            KIND_DECLFUN,
+            KIND_DEFFUN,
+            KIND_DECLSORT,
+            KIND_DEFSORT,
+            KIND_GETASSERT,
+            KIND_GETASSIGN,
+            KIND_GETPROOF,
+            KIND_GETUCORE,
+            KIND_GETVALUE,
+            KIND_GETOPT,
+            KIND_GETINFO,
+            KIND_EXIT,
+            KIND_PUSH,
+            KIND_POP,
+            KIND_SETLOGIC,
+            KIND_SETINFO,
+            KIND_SETOPT
+          ]
+
+# TODO assertions
+
+# TODO kind only in specialised nodes?
 
 class SMTNode:
     g_id = 0
 
-    def __init__(self, kind, sort = "none", children = []):
-        self.id = ++SMTNode.g_id
+    def __init__(self, kind = "none", sort = None, children = []):
+        SMTNode.g_id += 1
+        self.id = SMTNode.g_id
         self.kind = kind
         self.sort = sort
         self.children = children
@@ -329,13 +406,84 @@ class SMTNode:
     def arity(self):
         return len(self.children)
 
-    #def __str__(self):
+    def __str__(self):
+        return "({0:s}{1:s})".format(self.kind, self.children2string())
 
-class SMTConst(SMTNode):
+    def children2string(self):
+        if (self.arity() >= 1):
+            return " " + " ".join([str(c) for c in self.children])
+        else:
+            return ""
+
+
+class SMTFunNode(SMTNode):
+
+    def __init__(self, name, sort, sorts = []):
+        super().__init__(KIND_FUN, sort)
+        self.name = name
+        self.sorts = sorts  # signature sorts
+
+    def __str__(self):
+        return "{0:s} ({1:s}) {2:s}".format(
+                self.name, 
+                [str(s) for s in self.sorts] if len(self.sorts) > 1 else "", 
+                str(self.sort))
+
+
+class SMTSortNode(SMTNode):
+
+    def __init__(self, name, nparams = 0):
+        super().__init__(KIND_SORT)
+        self.name = name
+        self.nparams = nparams
+    
+    def __str__(self):
+        return self.name
+
+
+class SMTConstNode(SMTNode):
+
+    # TODO sort??
     def __init__(self, kind, sort = "none", value = 0):
-        super().__init__(kind, sort)
+        super().__init__(kind = "none", sort = "none")
         self.value = value
 
+    def __str__(self):
+        return str(self.value)
+
+
+class SMTBVConstNode(SMTConstNode):
+
+    # TODO correct sort handling
+    def __init__(self, kind = "none", value = 0, bitwidth = 1):
+        super().__init__(kind, "(_ BitVec {0:d})".format(bitwidth), value)
+        self.bitwidth = bitwidth
+
+    # TODO
+    # def __str__(self):
+
+
+class SMTCmdNode:
+
+    def __init__(self, kind = "none", children = []):
+        self.kind = kind
+        self.children = children
+
+    def arity(self):
+        return len(self.children)
+
+    def __str__(self):
+        return "({0:s}{1:s}{2:s})".format(
+               self.kind, 
+               self.children2string(),
+               " " + str(self.children[0].nparams) if self.kind == KIND_DECLSORT
+                                                   else "")
+
+    def children2string(self):
+        if (self.arity() >= 1):
+            return " " + " ".join([str(c) for c in self.children])
+        else:
+            return ""
 
 if __name__ == "__main__":
     
@@ -349,4 +497,6 @@ if __name__ == "__main__":
     #    oparser.error ("invalid number of arguments")
 
     infile = args[0]
-    print (script.parseFile(infile).asList())
+    for token in script.parseFile(infile).asList():
+        print("-----------")
+        print(token)
