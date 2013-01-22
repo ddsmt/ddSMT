@@ -3,6 +3,8 @@
 from pyparsing import *
 from optparse import OptionParser
 
+# TODO define comments!!!
+
 LBRACE = Suppress('(')
 RBRACE = Suppress(')')
 
@@ -61,14 +63,39 @@ hexadecimal     = Combine ("#x" + Word(hexnums))
 binary          = Combine ("#b" + Word("01"))
 string          = dblQuotedString
 
+def _hex2SMTNode(s, l, t):
+    assert(len(t) == 1)
+    if (g_logic.find("BV") < 0):
+        return SMTConstNode(KIND_CONSTH, value = int(t[0][2:], 16))
+    else:
+        value = int(t[0][2:], 16)
+        bw = value.bit_length()
+        # TODO insert into sorts hash / check for existing sort
+        return SMTBVConstNode(KIND_CONSTH, 
+                              SMTSortNode("(_ BitVec {0:d})".format(bw)),
+                              value,
+                              bw)
+
+def _bin2SMTNode(s, l, t):
+    assert(len(t) == 1)
+    if (g_logic.find("BV") < 0):
+        return SMTConstNode(KIND_CONSTB, value = int(t[0][2:], 2))
+    else:
+        value = int(t[0][2:], 2)
+        bw = value.bit_length()
+        bw = value.bit_length()
+        # TODO insert into sorts hash / check for existing sort
+        return SMTBVConstNode(KIND_CONSTB, 
+                              SMTSortNode("(_ BitVec {0:d})".format(bw)),
+                              value,
+                              bw)
+
 numeral.setParseAction(lambda s,l,t: 
         SMTConstNode(KIND_CONSTN, value = int(t[0])))
 decimal.setParseAction(lambda s,l,t:
         SMTConstNode(KIND_CONSTD, value = float(t[0])))
-hexadecimal.setParseAction(lambda s,l,t:
-        SMTConstNode(KIND_CONSTH, value = t[0]))
-binary.setParseAction(lambda s,l,t:
-        SMTConstNode(KIND_CONSTB, value = t[0]))
+hexadecimal.setParseAction(_hex2SMTNode)
+binary.setParseAction(_bin2SMTNode)
 string.setParseAction(lambda s,l,t:
         SMTConstNode(KIND_CONSTS, value = t[0]))
 
@@ -83,19 +110,14 @@ s_expr          = spec_constant | symbol | keyword
 
 # identifier
 identifier      = symbol | LBRACE + '_' + symbol + OneOrMore(numeral) + RBRACE
-# TODO where exactly identifier -> string??? and where to node????
-#identifier.setParseAction(lambda s,l,t: 
-#    "(" + " ".join([str(to) for to in t]) + ")" if t[0] == '_' else t)
-
 # sorts
 sort            = Forward()
 sort           << (identifier | LBRACE + identifier + OneOrMore(sort) + RBRACE)
+# TODO insert into sorts hash / check for existing sort
 sort.setParseAction(lambda s,l,t:
         SMTSortNode(
-            "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 
-                                                        else t[0],
+            "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 else t[0],
             len(t) - 1))
-# TODO insert into sorts hash
 
 # attributes
 attribute_value = spec_constant | symbol | LBRACE + ZeroOrMore(s_expr) + RBRACE
@@ -119,8 +141,71 @@ term           << (spec_constant                                               \
                                   + RBRACE + term + RBRACE                     \
                    | LBRACE + '!' + term + Group(OneOrMore(attribute)) + RBRACE)
 
-sorted_var.setParseAction(lambda s,l,t: SMTFunNode(t[0], t[1]))
+def _qualIdent2SMTNode(s, l, t):
+    print ("====> " + str(t))
+    # TODO fun/var symbol should already be known -> lookup!!!!
+    if (t[0] == AS):
+        return SMTFunNode(t[1], KIND_ANNFUN, t[2])
+    elif (t[0] == '_' and t[1].find("bv") == 0 and g_logic.find("BV") >= 0):
+        assert(len(t) == 3)
+        value = int(t[1][2:])
+        print("#### value" + value)
+        bw = t[2].value
+        # TODO insert into sorts hash / check for existing sort
+        return SMTBVConstNode(KIND_CONSTN, 
+                              SMTSortNode("(_ BitVec {0:d})".format(bw)),
+                              value,
+                              bw)
+    else:
+       # TODO insert into sorts hash / check for existing sort
+        return SMTFunNode(t[0], KIND_FUN, None)
 
+qual_identifier.setParseAction(_qualIdent2SMTNode)
+sorted_var.setParseAction(lambda s,l,t: SMTFunNode(t[0], KIND_FUN, t[1]))
+
+def _varBind2SMTNode(s, l, t):
+    print ("----> " + str(t) + " " + str(len(t)))
+    return t
+    assert(isinstance(t[1], SMTNode))
+    return SMTVarBindNode(SMTFunNode(t[0], KIND_FUN, t[1].sort), t[1])
+
+var_binding.setParseAction(_varBind2SMTNode)
+
+
+def _term2SMTNode(s, l, t):
+    print("############ " + str(t))
+    if (len(t) == 1):
+        print (">>>> len = 1")
+        return t
+    if (str(t[0]) == LET):
+        # do something
+        return t
+    elif (str(t[0]) == FORALL):
+        # do something
+        return t
+    elif (str(t[0]) == EXISTS):
+        # do something
+        return t
+    elif (str(t[0]) == '!'):
+        # do something
+        return t
+    else:
+        print (">>>> fun app")
+        assert(isinstance(t[0], SMTFunNode))
+        return SMTFunAppNode(t[0], t[1])
+
+        
+    #print ("adsfasdf " + str(t[2][3:]))
+    #if (t[1] == '_' and t[2].find("bv") == 0 and g_logic.find("BV") >= 0):
+    #    assert (len(t[3:]) == 1)
+    #    return SMTBVNode(KIND_CONSTN, 
+    #                     SMTSortNode("(_ BitVec {1:s})".format(t[3])),
+    #                     str(t[2][3:].value),
+    #                     int(t[3]))
+    #    # TODO insert sort into sorts hash / check for existing sort
+    #else:
+    #    return t[0]
+term.setParseAction(_term2SMTNode)
 #sorted_var.setParseAction(lambda s,l,t:
 #                SMTVarNode(children = t))
 # cmd options
@@ -179,6 +264,7 @@ command         = LBRACE   + SETLOGIC  + symbol + RBRACE                       \
                   | LBRACE + EXIT      + RBRACE
 
 def _cmd2SMTCmdNode(s, l, t):
+    print ("--> " + str(t))
     # TODO insert fun, sort nodes into funs, sorts hash
     kind = t[0]
     if (kind == KIND_DECLSORT):
@@ -190,80 +276,19 @@ def _cmd2SMTCmdNode(s, l, t):
                      str(t[3]))
         return SMTCmdNode(KIND_DEFSORT, [string])
     elif (kind == KIND_DECLFUN):
-        return SMTCmdNode(KIND_DECLFUN, [SMTFunNode(t[1], t[3], t[2])])
+        return SMTCmdNode(
+            KIND_DECLFUN, [SMTFunNode(t[1], KIND_FUN, t[3], t[2])])
     elif (kind == KIND_DEFFUN):
-        return SMTCmdNode(KIND_DEFFUN, [SMTFunNode(t[1], t[3], t[2], [t[4]])])
+        return SMTCmdNode(
+            KIND_DEFFUN, [SMTFunNode(t[1], KIND_FUN, t[3], t[2], [t[4]])])
     else:
-        return SMTCmdNode(t[0], children = t[1:len(t)])
+        return SMTCmdNode(t[0], children = t[1:])
 
 #command.setParseAction(lambda s,l,t: SMTNode(t[0], children=t[1:len(t)]))
 command.setParseAction(_cmd2SMTCmdNode)
 
 script          = ZeroOrMore(command)
 
-# TODO identifier bv constant handling
-
-#def _qualident2SMTNode(s, l, t):
-#    if (t[0] == AS):
-#        return SMTNode(KIND_AVAR, t[1], t)  # TODO proper sort handling
-#    else:
-#        return SMTNode(KIND_VAR, children = t)  # TODO sort ?
-#
-## TODO sort?
-#def _term2SMTNode(s, l, t):
-#    if (t[0] == "let"):
-#        return SMTNode(KIND_LET, children = t[1:len(t)])
-#    elif (t[0] == "forall"):
-#        return SMTNode(KIND_FORALL, children = t[1:len(t)])
-#    elif (t[0] == "exists"):
-#        return SMTNode(KIND_EXISTS, children = t[1:len(t)])
-#    elif (t[0] == '!'):
-#        return SMTNode(KIND_ANNOTN, children = t[1:len(t)])
-#    else:
-#        return t
-#
-##numeral.setParseAction(lambda s,l,t: int(t[0]))
-##decimal.setParseAction(lambda s,l,t: float(t[0]))
-
-#identifier.setParseAction(lambda s,l,t: 
-#    "(_{0:s})".format(" ".join([str(to) for to in t[1:len(t)]]) if t[0] == '_' 
-#                                                                else t))
-#
-#qual_identifier.setParseAction(_qualident2SMTNode)
-
-##var_binding.setParseAction(lambda s,l,t:
-##                SMTNode(KIND_VARB, children = t))
-
-#sorted_var.setParseAction(lambda s,l,t:
-#                SMTVarNode(children = t))
-
-#term.setParseAction(_term2SMTNode)
-
-#def _cmd2SMTNode(s, l, t):
-#    kind = t[0]
-#    print ("kind " + kind)
-#    if (kind == KIND_ASSERT):
-#        assert (len(t) == 2)
-#        return SMTCmdNode(kind, children = [t[1]])
-#    else:
-#        print("asdf ".join((str(to) for to in t[1:len(t)]), " "))
-#        return SMTCmdNode(kind, children = " ".join((str(to) for to in t[1:len(t)]), " "))
-#
-
-#def _cmd2SMTNode(s, l, t):
-#    kind = t[0]
-#    if (kind == KIND_DECLFUN or kind == KIND_DECLSORT or
-#        kind == KIND_DEFFUN  or kind == KIND_DEFSORT  or 
-#        kind == KIND_GETVALUE):
-#        children = ["{0:s} ({1:s}){2:s}".format(t[1], " ".join([str(to) for to in t[2]]), " ".join([str(to) for to in t[3:len(t)]]))] 
-#    else:
-#        children = ["{0:s}".format(" ".join([str(to) for to in t[1:len(t)]]))] 
-#    print("++++++++++++++++++++++++++")
-#    print(children)
-#    return SMTNode(kind, children)
-
-# TODO sort?
-#command.setParseAction(_cmd2SMTNode)
 
 KIND_CONSTB = "const bin"
 KIND_CONSTD = "const dec"
@@ -272,16 +297,17 @@ KIND_CONSTH = "const hex"
 KIND_CONSTS = "const string"
 
 KIND_ANNOTN = "!"
+KIND_ANNFUN = "annotated fun symbol"
 KIND_ATTRIB = "attribute"
 KIND_EXISTS = "exists"
 KIND_FORALL = "forall"
-KIND_FUN    = "fun"
+KIND_FUN    = "var/fun symbol"
 KIND_LET    = "let"
 KIND_SORT   = "sort"
 #KIND_AVAR   = "annotated-var"
 #KIND_SVAR   = "sorted-var"  # TODO necessary?
 #KIND_VAR    = "var"         # TODO not necessary
-#KIND_VARB   = "var-binding" # TODO necessary?
+KIND_VARB   = "var-binding"
 
 KIND_FALSE  = "false"
 KIND_TRUE   = "true"
@@ -366,28 +392,94 @@ KIND_SETLOGIC  = "set-logic"
 KIND_SETINFO   = "set-info"
 KIND_SETOPT    = "set-option"
 
-g_cmds = [
-            KIND_ASSERT,
-            KIND_CHECKSAT,
-            KIND_DECLFUN,
-            KIND_DEFFUN,
-            KIND_DECLSORT,
-            KIND_DEFSORT,
-            KIND_GETASSERT,
-            KIND_GETASSIGN,
-            KIND_GETPROOF,
-            KIND_GETUCORE,
-            KIND_GETVALUE,
-            KIND_GETOPT,
-            KIND_GETINFO,
-            KIND_EXIT,
-            KIND_PUSH,
-            KIND_POP,
-            KIND_SETLOGIC,
-            KIND_SETINFO,
-            KIND_SETOPT
-          ]
+g_consts = [
+              KIND_CONSTB, 
+              KIND_CONSTD,
+              KIND_CONSTN,
+              KIND_CONSTH,
+              KIND_CONSTS
+           ]
+g_funs   = [
+              KIND_AND,
+              KIND_IMPL,
+              KIND_ITE,
+              KIND_NOT,
+              KIND_OR,
+              KIND_XOR,
+              KIND_EQ,
+              KIND_DIST,
+              KIND_LE,
+              KIND_LT,
+              KIND_GE,
+              KIND_GT,
+              KIND_ABS,
+              KIND_ADD,
+              KIND_DIV,
+              KIND_MOD,
+              KIND_MUL,
+              KIND_NEG,
+              KIND_SUB,
+              KIND_RDIV,
+              KIND_CONC,
+              KIND_EXTR,
+              KIND_REP,
+              KIND_ROL,
+              KIND_ROR,
+              KIND_SEXT,
+              KIND_ZEXT,
+              KIND_BVADD,
+              KIND_BVAND,
+              KIND_BVASHR,
+              KIND_BVCOMP,
+              KIND_BVLSHR,
+              KIND_BVMUL,
+              KIND_BVNAND,
+              KIND_BVNEG,
+              KIND_BVNOR,
+              KIND_BVNOT,
+              KIND_BVOR, 
+              KIND_BVSDIV,
+              KIND_BVSGE,
+              KIND_BVSGT,
+              KIND_BVSHL,
+              KIND_BVSLE,
+              KIND_BVSLT,
+              KIND_BVSMOD,
+              KIND_BVSREM,
+              KIND_BVSUB,
+              KIND_BVUGE,
+              KIND_BVUGT,
+              KIND_BVUDIV,
+              KIND_BVULE,
+              KIND_BVULT,
+              KIND_BVUREM,
+              KIND_BVXNOR,
+              KIND_BVXOR
+            ]
 
+g_cmds   = [
+              KIND_ASSERT,
+              KIND_CHECKSAT,
+              KIND_DECLFUN,
+              KIND_DEFFUN,
+              KIND_DECLSORT,
+              KIND_DEFSORT,
+              KIND_GETASSERT,
+              KIND_GETASSIGN,
+              KIND_GETPROOF,
+              KIND_GETUCORE,
+              KIND_GETVALUE,
+              KIND_GETOPT,
+              KIND_GETINFO,
+              KIND_EXIT,
+              KIND_PUSH,
+              KIND_POP,
+              KIND_SETLOGIC,
+              KIND_SETINFO,
+              KIND_SETOPT
+            ]
+
+g_logic = ""
 # TODO assertions
 
 # TODO kind only in specialised nodes?
@@ -416,19 +508,53 @@ class SMTNode:
             return ""
 
 
-class SMTFunNode(SMTNode):
+class SMTVarBindNode(SMTNode):
 
-    def __init__(self, name, sort, sorts = []):
-        super().__init__(KIND_FUN, sort)
-        self.name = name
-        self.sorts = sorts  # signature sorts
+    def __init__(self, var, children = []):
+        super().__init__(KIND_VARB, children)
+        assert(len(children) == 1)
+        self.var = var
 
     def __str__(self):
+        return "({0:s} {1:s})".format(var.name, str(children[0]))
+
+        
+class SMTFunNode(SMTNode):
+
+    def __init__(self, name, kind, sort, sorts = []):
+        assert (kind == KIND_FUN or kind == KIND_ANNFUN)
+        super().__init__(kind, sort)
+        self.name = name
+        self.sorts = sorts  # signature sorts
+        print ("################################# " + name + " " + str(self))
+
+    def __str__(self):
+        # TODO print details in declare-fun / define-fun
         return "{0:s} ({1:s}) {2:s}".format(
                 self.name, 
                 [str(s) for s in self.sorts] if len(self.sorts) > 1 else "", 
                 str(self.sort))
 
+
+class SMTFunAppNode(SMTNode):        
+
+    def __init__(self, fun, children = []):
+        assert(isinstance(fun, SMTFunNode))
+        assert(len(children) >= 1)
+        kind = fun.kind
+        print (">> kind " + str(kind))
+        if (kind not in g_funs and kind.find("(_") == 0):
+            assert (kind.spit() > 2)
+            kind = kind.split()[1]
+            print (">> kind new" + str(kind))
+        sort = fun.sort
+        print (">> sort " + str(sort))
+        super().__init__(kind, sort, children)
+        self.fun = fun
+        print (">> fun app node " + str(self))
+
+    def __str__(self):
+        return "({0:s}{1:s})".format(self.fun.name, self.children2string())
 
 class SMTSortNode(SMTNode):
 
@@ -444,7 +570,8 @@ class SMTSortNode(SMTNode):
 class SMTConstNode(SMTNode):
 
     # TODO sort??
-    def __init__(self, kind, sort = "none", value = 0):
+    def __init__(self, kind, sort = None, value = 0):
+        assert (kind in g_consts)
         super().__init__(kind = "none", sort = "none")
         self.value = value
 
@@ -454,25 +581,36 @@ class SMTConstNode(SMTNode):
 
 class SMTBVConstNode(SMTConstNode):
 
-    # TODO correct sort handling
-    def __init__(self, kind = "none", value = 0, bitwidth = 1):
-        super().__init__(kind, "(_ BitVec {0:d})".format(bitwidth), value)
+    def __init__(self, kind, sort, value = 0, bitwidth = 1):
+        assert (kind in g_consts)
+        super().__init__(kind, sort, value)
         self.bitwidth = bitwidth
 
-    # TODO
-    # def __str__(self):
+    def __str__(self):
+        if (kind == KIND_CONSTH):
+            return "#x{0:s}".format(hex(value)[2:])
+        elif (kind == KIND_CONSTB):
+            return "#b{0:s}".format(bin(value)[2:])
+        assert(kind == KIND_CONSTN)
+        return "(_ bv{0:d} {1:d})".format(self.value, self.bw)
 
 
 class SMTCmdNode:
 
-    def __init__(self, kind = "none", children = []):
+    def __init__(self, kind, children = []):
+        assert (kind in g_cmds)
         self.kind = kind
         self.children = children
+        if (kind == KIND_SETLOGIC):
+            assert (len(children) == 1)
+            g_logic = children[0]
 
     def arity(self):
         return len(self.children)
 
     def __str__(self):
+        assert (self.kind != KIND_DECLSORT or 
+                self.children[0].kind == KIND_SORT)
         return "({0:s}{1:s}{2:s})".format(
                self.kind, 
                self.children2string(),
@@ -497,6 +635,8 @@ if __name__ == "__main__":
     #    oparser.error ("invalid number of arguments")
 
     infile = args[0]
-    for token in script.parseFile(infile).asList():
+    parsed = script.parseFile(infile)
+    for token in parsed.asList():
         print("-----------")
         print(token)
+    
