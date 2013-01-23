@@ -1,0 +1,93 @@
+#!/bin/bash
+
+readonly DDSMT=../ddsmt.py
+readonly FUZZSMT=fuzzsmt
+
+BUG_DIR=$(pwd)/failed-tmp
+
+die ()
+{
+  echo "*** $(basename $0): $*" 1>&2
+  exit 1
+}
+
+info ()
+{
+  echo "*** $(basename $0): $*" 1>&2
+}
+
+cleanup-and-exit ()
+{
+    rm -f $tmp
+    kill $(jobs -p) 2> /dev/null
+    echo
+    exit
+}
+
+logic=""
+opts=""
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h | --help) 
+        echo "usage: $(basename $0) [-h | --help] [<fuzzsmt_options>] [<logic>]"
+
+        echo
+        echo "  -h, --help:           print this message and exit"
+        echo "  <logic>:              see fuzzsmt -h (default: QF_AUFBV)"
+        echo "  <fuzzsmt_options>:    see fuzzsmt -h"
+        ;;
+    -*) opts="$opts $1"
+        ;;
+    *)  break
+        ;;
+  esac
+  shift
+done
+
+val=undefinefd
+tmp=/tmp/runfuzzsmt-$$.smt2
+input=/tmp/runfuzzsmt-$$-cleaned.smt2
+output=/tmp/runfuzzsmt-$$-parsed.smt2
+trap "cleanup-and-exit;" SIGHUP SIGINT SIGTERM
+
+logic="$*"
+if [ x$logic = x ]; then
+  logic=QF_AUFBV
+fi
+
+[ ! -e $FUSSSMT ] && die "$FUZZSMT not found"
+
+info "logic: $logic"
+
+count=1
+while true
+do
+  rm -f "$input" "$tmp"
+  "$FUZZSMT" "$logic" "$opts" > $tmp 2> /dev/null
+  cat $tmp | sed ':a;N;$!ba;s/\n/ /g' > $input
+  #tr '\n' ' ' < $tmp > $input 2> /dev/null
+  echo -en "runs: $count"
+  $DDSMT "$input" > $output #2> /dev/null
+  res=`cmp -s $input $output`
+
+case $res in
+    0) echo -en "\r"
+       ;;
+    *) if [[ x"$val" != xundefined && $res == $val ]]; then
+         echo -en "\r"
+       else
+         mkdir -p "$BUG_DIR"
+         bug="$BUG_DIR"/bug-$$-${count}.smt2
+         cat "$input" >> "$bug"
+         echo -en "\t"
+         echo -n $(basename "$bug")
+         red="$BUG_DIR"/red-$$-${count}.btor
+         echo $(basename "$bug")
+       fi
+       ;;
+  esac
+  ((count += 1))
+done
+
+cleanup-and-exit
