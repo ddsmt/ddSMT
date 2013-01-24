@@ -115,7 +115,7 @@ symbol          = Word(alphas + specialchars, alphas + nums + specialchars)
 keyword         = Combine (':' + Word(alphas + nums + specialchars))
 
 # s-expressions
-spec_constant   = numeral | decimal | hexadecimal | binary | string
+spec_constant   = decimal | numeral | hexadecimal | binary | string
 s_expr          = spec_constant | symbol | keyword
 
 # identifier
@@ -132,7 +132,7 @@ sort.setParseAction(lambda s,l,t:
 
 # attributes
 attribute_value = spec_constant | symbol | LBRACE + ZeroOrMore(s_expr) + RBRACE
-attribute       = keyword | keyword + attribute_value
+attribute       = keyword + attribute_value | keyword
 attribute.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
 # terms
@@ -576,6 +576,7 @@ class SMTConstNode (SMTNode):
         super().__init__(kind, sort)
         self.value = value
         self.original_str = original_str # TODO debug
+
     def __str__(self):
         #return str(self.value)
         return "{0:s}".format(self.original_str if self.original_str != "none"
