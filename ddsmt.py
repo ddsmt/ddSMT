@@ -5,8 +5,8 @@ from optparse import OptionParser
 
 # TODO define comments!!!
 
-LBRACE = Suppress ('(')
-RBRACE = Suppress (')')
+LPAR = Suppress ('(')
+RPAR = Suppress (')')
 
 IDXED  = Combine ('_' + Suppress(' '))
 
@@ -59,18 +59,117 @@ GETINFO   = Keyword ("get-info")
 EXIT      = Keyword ("exit")
 
 
+# ----------------------------- SMTLib 2 grammar ----------------------------- #
+unknown  = empty - ~Word(printables).setName("<unknown>") # TODO needed?
+
+spec_chars      = "+-/*=%?!.$_~&^<>@"
+
 numeral         = '0' | Regex (r'[1-9][0-9]*')
 decimal         = Combine (numeral + '.' + Word(nums))
-hexadecimal     = Combine ("#x" + Word(hexnums))
-binary          = Combine ("#b" + Word("01"))
+hexadecimal     = Combine ("#x" - Word(hexnums))
+binary          = Combine ("#b" - Word("01"))
 string          = dblQuotedString
 
+symbol_str      = Word(alphas + spec_chars, alphas + nums + spec_chars,
+                       excludeChars = ['|', '\\'])
+symbol          = '|' + symbol_str + '|' | symbol_str
+
+spec_symbol_str = OneOrMore (Word (printables, excludeChars = ['|', '\\']))
+spec_symbol     = '|' + spec_symbol_str + '|' | symbol_str
+
+
+keyword         = Combine (':' - Word(alphas + nums + spec_chars))
+
+spec_constant   = decimal | numeral | hexadecimal | binary | string
+s_expr          = spec_constant | symbol | keyword
+
+identifier      = symbol | LPAR + IDXED - symbol + OneOrMore(numeral) + RPAR
+
+sort            = Forward()
+sort           << (identifier | LPAR + identifier + OneOrMore(sort) + RPAR)
+
+attr_value      = spec_constant | symbol | LPAR + ZeroOrMore(s_expr) - RPAR
+attribute       = keyword + Optional (attr_value)
+# be more lenient towards comment-style symbols in set-info
+spec_attr_value = attr_value | spec_symbol
+spec_attribute  = keyword + Optional (spec_attr_value)
+
+term            = Forward()
+qual_identifier = identifier | LPAR + AS - identifier + sort + RPAR
+var_binding     = LPAR + symbol + term + RPAR
+sorted_var      = LPAR + symbol + sort + RPAR
+term           << (spec_constant                                               \
+                   | qual_identifier                                           \
+                   | LPAR + LET - LPAR + Group(OneOrMore(var_binding)) + RPAR  \
+                                + term + RPAR                                  \
+                   | LPAR + FORALL - LPAR + Group(OneOrMore(sorted_var)) - RPAR\
+                                   + term + RPAR                               \
+                   | LPAR + EXISTS - LPAR + Group(OneOrMore(sorted_var)) - RPAR\
+                                   + term + RPAR                               \
+                   | LPAR + '!' - term + Group(OneOrMore(attribute)) + RPAR    \
+                   | LPAR + qual_identifier + Group(OneOrMore(term)) + RPAR)      
+b_value         = TRUE | FALSE
+option          = PRINTSUCC - b_value   \
+                  | EXPANDDEF - b_value \
+                  | INTERMODE - b_value \
+                  | PRODPROOF - b_value \
+                  | PRODUCORE - b_value \
+                  | PRODMODEL - b_value \
+                  | PRODASSGN - b_value \
+                  | ROUTCHANN - string  \
+                  | DOUTCHANN - string  \
+                  | RANDMSEED - numeral \
+                  | VERBOSITY - numeral \
+                  | attribute
+
+info_flag       = ERRBEHAVR  \
+                  | NAME     \
+                  | AUTHORS  \
+                  | VERSION  \
+                  | STATUS   \
+                  | RUNKNOWN \
+                  | keyword  \
+                  | ALLSTAT  \
+
+command         = LPAR   + SETLOGIC  + symbol + RPAR                          \
+                  | LPAR + SETOPT    + option + RPAR                          \
+                  | LPAR + SETINFO   + spec_attribute + RPAR                  \
+                  | LPAR + DECLSORT  + symbol + numeral + RPAR                \
+                  | LPAR + DEFSORT   + symbol + LPAR                          \
+                                              + Group(ZeroOrMore(symbol))     \
+                                       + RPAR + sort + RPAR                   \
+                  | LPAR + DECLFUN   + symbol + LPAR                          \
+                                              + Group(ZeroOrMore(sort))       \
+                                       + RPAR + sort + RPAR                   \
+                  | LPAR + DEFFUN    + symbol + LPAR                          \
+                                              + Group(ZeroOrMore(sorted_var)) \
+                                              + RPAR + sort + term            \
+                                              + RPAR                          \
+                  | LPAR + PUSH      + numeral + RPAR                         \
+                  | LPAR + POP       + numeral + RPAR                         \
+                  | LPAR + ASSERT    + term + RPAR                            \
+                  | LPAR + CHECKSAT  + RPAR                                   \
+                  | LPAR + GETASSERT + RPAR                                   \
+                  | LPAR + GETPROOF  + RPAR                                   \
+                  | LPAR + GETUCORE  + RPAR                                   \
+                  | LPAR + GETVALUE  + LPAR + Group(OneOrMore(term))          \
+                                     + RPAR + RPAR                            \
+                  | LPAR + GETASSIGN + RPAR                                   \
+                  | LPAR + GETOPT    + keyword + RPAR                         \
+                  | LPAR + GETINFO   + info_flag + RPAR                       \
+                  | LPAR + EXIT      + RPAR                                   \
+
+script          = ZeroOrMore(command)
+# ---------------------------------------------------------------------------- #
+
+
+# ----------------------------- parse actions -------------------------------- #
 def _hex2SMTNode (s, l, t):
     global g_logic
     assert (len(t) == 1)
     if (g_logic.find("BV") < 0):
-#        return SMTConstNode (KIND_CONSTH, value = int(t[0][2:], 16))
-        return SMTConstNode (KIND_CONSTH, value = int(t[0][2:], 16), original_str = t[0]) # TODO debug
+        return SMTConstNode (KIND_CONSTH, value = int(t[0][2:], 16), 
+                   original_str = t[0]) # TODO debug
     else:
         value = int(t[0][2:], 16)
         bw = value.bit_length()
@@ -100,58 +199,6 @@ def _bin2SMTNode (s, l, t):
                               value,
                               bw)
 
-numeral.setParseAction(lambda s,l,t: 
-        SMTConstNode (KIND_CONSTN, value = int(t[0])))
-decimal.setParseAction(lambda s,l,t:
-        SMTConstNode (KIND_CONSTD, value = float(t[0])))
-hexadecimal.setParseAction(_hex2SMTNode)
-binary.setParseAction(_bin2SMTNode)
-string.setParseAction(lambda s,l,t:
-        SMTConstNode (KIND_CONSTS, value = t[0]))
-
-specialchars    = "+-/*=%?!.$_~&^<>@"
-
-symbol          = Word(alphas + specialchars, alphas + nums + specialchars)
-keyword         = Combine (':' + Word(alphas + nums + specialchars))
-
-# s-expressions
-spec_constant   = decimal | numeral | hexadecimal | binary | string
-s_expr          = spec_constant | symbol | keyword
-
-# identifier
-identifier      = symbol | LBRACE + IDXED + symbol + OneOrMore(numeral) + RBRACE
-
-# sorts
-sort            = Forward()
-sort           << (identifier | LBRACE + identifier + OneOrMore(sort) + RBRACE)
-# TODO insert into sorts hash / check for existing sort
-sort.setParseAction(lambda s,l,t:
-        SMTSortNode (
-            "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 else t[0],
-            len(t) - 1))
-
-# attributes
-attribute_value = spec_constant | symbol | LBRACE + ZeroOrMore(s_expr) + RBRACE
-attribute       = keyword + attribute_value | keyword
-attribute.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
-
-# terms
-term            = Forward()
-qual_identifier = identifier | LBRACE + AS + identifier + sort + RBRACE
-var_binding     = LBRACE + symbol + term + RBRACE
-sorted_var      = LBRACE + symbol + sort + RBRACE
-term           << (spec_constant                                               \
-                   | qual_identifier                                           \
-                   | LBRACE + qual_identifier + Group(OneOrMore(term))         \
-                            + RBRACE       \
-                   | LBRACE + LET + LBRACE + Group(OneOrMore(var_binding))     \
-                                  + RBRACE + term + RBRACE                     \
-                   | LBRACE + FORALL + LBRACE + Group(OneOrMore(sorted_var))   \
-                                     + RBRACE + term + RBRACE                  \
-                   | LBRACE + EXISTS + LBRACE + Group(OneOrMore(sorted_var))   \
-                                  + RBRACE + term + RBRACE                     \
-                   | LBRACE + '!' + term + Group(OneOrMore(attribute)) + RBRACE)
-
 def _qualIdent2SMTNode (s, l, t):
     global g_logic
     # TODO fun/var symbol should already be known -> lookup!!!!
@@ -167,9 +214,6 @@ def _qualIdent2SMTNode (s, l, t):
                                   SMTSortNode ("(_ BitVec {0:d})".format(bw)),
                                   value,
                                   bw)
-     #   else:
-     #       return SMTFunNode (t[0], KIND_FUN, None)
-        
         else:
             assert (len(t) > 1)
             name = "(" + " ".join([str(s) for s in t]) + ")"  # TODO use indices
@@ -179,15 +223,9 @@ def _qualIdent2SMTNode (s, l, t):
        # TODO insert into sorts hash / check for existing sort
         return SMTFunNode (t[0], KIND_FUN, None)
 
-qual_identifier.setParseAction(_qualIdent2SMTNode)
-sorted_var.setParseAction(lambda s,l,t: SMTFunNode (t[0], KIND_FUN, t[1]))
-
 def _varBind2SMTNode (s, l, t):
     #return SMTNode (SMTFunNode (t[0], KIND_FUN, t[1].sort), t[1])
     return SMTVarBindNode (SMTFunNode (t[0], KIND_FUN, t[1].sort), [t[1]])
-
-var_binding.setParseAction(_varBind2SMTNode)
-
 
 def _term2SMTNode (s, l, t):
     if (len(t) == 1):
@@ -203,63 +241,6 @@ def _term2SMTNode (s, l, t):
     else:
         assert (isinstance(t[0], SMTFunNode))
         return SMTFunAppNode (t[0], t[1])
-
-term.setParseAction(_term2SMTNode)
-
-# cmd options
-b_value         = TRUE | FALSE
-option          = PRINTSUCC + b_value   \
-                  | EXPANDDEF + b_value \
-                  | INTERMODE + b_value \
-                  | PRODPROOF + b_value \
-                  | PRODUCORE + b_value \
-                  | PRODMODEL + b_value \
-                  | PRODASSGN + b_value \
-                  | ROUTCHANN + string  \
-                  | DOUTCHANN + string  \
-                  | RANDMSEED + numeral \
-                  | VERBOSITY + numeral \
-                  | attribute
-option.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
-
-# info flags
-info_flag       = ERRBEHAVR  \
-                  | NAME     \
-                  | AUTHORS  \
-                  | VERSION  \
-                  | STATUS   \
-                  | RUNKNOWN \
-                  | keyword  \
-                  | ALLSTAT
-
-# commands
-command         = LBRACE   + SETLOGIC  + symbol + RBRACE                       \
-                  | LBRACE + SETOPT    + option + RBRACE                       \
-                  | LBRACE + SETINFO   + attribute + RBRACE                    \
-                  | LBRACE + DECLSORT  + symbol + numeral + RBRACE             \
-                  | LBRACE + DEFSORT   + symbol + LBRACE                       \
-                                                + Group(ZeroOrMore(symbol))    \
-                                       + RBRACE + sort + RBRACE                \
-                  | LBRACE + DECLFUN   + symbol + LBRACE                       \
-                                                + Group(ZeroOrMore(sort))      \
-                                       + RBRACE + sort + RBRACE                \
-                  | LBRACE + DEFFUN    + symbol + LBRACE                       \
-                                                + Group(ZeroOrMore(sorted_var))\
-                                                + RBRACE + sort + term         \
-                                                + RBRACE                       \
-                  | LBRACE + PUSH      + numeral + RBRACE                      \
-                  | LBRACE + POP       + numeral + RBRACE                      \
-                  | LBRACE + ASSERT    + term + RBRACE                         \
-                  | LBRACE + CHECKSAT  + RBRACE                                \
-                  | LBRACE + GETASSERT + RBRACE                                \
-                  | LBRACE + GETPROOF  + RBRACE                                \
-                  | LBRACE + GETUCORE  + RBRACE                                \
-                  | LBRACE + GETVALUE  + LBRACE + Group(OneOrMore(term))       \
-                                       + RBRACE + RBRACE                       \
-                  | LBRACE + GETASSIGN + RBRACE                                \
-                  | LBRACE + GETOPT    + keyword + RBRACE                      \
-                  | LBRACE + GETINFO   + info_flag + RBRACE                    \
-                  | LBRACE + EXIT      + RBRACE
 
 def _cmd2SMTCmdNode (s, l, t):
     # TODO insert fun, sort nodes into funs, sorts hash
@@ -281,11 +262,36 @@ def _cmd2SMTCmdNode (s, l, t):
     else:
         return SMTCmdNode (t[0], children = t[1:])
 
-#command.setParseAction(lambda s,l,t: SMTNode (t[0], children=t[1:len(t)]))
+
+numeral.setParseAction(lambda s,l,t: 
+        SMTConstNode (KIND_CONSTN, value = int(t[0])))
+decimal.setParseAction(lambda s,l,t:
+        SMTConstNode (KIND_CONSTD, value = float(t[0])))
+hexadecimal.setParseAction(_hex2SMTNode)
+binary.setParseAction(_bin2SMTNode)
+string.setParseAction(lambda s,l,t:
+        SMTConstNode (KIND_CONSTS, value = t[0]))
+
+symbol_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
+spec_symbol_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
+
+# TODO insert into sorts hash / check for existing sort
+sort.setParseAction(lambda s,l,t:
+        SMTSortNode (
+            "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 else t[0],
+            len(t) - 1))
+
+attribute.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
+
+option.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
+
+qual_identifier.setParseAction(_qualIdent2SMTNode)
+sorted_var.setParseAction(lambda s,l,t: SMTFunNode (t[0], KIND_FUN, t[1]))
+var_binding.setParseAction(_varBind2SMTNode)
+term.setParseAction(_term2SMTNode)
+
 command.setParseAction(_cmd2SMTCmdNode)
-
-script          = ZeroOrMore(command)
-
+# ---------------------------------------------------------------------------- #
 
 KIND_CONSTB = "const bin"
 KIND_CONSTD = "const dec"
@@ -477,7 +483,6 @@ g_cmds   = [
             ]
 
 g_logic = ""
-# TODO assertions
 
 # TODO kind only in specialised nodes?
 
@@ -653,8 +658,6 @@ class SMTCmdNode:
             return "({0:s} ({1:s}))".format(self.kind, self.children2string())
 
         return "({0:s}{1:s})".format(self.kind, self.children2string())
-               #" " + str(self.children[0].nparams) if self.kind == KIND_DECLSORT
-               #                                    else "")
 
     def children2string(self):
         if (self.arity() >= 1):
@@ -673,9 +676,24 @@ if __name__ == "__main__":
     #if len (args) != 3: TODO disabled for debugging
     #    oparser.error ("invalid number of arguments")
 
+    # TODO recursion depth handling (dynamic? with default > 1000)
     infile = args[0]
-    parsed = script.parseFile(infile)
-    print (" ".join(str(s) for s in parsed.asList()))
+    import sys
+    sys.setrecursionlimit(4000)
+    from pprint import pprint
+    try:
+        parsed = script.parseFile(infile, parseAll = True)
+        print (" ".join(str(s) for s in parsed.asList()))
+    except RuntimeError:
+        print ("exceeded recursion limit again!")
+
+   # try:
+#    parsed = script.parseFile(infile, parseAll = True)
+#    print (" ".join(str(s) for s in parsed.asList()))
+  #  except ParseException as err:
+  #      print (err.line)
+  #      print (" "*(err.column-2) + "^")
+  #      print (err)
    # for s in parsed.asList():
    #     print ("-----")
    #     print (s)

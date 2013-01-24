@@ -68,7 +68,7 @@ do
   cat $tmp | sed ':a;N;$!ba;s/\n/ /g' > $input
   #tr '\n' ' ' < $tmp > $input 2> /dev/null
   echo -en "runs: $count"
-  $DDSMT "$input" > $output #2> /dev/null
+  $DDSMT "$input" > $output 2> /dev/null
   res=`cmp -s $input $output`
 
 case $res in
