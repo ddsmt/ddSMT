@@ -3,7 +3,8 @@
 from pyparsing import *
 from optparse import OptionParser
 
-# TODO define comments!!!
+
+
 
 LPAR = Suppress ('(')
 RPAR = Suppress (')')
@@ -176,6 +177,80 @@ script          = OneOrMore(command)
 
 
 # ----------------------------- parse actions -------------------------------- #
+def _is_bvSortNode (node):
+    assert (isinstance (node, SMTSortNode))
+    if (node.name.find("BitVec") > 0):
+        return true
+    return false
+
+# TODO scopes!!
+def _sortNode (name, nparams):
+    global g_sorts
+    if (name in g_sorts):
+        assert (g_sorts[name].nparams == nparams)
+        return g_sorts[name]
+    else:
+        sort = SMTSortNode (name, nparams)
+        g_sorts[name] = sort
+        return sort
+
+# TODO scopes!!
+def _bvSortNode (bw):
+    global g_sorts
+    name = "(_ BitVec {0:d})".format(bw)
+    if (name in g_sorts):
+        return g_sorts[name]
+    else:
+        sort = SMTSortNode (name)
+        g_sorts[name] = sort
+        return sort
+
+# TODO scopes!!
+def _funNode (name, kind, sort, sorts = [], indices = []):
+    global g_funs
+    if (name in g_funs):
+        assert (g_funs[name].kind == kind)
+        assert (g_funs[name].sort == sort)
+        assert (g_funs[name].sorts == sorts)
+        assert (g_funs[name].indices == [int(s.value) for s in indices])
+        return g_funs[name]
+    else:
+        fun = SMTFunNode (name, kind, sort, sorts, indices)
+        g_funs[name] = fun
+        return fun
+
+# TODO scopes!!
+def _funapp2Sort (fun, children):
+    # TODO support for other than bv operations
+    if (g_logic.find("BV") < 0):
+        return None
+    else:
+        if (kind == KIND_BVSGE or kind == KIND_BVSGT or
+            kind == KIND_BVSLE or kind == KIND_BVSLT or
+            kind == KIND_BVUGE or kind == KIND_BVUGT or
+            kind == KIND_BVULE or kind == KIND_BVULT):
+            return _bvSortNode (1)
+        elif (kind == KIND_ZEXT or kind == KIND_SEXT):
+            assert (len(children) == 1)
+            assert (len(fun.indices) == 1)
+            return _bvSortNode (fun.indices[0] + children[0].bw)
+        elif (kind == KIND_REP):
+            assert (len(children) == 1)
+            assert (len(fun.indices) == 1)
+            return _bvSortNode (fun.indices[0] * children[0].bw)
+        elif (kind == KIND_EXTR):
+            assert (len(children) == 1)
+            assert (len(fun.indices) == 2)
+            return _bvSortNode (fun.indices[0] - fun.indices[1] + 1)
+        elif (kind == KIND_CONC):
+            assert (len(children) == 2)
+            return _bvSortNode (children[0].bw + children[1].bw)
+        else:
+            assert (len(children) > 0)
+            return _bvSortNode (children[0].bw)
+
+
+    
 def _hex2SMTNode (s, l, t):
     global g_logic
     assert (len(t) == 1)
@@ -185,16 +260,11 @@ def _hex2SMTNode (s, l, t):
     else:
         value = int(t[0][2:], 16)
         bw = value.bit_length()
-        # TODO insert into sorts hash / check for existing sort
-        #return SMTBVConstNode (KIND_CONSTH, 
-        #                      SMTSortNode ("(_ BitVec {0:d})".format(bw)),
-        #                      value,
-        #                      bw)
         return SMTBVConstNode (KIND_CONSTH, 
-                              SMTSortNode ("(_ BitVec {0:d})".format(bw)),
-                              value,
-                              bw,
-                              original_str = t[0]) # TODO debug
+                               _bvSortNode (bw),
+                               value,
+                               bw,
+                               original_str = t[0]) # TODO debug
 
 def _bin2SMTNode (s, l, t):
     global g_logic
@@ -204,61 +274,55 @@ def _bin2SMTNode (s, l, t):
     else:
         value = int(t[0][2:], 2)
         bw = value.bit_length()
-        bw = value.bit_length()
-        # TODO insert into sorts hash / check for existing sort
         return SMTBVConstNode (KIND_CONSTB, 
-                              SMTSortNode ("(_ BitVec {0:d})".format(bw)),
-                              value,
-                              bw)
+                               _bvSortNode (bw),
+                               value,
+                               bw)
 
 def _qualIdent2SMTNode (s, l, t):
     global g_logic
-    # TODO fun/var symbol should already be known -> lookup!!!!
     if (t[0] == AS):
-        return SMTFunNode (t[1], KIND_ANNFUN, t[2])
+        return _funNode (t[1], KIND_ANNFUN, t[2])
     elif (t[0] == '_'):
         if (t[1].find("bv") == 0 and g_logic.find("BV") >= 0):
             assert (len(t) == 3)
             value = int(t[1][2:])
             bw = t[2].value
-            # TODO insert into sorts hash / check for existing sort
-            return SMTBVConstNode (KIND_CONSTN, 
-                                  SMTSortNode ("(_ BitVec {0:d})".format(bw)),
-                                  value,
-                                  bw)
+            return SMTBVConstNode (KIND_CONSTN, _bvSortNode (bw), value, bw)
         else:
             assert (len(t) > 1)
-            name = "(" + " ".join([str(s) for s in t]) + ")"  # TODO use indices
-            # TODO insert into funs hash / check for existing sort
-            return SMTFunNode (name, KIND_FUN, None)
+            #name = "(" + " ".join([str(s) for s in t]) + ")"  # TODO use indices
+            return _funNode (t[1], KIND_FUN, None, indices = t[2:])
     else:
-       # TODO insert into sorts hash / check for existing sort
+       # TODO insert into funs hash / check for existing fun
         return SMTFunNode (t[0], KIND_FUN, None)
 
 def _varBind2SMTNode (s, l, t):
-    #return SMTNode (SMTFunNode (t[0], KIND_FUN, t[1].sort), t[1])
     return SMTVarBindNode (SMTFunNode (t[0], KIND_FUN, t[1].sort), [t[1]])
 
 def _term2SMTNode (s, l, t):
     if (len(t) == 1):
         return t
     if (str(t[0]) == LET):
-        return SMTNode (KIND_LET, children = t[1:])  # TODO sort?
+        assert (len(t) == 3)
+        return SMTNode (KIND_LET, t[2].sort, t[1:])
     elif (str(t[0]) == FORALL):
-        return SMTNode (KIND_FORALL, children = t[1:])  # TODO sort?
+        assert (len(t) == 3)
+        return SMTNode (KIND_FORALL, t[2].sort, t[1:])
     elif (str(t[0]) == EXISTS):
-        return SMTNode (KIND_EXISTS, children = t[1:])  # TODO sort?
+        assert (len(t) == 3)
+        return SMTNode (KIND_EXISTS, t[2].sort, t[1:])
     elif (str(t[0]) == '!'):
-        return SMTNode (KIND_ANNOTN, children = t[1:])  # TODO sort?
+        assert (len(t) == 3)
+        return SMTNode (KIND_ANNOTN, t[1].sort, t[1:])
     else:
         assert (isinstance(t[0], SMTFunNode))
         return SMTFunAppNode (t[0], t[1])
 
 def _cmd2SMTCmdNode (s, l, t):
-    # TODO insert fun, sort nodes into funs, sorts hash
     kind = t[0]
     if (kind == KIND_DECLSORT):
-        return SMTCmdNode (KIND_DECLSORT, [SMTSortNode (t[1], t[2].value)])
+        return SMTCmdNode (KIND_DECLSORT, [_sortNode (t[1], t[2].value)])
     elif (kind == KIND_DEFSORT):  # TODO not entirely supported yet
         string = "{0:s} ({1:s}) {2:s}".format(
                      t[1], 
@@ -287,9 +351,8 @@ string.setParseAction(lambda s,l,t:
 symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 spec_symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
-# TODO insert into sorts hash / check for existing sort
 sort.setParseAction(lambda s,l,t:
-        SMTSortNode (
+        _sortNode (
             "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 else t[0],
             len(t) - 1))
 
@@ -409,96 +472,110 @@ KIND_SETLOGIC  = "set-logic"
 KIND_SETINFO   = "set-info"
 KIND_SETOPT    = "set-option"
 
-g_consts = [
-              KIND_CONSTB, 
-              KIND_CONSTD,
-              KIND_CONSTN,
-              KIND_CONSTH,
-              KIND_CONSTS
-           ]
-g_funs   = [
-              KIND_AND,
-              KIND_IMPL,
-              KIND_ITE,
-              KIND_NOT,
-              KIND_OR,
-              KIND_XOR,
-              KIND_EQ,
-              KIND_DIST,
-              KIND_LE,
-              KIND_LT,
-              KIND_GE,
-              KIND_GT,
-              KIND_ABS,
-              KIND_ADD,
-              KIND_DIV,
-              KIND_MOD,
-              KIND_MUL,
-              KIND_NEG,
-              KIND_SUB,
-              KIND_RDIV,
-              KIND_CONC,
-              KIND_EXTR,
-              KIND_REP,
-              KIND_ROL,
-              KIND_ROR,
-              KIND_SEXT,
-              KIND_ZEXT,
-              KIND_BVADD,
-              KIND_BVAND,
-              KIND_BVASHR,
-              KIND_BVCOMP,
-              KIND_BVLSHR,
-              KIND_BVMUL,
-              KIND_BVNAND,
-              KIND_BVNEG,
-              KIND_BVNOR,
-              KIND_BVNOT,
-              KIND_BVOR, 
-              KIND_BVSDIV,
-              KIND_BVSGE,
-              KIND_BVSGT,
-              KIND_BVSHL,
-              KIND_BVSLE,
-              KIND_BVSLT,
-              KIND_BVSMOD,
-              KIND_BVSREM,
-              KIND_BVSUB,
-              KIND_BVUGE,
-              KIND_BVUGT,
-              KIND_BVUDIV,
-              KIND_BVULE,
-              KIND_BVULT,
-              KIND_BVUREM,
-              KIND_BVXNOR,
-              KIND_BVXOR
-            ]
+g_const_kinds = [
+                  KIND_CONSTB, 
+                  KIND_CONSTD,
+                  KIND_CONSTN,
+                  KIND_CONSTH,
+                  KIND_CONSTS
+                ]
 
-g_cmds   = [
-              KIND_ASSERT,
-              KIND_CHECKSAT,
-              KIND_DECLFUN,
-              KIND_DEFFUN,
-              KIND_DECLSORT,
-              KIND_DEFSORT,
-              KIND_GETASSERT,
-              KIND_GETASSIGN,
-              KIND_GETPROOF,
-              KIND_GETUCORE,
-              KIND_GETVALUE,
-              KIND_GETOPT,
-              KIND_GETINFO,
-              KIND_EXIT,
-              KIND_PUSH,
-              KIND_POP,
-              KIND_SETLOGIC,
-              KIND_SETINFO,
-              KIND_SETOPT
-            ]
+g_fun_kinds   = [
+                  KIND_AND,
+                  KIND_IMPL,
+                  KIND_ITE,
+                  KIND_NOT,
+                  KIND_OR,
+                  KIND_XOR,
+                  KIND_EQ,
+                  KIND_DIST,
+                  KIND_LE,
+                  KIND_LT,
+                  KIND_GE,
+                  KIND_GT,
+                  KIND_ABS,
+                  KIND_ADD,
+                  KIND_DIV,
+                  KIND_MOD,
+                  KIND_MUL,
+                  KIND_NEG,
+                  KIND_SUB,
+                  KIND_RDIV,
+                  KIND_CONC,
+                  KIND_EXTR,
+                  KIND_REP,
+                  KIND_ROL,
+                  KIND_ROR,
+                  KIND_SEXT,
+                  KIND_ZEXT,
+                  KIND_BVADD,
+                  KIND_BVAND,
+                  KIND_BVASHR,
+                  KIND_BVCOMP,
+                  KIND_BVLSHR,
+                  KIND_BVMUL,
+                  KIND_BVNAND,
+                  KIND_BVNEG,
+                  KIND_BVNOR,
+                  KIND_BVNOT,
+                  KIND_BVOR, 
+                  KIND_BVSDIV,
+                  KIND_BVSGE,
+                  KIND_BVSGT,
+                  KIND_BVSHL,
+                  KIND_BVSLE,
+                  KIND_BVSLT,
+                  KIND_BVSMOD,
+                  KIND_BVSREM,
+                  KIND_BVSUB,
+                  KIND_BVUGE,
+                  KIND_BVUGT,
+                  KIND_BVUDIV,
+                  KIND_BVULE,
+                  KIND_BVULT,
+                  KIND_BVUREM,
+                  KIND_BVXNOR,
+                  KIND_BVXOR
+                ]
+
+g_cmd_kinds   = [
+                  KIND_ASSERT,
+                  KIND_CHECKSAT,
+                  KIND_DECLFUN,
+                  KIND_DEFFUN,
+                  KIND_DECLSORT,
+                  KIND_DEFSORT,
+                  KIND_GETASSERT,
+                  KIND_GETASSIGN,
+                  KIND_GETPROOF,
+                  KIND_GETUCORE,
+                  KIND_GETVALUE,
+                  KIND_GETOPT,
+                  KIND_GETINFO,
+                  KIND_EXIT,
+                  KIND_PUSH,
+                  KIND_POP,
+                  KIND_SETLOGIC,
+                  KIND_SETINFO,
+                  KIND_SETOPT
+                ]
 
 g_logic = ""
+g_sorts = {}
+g_funs  = {}
+
 
 # TODO kind only in specialised nodes?
+
+
+class DDSMTError (Exception):
+
+    def __init__ (self, msg):
+        self.msg = msg
+    
+    def __str__ (self):
+        return "[ddsmt] Error: {0:s}".format(self.msg)
+
 
 class SMTNode:
     g_id = 0
@@ -549,32 +626,36 @@ class SMTVarBindNode (SMTNode):
         
 class SMTFunNode (SMTNode):
 
-    def __init__(self, name, kind, sort, sorts = []):
+    def __init__(self, name, kind, sort, sorts = [], indices = []):
         assert (kind == KIND_FUN or kind == KIND_ANNFUN)
         super().__init__(kind, sort)
         self.name = name
-        self.sorts = sorts  # signature sorts
+        self.sorts = sorts      # signature sorts
+        self.indices = [int(s.value) for s in indices]
 
     def __str__(self):
-        return self.name
+        if (self.indices == []):
+            return self.name
+        return "(_ {0:s} {1:s})".format(
+                self.name, " ".join([str(s) for s in self.indices]))
 
 
 class SMTFunAppNode (SMTNode):        
 
     def __init__(self, fun, children = []):
-        global g_funs
+        global g_fun_kinds
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
-        kind = fun.kind
-        if (kind not in g_funs and kind.find("(_") == 0):
-            assert (kind.spit() > 2)
-            kind = kind.split()[1]
+        if (fun.name in g_fun_kinds):
+            kind = fun.name
+        else:
+            kind = fun.kind
         sort = fun.sort
         super().__init__(kind, sort, children)
         self.fun = fun
 
     def __str__(self):
-        return "({0:s}{1:s})".format(self.fun.name, self.children2string())
+        return "({0:s}{1:s})".format(str(self.fun), self.children2string())
 
 class SMTSortNode (SMTNode):
 
@@ -591,7 +672,7 @@ class SMTConstNode (SMTNode):
 
     # TODO sort??
     def __init__(self, kind, sort = None, value = 0, original_str = "none"):
-        assert (kind in g_consts)                    # ^^^^ TODO debug
+        assert (kind in g_const_kinds)                    # ^^^^ TODO debug
         super().__init__(kind, sort)
         self.value = value
         self.original_str = original_str # TODO debug
@@ -605,7 +686,7 @@ class SMTConstNode (SMTNode):
 class SMTBVConstNode (SMTConstNode):
 
     def __init__(self, kind, sort, value = 0, bitwidth = 1, original_str = "none"):                                                         #^^^^ TODO debug
-        assert (kind in g_consts)
+        assert (kind in g_const_kinds)
         super().__init__(kind, sort, value)
         self.bitwidth = bitwidth
         self.original_str = original_str  # TODO debug
@@ -626,8 +707,8 @@ class SMTBVConstNode (SMTConstNode):
 class SMTCmdNode:
 
     def __init__(self, kind, children = []):
-        global g_logic, g_cmds
-        assert (kind in g_cmds)
+        global g_logic, g_cmd_kinds
+        assert (kind in g_cmd_kinds)
         self.kind = kind
         self.children = children
         if (kind == KIND_SETLOGIC):
