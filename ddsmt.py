@@ -62,6 +62,8 @@ EXIT      = Keyword ("exit")
 # ----------------------------- SMTLib 2 grammar ----------------------------- #
 unknown  = empty - ~Word(printables).setName("<unknown>") # TODO needed?
 
+comment         = Suppress (';' + restOfLine)
+
 spec_chars      = "+-/*=%?!.$_~&^<>@"
 
 numeral         = '0' | Regex (r'[1-9][0-9]*')
@@ -291,6 +293,8 @@ var_binding.setParseAction(_varBind2SMTNode)
 term.setParseAction(_term2SMTNode)
 
 command.setParseAction(_cmd2SMTCmdNode)
+
+script.ignore(comment)
 # ---------------------------------------------------------------------------- #
 
 KIND_CONSTB = "const bin"
