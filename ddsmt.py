@@ -72,29 +72,36 @@ hexadecimal     = Combine ("#x" - Word(hexnums))
 binary          = Combine ("#b" - Word("01"))
 string          = dblQuotedString
 
-symbol_str      = Word(alphas + spec_chars, alphas + nums + spec_chars,
+symb_str        = Word(alphas + spec_chars, alphas + nums + spec_chars,
                        excludeChars = ['|', '\\'])
-symbol          = '|' + symbol_str + '|' | symbol_str
+symbol          = NoMatch().setName("symbol") | '|' + symb_str + '|' | symb_str
 
-spec_symbol_str = OneOrMore (Word (printables, excludeChars = ['|', '\\']))
-spec_symbol     = '|' + spec_symbol_str + '|' | symbol_str
+spec_symb_str   = OneOrMore (Word (printables, excludeChars = ['|', '\\']))
+spec_symbol     = '|' + spec_symb_str + '|' | symb_str
 
 
-keyword         = Combine (':' - Word(alphas + nums + spec_chars))
+keyword         = NoMatch().setName("keyword") \
+                  | Combine (':' - Word(alphas + nums + spec_chars))
 
 spec_constant   = decimal | numeral | hexadecimal | binary | string
 s_expr          = spec_constant | symbol | keyword
 
-identifier      = symbol | LPAR + IDXED - symbol + OneOrMore(numeral) + RPAR
+identifier      = NoMatch().setName("identifier") \
+                  | symbol                        \
+                  | LPAR + IDXED - symbol + OneOrMore(numeral) + RPAR
 
 sort            = Forward()
-sort           << (identifier | LPAR + identifier + OneOrMore(sort) + RPAR)
+sort           << (NoMatch().setName("sort") \
+                   | identifier              \
+                   | LPAR + identifier + OneOrMore(sort) + RPAR)
 
 attr_value      = spec_constant | symbol | LPAR + ZeroOrMore(s_expr) - RPAR
-attribute       = keyword + Optional (attr_value)
+attribute       = NoMatch().setName("attribute") \
+                  | keyword + Optional (attr_value)
 # be more lenient towards comment-style symbols in set-info
 spec_attr_value = attr_value | spec_symbol
-spec_attribute  = keyword + Optional (spec_attr_value)
+spec_attribute  = NoMatch().setName("attribute") \
+                  | keyword + Optional (spec_attr_value)
 
 term            = Forward()
 qual_identifier = identifier | LPAR + AS - identifier + sort + RPAR
@@ -110,7 +117,8 @@ term           << (spec_constant                                               \
                                    + term + RPAR                               \
                    | LPAR + '!' - term + Group(OneOrMore(attribute)) + RPAR    \
                    | LPAR + qual_identifier + Group(OneOrMore(term)) + RPAR)      
-b_value         = TRUE | FALSE
+b_value         = NoMatch().setName("Boolean value") | TRUE | FALSE
+
 option          = PRINTSUCC - b_value   \
                   | EXPANDDEF - b_value \
                   | INTERMODE - b_value \
@@ -130,38 +138,40 @@ info_flag       = ERRBEHAVR  \
                   | VERSION  \
                   | STATUS   \
                   | RUNKNOWN \
-                  | keyword  \
                   | ALLSTAT  \
+                  | keyword
 
-command         = LPAR   + SETLOGIC  + symbol + RPAR                          \
-                  | LPAR + SETOPT    + option + RPAR                          \
-                  | LPAR + SETINFO   + spec_attribute + RPAR                  \
-                  | LPAR + DECLSORT  + symbol + numeral + RPAR                \
-                  | LPAR + DEFSORT   + symbol + LPAR                          \
+command         = NoMatch().setName("command")                                \
+                  | LPAR   + SETLOGIC  - symbol + RPAR                        \
+                  | LPAR + SETOPT    - option - RPAR                          \
+                  | LPAR + SETINFO   - spec_attribute - RPAR                  \
+                  | LPAR + DECLSORT  - symbol + numeral + RPAR                \
+                  | LPAR + DEFSORT   - symbol + LPAR                          \
                                               + Group(ZeroOrMore(symbol))     \
                                        + RPAR + sort + RPAR                   \
-                  | LPAR + DECLFUN   + symbol + LPAR                          \
+                  | LPAR + DECLFUN   - symbol + LPAR                          \
                                               + Group(ZeroOrMore(sort))       \
                                        + RPAR + sort + RPAR                   \
-                  | LPAR + DEFFUN    + symbol + LPAR                          \
+                  | LPAR + DEFFUN    - symbol + LPAR                          \
                                               + Group(ZeroOrMore(sorted_var)) \
-                                              + RPAR + sort + term            \
+                                              - RPAR + sort + term            \
                                               + RPAR                          \
-                  | LPAR + PUSH      + numeral + RPAR                         \
-                  | LPAR + POP       + numeral + RPAR                         \
-                  | LPAR + ASSERT    + term + RPAR                            \
-                  | LPAR + CHECKSAT  + RPAR                                   \
-                  | LPAR + GETASSERT + RPAR                                   \
-                  | LPAR + GETPROOF  + RPAR                                   \
-                  | LPAR + GETUCORE  + RPAR                                   \
-                  | LPAR + GETVALUE  + LPAR + Group(OneOrMore(term))          \
+                  | LPAR + PUSH      - numeral + RPAR                         \
+                  | LPAR + POP       - numeral + RPAR                         \
+                  | LPAR + ASSERT    - term + RPAR                            \
+                  | LPAR + CHECKSAT  - RPAR                                   \
+                  | LPAR + GETASSERT - RPAR                                   \
+                  | LPAR + GETPROOF  - RPAR                                   \
+                  | LPAR + GETUCORE  - RPAR                                   \
+                  | LPAR + GETVALUE  - LPAR + Group(OneOrMore(term))          \
                                      + RPAR + RPAR                            \
-                  | LPAR + GETASSIGN + RPAR                                   \
-                  | LPAR + GETOPT    + keyword + RPAR                         \
-                  | LPAR + GETINFO   + info_flag + RPAR                       \
-                  | LPAR + EXIT      + RPAR                                   \
+                  | LPAR + GETASSIGN - RPAR                                   \
+                  | LPAR + GETOPT    - keyword + RPAR                         \
+                  | LPAR + GETINFO   - info_flag - RPAR                       \
+                  | LPAR + EXIT      - RPAR                                   \
+                  | unknown
 
-script          = ZeroOrMore(command)
+script          = OneOrMore(command)
 # ---------------------------------------------------------------------------- #
 
 
@@ -274,8 +284,8 @@ binary.setParseAction(_bin2SMTNode)
 string.setParseAction(lambda s,l,t:
         SMTConstNode (KIND_CONSTS, value = t[0]))
 
-symbol_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
-spec_symbol_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
+symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
+spec_symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
 # TODO insert into sorts hash / check for existing sort
 sort.setParseAction(lambda s,l,t:
