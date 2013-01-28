@@ -177,11 +177,11 @@ script          = OneOrMore(command)
 
 
 # ----------------------------- parse actions -------------------------------- #
-def _is_bvSortNode (node):
-    assert (isinstance (node, SMTSortNode))
-    if (node.name.find("BitVec") > 0):
-        return true
-    return false
+#def _is_bvSortNode (node):
+#    assert (isinstance (node, SMTSortNode))
+#    if (node.name.find("BitVec") > 0):
+#        return true
+#    return false
 
 # TODO scopes!!
 def _sortNode (name, nparams):
@@ -209,10 +209,7 @@ def _bvSortNode (bw):
 def _funNode (name, kind, sort, sorts = [], indices = []):
     global g_funs
     if (name in g_funs):
-        assert (g_funs[name].kind == kind)
-        assert (g_funs[name].sort == sort)
-        assert (g_funs[name].sorts == sorts)
-        assert (g_funs[name].indices == [int(s.value) for s in indices])
+        assert (g_funs[name].name == name)
         return g_funs[name]
     else:
         fun = SMTFunNode (name, kind, sort, sorts, indices)
@@ -225,10 +222,8 @@ def _funapp2Sort (fun, children):
     if (g_logic.find("BV") < 0):
         return None
     else:
-        if (kind == KIND_BVSGE or kind == KIND_BVSGT or
-            kind == KIND_BVSLE or kind == KIND_BVSLT or
-            kind == KIND_BVUGE or kind == KIND_BVUGT or
-            kind == KIND_BVULE or kind == KIND_BVULT):
+        if (kind in (KIND_BVSGE, KIND_BVSGT, KIND_BVSLE, KIND_BVSLT, 
+                     KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT)):
             return _bvSortNode (1)
         elif (kind == KIND_ZEXT or kind == KIND_SEXT):
             assert (len(children) == 1)
@@ -291,14 +286,12 @@ def _qualIdent2SMTNode (s, l, t):
             return SMTBVConstNode (KIND_CONSTN, _bvSortNode (bw), value, bw)
         else:
             assert (len(t) > 1)
-            #name = "(" + " ".join([str(s) for s in t]) + ")"  # TODO use indices
             return _funNode (t[1], KIND_FUN, None, indices = t[2:])
     else:
-       # TODO insert into funs hash / check for existing fun
-        return SMTFunNode (t[0], KIND_FUN, None)
+        return _funNode (t[0], KIND_FUN, None)
 
 def _varBind2SMTNode (s, l, t):
-    return SMTVarBindNode (SMTFunNode (t[0], KIND_FUN, t[1].sort), [t[1]])
+    return SMTVarBindNode (_funNode (t[0], KIND_FUN, t[1].sort), [t[1]])
 
 def _term2SMTNode (s, l, t):
     if (len(t) == 1):
@@ -331,10 +324,11 @@ def _cmd2SMTCmdNode (s, l, t):
         return SMTCmdNode (KIND_DEFSORT, [string])
     elif (kind == KIND_DECLFUN):
         return SMTCmdNode (
-            KIND_DECLFUN, [SMTFunNode (t[1], KIND_FUN, t[3], t[2])])
+            KIND_DECLFUN, [_funNode (t[1], KIND_FUN, t[3], t[2])])
     elif (kind == KIND_DEFFUN):
+        sorts = [to.sort for to in t[2]]
         return SMTCmdNode (
-            KIND_DEFFUN, [SMTFunNode (t[1], KIND_FUN, t[3], t[2], [t[4]])])
+            KIND_DEFFUN, [_funNode (t[1], KIND_FUN, t[3], sorts), t[2], t[4]])
     else:
         return SMTCmdNode (t[0], children = t[1:])
 
@@ -361,7 +355,7 @@ attribute.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 option.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
 qual_identifier.setParseAction(_qualIdent2SMTNode)
-sorted_var.setParseAction(lambda s,l,t: SMTFunNode (t[0], KIND_FUN, t[1]))
+sorted_var.setParseAction(lambda s,l,t: _funNode (t[0], KIND_FUN, t[1]))
 var_binding.setParseAction(_varBind2SMTNode)
 term.setParseAction(_term2SMTNode)
 
@@ -385,7 +379,7 @@ KIND_FUN    = "var/fun symbol"
 KIND_LET    = "let"
 KIND_SORT   = "sort"
 #KIND_AVAR   = "annotated-var"
-#KIND_SVAR   = "sorted-var"  # TODO necessary?
+#KIND_SVAR   = "sorted-var"
 #KIND_VAR    = "var"         # TODO not necessary
 KIND_VARB   = "var-binding"
 
@@ -570,10 +564,10 @@ g_funs  = {}
 
 class DDSMTError (Exception):
 
-    def __init__ (self, msg):
+    def __init__(self, msg):
         self.msg = msg
     
-    def __str__ (self):
+    def __str__(self):
         return "[ddsmt] Error: {0:s}".format(self.msg)
 
 
@@ -592,14 +586,20 @@ class SMTNode:
         return len(self.children)
 
     def __str__(self):
-        if (self.kind == KIND_LET or 
-            self.kind == KIND_FORALL or 
-            self.kind == KIND_EXISTS):
+        if (self.kind == KIND_LET):
             assert (len(self.children) == 2)
             assert (len(self.children[0]) > 0)
             return "({0:s} ({1:s}) {2:s})".format(
                     self.kind,
                     " ".join([str(s) for s in self.children[0]]),
+                    str(self.children[1]))
+        elif (self.kind in (KIND_FORALL, KIND_EXISTS)):
+            assert (len(self.children) == 2)
+            assert (len(self.children[0]) > 0)
+            return "({0:s} ({1:s}) {2:s})".format(
+                    self.kind,
+                    " ".join(["({0:s} {1:s})".format(s.name, str(s.sort)) 
+                              for s in self.children[0]]),
                     str(self.children[1]))
 
         return "({0:s}{1:s})".format(self.kind, self.children2string())
@@ -627,7 +627,7 @@ class SMTVarBindNode (SMTNode):
 class SMTFunNode (SMTNode):
 
     def __init__(self, name, kind, sort, sorts = [], indices = []):
-        assert (kind == KIND_FUN or kind == KIND_ANNFUN)
+        assert (kind in (KIND_FUN, KIND_ANNFUN))
         super().__init__(kind, sort)
         self.name = name
         self.sorts = sorts      # signature sorts
@@ -667,6 +667,8 @@ class SMTSortNode (SMTNode):
     def __str__(self):
         return self.name
 
+#    def __eq__(self, other):
+#        return self.name == other.name
 
 class SMTConstNode (SMTNode):
 
@@ -732,17 +734,18 @@ class SMTCmdNode:
                                                           else "",
                     str(fun.sort))
         elif (self.kind == DEFFUN):
-            assert (len(self.children) == 1)
+            assert (len(self.children) == 3)
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
-            assert (len(fun.children[0]) == 1)
+            svars = self.children[1]
+            fterm = self.children[2]
             return "({0:s} {1:s} ({2:s}) {3:s} {4:s})".format(
                     self.kind,
                     fun.name,
-                    " ".join([str(s) for s in fun.sorts]) if len(fun.sorts) > 0 
-                                                          else "",
+                    " ".join(["({0:s} {1:s})".format(s.name, str(s.sort)) 
+                              for s in svars]) if len(svars) > 0 else "",
                     str(fun.sort),
-                    str(fun.children[0]))
+                    str(fterm))
         elif (self.kind == DECLSORT):
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTSortNode))
