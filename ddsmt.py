@@ -715,30 +715,25 @@ def _funapp2Sort (fun, children):
 def _hex2SMTNode (s, l, t):
     global g_is_bv_logic
     assert (len(t) == 1)
-    if (not g_is_bv_logic):
-        return SMTConstNode (KIND_CONSTH, value = int(t[0][2:], 16), 
-                   original_str = t[0]) # TODO debug
-    else:
-        value = int(t[0][2:], 16)
-        bw = value.bit_length()
-        return SMTBVConstNode (KIND_CONSTH, 
-                               _bvSortNode (bw),
-                               value,
-                               bw,
-                               original_str = t[0]) # TODO debug
+    value = int(t[0][2:], 16)
+    bw = value.bit_length()
+    return SMTBVConstNode (KIND_CONSTH, 
+                           _bvSortNode (bw),
+                           value,
+                           bw,
+                           original_str = t[0]) # TODO debug
 
 def _bin2SMTNode (s, l, t):
     global g_is_bv_logic
     assert (len(t) == 1)
-    if (not g_is_bv_logic):
-        return SMTConstNode (KIND_CONSTB, value = int(t[0][2:], 2))
-    else:
-        value = int(t[0][2:], 2)
-        bw = value.bit_length()
-        return SMTBVConstNode (KIND_CONSTB, 
-                               _bvSortNode (bw),
-                               value,
-                               bw)
+    value = int(t[0][2:], 2)
+    bw = value.bit_length()
+    return SMTBVConstNode (KIND_CONSTB, 
+                           _bvSortNode (bw),
+                           value,
+                           bw)
+
+
 def _sexprAttrv2token (s, l, t):
     if (not t[0] == '('):
         return t
