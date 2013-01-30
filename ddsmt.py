@@ -244,8 +244,7 @@ class SMTSortNode (SMTNode):
 
 class SMTConstNode (SMTNode):
 
-    # TODO sort??
-    def __init__(self, kind, sort = None, value = 0, original_str = "none"):
+    def __init__(self, kind, sort, value = 0, original_str = "none"):
         assert (kind in g_const_kinds)                    # ^^^^ TODO debug
         super().__init__(kind, sort)
         self.value = value
@@ -446,7 +445,7 @@ EXIT      = Keyword ("exit")
 
 
 # ----------------------------- SMTLib 2 grammar ----------------------------- #
-unknown  = empty - ~Word(printables).setName("<unknown>") # TODO needed?
+unknown  = empty - ~Word(printables).setName("<unknown>")
 
 comment         = Suppress (';' + restOfLine)
 
@@ -591,6 +590,36 @@ def _close_scope (nscopes = 1):
         g_cur_scope = g_cur_scope.prev
         assert (g_cur_scope != None)
 
+def _add_sort (name, nparams, scope):
+    assert (_find_sort (name) == None)
+    sort = SMTSortNode (name, nparams) 
+    scope.sorts[name] = sort
+    return sort
+
+def _find_sort (name):
+    global g_cur_scope
+    scope = g_cur_scope
+    while scope != None:
+        if (name in scope.sorts):
+            return scope.sorts[name]
+        scope = scope.prev
+    return None
+
+def _add_fun (name, kind, sort, sorts, indices, scope):
+    assert (_find_fun (name) == None)
+    fun = SMTFunNode (name, kind, sort, sorts, indices)
+    scope.funs[name] = fun
+    return fun
+
+def _find_fun (name):
+    global g_cur_scopes
+    scope = g_cur_scope
+    while scope != None:
+        if (name in scope.funs):
+            return scope.funs[name]
+        scope = scope.prev
+    return None
+
 
 def _cmdNode (kind, children = []):
     global g_logic
@@ -632,20 +661,13 @@ def _smtNode (kind, sort = None, children = []):
     return SMTNode (kind, sort, children)
 
 
-def _add_sort (name, nparams, scope):
-    assert (_find_sort (name) == None)
-    sort = SMTSortNode (name, nparams) 
-    scope.sorts[name] = sort
-    return sort
+def _funNode (name, kind, sort, sorts = [], indices = [], scope = g_scopes):
+    fun = _find_fun (name)
+    if (fun == None):
+        return _add_fun (name, kind, sort, sorts, indices,scope)
+    assert (fun.name == name)
+    return fun
 
-def _find_sort (name):
-    global g_cur_scope
-    scope = g_cur_scope
-    while scope != None:
-        if (name in scope.sorts):
-            return scope.sorts[name]
-        scope = scope.prev
-    return None
 
 def _sortNode (name, nparams = 0, scope = g_scopes):
     sort = _find_sort (name)
@@ -660,27 +682,6 @@ def _bvSortNode (bw):
     name = "(_ BitVec {0:d})".format(bw)
     return _sortNode (name)
 
-def _add_fun (name, kind, sort, sorts, indices, scope):
-    assert (_find_fun (name) == None)
-    fun = SMTFunNode (name, kind, sort, sorts, indices)
-    scope.funs[name] = fun
-    return fun
-
-def _find_fun (name):
-    global g_cur_scopes
-    scope = g_cur_scope
-    while scope != None:
-        if (name in scope.funs):
-            return scope.funs[name]
-        scope = scope.prev
-    return None
-
-def _funNode (name, kind, sort, sorts = [], indices = [], scope = g_scopes):
-    fun = _find_fun (name)
-    if (fun == None):
-        return _add_fun (name, kind, sort, sorts, indices,scope)
-    assert (fun.name == name)
-    return fun
 
 def _funapp2Sort (fun, children):
     global g_is_bv_logic
@@ -818,9 +819,9 @@ def _cmd2SMTCmdNode (s, l, t):
 
 
 numeral.setParseAction(lambda s,l,t: 
-        SMTConstNode (KIND_CONSTN, value = int(t[0])))
+        SMTConstNode (KIND_CONSTN, _sortNode ("Int"), value = int(t[0])))
 decimal.setParseAction(lambda s,l,t:
-        SMTConstNode (KIND_CONSTD, value = float(t[0])))
+        SMTConstNode (KIND_CONSTD, _sortNode ("Real"), value = float(t[0])))
 hexadecimal.setParseAction(_hex2SMTNode)
 binary.setParseAction(_bin2SMTNode)
 string.setParseAction(lambda s,l,t:
