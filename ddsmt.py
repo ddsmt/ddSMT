@@ -1,15 +1,13 @@
 #! /usr/bin/env python3
 
+# TODO: attributes currently handled as string only
+#       -> no manipulation of attribute values
+
 from pyparsing import *
 from optparse import OptionParser
 
-# TODO kind only in specialised nodes?
-
-KIND_CONSTB = "const bin"
-KIND_CONSTD = "const dec"
-KIND_CONSTN = "const num"
-KIND_CONSTH = "const hex"
-KIND_CONSTS = "const string"
+#KIND_FALSE  = "false"
+#KIND_TRUE   = "true"
 
 KIND_ANNOTN = "!"
 KIND_EXISTS = "exists"
@@ -18,19 +16,19 @@ KIND_LET    = "let"
 
 KIND_ANNFUN = "annotated fun symbol"
 KIND_FUN    = "var or fun symbol"
-KIND_SORT   = "sort"
+KIND_VARB   = "var binding"
+
 KIND_SCOPE  = "scope"
 KIND_ESCOPE = "exists scope"
 KIND_FSCOPE = "forall scope"
-KIND_VARB   = "var binding"
 
-KIND_ATTRIB = "attribute"
-#KIND_AVAR   = "annotated-var"
-#KIND_SVAR   = "sorted-var"
-#KIND_VAR    = "var"         # TODO not necessary
+KIND_SORT   = "sort"
 
-KIND_FALSE  = "false"
-KIND_TRUE   = "true"
+KIND_CONSTB = "const bin"
+KIND_CONSTD = "const dec"
+KIND_CONSTN = "const num"
+KIND_CONSTH = "const hex"
+KIND_CONSTS = "const string"
 
 KIND_AND    = "and"
 KIND_IMPL   = "implies"
@@ -113,6 +111,28 @@ KIND_SETINFO   = "set-info"
 KIND_SETOPT    = "set-option"
 
 
+g_const_kinds = \
+    [ KIND_CONSTB, KIND_CONSTD, KIND_CONSTN, KIND_CONSTH, KIND_CONSTS ]
+
+g_fun_kinds   = \
+    [ KIND_AND,    KIND_IMPL,   KIND_ITE,    KIND_NOT,    KIND_OR,    
+      KIND_XOR,    KIND_EQ,     KIND_DIST,   KIND_LE,     KIND_LT,
+      KIND_GE,     KIND_GT,     KIND_ABS,    KIND_ADD,    KIND_DIV,
+      KIND_MOD,    KIND_MUL,    KIND_NEG,    KIND_SUB,    KIND_RDIV,
+      KIND_CONC,   KIND_EXTR,   KIND_REP,    KIND_ROL,    KIND_ROR,
+      KIND_SEXT,   KIND_ZEXT,   KIND_BVADD,  KIND_BVAND,  KIND_BVASHR,
+      KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNEG, 
+      KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,
+      KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, 
+      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV, 
+      KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR ]
+
+g_cmd_kinds   = \
+    [ KIND_ASSERT,   KIND_CHECKSAT, KIND_DECLFUN,   KIND_DEFFUN, 
+      KIND_DECLSORT, KIND_DEFSORT,  KIND_GETASSERT, KIND_GETASSIGN, 
+      KIND_GETPROOF, KIND_GETUCORE, KIND_GETVALUE,  KIND_GETOPT,
+      KIND_GETINFO,  KIND_EXIT,     KIND_PUSH,      KIND_POP,
+      KIND_SETLOGIC, KIND_SETINFO,  KIND_SETOPT ]
 
 
 class DDSMTError (Exception):
@@ -128,41 +148,35 @@ class SMTNode:
     g_id = 0
 
     def __init__(self, kind = "none", sort = None, children = []):
+        assert (isinstance (children, list))
         SMTNode.g_id += 1
         self.id = SMTNode.g_id
         self.kind = kind
         self.sort = sort
         self.children = children
-        # parents?
 
     def arity(self):
         return len(self.children)
 
     def __str__(self):
-        if (self.kind == KIND_LET):
+        if (self.kind == KIND_ANNOTN):
             assert (len(self.children) == 2)
-            assert (len(self.children[0]) > 0)
-            return "({0:s} ({1:s}) {2:s})".format(
-                    self.kind,
-                    " ".join([str(s) for s in self.children[0]]),
-                    str(self.children[1]))
-        elif (self.kind in (KIND_FORALL, KIND_EXISTS)):
-            assert (len(self.children) == 2)
-            assert (len(self.children[0]) > 0)
-            return "({0:s} ({1:s}) {2:s})".format(
-                    self.kind,
-                    " ".join(["({0:s} {1:s})".format(s.name, str(s.sort)) 
-                              for s in self.children[0]]),
-                    str(self.children[1]))
-        elif (self.kind == KIND_ANNOTN):
-            assert (len(self.children) == 2)
-            return "(! {0:s})".format(" ".join([str(c) for c in self.children]))
+            return "(! {0:s} {1:s})".format(
+                    str(self.children[0]), 
+                    " ".join([str(c) for c in self.children[1]]))
 
         return "({0:s}{1:s})".format(self.kind, self.children2string())
 
     def children2string(self):
         if (self.arity() >= 1):
-            return " " + " ".join([str(c) for c in self.children])
+            strings = []
+            for c in self.children:
+                if (isinstance(c, list)):
+                    strings.append("({0:s})".format(
+                        " ".join([str(cc) for cc in c])))
+                else:
+                    strings.append(str(c))
+            return " " + " ".join([s for s in strings])
         else:
             return ""
 
@@ -170,7 +184,8 @@ class SMTNode:
 class SMTVarBindNode (SMTNode):
 
     def __init__(self, var, children = []):
-        assert (isinstance(var, SMTFunNode))
+        assert (isinstance (var, SMTFunNode))
+        assert (isinstance (children, list))
         assert (len(children) == 1)
         super().__init__(KIND_VARB, children = children)
         self.var = var
@@ -184,6 +199,8 @@ class SMTFunNode (SMTNode):
 
     def __init__(self, name, kind, sort, sorts = [], indices = []):
         assert (kind in (KIND_FUN, KIND_ANNFUN))
+        assert (isinstance (sorts, list))
+        assert (isinstance (indices, list))
         super().__init__(kind, sort)
         self.name = name
         self.sorts = sorts      # signature sorts
@@ -264,9 +281,11 @@ class SMTBVConstNode (SMTConstNode):
 
 class SMTCmdNode:
 
+    #TODO id
     def __init__(self, kind, children = []):
         global g_cmd_kinds
         assert (kind in g_cmd_kinds)
+        assert (isinstance (children, list))
         self.kind = kind
         self.children = children
 
@@ -305,24 +324,29 @@ class SMTCmdNode:
             sort = self.children[0]
             return "({0:s} {1:s} {2:d})".format(
                     self.kind, sort.name, sort.nparams)
-        elif (self.kind == GETVALUE):
-            return "({0:s} ({1:s}))".format(self.kind, self.children2string())
+        #elif (self.kind == GETVALUE):
+        #    return "({0:s} ({1:s}))".format(self.kind, self.children2string())
 
         return "({0:s}{1:s})".format(self.kind, self.children2string())
 
     def children2string(self):
         if (self.arity() >= 1):
-            return " " + " ".join([str(c) for c in self.children])
+            strings = []
+            for c in self.children:
+                if (isinstance (c, list)):
+                    strings.append("({0:s})".format(
+                        " ".join([str(cc) for cc in c])))
+                else:
+                    strings.append(str(c))
+            return " " + " ".join([s for s in strings])
+#            return " " + " ".join([str(c) for c in self.children])
         else:
             return ""
 
-def _asdf (cmd, scopes):
-    if (cmd.kind == KIND_PUSH):
-        return "{0:s} {1:s}".format(str(cmd), " ".join([str(s) for s in scopes]))
-    return str(cmd)
 
 class SMTScopeNode:
 
+    # TODO id
     def __init__ (self, level = 0, prev = None, kind = KIND_SCOPE):
         assert (kind in (KIND_SCOPE, KIND_FSCOPE, KIND_ESCOPE))
         self.level  = level
@@ -350,101 +374,16 @@ class SMTScopeNode:
 
 
 g_logic = ""
-#g_sorts = {}
-#g_funs  = {}
+g_is_bv_logic = False
 
 g_scopes = SMTScopeNode ()
 g_cur_scope = g_scopes
 
 
 
-g_const_kinds = [
-                  KIND_CONSTB, 
-                  KIND_CONSTD,
-                  KIND_CONSTN,
-                  KIND_CONSTH,
-                  KIND_CONSTS
-                ]
 
-g_fun_kinds   = [
-                  KIND_AND,
-                  KIND_IMPL,
-                  KIND_ITE,
-                  KIND_NOT,
-                  KIND_OR,
-                  KIND_XOR,
-                  KIND_EQ,
-                  KIND_DIST,
-                  KIND_LE,
-                  KIND_LT,
-                  KIND_GE,
-                  KIND_GT,
-                  KIND_ABS,
-                  KIND_ADD,
-                  KIND_DIV,
-                  KIND_MOD,
-                  KIND_MUL,
-                  KIND_NEG,
-                  KIND_SUB,
-                  KIND_RDIV,
-                  KIND_CONC,
-                  KIND_EXTR,
-                  KIND_REP,
-                  KIND_ROL,
-                  KIND_ROR,
-                  KIND_SEXT,
-                  KIND_ZEXT,
-                  KIND_BVADD,
-                  KIND_BVAND,
-                  KIND_BVASHR,
-                  KIND_BVCOMP,
-                  KIND_BVLSHR,
-                  KIND_BVMUL,
-                  KIND_BVNAND,
-                  KIND_BVNEG,
-                  KIND_BVNOR,
-                  KIND_BVNOT,
-                  KIND_BVOR, 
-                  KIND_BVSDIV,
-                  KIND_BVSGE,
-                  KIND_BVSGT,
-                  KIND_BVSHL,
-                  KIND_BVSLE,
-                  KIND_BVSLT,
-                  KIND_BVSMOD,
-                  KIND_BVSREM,
-                  KIND_BVSUB,
-                  KIND_BVUGE,
-                  KIND_BVUGT,
-                  KIND_BVUDIV,
-                  KIND_BVULE,
-                  KIND_BVULT,
-                  KIND_BVUREM,
-                  KIND_BVXNOR,
-                  KIND_BVXOR
-                ]
 
-g_cmd_kinds   = [
-                  KIND_ASSERT,
-                  KIND_CHECKSAT,
-                  KIND_DECLFUN,
-                  KIND_DEFFUN,
-                  KIND_DECLSORT,
-                  KIND_DEFSORT,
-                  KIND_GETASSERT,
-                  KIND_GETASSIGN,
-                  KIND_GETPROOF,
-                  KIND_GETUCORE,
-                  KIND_GETVALUE,
-                  KIND_GETOPT,
-                  KIND_GETINFO,
-                  KIND_EXIT,
-                  KIND_PUSH,
-                  KIND_POP,
-                  KIND_SETLOGIC,
-                  KIND_SETINFO,
-                  KIND_SETOPT
-                ]
+
 
 
 
@@ -529,7 +468,11 @@ keyword         = NoMatch().setName("keyword") \
                   | Combine (':' - Word(alphas + nums + spec_chars))
 
 spec_constant   = decimal | numeral | hexadecimal | binary | string
-s_expr          = spec_constant | symbol | keyword
+s_expr          = Forward()
+s_expr         << (spec_constant \
+                   | symbol      \
+                   | keyword     \
+                   | '(' + ZeroOrMore(s_expr) - RPAR)
 
 identifier      = NoMatch().setName("identifier") \
                   | symbol                        \
@@ -540,9 +483,14 @@ sort           << (NoMatch().setName("sort") \
                    | identifier              \
                    | LPAR + identifier + OneOrMore(sort) + RPAR)
 
-attr_value      = spec_constant | symbol | LPAR + ZeroOrMore(s_expr) - RPAR
+attr_value      = NoMatch().setName("attribute value") \
+                  | spec_constant                      \
+                  | symbol                             \
+                  | LPAR + ZeroOrMore(s_expr) - RPAR
+
 attribute       = NoMatch().setName("attribute") \
                   | keyword + Optional (attr_value)
+
 # be more lenient towards comment-style symbols in set-info
 spec_attr_value = attr_value | spec_symbol
 spec_attribute  = NoMatch().setName("attribute") \
@@ -648,6 +596,7 @@ def _cmdNode (kind, children = []):
     if (kind == KIND_SETLOGIC):
         assert (len(children) == 1)
         g_logic = children[0]
+        g_is_bv_logic = g_logic.find("BV") >= 0
 
     cmd = SMTCmdNode (kind, children)
     g_cur_scope.cmds.append(cmd)
@@ -731,10 +680,10 @@ def _funNode (name, kind, sort, sorts = [], indices = [], scope = g_scopes):
     assert (fun.name == name)
     return fun
 
-# TODO scopes!!
 def _funapp2Sort (fun, children):
+    global g_is_bv_logic
     # TODO support for other than bv operations
-    if (g_logic.find("BV") < 0):
+    if (not g_is_bv_logic):
         return None
     else:
         if (kind in (KIND_BVSGE, KIND_BVSGT, KIND_BVSLE, KIND_BVSLT, 
@@ -760,11 +709,10 @@ def _funapp2Sort (fun, children):
             return _bvSortNode (children[0].bw)
 
 
-    
 def _hex2SMTNode (s, l, t):
-    global g_logic
+    global g_is_bv_logic
     assert (len(t) == 1)
-    if (g_logic.find("BV") < 0):
+    if (not g_is_bv_logic):
         return SMTConstNode (KIND_CONSTH, value = int(t[0][2:], 16), 
                    original_str = t[0]) # TODO debug
     else:
@@ -777,9 +725,9 @@ def _hex2SMTNode (s, l, t):
                                original_str = t[0]) # TODO debug
 
 def _bin2SMTNode (s, l, t):
-    global g_logic
+    global g_is_bv_logic
     assert (len(t) == 1)
-    if (g_logic.find("BV") < 0):
+    if (not g_is_bv_logic):
         return SMTConstNode (KIND_CONSTB, value = int(t[0][2:], 2))
     else:
         value = int(t[0][2:], 2)
@@ -788,13 +736,18 @@ def _bin2SMTNode (s, l, t):
                                _bvSortNode (bw),
                                value,
                                bw)
+def _sexpr2token (s, l, t):
+    assert (len(t) == 1)
+    if (not isinstance(t[0], list)):
+        return t
+    return "({0:s})".format(" ".join([str(to) for to in t]))
 
 def _qualIdent2SMTNode (s, l, t):
-    global g_logic
+    global g_is_bv_logic
     if (t[0] == AS):
         return _funNode (t[1], KIND_ANNFUN, t[2])
     elif (t[0] == '_'):
-        if (t[1].find("bv") == 0 and g_logic.find("BV") >= 0):
+        if (t[1].find("bv") == 0 and g_is_bv_logic):
             assert (len(t) == 3)
             value = int(t[1][2:])
             bw = t[2].value
@@ -813,27 +766,29 @@ def _term2SMTNode (s, l, t):
         return t
     if (str(t[0]) == LET):
         assert (len(t) == 3)
-        return _smtNode (KIND_LET, t[2].sort, t[1:])
+        return _smtNode (KIND_LET, t[2].sort, [t[1][0:], t[2]])
     elif (str(t[0]) == FORALL):
         assert (len(t) == 3)
-        return _smtNode (KIND_FORALL, t[2].sort, t[1:])
+        return _smtNode (KIND_FORALL, t[2].sort, [t[1][0:], t[2]])
     elif (str(t[0]) == EXISTS):
         assert (len(t) == 3)
-        return _smtNode (KIND_EXISTS, t[2].sort, t[1:])
+        return _smtNode (KIND_EXISTS, t[2].sort, [t[1][0:], t[2]])
     elif (str(t[0]) == '!'):
         assert (len(t) == 3)
-        return _smtNode (KIND_ANNOTN, t[1].sort, t[1:])
+        return _smtNode (KIND_ANNOTN, t[1].sort, [t[1], t[2][0:]])
     else:
         assert (isinstance(t[0], SMTFunNode))
-        return SMTFunAppNode (t[0], t[1])
+        return SMTFunAppNode (t[0], t[1][0:])
 
 def _cmd2SMTCmdNode (s, l, t):
     global g_cur_scope
     kind = t[0]
     if (kind == KIND_DECLSORT):
+        assert (len(t) == 3)
         return _cmdNode (KIND_DECLSORT, 
                          [_sortNode (t[1], t[2].value, g_cur_scope)])
-    elif (kind == KIND_DEFSORT):  # TODO not entirely supported yet
+    elif (kind == KIND_DEFSORT):
+        assert (len(t) == 4)
         # TODO sort is currently not added here, concrete sort is added to 
         # scope level 0 when encountered !!!!
         string = "{0:s} ({1:s}) {2:s}".format(
@@ -842,16 +797,21 @@ def _cmd2SMTCmdNode (s, l, t):
                      str(t[3]))
         return _cmdNode (KIND_DEFSORT, [string])
     elif (kind == KIND_DECLFUN):
+        assert (len(t) == 4)
         return _cmdNode (
             KIND_DECLFUN, 
-            [_funNode (t[1], KIND_FUN, t[3], t[2], scope = g_cur_scope)])
+            [_funNode (t[1], KIND_FUN, t[3], t[2][0:], scope = g_cur_scope)])
     elif (kind == KIND_DEFFUN):
+        assert (len(t) == 5)
         sorts = [to.sort for to in t[2]]
         return _cmdNode (
             KIND_DEFFUN, 
             [_funNode (t[1], KIND_FUN, t[3], sorts, scope = g_cur_scope), 
-             t[2], 
+             t[2][0:], 
              t[4]])
+    elif (kind == KIND_GETVALUE):
+        assert (len(t) == 2)
+        return _cmdNode (KIND_GETVALUE, [t[1][0:]])
     else:
         return _cmdNode (t[0], children = t[1:])
 
@@ -868,11 +828,14 @@ string.setParseAction(lambda s,l,t:
 symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 spec_symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
+s_expr.setParseAction(_sexpr2token)
+
 sort.setParseAction(lambda s,l,t:
         _sortNode (
             "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 else t[0],
             len(t) - 1))
 
+attr_value.setParseAction(lambda s, l, t: " ".join([str(to) for to in t]))
 attribute.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
 option.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
