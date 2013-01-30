@@ -145,6 +145,7 @@ class DDSMTError (Exception):
 
 
 class SMTNode:
+
     g_id = 0
 
     def __init__(self, kind = "none", sort = None, children = []):
@@ -240,8 +241,6 @@ class SMTSortNode (SMTNode):
     def __str__(self):
         return self.name
 
-#    def __eq__(self, other):
-#        return self.name == other.name
 
 class SMTConstNode (SMTNode):
 
@@ -281,11 +280,14 @@ class SMTBVConstNode (SMTConstNode):
 
 class SMTCmdNode:
 
-    #TODO id
+    g_id = 0
+    
     def __init__(self, kind, children = []):
         global g_cmd_kinds
         assert (kind in g_cmd_kinds)
         assert (isinstance (children, list))
+        SMTCmdNode.g_id += 1
+        self.id = SMTCmdNode.g_id
         self.kind = kind
         self.children = children
 
@@ -324,8 +326,6 @@ class SMTCmdNode:
             sort = self.children[0]
             return "({0:s} {1:s} {2:d})".format(
                     self.kind, sort.name, sort.nparams)
-        #elif (self.kind == GETVALUE):
-        #    return "({0:s} ({1:s}))".format(self.kind, self.children2string())
 
         return "({0:s}{1:s})".format(self.kind, self.children2string())
 
@@ -339,16 +339,18 @@ class SMTCmdNode:
                 else:
                     strings.append(str(c))
             return " " + " ".join([s for s in strings])
-#            return " " + " ".join([str(c) for c in self.children])
         else:
             return ""
 
 
 class SMTScopeNode:
 
-    # TODO id
+    g_id = 0
+    
     def __init__ (self, level = 0, prev = None, kind = KIND_SCOPE):
         assert (kind in (KIND_SCOPE, KIND_FSCOPE, KIND_ESCOPE))
+        SMTScopeNode.g_id += 1
+        self.id = SMTScopeNode.g_id
         self.level  = level
         self.prev   = prev
         self.kind   = kind
@@ -486,7 +488,7 @@ sort           << (NoMatch().setName("sort") \
 attr_value      = NoMatch().setName("attribute value") \
                   | spec_constant                      \
                   | symbol                             \
-                  | LPAR + ZeroOrMore(s_expr) - RPAR
+                  | '(' + ZeroOrMore(s_expr) - RPAR
 
 attribute       = NoMatch().setName("attribute") \
                   | keyword + Optional (attr_value)
@@ -736,12 +738,11 @@ def _bin2SMTNode (s, l, t):
                                _bvSortNode (bw),
                                value,
                                bw)
-def _sexpr2token (s, l, t):
-    assert (len(t) == 1)
-    if (not isinstance(t[0], list)):
+def _sexprAttrv2token (s, l, t):
+    if (not t[0] == '('):
         return t
-    return "({0:s})".format(" ".join([str(to) for to in t]))
-
+    return "({0:s})".format(" ".join([str(to) for to in t[1:]]))
+    
 def _qualIdent2SMTNode (s, l, t):
     global g_is_bv_logic
     if (t[0] == AS):
@@ -828,14 +829,14 @@ string.setParseAction(lambda s,l,t:
 symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 spec_symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
-s_expr.setParseAction(_sexpr2token)
+s_expr.setParseAction(_sexprAttrv2token)
 
 sort.setParseAction(lambda s,l,t:
         _sortNode (
             "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 else t[0],
             len(t) - 1))
 
-attr_value.setParseAction(lambda s, l, t: " ".join([str(to) for to in t]))
+attr_value.setParseAction(_sexprAttrv2token)
 attribute.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 
 option.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
