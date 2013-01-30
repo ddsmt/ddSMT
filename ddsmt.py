@@ -12,21 +12,23 @@ KIND_CONSTH = "const hex"
 KIND_CONSTS = "const string"
 
 KIND_ANNOTN = "!"
-KIND_ANNFUN = "annotated fun symbol"
-KIND_ATTRIB = "attribute"
 KIND_EXISTS = "exists"
 KIND_FORALL = "forall"
-KIND_FUN    = "var/fun symbol"
 KIND_LET    = "let"
+
+KIND_ANNFUN = "annotated fun symbol"
+KIND_FUN    = "var or fun symbol"
 KIND_SORT   = "sort"
+KIND_SCOPE  = "scope"
+KIND_ESCOPE = "exists scope"
+KIND_FSCOPE = "forall scope"
+KIND_VARB   = "var binding"
+
+KIND_ATTRIB = "attribute"
 #KIND_AVAR   = "annotated-var"
 #KIND_SVAR   = "sorted-var"
 #KIND_VAR    = "var"         # TODO not necessary
-KIND_VARB   = "var-binding"
 
-KIND_SCOPE  = "scope"
-KIND_FSCOPE = "forall scope"
-KIND_ESCOPE = "exists scope"
 KIND_FALSE  = "false"
 KIND_TRUE   = "true"
 
@@ -152,6 +154,9 @@ class SMTNode:
                     " ".join(["({0:s} {1:s})".format(s.name, str(s.sort)) 
                               for s in self.children[0]]),
                     str(self.children[1]))
+        elif (self.kind == KIND_ANNOTN):
+            assert (len(self.children) == 2)
+            return "(! {0:s})".format(" ".join([str(c) for c in self.children]))
 
         return "({0:s}{1:s})".format(self.kind, self.children2string())
 
