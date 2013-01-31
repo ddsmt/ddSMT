@@ -445,30 +445,42 @@ EXIT      = Keyword ("exit")
 
 
 # ----------------------------- SMTLib 2 grammar ----------------------------- #
-unknown  = empty - ~Word(printables).setName("<unknown>")
+unknown         = empty - ~Word(printables).setName("<unknown>")
 
 comment         = Suppress (';' + restOfLine)
 
 spec_chars      = "+-/*=%?!.$_~&^<>@"
 
-numeral         = '0' | Regex (r'[1-9][0-9]*')
-decimal         = Combine (numeral + '.' + Word(nums))
-hexadecimal     = Combine ("#x" - Word(hexnums))
-binary          = Combine ("#b" - Word("01"))
-string          = dblQuotedString
+numeral         = NoMatch().setName("numeral") | '0' | Regex (r'[1-9][0-9]*')
+
+decimal         = NoMatch().setName("decimal constant") \
+                  | Combine (numeral + '.' 
+                                     + Word(nums).setName("numerical digit"))
+
+hexadecimal     = NoMatch().setName("hexadecimal constant") \
+                  | Combine ("#x" - Word(hexnums).setName("hexadecimal digits"))
+
+binary          = NoMatch().setName("binary constant") \
+                  | Combine ("#b" - Word("01").setName("binary digits"))
+
+string          = NoMatch().setName("string constant") | dblQuotedString
 
 symb_str        = Word(alphas + spec_chars, alphas + nums + spec_chars,
                        excludeChars = ['|', '\\'])
-symbol          = NoMatch().setName("symbol") | '|' + symb_str + '|' | symb_str
+symbol          = NoMatch().setName("symbol") \
+                  | '|' + symb_str + '|' | symb_str
 
 spec_symb_str   = OneOrMore (Word (printables, excludeChars = ['|', '\\']))
-spec_symbol     = '|' + spec_symb_str + '|' | symb_str
+spec_symbol     = NoMatch().setName("symbol") \
+                  | '|' + spec_symb_str + '|' | symb_str
 
 
 keyword         = NoMatch().setName("keyword") \
                   | Combine (':' - Word(alphas + nums + spec_chars))
 
-spec_constant   = decimal | numeral | hexadecimal | binary | string
+spec_constant   = NoMatch().setName("special constant") \
+                  | decimal | numeral | hexadecimal | binary | string
+
 s_expr          = Forward()
 s_expr         << (spec_constant \
                    | symbol      \
@@ -493,7 +505,8 @@ attribute       = NoMatch().setName("attribute") \
                   | keyword + Optional (attr_value)
 
 # be more lenient towards comment-style symbols in set-info
-spec_attr_value = attr_value | spec_symbol
+spec_attr_value = NoMatch().setName("attribute value") \
+                  | attr_value | spec_symbol  
 spec_attribute  = NoMatch().setName("attribute") \
                   | keyword + Optional (spec_attr_value)
 
@@ -501,7 +514,8 @@ term            = Forward()
 qual_identifier = identifier | LPAR + AS - identifier + sort + RPAR
 var_binding     = LPAR + symbol + term + RPAR
 sorted_var      = LPAR + symbol + sort + RPAR
-term           << (spec_constant                                               \
+term           << (NoMatch().setName("term")                                   \
+                   | spec_constant                                             \
                    | qual_identifier                                           \
                    | LPAR + LET - LPAR + Group(OneOrMore(var_binding)) + RPAR  \
                                 + term + RPAR                                  \
@@ -820,7 +834,7 @@ decimal.setParseAction(lambda s,l,t:
 hexadecimal.setParseAction(_hex2SMTNode)
 binary.setParseAction(_bin2SMTNode)
 string.setParseAction(lambda s,l,t:
-        SMTConstNode (KIND_CONSTS, value = t[0]))
+        SMTConstNode (KIND_CONSTS, _sortNode ("String"), value = t[0]))
 
 symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
 spec_symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
