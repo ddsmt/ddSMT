@@ -895,23 +895,9 @@ if __name__ == "__main__":
         print (" ".join(str(s) for s in parsed.asList()))
         print ("--------------------------------------------------")
         print (g_scopes)
-   #     print ("## len:" + str(len(g_scopes.scopes)))
-   #     for s in g_scopes.scopes:
-   #         print ("+++")
-   #         print (str(s))
-   #         print ("+++")
-
+    except ParseSyntaxException as e:
+        print ("[ddsmt] " + e.line)
+        print ("[ddsmt] " + " "*(e.column - 2) + "^")
+        print ("[ddsmt] " + str(e))
     except RuntimeError:
         print ("exceeded recursion limit again!")
-
-   # try:
-#    parsed = script.parseFile(infile, parseAll = True)
-#    print (" ".join(str(s) for s in parsed.asList()))
-  #  except ParseException as err:
-  #      print (err.line)
-  #      print (" "*(err.column-2) + "^")
-  #      print (err)
-   # for s in parsed.asList():
-   #     print ("-----")
-   #     print (s)
-    
