@@ -476,15 +476,17 @@ spec_symbol     = NoMatch().setName("symbol") \
 
 
 keyword         = NoMatch().setName("keyword") \
-                  | Combine (':' - Word(alphas + nums + spec_chars))
+                  | Combine (':' - Word(
+                      alphas + nums + spec_chars).setName("keyword string"))
 
 spec_constant   = NoMatch().setName("special constant") \
                   | decimal | numeral | hexadecimal | binary | string
 
 s_expr          = Forward()
-s_expr         << (spec_constant \
-                   | symbol      \
-                   | keyword     \
+s_expr         << (NoMatch().setName("s-expression") \
+                   | spec_constant                   \
+                   | symbol                          \
+                   | keyword                         \
                    | '(' + ZeroOrMore(s_expr) - RPAR)
 
 identifier      = NoMatch().setName("identifier") \
@@ -511,9 +513,12 @@ spec_attribute  = NoMatch().setName("attribute") \
                   | keyword + Optional (spec_attr_value)
 
 term            = Forward()
-qual_identifier = identifier | LPAR + AS - identifier + sort + RPAR
-var_binding     = LPAR + symbol + term + RPAR
-sorted_var      = LPAR + symbol + sort + RPAR
+qual_identifier = NoMatch().setName("qualified identifier") \
+                  | identifier | LPAR + AS - identifier + sort + RPAR
+var_binding     = NoMatch().setName("variable binding") \
+                  | LPAR + symbol + term + RPAR
+sorted_var      = NoMatch().setName("sorted variable") \
+                  | LPAR + symbol + sort + RPAR
 term           << (NoMatch().setName("term")                                   \
                    | spec_constant                                             \
                    | qual_identifier                                           \
@@ -525,9 +530,10 @@ term           << (NoMatch().setName("term")                                   \
                                    + term + RPAR                               \
                    | LPAR + '!' - term + Group(OneOrMore(attribute)) + RPAR    \
                    | LPAR + qual_identifier + Group(OneOrMore(term)) + RPAR)      
-b_value         = NoMatch().setName("Boolean value") | TRUE | FALSE
+b_value         = NoMatch().setName("'true' or 'false'") | TRUE | FALSE
 
-option          = PRINTSUCC - b_value   \
+option          = NoMatch().setName("option") \
+                  | PRINTSUCC - b_value \
                   | EXPANDDEF - b_value \
                   | INTERMODE - b_value \
                   | PRODPROOF - b_value \
@@ -540,13 +546,14 @@ option          = PRINTSUCC - b_value   \
                   | VERBOSITY - numeral \
                   | attribute
 
-info_flag       = ERRBEHAVR  \
-                  | NAME     \
-                  | AUTHORS  \
-                  | VERSION  \
-                  | STATUS   \
-                  | RUNKNOWN \
-                  | ALLSTAT  \
+info_flag       = NoMatch().setName("info flag") \
+                  | ERRBEHAVR                    \
+                  | NAME                         \
+                  | AUTHORS                      \
+                  | VERSION                      \
+                  | STATUS                       \
+                  | RUNKNOWN                     \
+                  | ALLSTAT                      \
                   | keyword
 
 command         = NoMatch().setName("command")                                \
