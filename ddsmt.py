@@ -6,9 +6,6 @@
 from pyparsing import *
 from optparse import OptionParser
 
-#KIND_FALSE  = "false"
-#KIND_TRUE   = "true"
-
 KIND_ANNOTN = "!"
 KIND_EXISTS = "exists"
 KIND_FORALL = "forall"
@@ -24,6 +21,7 @@ KIND_FSCOPE = "forall scope"
 
 KIND_SORT   = "sort"
 
+KIND_CONST  = "const bool"
 KIND_CONSTB = "const bin"
 KIND_CONSTD = "const dec"
 KIND_CONSTN = "const num"
@@ -52,6 +50,10 @@ KIND_MUL    = "*"
 KIND_NEG    = "neg"
 KIND_SUB    = "-"
 KIND_RDIV   = "/"
+
+KIND_ISI    = "is_int"
+KIND_TOI    = "to_int"
+KIND_TOR    = "to_real"
 
 KIND_CONC   = "concat"
 KIND_EXTR   = "extract"
@@ -119,13 +121,14 @@ g_fun_kinds   = \
       KIND_XOR,    KIND_EQ,     KIND_DIST,   KIND_LE,     KIND_LT,
       KIND_GE,     KIND_GT,     KIND_ABS,    KIND_ADD,    KIND_DIV,
       KIND_MOD,    KIND_MUL,    KIND_NEG,    KIND_SUB,    KIND_RDIV,
-      KIND_CONC,   KIND_EXTR,   KIND_REP,    KIND_ROL,    KIND_ROR,
-      KIND_SEXT,   KIND_ZEXT,   KIND_BVADD,  KIND_BVAND,  KIND_BVASHR,
-      KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNEG, 
-      KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,
-      KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, 
-      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV, 
-      KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR ]
+      KIND_ISI,    KIND_TOI,    KIND_TOR,    KIND_CONC,   KIND_EXTR,
+      KIND_REP,    KIND_ROL,    KIND_ROR,    KIND_SEXT,   KIND_ZEXT,
+      KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP, KIND_BVLSHR, 
+      KIND_BVMUL,  KIND_BVNAND, KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,
+      KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,  KIND_BVSHL,
+      KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, KIND_BVSREM, KIND_BVSUB,
+      KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,
+      KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR ]
 
 g_cmd_kinds   = \
     [ KIND_ASSERT,   KIND_CHECKSAT, KIND_DECLFUN,   KIND_DEFFUN, 
@@ -135,7 +138,7 @@ g_cmd_kinds   = \
       KIND_SETLOGIC, KIND_SETINFO,  KIND_SETOPT ]
 
 
-class DDSMTError (Exception):
+class DDSMTException (Exception):
 
     def __init__(self, msg):
         self.msg = msg
@@ -221,10 +224,13 @@ class SMTFunAppNode (SMTNode):
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
         if (fun.name in g_fun_kinds):
-            kind = fun.name
+            if (fun.name == '-' and len(children) == 1):
+                kind = KIND_NEG
+            else:
+                kind = fun.name
         else:
             kind = fun.kind
-        sort = fun.sort
+        sort = _funapp2Sort (fun, kind, children)
         super().__init__(kind, sort, children)
         self.fun = fun
 
@@ -241,6 +247,15 @@ class SMTSortNode (SMTNode):
     def __str__(self):
         return self.name
 
+#    def __eq__(self, other):
+#        if (self is None or other is None):
+#            return self is None and other is None
+#        return self.name == other.name
+# 
+#    def __ne__(self, other):
+#        if (self is None or other is None):
+#            return not (self is None and other is None)
+#        return self.name != other.name
 
 class SMTConstNode (SMTNode):
 
@@ -265,7 +280,10 @@ class SMTBVConstNode (SMTConstNode):
         self.original_str = original_str  # TODO debug
 
     def __str__(self):
-        if (self.kind == KIND_CONSTH):
+        if (self.kind == KIND_CONST):
+            assert (self.bw == 1)
+            return "{0:s}".format(TRUE if value == 1 else FALSE)
+        elif (self.kind == KIND_CONSTH):
             #return "#x{0:s}".format(hex(self.value)[2:])
             if (self.original_str != "none"):
                 return self.original_str
@@ -480,7 +498,13 @@ keyword         = NoMatch().setName("keyword") \
                       alphas + nums + spec_chars).setName("keyword string"))
 
 spec_constant   = NoMatch().setName("special constant") \
-                  | decimal | numeral | hexadecimal | binary | string
+                  | TRUE                                \
+                  | FALSE                               \
+                  | decimal                             \
+                  | numeral                             \
+                  | hexadecimal                         \
+                  | binary                              \
+                  | string
 
 s_expr          = Forward()
 s_expr         << (NoMatch().setName("s-expression") \
@@ -622,6 +646,7 @@ def _find_sort (name):
     scope = g_cur_scope
     while scope != None:
         if (name in scope.sorts):
+            assert (isinstance (scope.sorts[name], SMTSortNode))
             return scope.sorts[name]
         scope = scope.prev
     return None
@@ -704,10 +729,47 @@ def _bvSortNode (bw):
     return _sortNode (name)
 
 
-def _funapp2Sort (fun, children):
+def _funapp2Sort (fun, kind, children):
     global g_is_bv_logic
-    # TODO support for other than bv operations
     if (not g_is_bv_logic):
+
+        if ((kind in (KIND_ABS, KIND_ISI, KIND_NEG, KIND_TOI, KIND_TOR) and 
+             len(children) != 1) or
+            (kind in (KIND_ADD, KIND_DIV, KIND_LE, KIND_LT, KIND_GE, 
+                      KIND_GT, KIND_MOD, KIND_MUL, KIND_RDIV, KIND_SUB) and 
+             len(children) != 2)):
+            raise DDSMTException (
+                    "invalid number of arguments to '{0:s}': {1:d}".format(
+                        str(fun), len(children)))
+
+        if (kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOR)):
+            for c in children:
+                if (not c.sort == _sortNode ("Int")):
+                    raise DDSMTException (
+                            "'{0:s}' expects sort 'Int' as argument(s)".format(
+                                str(fun)))
+            return _sortNode ("Int")
+        elif (kind in (KIND_RDIV, KIND_TOI)):
+            for c in children:
+                if (not c.sort == _sortNode ("Real")):
+                    raise DDSMTException (
+                            "'{0:s}' expects sort 'Real' as argument(s)".format(
+                                str(fun)))
+            return _sortNode ("Real")
+        elif (kind in (KIND_ADD, KIND_NEG, KIND_MUL, KIND_SUB, 
+                       KIND_LE, KIND_LT, KIND_GE, KIND_GT)):
+            csort = children[0].sort
+            for c in children[1:]:
+                if (c.sort != csort):
+                    raise DDSMTException (
+                        "'{0:s}' with mismatching sorts: " \
+                        "'{1:s}' '{2:s}'".format(
+                            str(fun), str(csort), str(c.sort)))
+            return csort
+        elif (kind == KIND_ISI and children[0].sort != _sortNode ("Bool")):
+            raise DDSMTException (
+                    "{0:s} expects sort 'Bool' as argument".format(str(fun)))
+            return _sortNode ("Bool")
         return None
     else:
         if (kind in (KIND_BVSGE, KIND_BVSGT, KIND_BVSLE, KIND_BVSLT, 
@@ -754,6 +816,14 @@ def _bin2SMTNode (s, l, t):
                            value,
                            bw)
 
+def _specConst2token (s, l, t):
+    assert (len(t) == 1)
+    if (t[0] == TRUE or t[0] == FALSE):
+        if (g_is_bv_logic):
+            return SMTBVConstNode (KIND_CONST, _bvSortNode (bw),
+                    1 if t[0] == TRUE else 0, 1, t[0])
+        else:
+            return SMTConstNode (KIND_CONST, _sortNode ("Bool"), t[0], t[0])
 
 def _sexprAttrv2token (s, l, t):
     if (not t[0] == '('):
@@ -895,9 +965,11 @@ if __name__ == "__main__":
         print (" ".join(str(s) for s in parsed.asList()))
         print ("--------------------------------------------------")
         print (g_scopes)
-    except ParseSyntaxException as e:
-        print ("[ddsmt] " + e.line)
-        print ("[ddsmt] " + " "*(e.column - 2) + "^")
+#    except ParseSyntaxException as e:
+#        print ("[ddsmt] " + e.line)
+#        print ("[ddsmt] " + " "*(e.column - 2) + "^")
+#        print ("[ddsmt] " + str(e))
+    except DDSMTException as e:
         print ("[ddsmt] " + str(e))
     except RuntimeError:
         print ("exceeded recursion limit again!")
