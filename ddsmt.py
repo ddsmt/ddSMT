@@ -3,8 +3,15 @@
 # TODO: attributes currently handled as string only
 #       -> no manipulation of attribute values
 
+import os
+import sys
+import shlex
+import shutil
+import time
+
 from pyparsing import *
 from optparse import OptionParser
+from subprocess import Popen, PIPE
 
 KIND_ANNOTN = "!"
 KIND_EXISTS = "exists"
@@ -139,6 +146,11 @@ g_cmd_kinds   = \
       KIND_SETLOGIC, KIND_SETINFO,  KIND_SETOPT ]
 
 
+g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
+g_outfile = ""
+g_opts = object
+g_golden = 0
+
 g_logic = ""
 g_is_bv_logic = False
 
@@ -159,7 +171,7 @@ class SMTNode:
 
     g_id = 0
 
-    def __init__(self, kind = "none", sort = None, children = []):
+    def __init__(self, kind, sort = None, children = []):
         assert (isinstance (children, list))
         SMTNode.g_id += 1
         self.id = SMTNode.g_id
@@ -603,12 +615,12 @@ class SMTParser:
         SMTParser.numeral.setParseAction(lambda s,l,t: 
                 SMTConstNode (
                     KIND_CONSTN, self.__sortNode (
-                                    self.scopes, "Int"), value = int(t[0])))
+                                    self.scopes, "Int"), value=int(t[0])))
 
         SMTParser.decimal.setParseAction(lambda s,l,t:
                 SMTConstNode (
                     KIND_CONSTD, self.__sortNode (
-                                    self.scopes, "Real"), value = float(t[0])))
+                                    self.scopes, "Real"), value=float(t[0])))
 
         SMTParser.hexadecimal.setParseAction(self.__hex2SMTNode)
         SMTParser.binary.setParseAction(self.__bin2SMTNode)
@@ -616,7 +628,7 @@ class SMTParser:
         SMTParser.string.setParseAction(lambda s,l,t:
                 SMTConstNode (
                     KIND_CONSTS, self.__sortNode (
-                                    self.scopes, "String"), value = t[0]))
+                                    self.scopes, "String"), value=t[0]))
 
         SMTParser.symb_str.setParseAction(lambda s,l,t: 
                 " ".join([str(to) for to in t]))
@@ -952,37 +964,133 @@ class SMTParser:
 
 
 
+def _cleanup():
+    if (os.path.exists(g_tmpfile)):
+        os.remove(g_tmpfile)
+
+
+def _log(verbosity, msg, update = False):
+    global g_opts
+    if (g_opts.verbosity >= verbosity):
+        sys.stdout.write(" " * 80 + "\r")
+        if update:
+            sys.stdout.write("[ddsmt] {0:s}\r".format(msg))
+            sys.stdout.flush()
+        else:
+            sys.stdout.write("[ddsmt] {0:s}\n".format(msg))
+
+
+def _dump (filename, root):
+    try:
+        with open(filename, 'w') as outfile:
+            outfile.write(str(root))
+    except IOError as e:
+        raise DDSMTException (str(e))
+
+
+def _run():
+    global g_cmd
+    try:
+        start = time.time()
+        sproc = Popen(g_cmd, stdout=PIPE, stderr=PIPE)
+
+        # TODO this works from 3.3 upwards
+        # (out, err) = sproc.communicate(g_opts.timeout)  # TODO use out, err
+        
+        # TODO disable this from 3.3. upwards
+        if (g_opts.timeout):
+            while (sproc.poll() == None):
+                if (time.time() - start > g_opts.timeout):
+                    sproc.kill()
+                time.sleep(1)
+
+        (out, err) = sproc.communicate()
+        return sproc.returncode
+
+    # TODO this works from 3.3 upwards
+    #except TimeoutExpired as e:
+    #    sproc.kill()
+    #    (out, err) = proc.communicate()
+    except OSError as e:
+        raise DDSMTException ("{0:s}: {1:s}".format(str(e), g_cmd[0]))
+
+def _test():
+    global g_cmd
+    # TODO compare output if option enabled?
+    return _run() == g_golden
+
+
+
+    
+
+def ddsmt_main ():
+    global g_tmpfile, g_outfile
+
+    _dump (g_outfile, g_scopes)
+
+    
+
 
 
 if __name__ == "__main__":
-    
-    usage = "%prog [options] <infile> <outfile> \"<cmd> <cmd_options>\""
-
-    oparser = OptionParser (usage)
-    # TODO add options here
-    (opts, args) = oparser.parse_args ()
-    
-    #if len (args) != 3: TODO disabled for debugging
-    #    oparser.error ("invalid number of arguments")
-
-    # TODO recursion depth handling (dynamic? with default > 1000)
-    infile = args[0]
-    import sys
-    sys.setrecursionlimit(4000)
-    from pprint import pprint
     try:
+        usage = "%prog [options] <infile> <outfile> \"<cmd> <cmd_options>\""
+        oparser = OptionParser (usage)
+        oparser.add_option ("-t", dest="timeout", metavar="val",
+                            default=None, type="int",
+                            help="timeout for test runs in seconds "\
+                                 "(default: none)")
+        oparser.add_option ("-v", action="count", dest="verbosity", default=0,
+                            help="increase verbosity")
+        # TODO add options here
+        (g_opts, args) = oparser.parse_args ()
+
+        #if len (args) != 3: TODO disabled for debugging
+        #    oparser.error ("invalid number of arguments")
+
+        infile = args[0]
+        g_outfile = args[1]
+        g_cmd = shlex.split(args[2])
+
+        if (not os.path.exists(infile)):
+            raise DDSMTException ("given input file does not exist")
+        #if (os.path.exists(g_outfile)):
+        #    raise DDSMTException ("given output file does already exist")
+
+        _log (1, "input file:  '{0:s}'".format(infile))
+        _log (1, "output file: '{0:s}'".format(g_outfile))
+        _log (1, "command:     '{0:s}'".format(args[2]))
+
+        # set recursion limit for pyparsing (default of 1000 is not enough)
+        sys.setrecursionlimit(4000)
+
         parser = SMTParser()
-        parsed = SMTParser.script.parseFile(infile, parseAll = True)
+        #parsed = SMTParser.script.parseFile(infile, parseAll = True)
+        SMTParser.script.parseFile(infile, parseAll = True)
         g_scopes = parser.scopes
         g_cur_scope = parser.cur_scope
-        print (" ".join(str(s) for s in parsed.asList()))
-        print ("--------------------------------------------------")
-        print (g_scopes)
+        #print (" ".join(str(s) for s in parsed.asList()))
+        #print ("--------------------------------------------------")
+        #print (g_scopes)
+
+        shutil.copyfile(infile, g_tmpfile)
+        g_cmd.append(g_tmpfile)
+        g_golden = _run()
+        _log (1, "golden exit code: {0:d}".format(g_golden))
+
+        ddsmt_main ()
+        
+        _cleanup()
+        sys.exit(0)
     except ParseSyntaxException as e:
-        print ("[ddsmt] " + e.line)
-        print ("[ddsmt] " + " "*(e.column - 2) + "^")
-        print ("[ddsmt] " + str(e))
+        _cleanup()
+        sys.exit("[ddsmt] {0:s}\n"\
+                 "[ddsmt] {1:s}{2:s}\n"\
+                 "[ddsmt] Error: {3:s}".format(
+                         e.line, " "*(e.column - 2), "^", str(e)))
     except DDSMTException as e:
-        print ("[ddsmt] " + str(e))
-    except RuntimeError:
-        print ("exceeded recursion limit again!")
+        _cleanup()
+        sys.exit(str(e))
+    except KeyboardInterrupt as e:
+        _cleanup()
+        sys.exit("[ddsmt] {0:s}".format(str(e)))
