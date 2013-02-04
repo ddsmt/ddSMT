@@ -183,7 +183,16 @@ class SMTNode:
         return len(self.children)
 
     def __str__(self):
-        if (self.kind == KIND_ANNOTN):
+        if (self.kind in (KIND_EXISTS, KIND_FORALL)):
+            assert (len(self.children) == 2)
+            svars = self.children[0]
+            tterm = self.children[1]
+            return "({0:s} ({1:s}) {2:s})".format(
+                    self.kind, 
+                    " ".join(["({0:s} {1:s})".format(s.name, str(s.sort))
+                              for s in svars]) if len(svars) > 0 else "",
+                    str(tterm))
+        elif (self.kind == KIND_ANNOTN):
             assert (len(self.children) == 2)
             return "(! {0:s} {1:s})".format(
                     str(self.children[0]), 
@@ -371,6 +380,11 @@ class SMTCmdNode:
         else:
             return ""
 
+class SMTPushCmdNode (SMTCmdNode):
+
+    def __init__(self, scope, kind, children = []):
+        super().__init__(kind, children)
+        self.scope = scope
 
 class SMTScopeNode:
 
@@ -671,11 +685,15 @@ class SMTParser:
     #    return false
 
     def __open_scope (self, nscopes = 1, kind = KIND_SCOPE):
+        push_scope = None
         for i in range (nscopes):
             new_scope = SMTScopeNode(
                     self.cur_scope.level + 1, self.cur_scope, kind)
+            if (not push_scope):
+                push_scope = new_scope
             self.cur_scope.scopes.append(new_scope)
             self.cur_scope = new_scope
+        return push_scope   # scope associated with parent push cmd
 
     def __close_scope (self, nscopes = 1):
         for i in range (nscopes):
@@ -714,22 +732,26 @@ class SMTParser:
     def __cmdNode (self, kind, children = []):
         global g_logic
 
-        if (kind == KIND_SETLOGIC):
-            assert (len(children) == 1)
-            g_logic = children[0]
-            g_is_bv_logic = g_logic.find("BV") >= 0
-
-        cmd = SMTCmdNode (kind, children)
-        self.cur_scope.cmds.append(cmd)
+        scope = None
 
         if (kind == KIND_PUSH):
             assert (len(children) == 1)
             assert (isinstance (children[0], SMTConstNode))
-            self.__open_scope (children[0].value)
-        elif (kind == KIND_POP):
-            assert (len(children) == 1)
-            assert (isinstance (children[0], SMTConstNode))
-            self.__close_scope (children[0].value)
+            cmd = SMTPushCmdNode (None, kind, children)
+            self.cur_scope.cmds.append(cmd)
+            cmd.scope = self.__open_scope (children[0].value)
+        else:
+            cmd = SMTCmdNode (kind, children)
+            self.cur_scope.cmds.append(cmd)
+
+            if (kind == KIND_POP):
+                assert (len(children) == 1)
+                assert (isinstance (children[0], SMTConstNode))
+                self.__close_scope (children[0].value)
+            elif (kind == KIND_SETLOGIC):
+                assert (len(children) == 1)
+                g_logic = children[0]
+                g_is_bv_logic = g_logic.find("BV") >= 0
                     
         return cmd
 
@@ -1013,6 +1035,7 @@ def _run():
     #    (out, err) = proc.communicate()
     except OSError as e:
         raise DDSMTException ("{0:s}: {1:s}".format(str(e), g_cmd[0]))
+
 
 def _test():
     global g_cmd
