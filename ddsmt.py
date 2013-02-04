@@ -114,7 +114,8 @@ KIND_SETOPT    = "set-option"
 
 
 g_const_kinds = \
-    [ KIND_CONSTB, KIND_CONSTD, KIND_CONSTN, KIND_CONSTH, KIND_CONSTS ]
+    [ KIND_CONST, KIND_CONSTB, KIND_CONSTD, KIND_CONSTN, KIND_CONSTH, 
+      KIND_CONSTS ]
 
 g_fun_kinds   = \
     [ KIND_AND,    KIND_IMPL,   KIND_ITE,    KIND_NOT,    KIND_OR,    
@@ -136,6 +137,13 @@ g_cmd_kinds   = \
       KIND_GETPROOF, KIND_GETUCORE, KIND_GETVALUE,  KIND_GETOPT,
       KIND_GETINFO,  KIND_EXIT,     KIND_PUSH,      KIND_POP,
       KIND_SETLOGIC, KIND_SETINFO,  KIND_SETOPT ]
+
+
+g_logic = ""
+g_is_bv_logic = False
+
+g_scopes = None
+g_cur_scope = g_scopes
 
 
 class DDSMTException (Exception):
@@ -219,18 +227,10 @@ class SMTFunNode (SMTNode):
 
 class SMTFunAppNode (SMTNode):        
 
-    def __init__(self, fun, children = []):
+    def __init__(self, fun, kind, sort, children = []):
         global g_fun_kinds
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
-        if (fun.name in g_fun_kinds):
-            if (fun.name == '-' and len(children) == 1):
-                kind = KIND_NEG
-            else:
-                kind = fun.name
-        else:
-            kind = fun.kind
-        sort = _funapp2Sort (fun, kind, children)
         super().__init__(kind, sort, children)
         self.fun = fun
 
@@ -314,7 +314,7 @@ class SMTCmdNode:
     def __str__(self):
         assert (self.kind != KIND_DECLSORT or 
                 self.children[0].kind == KIND_SORT)
-        if (self.kind == DECLFUN):
+        if (self.kind == KIND_DECLFUN):
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
@@ -324,7 +324,7 @@ class SMTCmdNode:
                     " ".join([str(s) for s in fun.sorts]) if len(fun.sorts) > 0 
                                                           else "",
                     str(fun.sort))
-        elif (self.kind == DEFFUN):
+        elif (self.kind == KIND_DEFFUN):
             assert (len(self.children) == 3)
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
@@ -337,7 +337,7 @@ class SMTCmdNode:
                               for s in svars]) if len(svars) > 0 else "",
                     str(fun.sort),
                     str(fterm))
-        elif (self.kind == DECLSORT):
+        elif (self.kind == KIND_DECLSORT):
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTSortNode))
             sort = self.children[0]
@@ -391,554 +391,564 @@ class SMTScopeNode:
         return " ".join([s for s in strings])
 
 
-
-g_logic = ""
-g_is_bv_logic = False
-
-g_scopes = SMTScopeNode ()
-g_cur_scope = g_scopes
-
-
-
-
-
-
-
-
-
-# ============================= PARSER ======================================= #
-
-LPAR = Suppress ('(')
-RPAR = Suppress (')')
-
-IDXED  = Combine ('_' + Suppress(' '))
-
-AS     = Keyword ("as")
-LET    = Keyword ("let")
-FORALL = Keyword ("forall")
-EXISTS = Keyword ("exists")
-
-TRUE   = Keyword ("true")
-FALSE  = Keyword ("false")
-
-PRINTSUCC = Keyword (":print-success")
-EXPANDDEF = Keyword (":expand-definitions")
-INTERMODE = Keyword (":interactive-mode")
-PRODPROOF = Keyword (":produce-proofs")
-PRODUCORE = Keyword (":produce-unsat-cores")
-PRODMODEL = Keyword (":produce-models")
-PRODASSGN = Keyword (":produce-assignments")
-ROUTCHANN = Keyword (":regular-output-channel")
-DOUTCHANN = Keyword (":diagrnostic-output-channel")
-RANDMSEED = Keyword (":random-seed")
-VERBOSITY = Keyword (":verbosity")
-
-ERRBEHAVR = Keyword (":error-behavior")
-NAME      = Keyword (":name")
-AUTHORS   = Keyword (":authors")
-VERSION   = Keyword (":version")
-STATUS    = Keyword (":status")
-RUNKNOWN  = Keyword (":reason-unknown")
-ALLSTAT   = Keyword (":all-statistics")
-
-SETLOGIC  = Keyword ("set-logic")
-SETOPT    = Keyword ("set-option")
-SETINFO   = Keyword ("set-info")
-DECLSORT  = Keyword ("declare-sort")
-DEFSORT   = Keyword ("define-sort")
-DECLFUN   = Keyword ("declare-fun")
-DEFFUN    = Keyword ("define-fun")
-PUSH      = Keyword ("push")
-POP       = Keyword ("pop")
-ASSERT    = Keyword ("assert")
-CHECKSAT  = Keyword ("check-sat")
-GETASSERT = Keyword ("get-assertions")
-GETPROOF  = Keyword ("get-proof")
-GETUCORE  = Keyword ("get-unsat-core")
-GETVALUE  = Keyword ("get-value")
-GETASSIGN = Keyword ("get-assignment")
-GETOPT    = Keyword ("get-option")
-GETINFO   = Keyword ("get-info")
-EXIT      = Keyword ("exit")
-
-
-# ----------------------------- SMTLib 2 grammar ----------------------------- #
-unknown         = empty - ~Word(printables).setName("<unknown>")
-
-comment         = Suppress (';' + restOfLine)
-
-spec_chars      = "+-/*=%?!.$_~&^<>@"
-
-numeral         = NoMatch().setName("numeral") | '0' | Regex (r'[1-9][0-9]*')
-
-decimal         = NoMatch().setName("decimal constant") \
-                  | Combine (numeral + '.' 
-                                     + Word(nums).setName("numerical digit"))
-
-hexadecimal     = NoMatch().setName("hexadecimal constant") \
-                  | Combine ("#x" - Word(hexnums).setName("hexadecimal digits"))
-
-binary          = NoMatch().setName("binary constant") \
-                  | Combine ("#b" - Word("01").setName("binary digits"))
-
-string          = NoMatch().setName("string constant") | dblQuotedString
-
-symb_str        = Word(alphas + spec_chars, alphas + nums + spec_chars,
-                       excludeChars = ['|', '\\'])
-symbol          = NoMatch().setName("symbol") \
-                  | '|' + symb_str + '|' | symb_str
-
-spec_symb_str   = OneOrMore (Word (printables, excludeChars = ['|', '\\']))
-spec_symbol     = NoMatch().setName("symbol") \
-                  | '|' + spec_symb_str + '|' | symb_str
-
-
-keyword         = NoMatch().setName("keyword") \
-                  | Combine (':' - Word(
-                      alphas + nums + spec_chars).setName("keyword string"))
-
-spec_constant   = NoMatch().setName("special constant") \
-                  | TRUE                                \
-                  | FALSE                               \
-                  | decimal                             \
-                  | numeral                             \
-                  | hexadecimal                         \
-                  | binary                              \
-                  | string
-
-s_expr          = Forward()
-s_expr         << (NoMatch().setName("s-expression") \
-                   | spec_constant                   \
-                   | symbol                          \
-                   | keyword                         \
-                   | '(' + ZeroOrMore(s_expr) - RPAR)
-
-identifier      = NoMatch().setName("identifier") \
-                  | symbol                        \
-                  | LPAR + IDXED - symbol + OneOrMore(numeral) + RPAR
-
-sort            = Forward()
-sort           << (NoMatch().setName("sort") \
-                   | identifier              \
-                   | LPAR + identifier + OneOrMore(sort) + RPAR)
-
-attr_value      = NoMatch().setName("attribute value") \
-                  | spec_constant                      \
-                  | symbol                             \
-                  | '(' + ZeroOrMore(s_expr) - RPAR
-
-attribute       = NoMatch().setName("attribute") \
-                  | keyword + Optional (attr_value)
-
-# be more lenient towards comment-style symbols in set-info
-spec_attr_value = NoMatch().setName("attribute value") \
-                  | attr_value | spec_symbol  
-spec_attribute  = NoMatch().setName("attribute") \
-                  | keyword + Optional (spec_attr_value)
-
-term            = Forward()
-qual_identifier = NoMatch().setName("qualified identifier") \
-                  | identifier | LPAR + AS - identifier + sort + RPAR
-var_binding     = NoMatch().setName("variable binding") \
-                  | LPAR + symbol + term + RPAR
-sorted_var      = NoMatch().setName("sorted variable") \
-                  | LPAR + symbol + sort + RPAR
-term           << (NoMatch().setName("term")                                   \
-                   | spec_constant                                             \
-                   | qual_identifier                                           \
-                   | LPAR + LET - LPAR + Group(OneOrMore(var_binding)) + RPAR  \
-                                + term + RPAR                                  \
-                   | LPAR + FORALL - LPAR + Group(OneOrMore(sorted_var)) - RPAR\
-                                   + term + RPAR                               \
-                   | LPAR + EXISTS - LPAR + Group(OneOrMore(sorted_var)) - RPAR\
-                                   + term + RPAR                               \
-                   | LPAR + '!' - term + Group(OneOrMore(attribute)) + RPAR    \
-                   | LPAR + qual_identifier + Group(OneOrMore(term)) + RPAR)      
-b_value         = NoMatch().setName("'true' or 'false'") | TRUE | FALSE
-
-option          = NoMatch().setName("option") \
-                  | PRINTSUCC - b_value \
-                  | EXPANDDEF - b_value \
-                  | INTERMODE - b_value \
-                  | PRODPROOF - b_value \
-                  | PRODUCORE - b_value \
-                  | PRODMODEL - b_value \
-                  | PRODASSGN - b_value \
-                  | ROUTCHANN - string  \
-                  | DOUTCHANN - string  \
-                  | RANDMSEED - numeral \
-                  | VERBOSITY - numeral \
-                  | attribute
-
-info_flag       = NoMatch().setName("info flag") \
-                  | ERRBEHAVR                    \
-                  | NAME                         \
-                  | AUTHORS                      \
-                  | VERSION                      \
-                  | STATUS                       \
-                  | RUNKNOWN                     \
-                  | ALLSTAT                      \
-                  | keyword
-
-command         = NoMatch().setName("command")                                \
-                  | LPAR   + SETLOGIC  - symbol + RPAR                        \
-                  | LPAR + SETOPT    - option - RPAR                          \
-                  | LPAR + SETINFO   - spec_attribute - RPAR                  \
-                  | LPAR + DECLSORT  - symbol + numeral + RPAR                \
-                  | LPAR + DEFSORT   - symbol + LPAR                          \
-                                              + Group(ZeroOrMore(symbol))     \
-                                       + RPAR + sort + RPAR                   \
-                  | LPAR + DECLFUN   - symbol + LPAR                          \
-                                              + Group(ZeroOrMore(sort))       \
-                                       + RPAR + sort + RPAR                   \
-                  | LPAR + DEFFUN    - symbol + LPAR                          \
-                                              + Group(ZeroOrMore(sorted_var)) \
-                                              - RPAR + sort + term            \
-                                              + RPAR                          \
-                  | LPAR + PUSH      - numeral + RPAR                         \
-                  | LPAR + POP       - numeral + RPAR                         \
-                  | LPAR + ASSERT    - term + RPAR                            \
-                  | LPAR + CHECKSAT  - RPAR                                   \
-                  | LPAR + GETASSERT - RPAR                                   \
-                  | LPAR + GETPROOF  - RPAR                                   \
-                  | LPAR + GETUCORE  - RPAR                                   \
-                  | LPAR + GETVALUE  - LPAR + Group(OneOrMore(term))          \
-                                     + RPAR + RPAR                            \
-                  | LPAR + GETASSIGN - RPAR                                   \
-                  | LPAR + GETOPT    - keyword + RPAR                         \
-                  | LPAR + GETINFO   - info_flag - RPAR                       \
-                  | LPAR + EXIT      - RPAR                                   \
-                  | unknown
-
-script          = OneOrMore(command)
-# ---------------------------------------------------------------------------- #
-
-
-# ----------------------------- parse actions -------------------------------- #
-#def _is_bvSortNode (node):
-#    assert (isinstance (node, SMTSortNode))
-#    if (node.name.find("BitVec") > 0):
-#        return true
-#    return false
-
-def _open_scope (nscopes = 1, kind = KIND_SCOPE):
-    global g_cur_scope
-    for i in range (nscopes):
-        new_scope = SMTScopeNode(g_cur_scope.level + 1, g_cur_scope, kind)
-        g_cur_scope.scopes.append(new_scope)
-        g_cur_scope = new_scope
-
-
-def _close_scope (nscopes = 1):
-    global g_cur_scope
-    for i in range (nscopes):
-        g_cur_scope = g_cur_scope.prev
-        assert (g_cur_scope != None)
-
-def _add_sort (name, nparams, scope):
-    assert (_find_sort (name) == None)
-    sort = SMTSortNode (name, nparams) 
-    scope.sorts[name] = sort
-    return sort
-
-def _find_sort (name):
-    global g_cur_scope
-    scope = g_cur_scope
-    while scope != None:
-        if (name in scope.sorts):
-            assert (isinstance (scope.sorts[name], SMTSortNode))
-            return scope.sorts[name]
-        scope = scope.prev
-    return None
-
-def _add_fun (name, kind, sort, sorts, indices, scope):
-    assert (_find_fun (name) == None)
-    fun = SMTFunNode (name, kind, sort, sorts, indices)
-    scope.funs[name] = fun
-    return fun
-
-def _find_fun (name):
-    global g_cur_scopes
-    scope = g_cur_scope
-    while scope != None:
-        if (name in scope.funs):
-            return scope.funs[name]
-        scope = scope.prev
-    return None
-
-
-def _cmdNode (kind, children = []):
-    global g_logic
-
-    if (kind == KIND_SETLOGIC):
-        assert (len(children) == 1)
-        g_logic = children[0]
-        g_is_bv_logic = g_logic.find("BV") >= 0
-
-    cmd = SMTCmdNode (kind, children)
-    g_cur_scope.cmds.append(cmd)
-
-    if (kind == KIND_PUSH):
-        assert (len(children) == 1)
-        assert (isinstance (children[0], SMTConstNode))
-        _open_scope (children[0].value)
-    elif (kind == KIND_POP):
-        assert (len(children) == 1)
-        assert (isinstance (children[0], SMTConstNode))
-        _close_scope (children[0].value)
-                
-    return cmd
-
-
-def _smtNode (kind, sort = None, children = []):
-    global g_cur_scope
-    if (kind in (KIND_FORALL, KIND_EXISTS)):
-        prev_scope = g_cur_scope
-        assert (len(children) == 2)
-        svars = children[0]
-        _open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL else KIND_ESCOPE)
-        for s in svars:
-            assert (_find_fun (s.name) != None)
-            assert (s.name in prev_scope.funs)
-            del(prev_scope.funs[s.name])
-            g_cur_scope.funs[s.name] = s
-        _close_scope ()
-    
-    return SMTNode (kind, sort, children)
-
-
-def _funNode (name, kind, sort, sorts = [], indices = [], scope = g_scopes):
-    fun = _find_fun (name)
-    if (fun == None):
-        return _add_fun (name, kind, sort, sorts, indices,scope)
-    assert (fun.name == name)
-    return fun
-
-
-def _sortNode (name, nparams = 0, scope = g_scopes):
-    sort = _find_sort (name)
-    if (sort == None):
-        # add sort to scope level 0 (otherwise it would have been declared
-        # or defined already and thus be found previously)
-        return _add_sort (name, nparams, scope)
-    assert (sort.name == name)
-    return sort
-
-def _bvSortNode (bw):
-    name = "(_ BitVec {0:d})".format(bw)
-    return _sortNode (name)
-
-
-def _funapp2Sort (fun, kind, children):
-    global g_is_bv_logic
-    if (not g_is_bv_logic):
-
-        if ((kind in (KIND_ABS, KIND_ISI, KIND_NEG, KIND_TOI, KIND_TOR) and 
-             len(children) != 1) or
-            (kind in (KIND_ADD, KIND_DIV, KIND_LE, KIND_LT, KIND_GE, 
-                      KIND_GT, KIND_MOD, KIND_MUL, KIND_RDIV, KIND_SUB) and 
-             len(children) != 2)):
-            raise DDSMTException (
-                    "invalid number of arguments to '{0:s}': {1:d}".format(
-                        str(fun), len(children)))
-
-        if (kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOR)):
-            for c in children:
-                if (not c.sort == _sortNode ("Int")):
-                    raise DDSMTException (
-                            "'{0:s}' expects sort 'Int' as argument(s)".format(
-                                str(fun)))
-            return _sortNode ("Int")
-        elif (kind in (KIND_RDIV, KIND_TOI)):
-            for c in children:
-                if (not c.sort == _sortNode ("Real")):
-                    raise DDSMTException (
-                            "'{0:s}' expects sort 'Real' as argument(s)".format(
-                                str(fun)))
-            return _sortNode ("Real")
-        elif (kind in (KIND_ADD, KIND_NEG, KIND_MUL, KIND_SUB, 
-                       KIND_LE, KIND_LT, KIND_GE, KIND_GT)):
-            csort = children[0].sort
-            for c in children[1:]:
-                if (c.sort != csort):
-                    raise DDSMTException (
-                        "'{0:s}' with mismatching sorts: " \
-                        "'{1:s}' '{2:s}'".format(
-                            str(fun), str(csort), str(c.sort)))
-            return csort
-        elif (kind == KIND_ISI and children[0].sort != _sortNode ("Bool")):
-            raise DDSMTException (
-                    "{0:s} expects sort 'Bool' as argument".format(str(fun)))
-            return _sortNode ("Bool")
+class SMTParser:
+
+    LPAR = Suppress ('(')
+    RPAR = Suppress (')')
+
+    IDXED  = Combine ('_' + Suppress(' '))
+
+    AS     = Keyword ("as")
+    LET    = Keyword ("let")
+    FORALL = Keyword ("forall")
+    EXISTS = Keyword ("exists")
+
+    TRUE   = Keyword ("true")
+    FALSE  = Keyword ("false")
+
+    PRINTSUCC = Keyword (":print-success")
+    EXPANDDEF = Keyword (":expand-definitions")
+    INTERMODE = Keyword (":interactive-mode")
+    PRODPROOF = Keyword (":produce-proofs")
+    PRODUCORE = Keyword (":produce-unsat-cores")
+    PRODMODEL = Keyword (":produce-models")
+    PRODASSGN = Keyword (":produce-assignments")
+    ROUTCHANN = Keyword (":regular-output-channel")
+    DOUTCHANN = Keyword (":diagrnostic-output-channel")
+    RANDMSEED = Keyword (":random-seed")
+    VERBOSITY = Keyword (":verbosity")
+
+    ERRBEHAVR = Keyword (":error-behavior")
+    NAME      = Keyword (":name")
+    AUTHORS   = Keyword (":authors")
+    VERSION   = Keyword (":version")
+    STATUS    = Keyword (":status")
+    RUNKNOWN  = Keyword (":reason-unknown")
+    ALLSTAT   = Keyword (":all-statistics")
+
+    SETLOGIC  = Keyword ("set-logic")
+    SETOPT    = Keyword ("set-option")
+    SETINFO   = Keyword ("set-info")
+    DECLSORT  = Keyword ("declare-sort")
+    DEFSORT   = Keyword ("define-sort")
+    DECLFUN   = Keyword ("declare-fun")
+    DEFFUN    = Keyword ("define-fun")
+    PUSH      = Keyword ("push")
+    POP       = Keyword ("pop")
+    ASSERT    = Keyword ("assert")
+    CHECKSAT  = Keyword ("check-sat")
+    GETASSERT = Keyword ("get-assertions")
+    GETPROOF  = Keyword ("get-proof")
+    GETUCORE  = Keyword ("get-unsat-core")
+    GETVALUE  = Keyword ("get-value")
+    GETASSIGN = Keyword ("get-assignment")
+    GETOPT    = Keyword ("get-option")
+    GETINFO   = Keyword ("get-info")
+    EXIT      = Keyword ("exit")
+
+
+    unknown         = empty - ~Word(printables).setName("<unknown>")
+    spec_chars      = "+-/*=%?!.$_~&^<>@"
+    comment         = Suppress (';' + restOfLine)
+
+    numeral         = NoMatch().setName("numeral") \
+                      | '0' | Regex (r'[1-9][0-9]*')
+    decimal         = NoMatch().setName("decimal constant") \
+                      | Combine (numeral \
+                                 + '.'   \
+                                 + Word(nums).setName("numerical digit"))
+    hexadecimal     = NoMatch().setName("hexadecimal constant") \
+                      | Combine ("#x" \
+                                 - Word(hexnums).setName("hexadecimal digits"))
+    binary          = NoMatch().setName("binary constant") \
+                      | Combine ("#b" \
+                                 - Word("01").setName("binary digits"))
+    string          = NoMatch().setName("string constant") | dblQuotedString
+
+    symb_str        = Word(alphas + spec_chars, alphas + nums + spec_chars,
+                           excludeChars = ['|', '\\'])
+    symbol          = NoMatch().setName("symbol") \
+                      | '|' + symb_str + '|' | symb_str
+    spec_symb_str   = OneOrMore (Word (printables, excludeChars = ['|', '\\']))
+    spec_symbol     = NoMatch().setName("symbol") \
+                      | '|' + spec_symb_str + '|' | symb_str
+
+    keyword         = NoMatch().setName("keyword") \
+                      | Combine (':' - Word(alphas + nums + spec_chars).setName(
+                          "keyword string"))
+
+    spec_constant   = NoMatch().setName("special constant") \
+                      | TRUE                                \
+                      | FALSE                               \
+                      | decimal                             \
+                      | numeral                             \
+                      | hexadecimal                         \
+                      | binary                              \
+                      | string
+
+    s_expr          = Forward()
+    s_expr         << (NoMatch().setName("s-expression") \
+                       | spec_constant                   \
+                       | symbol                          \
+                       | keyword                         \
+                       | '(' + ZeroOrMore(s_expr) - RPAR)
+
+    identifier      = NoMatch().setName("identifier") \
+                      | symbol                        \
+                      | LPAR + IDXED - symbol + OneOrMore(numeral) + RPAR
+
+    sort            = Forward()
+    sort           << (NoMatch().setName("sort") \
+                       | identifier              \
+                       | LPAR + identifier + OneOrMore(sort) + RPAR)
+
+    attr_value      = NoMatch().setName("attribute value") \
+                      | spec_constant                      \
+                      | symbol                             \
+                      | '(' + ZeroOrMore(s_expr) - RPAR
+    attribute       = NoMatch().setName("attribute")       \
+                      | keyword + Optional (attr_value)
+    # be more lenient towards comment-style symbols in set-info
+    spec_attr_value = NoMatch().setName("attribute value") \
+                      | attr_value | spec_symbol  
+    spec_attribute  = NoMatch().setName("attribute")       \
+                      | keyword + Optional (spec_attr_value)
+
+    term            = Forward()
+    qual_identifier = NoMatch().setName("qualified identifier") \
+                      | identifier | LPAR + AS - identifier + sort + RPAR
+    var_binding     = NoMatch().setName("variable binding") \
+                      | LPAR + symbol + term + RPAR
+    sorted_var      = NoMatch().setName("sorted variable") \
+                      | LPAR + symbol + sort + RPAR
+    term           << (NoMatch().setName("term") \
+                       | spec_constant           \
+                       | qual_identifier         \
+                       | LPAR + LET              \
+                              - LPAR + Group(OneOrMore(var_binding)) + RPAR \
+                              + term + RPAR                                 \
+                       | LPAR + FORALL                                      \
+                              - LPAR + Group(OneOrMore(sorted_var)) - RPAR  \
+                              + term + RPAR                                 \
+                       | LPAR + EXISTS                                      \
+                              - LPAR + Group(OneOrMore(sorted_var)) - RPAR  \
+                              + term + RPAR                                 \
+                       | LPAR + '!' - term + Group(OneOrMore(attribute)) + RPAR\
+                       | LPAR + qual_identifier + Group(OneOrMore(term)) + RPAR)      
+    b_value         = NoMatch().setName("'true' or 'false'") | TRUE | FALSE
+    option          = NoMatch().setName("option") \
+                      | PRINTSUCC - b_value \
+                      | EXPANDDEF - b_value \
+                      | INTERMODE - b_value \
+                      | PRODPROOF - b_value \
+                      | PRODUCORE - b_value \
+                      | PRODMODEL - b_value \
+                      | PRODASSGN - b_value \
+                      | ROUTCHANN - string  \
+                      | DOUTCHANN - string  \
+                      | RANDMSEED - numeral \
+                      | VERBOSITY - numeral \
+                      | attribute
+
+    info_flag       = NoMatch().setName("info flag") \
+                      | ERRBEHAVR                    \
+                      | NAME                         \
+                      | AUTHORS                      \
+                      | VERSION                      \
+                      | STATUS                       \
+                      | RUNKNOWN                     \
+                      | ALLSTAT                      \
+                      | keyword
+
+    command         = NoMatch().setName("command")                          \
+                      | LPAR + SETLOGIC - symbol + RPAR                     \
+                      | LPAR + SETOPT   - option - RPAR                     \
+                      | LPAR + SETINFO  - spec_attribute - RPAR             \
+                      | LPAR + DECLSORT - symbol + numeral + RPAR           \
+                      | LPAR + DEFSORT  - symbol                            \
+                                        + LPAR                              \
+                                            + Group(ZeroOrMore(symbol))     \
+                                        + RPAR + sort + RPAR                \
+                      | LPAR + DECLFUN  - symbol                            \
+                                        + LPAR                              \
+                                           + Group(ZeroOrMore(sort))        \
+                                        + RPAR + sort + RPAR                \
+                      | LPAR + DEFFUN   - symbol                            \
+                                        + LPAR                              \
+                                            + Group(ZeroOrMore(sorted_var)) \
+                                        - RPAR + sort + term + RPAR         \
+                      | LPAR + PUSH      - numeral + RPAR                   \
+                      | LPAR + POP       - numeral + RPAR                   \
+                      | LPAR + ASSERT    - term + RPAR                      \
+                      | LPAR + CHECKSAT  - RPAR                             \
+                      | LPAR + GETASSERT - RPAR                             \
+                      | LPAR + GETPROOF  - RPAR                             \
+                      | LPAR + GETUCORE  - RPAR                             \
+                      | LPAR + GETVALUE  - LPAR                             \
+                                            + Group(OneOrMore(term))        \
+                                         + RPAR + RPAR                      \
+                      | LPAR + GETASSIGN - RPAR                             \
+                      | LPAR + GETOPT    - keyword + RPAR                   \
+                      | LPAR + GETINFO   - info_flag - RPAR                 \
+                      | LPAR + EXIT      - RPAR                             \
+                      | unknown
+
+    script          = OneOrMore(command)
+
+
+    def __init__(self):
+        self.scopes = SMTScopeNode()
+        self.cur_scope = self.scopes
+
+        SMTParser.numeral.setParseAction(lambda s,l,t: 
+                SMTConstNode (
+                    KIND_CONSTN, self.__sortNode (
+                                    self.scopes, "Int"), value = int(t[0])))
+
+        SMTParser.decimal.setParseAction(lambda s,l,t:
+                SMTConstNode (
+                    KIND_CONSTD, self.__sortNode (
+                                    self.scopes, "Real"), value = float(t[0])))
+
+        SMTParser.hexadecimal.setParseAction(self.__hex2SMTNode)
+        SMTParser.binary.setParseAction(self.__bin2SMTNode)
+
+        SMTParser.string.setParseAction(lambda s,l,t:
+                SMTConstNode (
+                    KIND_CONSTS, self.__sortNode (
+                                    self.scopes, "String"), value = t[0]))
+
+        SMTParser.symb_str.setParseAction(lambda s,l,t: 
+                " ".join([str(to) for to in t]))
+        SMTParser.spec_symb_str.setParseAction(lambda s,l,t: 
+                " ".join([str(to) for to in t]))
+
+        SMTParser.s_expr.setParseAction(self.__sexprAttrv2token)
+
+        SMTParser.spec_constant.setParseAction(self.__specConst2token)
+
+        SMTParser.sort.setParseAction(lambda s,l,t:
+                self.__sortNode (
+                    self.scopes, 
+                    "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 
+                                                                else t[0],
+                    len(t) - 1))
+
+        SMTParser.attr_value.setParseAction(self.__sexprAttrv2token)
+        SMTParser.attribute.setParseAction(lambda s,l,t: 
+                " ".join([str(to) for to in t]))
+
+        SMTParser.option.setParseAction(lambda s,l,t: 
+                " ".join([str(to) for to in t]))
+
+        SMTParser.qual_identifier.setParseAction(self.__qualIdent2SMTNode)
+        SMTParser.sorted_var.setParseAction(lambda s,l,t: 
+                self.__funNode (self.cur_scope, t[0], KIND_FUN, t[1]))
+        SMTParser.var_binding.setParseAction(self.__varBind2SMTNode)
+        SMTParser.term.setParseAction(self.__term2SMTNode)
+
+        SMTParser.command.setParseAction(self.__cmd2SMTCmdNode)
+
+        SMTParser.script.ignore(SMTParser.comment)
+
+
+    #def _is_bvSortNode (node):
+    #    assert (isinstance (node, SMTSortNode))
+    #    if (node.name.find("BitVec") > 0):
+    #        return true
+    #    return false
+
+    def __open_scope (self, nscopes = 1, kind = KIND_SCOPE):
+        for i in range (nscopes):
+            new_scope = SMTScopeNode(
+                    self.cur_scope.level + 1, self.cur_scope, kind)
+            self.cur_scope.scopes.append(new_scope)
+            self.cur_scope = new_scope
+
+    def __close_scope (self, nscopes = 1):
+        for i in range (nscopes):
+            self.cur_scope = self.cur_scope.prev
+            assert (self.cur_scope != None)
+
+    def __add_sort (self, scope, name, nparams):
+        assert (self.__find_sort (name) == None)
+        sort = SMTSortNode (name, nparams) 
+        scope.sorts[name] = sort
+        return sort
+
+    def __find_sort (self, name):
+        scope = self.cur_scope
+        while scope != None:
+            if (name in scope.sorts):
+                assert (isinstance (scope.sorts[name], SMTSortNode))
+                return scope.sorts[name]
+            scope = scope.prev
         return None
-    else:
-        if (kind in (KIND_BVSGE, KIND_BVSGT, KIND_BVSLE, KIND_BVSLT, 
-                     KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT)):
-            return _bvSortNode (1)
-        elif (kind == KIND_ZEXT or kind == KIND_SEXT):
+
+    def __add_fun (self, scope, name, kind, sort, sorts, indices):
+        assert (self.__find_fun (name) == None)
+        fun = SMTFunNode (name, kind, sort, sorts, indices)
+        scope.funs[name] = fun
+        return fun
+
+    def __find_fun (self, name):
+        scope = self.cur_scope
+        while scope != None:
+            if (name in scope.funs):
+                return scope.funs[name]
+            scope = scope.prev
+        return None
+
+    def __cmdNode (self, kind, children = []):
+        global g_logic
+
+        if (kind == KIND_SETLOGIC):
             assert (len(children) == 1)
-            assert (len(fun.indices) == 1)
-            return _bvSortNode (fun.indices[0] + children[0].bw)
-        elif (kind == KIND_REP):
+            g_logic = children[0]
+            g_is_bv_logic = g_logic.find("BV") >= 0
+
+        cmd = SMTCmdNode (kind, children)
+        self.cur_scope.cmds.append(cmd)
+
+        if (kind == KIND_PUSH):
             assert (len(children) == 1)
-            assert (len(fun.indices) == 1)
-            return _bvSortNode (fun.indices[0] * children[0].bw)
-        elif (kind == KIND_EXTR):
+            assert (isinstance (children[0], SMTConstNode))
+            self.__open_scope (children[0].value)
+        elif (kind == KIND_POP):
             assert (len(children) == 1)
-            assert (len(fun.indices) == 2)
-            return _bvSortNode (fun.indices[0] - fun.indices[1] + 1)
-        elif (kind == KIND_CONC):
+            assert (isinstance (children[0], SMTConstNode))
+            self.__close_scope (children[0].value)
+                    
+        return cmd
+
+
+    def __smtNode (self, kind, sort = None, children = []):
+        if (kind in (KIND_FORALL, KIND_EXISTS)):
+            prev_scope = self.cur_scope
             assert (len(children) == 2)
-            return _bvSortNode (children[0].bw + children[1].bw)
+            svars = children[0]
+            self.__open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL 
+                                                  else KIND_ESCOPE)
+            for s in svars:
+                assert (self.__find_fun (s.name) != None)
+                assert (s.name in prev_scope.funs)
+                del(prev_scope.funs[s.name])
+                self.cur_scope.funs[s.name] = s
+            self.__close_scope ()
+        
+        return SMTNode (kind, sort, children)
+
+
+    def __funNode (self, scope, name, kind, sort, sorts = [], indices = []):
+        fun = self.__find_fun (name)
+        if (fun == None):
+            return self.__add_fun (scope, name, kind, sort, sorts, indices)
+        assert (fun.name == name)
+        return fun
+
+
+    def __sortNode (self, scope, name, nparams = 0):
+        sort = self.__find_sort (name)
+        if (sort == None):
+            # add sort to scope level 0 (otherwise it would have been declared
+            # or defined already and thus be found previously)
+            return self.__add_sort (scope, name, nparams)
+        assert (sort.name == name)
+        return sort
+
+    def __bvSortNode (self, bw):
+        name = "(_ BitVec {0:d})".format(bw)
+        return self.__sortNode (self.scopes, name)
+
+
+    def __funApp2Sort (self, fun, kind, children):
+        global g_is_bv_logic
+        if (not g_is_bv_logic):
+
+            if ((kind in (KIND_ABS, KIND_ISI, KIND_NEG, KIND_TOI, KIND_TOR) and 
+                 len(children) != 1) or
+                (kind in (KIND_ADD, KIND_DIV, KIND_LE, KIND_LT, KIND_GE, 
+                          KIND_GT, KIND_MOD, KIND_MUL, KIND_RDIV, KIND_SUB) and 
+                 len(children) != 2)):
+                raise DDSMTException (
+                        "invalid number of arguments to '{0:s}': {1:d}".format(
+                            str(fun), len(children)))
+
+            if (kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOR)):
+                for c in children:
+                    if (not c.sort == self.__sortNode (self.scopes, "Int")):
+                        raise DDSMTException (
+                                "'{0:s}' expects sort 'Int' " \
+                                "as argument(s)".format(str(fun)))
+                return self.__sortNode (self.scopes, "Int")
+            elif (kind in (KIND_RDIV, KIND_TOI)):
+                for c in children:
+                    if (not c.sort == self.__sortNode (self.scopes, "Real")):
+                        raise DDSMTException (
+                                "'{0:s}' expects sort 'Real' " \
+                                "as argument(s)".format(str(fun)))
+                return self.__sortNode (self.scopes, "Real")
+            elif (kind in (KIND_ADD, KIND_NEG, KIND_MUL, KIND_SUB, 
+                           KIND_LE, KIND_LT, KIND_GE, KIND_GT)):
+                csort = children[0].sort
+                for c in children[1:]:
+                    if (c.sort != csort):
+                        raise DDSMTException (
+                            "'{0:s}' with mismatching sorts: " \
+                            "'{1:s}' '{2:s}'".format(
+                                str(fun), str(csort), str(c.sort)))
+                return csort
+            elif (kind == KIND_ISI and 
+                  children[0].sort != self.__sortNode (self.scopes, "Bool")):
+                raise DDSMTException (
+                        "{0:s} expects sort 'Bool' as argument".format(
+                            str(fun)))
+                return self.__sortNode (self.scopes, "Bool")
+            return None
         else:
-            assert (len(children) > 0)
-            return _bvSortNode (children[0].bw)
+            if (kind in (KIND_BVSGE, KIND_BVSGT, KIND_BVSLE, KIND_BVSLT, 
+                         KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT)):
+                return self.__bvSortNode (1)
+            elif (kind == KIND_ZEXT or kind == KIND_SEXT):
+                assert (len(children) == 1)
+                assert (len(fun.indices) == 1)
+                return self.__bvSortNode (fun.indices[0] + children[0].bw)
+            elif (kind == KIND_REP):
+                assert (len(children) == 1)
+                assert (len(fun.indices) == 1)
+                return self.__bvSortNode (fun.indices[0] * children[0].bw)
+            elif (kind == KIND_EXTR):
+                assert (len(children) == 1)
+                assert (len(fun.indices) == 2)
+                return self.__bvSortNode (fun.indices[0] - fun.indices[1] + 1)
+            elif (kind == KIND_CONC):
+                assert (len(children) == 2)
+                return self.__bvSortNode (children[0].bw + children[1].bw)
+            else:
+                assert (len(children) > 0)
+                return self.__bvSortNode (children[0].bw)
 
-
-def _hex2SMTNode (s, l, t):
-    global g_is_bv_logic
-    assert (len(t) == 1)
-    value = int(t[0][2:], 16)
-    bw = value.bit_length()
-    return SMTBVConstNode (KIND_CONSTH, 
-                           _bvSortNode (bw),
-                           value,
-                           bw,
-                           original_str = t[0]) # TODO debug
-
-def _bin2SMTNode (s, l, t):
-    global g_is_bv_logic
-    assert (len(t) == 1)
-    value = int(t[0][2:], 2)
-    bw = value.bit_length()
-    return SMTBVConstNode (KIND_CONSTB, 
-                           _bvSortNode (bw),
-                           value,
-                           bw)
-
-def _specConst2token (s, l, t):
-    assert (len(t) == 1)
-    if (t[0] == TRUE or t[0] == FALSE):
-        if (g_is_bv_logic):
-            return SMTBVConstNode (KIND_CONST, _bvSortNode (bw),
-                    1 if t[0] == TRUE else 0, 1, t[0])
+    def __funAppNode (self, fun, children = []):
+        global g_fun_kinds
+        if (fun.name in g_fun_kinds):
+            if (fun.name == '-' and len(children) == 1):
+                kind = KIND_NEG
+            else:
+                kind = fun.name
         else:
-            return SMTConstNode (KIND_CONST, _sortNode ("Bool"), t[0], t[0])
+            kind = fun.kind
+        sort = self.__funApp2Sort(fun, kind, children)
+        return SMTFunAppNode (fun, kind, sort, children)
 
-def _sexprAttrv2token (s, l, t):
-    if (not t[0] == '('):
-        return t
-    return "({0:s})".format(" ".join([str(to) for to in t[1:]]))
-    
-def _qualIdent2SMTNode (s, l, t):
-    global g_is_bv_logic
-    if (t[0] == AS):
-        return _funNode (t[1], KIND_ANNFUN, t[2])
-    elif (t[0] == '_'):
-        if (t[1].find("bv") == 0 and g_is_bv_logic):
+
+
+    def __hex2SMTNode (self, s, l, t):
+        global g_is_bv_logic
+        assert (len(t) == 1)
+        value = int(t[0][2:], 16)
+        bw = value.bit_length()
+        return SMTBVConstNode (
+                KIND_CONSTH, self.__bvSortNode (bw), value, bw, original_str = t[0]) # TODO debug
+
+    def __bin2SMTNode (self, s, l, t):
+        global g_is_bv_logic
+        assert (len(t) == 1)
+        value = int(t[0][2:], 2)
+        bw = value.bit_length()
+        return SMTBVConstNode (KIND_CONSTB, self.__bvSortNode (bw), value, bw)
+
+    def __specConst2token (self, s, l, t):
+        assert (len(t) == 1)
+        if (t[0] == SMTParser.TRUE or t[0] == SMTParser.FALSE):
+            if (g_is_bv_logic):
+                return SMTBVConstNode (KIND_CONST, self.__bvSortNode (bw),
+                        1 if t[0] == TRUE else 0, 1, t[0])
+            else:
+                return SMTConstNode (
+                        KIND_CONST, self.__sortNode (
+                                        self.scopes, "Bool"), t[0], t[0])
+
+    def __sexprAttrv2token (self, s, l, t):
+        if (not t[0] == '('):
+            return t
+        return "({0:s})".format(" ".join([str(to) for to in t[1:]]))
+        
+    def __qualIdent2SMTNode (self, s, l, t):
+        global g_is_bv_logic
+        if (t[0] == SMTParser.AS):
+            return self.__funNode (self.scopes, t[1], KIND_ANNFUN, t[2])
+        elif (t[0] == '_'):
+            if (t[1].find("bv") == 0 and g_is_bv_logic):
+                assert (len(t) == 3)
+                value = int(t[1][2:])
+                bw = t[2].value
+                return SMTBVConstNode (
+                        KIND_CONSTN, self.__bvSortNode (bw), value, bw)
+            else:
+                assert (len(t) > 1)
+                return self.__funNode (
+                        self.scopes, t[1], KIND_FUN, None, indices = t[2:])
+        else:
+            return self.__funNode (self.scopes, t[0], KIND_FUN, None)
+
+    def __varBind2SMTNode (self, s, l, t):
+        return SMTVarBindNode (
+                self.__funNode (self.scopes, t[0], KIND_FUN, t[1].sort), [t[1]])
+
+    def __term2SMTNode (self, s, l, t):
+        if (len(t) == 1):
+            return t
+        if (str(t[0]) == SMTParser.LET):
             assert (len(t) == 3)
-            value = int(t[1][2:])
-            bw = t[2].value
-            return SMTBVConstNode (KIND_CONSTN, _bvSortNode (bw), value, bw)
+            return self.__smtNode (KIND_LET, t[2].sort, [t[1][0:], t[2]])
+        elif (str(t[0]) == SMTParser.FORALL):
+            assert (len(t) == 3)
+            return self.__smtNode (KIND_FORALL, t[2].sort, [t[1][0:], t[2]])
+        elif (str(t[0]) == SMTParser.EXISTS):
+            assert (len(t) == 3)
+            return self.__smtNode (KIND_EXISTS, t[2].sort, [t[1][0:], t[2]])
+        elif (str(t[0]) == '!'):
+            assert (len(t) == 3)
+            return self.__smtNode (KIND_ANNOTN, t[1].sort, [t[1], t[2][0:]])
         else:
-            assert (len(t) > 1)
-            return _funNode (t[1], KIND_FUN, None, indices = t[2:])
-    else:
-        return _funNode (t[0], KIND_FUN, None)
+            assert (isinstance(t[0], SMTFunNode))
+            return self.__funAppNode (t[0], t[1][0:])
 
-def _varBind2SMTNode (s, l, t):
-    return SMTVarBindNode (_funNode (t[0], KIND_FUN, t[1].sort), [t[1]])
-
-def _term2SMTNode (s, l, t):
-    if (len(t) == 1):
-        return t
-    if (str(t[0]) == LET):
-        assert (len(t) == 3)
-        return _smtNode (KIND_LET, t[2].sort, [t[1][0:], t[2]])
-    elif (str(t[0]) == FORALL):
-        assert (len(t) == 3)
-        return _smtNode (KIND_FORALL, t[2].sort, [t[1][0:], t[2]])
-    elif (str(t[0]) == EXISTS):
-        assert (len(t) == 3)
-        return _smtNode (KIND_EXISTS, t[2].sort, [t[1][0:], t[2]])
-    elif (str(t[0]) == '!'):
-        assert (len(t) == 3)
-        return _smtNode (KIND_ANNOTN, t[1].sort, [t[1], t[2][0:]])
-    else:
-        assert (isinstance(t[0], SMTFunNode))
-        return SMTFunAppNode (t[0], t[1][0:])
-
-def _cmd2SMTCmdNode (s, l, t):
-    global g_cur_scope
-    kind = t[0]
-    if (kind == KIND_DECLSORT):
-        assert (len(t) == 3)
-        return _cmdNode (KIND_DECLSORT, 
-                         [_sortNode (t[1], t[2].value, g_cur_scope)])
-    elif (kind == KIND_DEFSORT):
-        assert (len(t) == 4)
-        # TODO sort is currently not added here, concrete sort is added to 
-        # scope level 0 when encountered !!!!
-        string = "{0:s} ({1:s}) {2:s}".format(
-                     t[1], 
-                     " ".join([str(s) for s in t[2]]) if len(t[2]) > 0 else "",
-                     str(t[3]))
-        return _cmdNode (KIND_DEFSORT, [string])
-    elif (kind == KIND_DECLFUN):
-        assert (len(t) == 4)
-        return _cmdNode (
-            KIND_DECLFUN, 
-            [_funNode (t[1], KIND_FUN, t[3], t[2][0:], scope = g_cur_scope)])
-    elif (kind == KIND_DEFFUN):
-        assert (len(t) == 5)
-        sorts = [to.sort for to in t[2]]
-        return _cmdNode (
-            KIND_DEFFUN, 
-            [_funNode (t[1], KIND_FUN, t[3], sorts, scope = g_cur_scope), 
-             t[2][0:], 
-             t[4]])
-    elif (kind == KIND_GETVALUE):
-        assert (len(t) == 2)
-        return _cmdNode (KIND_GETVALUE, [t[1][0:]])
-    else:
-        return _cmdNode (t[0], children = t[1:])
-
-
-numeral.setParseAction(lambda s,l,t: 
-        SMTConstNode (KIND_CONSTN, _sortNode ("Int"), value = int(t[0])))
-decimal.setParseAction(lambda s,l,t:
-        SMTConstNode (KIND_CONSTD, _sortNode ("Real"), value = float(t[0])))
-hexadecimal.setParseAction(_hex2SMTNode)
-binary.setParseAction(_bin2SMTNode)
-string.setParseAction(lambda s,l,t:
-        SMTConstNode (KIND_CONSTS, _sortNode ("String"), value = t[0]))
-
-symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
-spec_symb_str.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
-
-s_expr.setParseAction(_sexprAttrv2token)
-
-sort.setParseAction(lambda s,l,t:
-        _sortNode (
-            "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 else t[0],
-            len(t) - 1))
-
-attr_value.setParseAction(_sexprAttrv2token)
-attribute.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
-
-option.setParseAction(lambda s,l,t: " ".join([str(to) for to in t]))
-
-qual_identifier.setParseAction(_qualIdent2SMTNode)
-sorted_var.setParseAction(lambda s,l,t: 
-        _funNode (t[0], KIND_FUN, t[1], scope = g_cur_scope))
-var_binding.setParseAction(_varBind2SMTNode)
-term.setParseAction(_term2SMTNode)
-
-command.setParseAction(_cmd2SMTCmdNode)
-
-script.ignore(comment)
-# ---------------------------------------------------------------------------- #
-
+    def __cmd2SMTCmdNode (self, s, l, t):
+        kind = t[0]
+        if (kind == KIND_DECLSORT):
+            assert (len(t) == 3)
+            return self.__cmdNode (KIND_DECLSORT, 
+                    [self.__sortNode (self.cur_scope, t[1], t[2].value)])
+        elif (kind == KIND_DEFSORT):
+            assert (len(t) == 4)
+            # TODO sort is currently not added here, concrete sort is added to 
+            # scope level 0 when encountered !!!!
+            string = "{0:s} ({1:s}) {2:s}".format(
+                         t[1], 
+                         " ".join([str(s) for s in t[2]]) if len(t[2]) > 0 
+                                                          else "",
+                         str(t[3]))
+            return self.__cmdNode (KIND_DEFSORT, [string])
+        elif (kind == KIND_DECLFUN):
+            assert (len(t) == 4)
+            return self.__cmdNode (
+                KIND_DECLFUN, 
+                [self.__funNode (
+                    self.cur_scope, t[1], KIND_FUN, t[3], t[2][0:])])
+        elif (kind == KIND_DEFFUN):
+            assert (len(t) == 5)
+            sorts = [to.sort for to in t[2]]
+            return self.__cmdNode (
+                KIND_DEFFUN, 
+                [self.__funNode (self.cur_scope, t[1], KIND_FUN, t[3], sorts), 
+                 t[2][0:], 
+                 t[4]])
+        elif (kind == KIND_GETVALUE):
+            assert (len(t) == 2)
+            return self.__cmdNode (KIND_GETVALUE, [t[1][0:]])
+        else:
+            return self.__cmdNode (t[0], children = t[1:])
 
 
 
@@ -961,14 +971,17 @@ if __name__ == "__main__":
     sys.setrecursionlimit(4000)
     from pprint import pprint
     try:
-        parsed = script.parseFile(infile, parseAll = True)
+        parser = SMTParser()
+        parsed = SMTParser.script.parseFile(infile, parseAll = True)
+        g_scopes = parser.scopes
+        g_cur_scope = parser.cur_scope
         print (" ".join(str(s) for s in parsed.asList()))
         print ("--------------------------------------------------")
         print (g_scopes)
-#    except ParseSyntaxException as e:
-#        print ("[ddsmt] " + e.line)
-#        print ("[ddsmt] " + " "*(e.column - 2) + "^")
-#        print ("[ddsmt] " + str(e))
+    except ParseSyntaxException as e:
+        print ("[ddsmt] " + e.line)
+        print ("[ddsmt] " + " "*(e.column - 2) + "^")
+        print ("[ddsmt] " + str(e))
     except DDSMTException as e:
         print ("[ddsmt] " + str(e))
     except RuntimeError:
