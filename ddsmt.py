@@ -338,6 +338,11 @@ class SMTCmdNode:
     def __str__(self):
         assert (self.kind != KIND_DECLSORT or 
                 self.children[0].kind == KIND_SORT)
+        
+        if self.id in g_subst_cmds:
+            assert (g_subst_cmds[self.id] == None)
+            return ""
+
         if self.kind == KIND_DECLFUN:
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTFunNode))
@@ -1093,7 +1098,6 @@ def _substitute_scopes ():
                     if scope.id not in g_subst_scopes:
                         g_subst_scopes[scope.id] = None
                         nsubst += 1
-                
                 if nsubst == 0:
                     continue
 
@@ -1111,7 +1115,7 @@ def _substitute_scopes ():
             gran = gran // 2
         level += 1
         
-    _log (2, "  > {0:d} nodes substituted in total".format(nsubst_total))
+    _log (2, "  > {0:d} scope(s) substituted in total".format(nsubst_total))
     return nsubst_total
 
         
@@ -1134,23 +1138,43 @@ def _filter_cmds (filter_fun = None, root = None):
     return cmds
 
 
-#def _substitute_cmds ():
-#    global g_subst_cmds
-#
-#    _log (2)
-#    _log (2, "substitute COMMANDS:")
-#
-#    nsubst_total = 0
-#    cmds = _filter_cmds (lambda x: x not in (KIND_SETLOGIC, KIND_EXIT))
-#    gran = len(cmds)
-#
-#    while gran > 0:
-#        subsets = [cmds[s:s+gran] for s in range (0, len(cmds), gran)]
-#        for subset in subsets:
-#            cpy_subst_cmds = g_subst_cmds.copy()
-#            nsubst = 0
-#            # TODO
-#
+def _substitute_cmds ():
+    global g_subst_cmds
+
+    _log (2)
+    _log (2, "substitute COMMANDS:")
+
+    nsubst_total = 0
+    cmds = _filter_cmds (lambda x: x not in (KIND_SETLOGIC, KIND_EXIT))
+    gran = len(cmds)
+
+    while gran > 0:
+        subsets = [cmds[s:s+gran] for s in range (0, len(cmds), gran)]
+        for subset in subsets:
+            cpy_subst_cmds = g_subst_cmds.copy()
+            nsubst = 0
+            for cmd in subset:
+                if cmd.id not in g_subst_cmds:
+                    g_subst_cmds[cmd.id] = None
+                    nsubst += 1
+            if nsubst == 0:
+                continue
+
+            _dump (g_tmpfile)
+            if _test():
+                _dump (g_outfile)
+                nsubst_total += nsubst
+                _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
+                         "substituted: {2:d}".format(
+                             gran, len(subsets), nsubst))
+            else:
+                _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
+                         "substituted: 0".format(gran, len(subsets)))
+                g_subst_cmds = cpy_subst_cmds
+        gran = gran // 2
+
+    _log (2, "  > {0:d} command(s) substituted in total".format(nsubst_total))
+    return nsubst_total
     
 
 def ddsmt_main ():
@@ -1166,6 +1190,7 @@ def ddsmt_main ():
 
         nsubst += _substitute_scopes ()
 
+        nsubst += _substitute_cmds ()
         #_filter_cmds ()
 
 
