@@ -1075,10 +1075,11 @@ def _substitute_scopes ():
     nsubst_total = 0
     level = 1
     while True:
-        scopes = _filter_scopes(lambda x: x.level == level) 
+        scopes = _filter_scopes (lambda x: x.level == level and 
+                                     x.kind not in (KIND_ESCOPE, KIND_FSCOPE))
         gran = len(scopes)
 
-        if gran == 0:
+        if not scopes:
             break
 
         _log (2, "  level: {0:d}".format(level))
@@ -1133,7 +1134,23 @@ def _filter_cmds (filter_fun = None, root = None):
     return cmds
 
 
-
+#def _substitute_cmds ():
+#    global g_subst_cmds
+#
+#    _log (2)
+#    _log (2, "substitute COMMANDS:")
+#
+#    nsubst_total = 0
+#    cmds = _filter_cmds (lambda x: x not in (KIND_SETLOGIC, KIND_EXIT))
+#    gran = len(cmds)
+#
+#    while gran > 0:
+#        subsets = [cmds[s:s+gran] for s in range (0, len(cmds), gran)]
+#        for subset in subsets:
+#            cpy_subst_cmds = g_subst_cmds.copy()
+#            nsubst = 0
+#            # TODO
+#
     
 
 def ddsmt_main ():
@@ -1149,8 +1166,7 @@ def ddsmt_main ():
 
         nsubst += _substitute_scopes ()
 
-
-        _filter_cmds ()
+        #_filter_cmds ()
 
 
         nsubst_total += nsubst
