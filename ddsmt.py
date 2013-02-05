@@ -157,6 +157,9 @@ g_is_bv_logic = False
 g_scopes = None
 g_cur_scope = g_scopes
 
+g_subst_scopes = {}
+g_subst_cmds = {}
+g_subst_nodes = {}
 
 class DDSMTException (Exception):
 
@@ -183,7 +186,7 @@ class SMTNode:
         return len(self.children)
 
     def __str__(self):
-        if (self.kind in (KIND_EXISTS, KIND_FORALL)):
+        if self.kind in (KIND_EXISTS, KIND_FORALL):
             assert (len(self.children) == 2)
             svars = self.children[0]
             tterm = self.children[1]
@@ -192,7 +195,7 @@ class SMTNode:
                     " ".join(["({0:s} {1:s})".format(s.name, str(s.sort))
                               for s in svars]) if len(svars) > 0 else "",
                     str(tterm))
-        elif (self.kind == KIND_ANNOTN):
+        elif self.kind == KIND_ANNOTN:
             assert (len(self.children) == 2)
             return "(! {0:s} {1:s})".format(
                     str(self.children[0]), 
@@ -201,10 +204,10 @@ class SMTNode:
         return "({0:s}{1:s})".format(self.kind, self.children2string())
 
     def children2string(self):
-        if (self.arity() >= 1):
+        if self.arity() >= 1:
             strings = []
             for c in self.children:
-                if (isinstance(c, list)):
+                if isinstance(c, list):
                     strings.append("({0:s})".format(
                         " ".join([str(cc) for cc in c])))
                 else:
@@ -240,7 +243,7 @@ class SMTFunNode (SMTNode):
         self.indices = [int(s.value) for s in indices]
 
     def __str__(self):
-        if (self.indices == []):
+        if self.indices == []:
             return self.name
         return "(_ {0:s} {1:s})".format(
                 self.name, " ".join([str(s) for s in self.indices]))
@@ -269,12 +272,12 @@ class SMTSortNode (SMTNode):
         return self.name
 
 #    def __eq__(self, other):
-#        if (self is None or other is None):
+#        if self is None or other is None:
 #            return self is None and other is None
 #        return self.name == other.name
 # 
 #    def __ne__(self, other):
-#        if (self is None or other is None):
+#        if self is None or other is None:
 #            return not (self is None and other is None)
 #        return self.name != other.name
 
@@ -301,16 +304,16 @@ class SMTBVConstNode (SMTConstNode):
         self.original_str = original_str  # TODO debug
 
     def __str__(self):
-        if (self.kind == KIND_CONST):
+        if self.kind == KIND_CONST:
             assert (self.bw == 1)
             return "{0:s}".format(TRUE if value == 1 else FALSE)
-        elif (self.kind == KIND_CONSTH):
+        elif self.kind == KIND_CONSTH:
             #return "#x{0:s}".format(hex(self.value)[2:])
-            if (self.original_str != "none"):
+            if self.original_str != "none":
                 return self.original_str
             else:
                 return "#x{0:s}".format(hex(self.value)[2:]) 
-        elif (self.kind == KIND_CONSTB):
+        elif self.kind == KIND_CONSTB:
             return "#b{0:s}".format(bin(self.value)[2:])
         assert (self.kind == KIND_CONSTN)
         return "(_ bv{0:d} {1:d})".format(self.value, self.bitwidth)
@@ -335,7 +338,7 @@ class SMTCmdNode:
     def __str__(self):
         assert (self.kind != KIND_DECLSORT or 
                 self.children[0].kind == KIND_SORT)
-        if (self.kind == KIND_DECLFUN):
+        if self.kind == KIND_DECLFUN:
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
@@ -345,7 +348,7 @@ class SMTCmdNode:
                     " ".join([str(s) for s in fun.sorts]) if len(fun.sorts) > 0 
                                                           else "",
                     str(fun.sort))
-        elif (self.kind == KIND_DEFFUN):
+        elif self.kind == KIND_DEFFUN:
             assert (len(self.children) == 3)
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
@@ -358,7 +361,7 @@ class SMTCmdNode:
                               for s in svars]) if len(svars) > 0 else "",
                     str(fun.sort),
                     str(fterm))
-        elif (self.kind == KIND_DECLSORT):
+        elif self.kind == KIND_DECLSORT:
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTSortNode))
             sort = self.children[0]
@@ -368,10 +371,10 @@ class SMTCmdNode:
         return "({0:s}{1:s})".format(self.kind, self.children2string())
 
     def children2string(self):
-        if (self.arity() >= 1):
+        if self.arity() >= 1:
             strings = []
             for c in self.children:
-                if (isinstance (c, list)):
+                if isinstance (c, list):
                     strings.append("({0:s})".format(
                         " ".join([str(cc) for cc in c])))
                 else:
@@ -403,17 +406,19 @@ class SMTScopeNode:
         self.sorts  = {}
 
     def __str__ (self):
-        npush = 0
         strings = []
         for cmd in self.cmds:
-            strings.append(str(cmd))
-            if (cmd.kind == KIND_PUSH):
+            if cmd.kind == KIND_PUSH:
                 assert (len(self.scopes) > 0)
-                while (self.scopes[npush].kind in (KIND_FSCOPE, KIND_ESCOPE)):
-                    npush += 1
-                assert (npush < len(self.scopes))
-                strings.append(str(self.scopes[npush]))
-                npush += 1
+                assert (cmd.scope in self.scopes)
+                assert (cmd.scope.kind not in (KIND_ESCOPE, KIND_FSCOPE))
+                if cmd.scope.id in g_subst_scopes:
+                    assert (g_subst_scopes[cmd.scope.id] == None)
+                    continue
+                strings.append(str(cmd))
+                strings.append(str(cmd.scope))
+            else:
+                strings.append(str(cmd))
         return " ".join([s for s in strings])
 
 
@@ -680,7 +685,7 @@ class SMTParser:
 
     #def _is_bvSortNode (node):
     #    assert (isinstance (node, SMTSortNode))
-    #    if (node.name.find("BitVec") > 0):
+    #    if node.name.find("BitVec") > 0:
     #        return true
     #    return false
 
@@ -689,7 +694,7 @@ class SMTParser:
         for i in range (nscopes):
             new_scope = SMTScopeNode(
                     self.cur_scope.level + 1, self.cur_scope, kind)
-            if (not push_scope):
+            if not push_scope:
                 push_scope = new_scope
             self.cur_scope.scopes.append(new_scope)
             self.cur_scope = new_scope
@@ -709,7 +714,7 @@ class SMTParser:
     def __find_sort (self, name):
         scope = self.cur_scope
         while scope != None:
-            if (name in scope.sorts):
+            if name in scope.sorts:
                 assert (isinstance (scope.sorts[name], SMTSortNode))
                 return scope.sorts[name]
             scope = scope.prev
@@ -724,7 +729,7 @@ class SMTParser:
     def __find_fun (self, name):
         scope = self.cur_scope
         while scope != None:
-            if (name in scope.funs):
+            if name in scope.funs:
                 return scope.funs[name]
             scope = scope.prev
         return None
@@ -734,7 +739,7 @@ class SMTParser:
 
         scope = None
 
-        if (kind == KIND_PUSH):
+        if kind == KIND_PUSH:
             assert (len(children) == 1)
             assert (isinstance (children[0], SMTConstNode))
             cmd = SMTPushCmdNode (None, kind, children)
@@ -744,11 +749,11 @@ class SMTParser:
             cmd = SMTCmdNode (kind, children)
             self.cur_scope.cmds.append(cmd)
 
-            if (kind == KIND_POP):
+            if kind == KIND_POP:
                 assert (len(children) == 1)
                 assert (isinstance (children[0], SMTConstNode))
                 self.__close_scope (children[0].value)
-            elif (kind == KIND_SETLOGIC):
+            elif kind == KIND_SETLOGIC:
                 assert (len(children) == 1)
                 g_logic = children[0]
                 g_is_bv_logic = g_logic.find("BV") >= 0
@@ -757,7 +762,7 @@ class SMTParser:
 
 
     def __smtNode (self, kind, sort = None, children = []):
-        if (kind in (KIND_FORALL, KIND_EXISTS)):
+        if kind in (KIND_FORALL, KIND_EXISTS):
             prev_scope = self.cur_scope
             assert (len(children) == 2)
             svars = children[0]
@@ -775,7 +780,7 @@ class SMTParser:
 
     def __funNode (self, scope, name, kind, sort, sorts = [], indices = []):
         fun = self.__find_fun (name)
-        if (fun == None):
+        if fun == None:
             return self.__add_fun (scope, name, kind, sort, sorts, indices)
         assert (fun.name == name)
         return fun
@@ -783,7 +788,7 @@ class SMTParser:
 
     def __sortNode (self, scope, name, nparams = 0):
         sort = self.__find_sort (name)
-        if (sort == None):
+        if sort == None:
             # add sort to scope level 0 (otherwise it would have been declared
             # or defined already and thus be found previously)
             return self.__add_sort (scope, name, nparams)
@@ -797,10 +802,10 @@ class SMTParser:
 
     def __funApp2Sort (self, fun, kind, children):
         global g_is_bv_logic
-        if (not g_is_bv_logic):
 
+        if not g_is_bv_logic:
             if ((kind in (KIND_ABS, KIND_ISI, KIND_NEG, KIND_TOI, KIND_TOR) and 
-                 len(children) != 1) or
+                 len(children) != 1) or 
                 (kind in (KIND_ADD, KIND_DIV, KIND_LE, KIND_LT, KIND_GE, 
                           KIND_GT, KIND_MOD, KIND_MUL, KIND_RDIV, KIND_SUB) and 
                  len(children) != 2)):
@@ -808,25 +813,25 @@ class SMTParser:
                         "invalid number of arguments to '{0:s}': {1:d}".format(
                             str(fun), len(children)))
 
-            if (kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOR)):
+            if kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOR):
                 for c in children:
-                    if (not c.sort == self.__sortNode (self.scopes, "Int")):
+                    if not c.sort == self.__sortNode (self.scopes, "Int"):
                         raise DDSMTException (
                                 "'{0:s}' expects sort 'Int' " \
                                 "as argument(s)".format(str(fun)))
                 return self.__sortNode (self.scopes, "Int")
-            elif (kind in (KIND_RDIV, KIND_TOI)):
+            elif kind in (KIND_RDIV, KIND_TOI):
                 for c in children:
-                    if (not c.sort == self.__sortNode (self.scopes, "Real")):
+                    if not c.sort == self.__sortNode (self.scopes, "Real"):
                         raise DDSMTException (
                                 "'{0:s}' expects sort 'Real' " \
                                 "as argument(s)".format(str(fun)))
                 return self.__sortNode (self.scopes, "Real")
-            elif (kind in (KIND_ADD, KIND_NEG, KIND_MUL, KIND_SUB, 
-                           KIND_LE, KIND_LT, KIND_GE, KIND_GT)):
+            elif kind in (KIND_ADD, KIND_NEG, KIND_MUL, KIND_SUB, 
+                          KIND_LE, KIND_LT, KIND_GE, KIND_GT):
                 csort = children[0].sort
                 for c in children[1:]:
-                    if (c.sort != csort):
+                    if c.sort != csort:
                         raise DDSMTException (
                             "'{0:s}' with mismatching sorts: " \
                             "'{1:s}' '{2:s}'".format(
@@ -840,22 +845,22 @@ class SMTParser:
                 return self.__sortNode (self.scopes, "Bool")
             return None
         else:
-            if (kind in (KIND_BVSGE, KIND_BVSGT, KIND_BVSLE, KIND_BVSLT, 
-                         KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT)):
+            if kind in (KIND_BVSGE, KIND_BVSGT, KIND_BVSLE, KIND_BVSLT, 
+                        KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT):
                 return self.__bvSortNode (1)
-            elif (kind == KIND_ZEXT or kind == KIND_SEXT):
+            elif kind == KIND_ZEXT or kind == KIND_SEXT:
                 assert (len(children) == 1)
                 assert (len(fun.indices) == 1)
                 return self.__bvSortNode (fun.indices[0] + children[0].bw)
-            elif (kind == KIND_REP):
+            elif kind == KIND_REP:
                 assert (len(children) == 1)
                 assert (len(fun.indices) == 1)
                 return self.__bvSortNode (fun.indices[0] * children[0].bw)
-            elif (kind == KIND_EXTR):
+            elif kind == KIND_EXTR:
                 assert (len(children) == 1)
                 assert (len(fun.indices) == 2)
                 return self.__bvSortNode (fun.indices[0] - fun.indices[1] + 1)
-            elif (kind == KIND_CONC):
+            elif kind == KIND_CONC:
                 assert (len(children) == 2)
                 return self.__bvSortNode (children[0].bw + children[1].bw)
             else:
@@ -864,8 +869,8 @@ class SMTParser:
 
     def __funAppNode (self, fun, children = []):
         global g_fun_kinds
-        if (fun.name in g_fun_kinds):
-            if (fun.name == '-' and len(children) == 1):
+        if fun.name in g_fun_kinds:
+            if fun.name == '-' and len(children) == 1:
                 kind = KIND_NEG
             else:
                 kind = fun.name
@@ -893,8 +898,8 @@ class SMTParser:
 
     def __specConst2token (self, s, l, t):
         assert (len(t) == 1)
-        if (t[0] == SMTParser.TRUE or t[0] == SMTParser.FALSE):
-            if (g_is_bv_logic):
+        if t[0] == SMTParser.TRUE or t[0] == SMTParser.FALSE:
+            if g_is_bv_logic:
                 return SMTBVConstNode (KIND_CONST, self.__bvSortNode (bw),
                         1 if t[0] == TRUE else 0, 1, t[0])
             else:
@@ -903,16 +908,16 @@ class SMTParser:
                                         self.scopes, "Bool"), t[0], t[0])
 
     def __sexprAttrv2token (self, s, l, t):
-        if (not t[0] == '('):
+        if not t[0] == '(':
             return t
         return "({0:s})".format(" ".join([str(to) for to in t[1:]]))
         
     def __qualIdent2SMTNode (self, s, l, t):
         global g_is_bv_logic
-        if (t[0] == SMTParser.AS):
+        if t[0] == SMTParser.AS:
             return self.__funNode (self.scopes, t[1], KIND_ANNFUN, t[2])
-        elif (t[0] == '_'):
-            if (t[1].find("bv") == 0 and g_is_bv_logic):
+        elif t[0] == '_':
+            if t[1].find("bv") == 0 and g_is_bv_logic:
                 assert (len(t) == 3)
                 value = int(t[1][2:])
                 bw = t[2].value
@@ -930,18 +935,18 @@ class SMTParser:
                 self.__funNode (self.scopes, t[0], KIND_FUN, t[1].sort), [t[1]])
 
     def __term2SMTNode (self, s, l, t):
-        if (len(t) == 1):
+        if len(t) == 1:
             return t
-        if (str(t[0]) == SMTParser.LET):
+        if str(t[0]) == SMTParser.LET:
             assert (len(t) == 3)
             return self.__smtNode (KIND_LET, t[2].sort, [t[1][0:], t[2]])
-        elif (str(t[0]) == SMTParser.FORALL):
+        elif str(t[0]) == SMTParser.FORALL:
             assert (len(t) == 3)
             return self.__smtNode (KIND_FORALL, t[2].sort, [t[1][0:], t[2]])
-        elif (str(t[0]) == SMTParser.EXISTS):
+        elif str(t[0]) == SMTParser.EXISTS:
             assert (len(t) == 3)
             return self.__smtNode (KIND_EXISTS, t[2].sort, [t[1][0:], t[2]])
-        elif (str(t[0]) == '!'):
+        elif str(t[0]) == '!':
             assert (len(t) == 3)
             return self.__smtNode (KIND_ANNOTN, t[1].sort, [t[1], t[2][0:]])
         else:
@@ -950,11 +955,11 @@ class SMTParser:
 
     def __cmd2SMTCmdNode (self, s, l, t):
         kind = t[0]
-        if (kind == KIND_DECLSORT):
+        if kind == KIND_DECLSORT:
             assert (len(t) == 3)
             return self.__cmdNode (KIND_DECLSORT, 
                     [self.__sortNode (self.cur_scope, t[1], t[2].value)])
-        elif (kind == KIND_DEFSORT):
+        elif kind == KIND_DEFSORT:
             assert (len(t) == 4)
             # TODO sort is currently not added here, concrete sort is added to 
             # scope level 0 when encountered !!!!
@@ -964,13 +969,13 @@ class SMTParser:
                                                           else "",
                          str(t[3]))
             return self.__cmdNode (KIND_DEFSORT, [string])
-        elif (kind == KIND_DECLFUN):
+        elif kind == KIND_DECLFUN:
             assert (len(t) == 4)
             return self.__cmdNode (
                 KIND_DECLFUN, 
                 [self.__funNode (
                     self.cur_scope, t[1], KIND_FUN, t[3], t[2][0:])])
-        elif (kind == KIND_DEFFUN):
+        elif kind == KIND_DEFFUN:
             assert (len(t) == 5)
             sorts = [to.sort for to in t[2]]
             return self.__cmdNode (
@@ -978,7 +983,7 @@ class SMTParser:
                 [self.__funNode (self.cur_scope, t[1], KIND_FUN, t[3], sorts), 
                  t[2][0:], 
                  t[4]])
-        elif (kind == KIND_GETVALUE):
+        elif kind == KIND_GETVALUE:
             assert (len(t) == 2)
             return self.__cmdNode (KIND_GETVALUE, [t[1][0:]])
         else:
@@ -987,13 +992,13 @@ class SMTParser:
 
 
 def _cleanup():
-    if (os.path.exists(g_tmpfile)):
+    if os.path.exists(g_tmpfile):
         os.remove(g_tmpfile)
 
 
-def _log(verbosity, msg, update = False):
+def _log(verbosity, msg = "", update = False):
     global g_opts
-    if (g_opts.verbosity >= verbosity):
+    if g_opts.verbosity >= verbosity:
         sys.stdout.write(" " * 80 + "\r")
         if update:
             sys.stdout.write("[ddsmt] {0:s}\r".format(msg))
@@ -1002,15 +1007,16 @@ def _log(verbosity, msg, update = False):
             sys.stdout.write("[ddsmt] {0:s}\n".format(msg))
 
 
-def _dump (filename, root):
+def _dump (filename, root = None):
     try:
         with open(filename, 'w') as outfile:
-            outfile.write(str(root))
+            outfile.write(str(root if root != None else g_scopes))
+            outfile.write("\n")
     except IOError as e:
         raise DDSMTException (str(e))
 
 
-def _run():
+def _run ():
     global g_cmd
     try:
         start = time.time()
@@ -1020,9 +1026,9 @@ def _run():
         # (out, err) = sproc.communicate(g_opts.timeout)  # TODO use out, err
         
         # TODO disable this from 3.3. upwards
-        if (g_opts.timeout):
+        if g_opts.timeout:
             while (sproc.poll() == None):
-                if (time.time() - start > g_opts.timeout):
+                if time.time() - start > g_opts.timeout:
                     sproc.kill()
                 time.sleep(1)
 
@@ -1037,10 +1043,94 @@ def _run():
         raise DDSMTException ("{0:s}: {1:s}".format(str(e), g_cmd[0]))
 
 
-def _test():
+def _test ():
     global g_cmd
     # TODO compare output if option enabled?
     return _run() == g_golden
+
+
+def _filter_scopes (filter_fun = None, root = None):
+    global g_scopes, g_subst_scopes
+
+    scopes = []
+    to_visit = [root if root != None else g_scopes]
+    
+    while to_visit:
+        cur = to_visit.pop()
+        if cur.id in g_subst_scopes:
+            assert (g_subst_scopes[cur.id] == None)
+            continue
+        if filter_fun == None or filter_fun(cur):
+            scopes.append(cur)
+        to_visit.extend(cur.scopes) 
+    return scopes
+
+
+def _substitute_scopes ():
+    global g_subst_scopes
+
+    _log (2)
+    _log (2, "substitute SCOPES:")
+
+    nsubst_total = 0
+    level = 1
+    while True:
+        scopes = _filter_scopes(lambda x: x.level == level) 
+        gran = len(scopes)
+
+        if gran == 0:
+            break
+
+        _log (2, "  level: {0:d}".format(level))
+
+        while gran > 0:
+            subsets = [scopes[s:s+gran] for s in range (0, len(scopes), gran)]
+            for subset in subsets:
+                cpy_subst_scopes = g_subst_scopes.copy()
+                nsubst = 0
+                for scope in subset:
+                    if scope.id not in g_subst_scopes:
+                        g_subst_scopes[scope.id] = None
+                        nsubst += 1
+                
+                if nsubst == 0:
+                    continue
+
+                _dump (g_tmpfile)
+                if _test():
+                    _dump (g_outfile)
+                    nsubst_total += nsubst
+                    _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
+                             "substituted: {2:d}".format(
+                                 gran, len(subsets), nsubst))
+                else:
+                    _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
+                             "substituted: 0".format(gran, len(subsets)))
+                    g_subst_scopes = cpy_subst_scopes
+            gran = gran // 2
+        level += 1
+        
+    _log (2, "  > {0:d} nodes substituted in total".format(nsubst_total))
+    return nsubst_total
+
+        
+def _filter_cmds (filter_fun = None, root = None):
+    global g_scopes
+
+    cmds = []
+    scopes = _filter_scopes (lambda x: x.kind not in (KIND_ESCOPE, KIND_FSCOPE),
+                             root if root != None else g_scopes)
+    to_visit = [s.cmds[0:] for s in scopes]
+    while to_visit:
+        cur_cmds = to_visit.pop()
+        while cur_cmds:
+            cur = cur_cmds.pop()
+            if cur.id in g_subst_cmds:
+                assert (g_subst_cmds[cur.id] == None)
+                continue
+            if filter_fun == None or filter_fun(cur):
+                cmds.append(cur)
+    return cmds
 
 
 
@@ -1049,10 +1139,28 @@ def _test():
 def ddsmt_main ():
     global g_tmpfile, g_outfile
 
-    _dump (g_outfile, g_scopes)
-
+    rounds = 0
+    nsubst_total = 0
+    nsubst = 1
     
+    while nsubst:
+        rounds += 1
+        nsubst = 0
 
+        nsubst += _substitute_scopes ()
+
+
+        _filter_cmds ()
+
+
+        nsubst_total += nsubst
+
+    _log (2)
+    _log (2, "rounds total: {0:d}".format(rounds))
+    # TODO log total reduction in %
+
+    if nsubst_total == 0:
+        sys.exit ("[ddsmt] unable to reduce input file")
 
 
 if __name__ == "__main__":
@@ -1075,12 +1183,12 @@ if __name__ == "__main__":
         g_outfile = args[1]
         g_cmd = shlex.split(args[2])
 
-        if (not os.path.exists(infile)):
+        if not os.path.exists(infile):
             raise DDSMTException ("given input file does not exist")
-        #if (os.path.exists(g_outfile)):
+        #if os.path.exists(g_outfile):
         #    raise DDSMTException ("given output file does already exist")
 
-        _log (1, "input file:  '{0:s}'".format(infile))
+        _log (1, "input  file: '{0:s}'".format(infile))
         _log (1, "output file: '{0:s}'".format(g_outfile))
         _log (1, "command:     '{0:s}'".format(args[2]))
 
@@ -1099,7 +1207,9 @@ if __name__ == "__main__":
         shutil.copyfile(infile, g_tmpfile)
         g_cmd.append(g_tmpfile)
         g_golden = _run()
-        _log (1, "golden exit code: {0:d}".format(g_golden))
+        
+        _log (1)
+        _log (1, "golden exit: {0:d}".format(g_golden))
 
         ddsmt_main ()
         
