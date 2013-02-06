@@ -450,9 +450,28 @@ class SMTCmdNode:
 
 class SMTPushCmdNode (SMTCmdNode):
 
-    def __init__ (self, scope, kind, children = []):
-        super().__init__(kind, children)
-        self.scope = scope
+    def __init__ (self, nscopes, scope):
+        assert (nscopes > 0)
+        super().__init__(KIND_PUSH)
+        self.nscopes = nscopes
+        self.scope = scope 
+        # Note: self.scope is the scope directly associated with this push
+        #       i.e. for e.g. push 2, 2 scopes are opened and the first one
+        #       is the  one associated with the resp. push command
+
+    def __str__ (self):
+        return "({0:s} {1:d})".format(self.kind, self.nscopes)
+
+
+class SMTPopCmdNode (SMTCmdNode):
+
+    def __init__ (self, nscopes):
+        assert (nscopes > 0)
+        super().__init__(KIND_POP)
+        self.nscopes = nscopes
+
+    def __str__ (self):
+        return "({0:s} {1:d})".format(self.kind, self.nscopes)
 
 
 class SMTScopeNode:
@@ -812,18 +831,20 @@ class SMTParser:
         if kind == KIND_PUSH:
             assert (len(children) == 1)
             assert (isinstance (children[0], SMTConstNode))
-            cmd = SMTPushCmdNode (None, kind, children)
+            cmd = SMTPushCmdNode (children[0].value, None)
             self.cur_scope.cmds.append(cmd)
-            cmd.scope = self.__open_scope (children[0].value)
+            cmd.scope = self.__open_scope (cmd.nscopes)
+        elif kind == KIND_POP:
+            assert (len(children) == 1)
+            assert (isinstance (children[0], SMTConstNode))
+            cmd = SMTPopCmdNode (children[0].value)
+            self.cur_scope.cmds.append(cmd)
+            self.__close_scope (cmd.nscopes)
         else:
             cmd = SMTCmdNode (kind, children)
             self.cur_scope.cmds.append(cmd)
 
-            if kind == KIND_POP:
-                assert (len(children) == 1)
-                assert (isinstance (children[0], SMTConstNode))
-                self.__close_scope (children[0].value)
-            elif kind == KIND_SETLOGIC:
+            if kind == KIND_SETLOGIC:
                 assert (len(children) == 1)
                 g_logic = children[0]
                 g_is_bv_logic = g_logic.find("BV") >= 0
