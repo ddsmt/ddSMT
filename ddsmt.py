@@ -321,7 +321,7 @@ class SMTBVConstNode (SMTConstNode):
         self.original_str = original_str  # TODO debug
 
     def __str__ (self):
-        assert (kind != KIND_CONST)
+        assert (self.kind != KIND_CONST)
         if self.kind == KIND_CONSTH:
             #return "#x{0:s}".format(hex(self.value)[2:])
             if self.original_str != "none":
@@ -1142,19 +1142,30 @@ def _filter_cmds (filter_fun = None, root = None):
     global g_scopes
 
     cmds = []
-    scopes = _filter_scopes (lambda x: x.kind not in (KIND_ESCOPE, KIND_FSCOPE),
-                             root if root != None else g_scopes)
-    to_visit = [s.cmds[0:] for s in scopes]
+    scopes = _filter_scopes (lambda x: x.kind not in (KIND_ESCOPE, KIND_FSCOPE))
+    to_visit = [c for cmd_list in [s.cmds for s in scopes] for c in cmd_list]
+
     while to_visit:
-        cur_cmds = to_visit.pop()
-        while cur_cmds:
-            cur = cur_cmds.pop()
-            if cur.id in g_subst_cmds:
-                assert (g_subst_cmds[cur.id] == None)
-                continue
-            if filter_fun == None or filter_fun(cur):
-                cmds.append(cur)
+        cur = to_visit.pop()
+        if cur.id in g_subst_cmds:
+            assert (g_subst_cmds[cur.id] == None)
+            continue
+        if filter_fun == None or filter_fun(cur):
+            cmds.append(cur)
     return cmds
+#    cmds = []
+#    scopes = _filter_scopes (lambda x: x.kind not in (KIND_ESCOPE, KIND_FSCOPE))
+#    to_visit = [s.cmds[0:] for s in scopes]
+#    while to_visit:
+#        cur_cmds = to_visit.pop()
+#        while cur_cmds:
+#            cur = cur_cmds.pop()
+#            if cur.id in g_subst_cmds:
+#                assert (g_subst_cmds[cur.id] == None)
+#                continue
+#            if filter_fun == None or filter_fun(cur):
+#                cmds.append(cur)
+#    return cmds
 
 
 def _substitute_cmds ():
@@ -1196,7 +1207,15 @@ def _substitute_cmds ():
     return nsubst_total
     
 
-#def _substitute_terms ():
+#def _substitute_terms (subst_fun, filter_fun, msg = None):
+#    global g_subst_nodes
+#
+#    _log (2)
+#    _log (2, msg if msg != None else "substitute TERMS:")
+#
+#    nsubst_total = 0
+#    asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+#
 
 def ddsmt_main ():
     global g_tmpfile, g_outfile
