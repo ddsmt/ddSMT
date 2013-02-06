@@ -181,21 +181,34 @@ class SMTNode:
         self.id = SMTNode.g_id
         self.kind = kind
         self.sort = sort
-        self.children = children
+        if (kind == KIND_LET):
+            assert (len(children) == 2)
+            self.children = children[0]
+            self.children.extend([children[1]])
+        else:
+            self.children = children
 
     def __str__ (self):
+        if self.kind == KIND_LET:
+            assert (len(self.children) >= 1)
+            return "({0:s} ({1:s}) {2:s})".format(
+                    self.kind,
+                    " ".join([str(c) for c in self.children[0:-1]]),
+                    str(self.children[-1]))
         return "({0:s}{1:s})".format(self.kind, self.children2str())
 
     def children2str(self):
-        strings = []
-        for c in self.children:
-            if isinstance(c, list):
-                strings.append("({0:s})".format(
-                    " ".join([str(cc) for cc in c])))
-            else:
-                strings.append(str(c))
-        return " " + " ".join([s for s in strings]) if len(self.children) > 0 
-                                                    else ""
+        for c in self.children: assert (not isinstance(c, list)) # TODO DEBUG
+        return " " + " ".join([str(c) for c in self.children]) \
+                        if len(self.children) > 0 else ""
+        #res = [""]
+        #for c in self.children:
+        #    if isinstance(c, list):
+        #        res.append("({0:s})".format(
+        #            " ".join([str(cc) for cc in c])))
+        #    else:
+        #        res.append(str(c))
+        #return " ".join( [s for s in res]) if len(self.children) > 0 else ""
 
     def get_subst (self):
         global g_subst_nodes
@@ -420,15 +433,14 @@ class SMTCmdNode:
         return "({0:s}{1:s})".format(self.kind, self.children2str())
 
     def children2str (self):
-        strings = []
+        res = [""]
         for c in self.children:
             if isinstance (c, list):
-                strings.append("({0:s})".format(
+                res.append("({0:s})".format(
                     " ".join([str(cc) for cc in c])))
             else:
-                strings.append(str(c))
-        return " " + " ".join([s for s in strings]) if len(self.children) > 0 
-                                                       else ""
+                res.append(str(c))
+        return " ".join([s for s in res]) if len(self.children) > 0 else ""
 
     def get_subst (self):
         global g_subst_cmds
@@ -460,7 +472,7 @@ class SMTScopeNode:
         self.sorts  = {}
 
     def __str__ (self):
-        strings = []
+        res = []
         for cmd in self.cmds:
             if cmd.kind == KIND_PUSH:
                 assert (len(self.scopes) > 0)
@@ -468,11 +480,11 @@ class SMTScopeNode:
                 assert (cmd.scope.kind not in (KIND_ESCOPE, KIND_FSCOPE))
                 if cmd.scope.get_subst() == None:
                     continue
-                strings.append(str(cmd))
-                strings.append(str(cmd.scope))
+                res.append(str(cmd))
+                res.append(str(cmd.scope))
             else:
-                strings.append(str(cmd))
-        return " ".join([s for s in strings if s != ""])
+                res.append(str(cmd))
+        return " ".join([s for s in res if s != ""])
 
     def get_subst (self):
         global g_subst_scopes
