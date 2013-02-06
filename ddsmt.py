@@ -187,24 +187,15 @@ class SMTNode:
         return len(self.children)
 
     def __str__ (self):
-        if self.kind in (KIND_EXISTS, KIND_FORALL):
-            assert (len(self.children) == 2)
-            svars = self.children[0]
-            tterm = self.children[1]
-            return "({0:s} ({1:s}) {2:s})".format(
-                    self.kind, 
-                    " ".join(["({0:s} {1:s})".format(s.name, str(s.sort))
-                              for s in svars]) if len(svars) > 0 else "",
-                    str(tterm))
-        elif self.kind == KIND_ANNOTN:
+        if self.kind == KIND_ANNOTN:
             assert (len(self.children) == 2)
             return "(! {0:s} {1:s})".format(
                     str(self.children[0]), 
                     " ".join([str(c) for c in self.children[1]]))
 
-        return "({0:s}{1:s})".format(self.kind, self.children_to_str())
+        return "({0:s}{1:s})".format(self.kind, self.children2str())
 
-    def children_to_str(self):
+    def children2str(self):
         strings = []
         for c in self.children:
             if isinstance(c, list):
@@ -219,9 +210,25 @@ class SMTNode:
         return g_subst_nodes[self.id] if self.id in g_subst_nodes else self
 
 
+class SMTForallExistsNode (SMTNode):
+
+    def __init__ (self, svars, kind, sort, children):
+        assert (kind in (KIND_FORALL, KIND_EXISTS))
+        assert (len(children) == 1)
+        super().__init__(kind, sort, children)
+        self.svars = svars
+
+    def __str__ (self):
+         return "({0:s} ({1:s}) {2:s})".format(
+                 self.kind, 
+                 " ".join(["({0:s} {1:s})".format(s.name, str(s.sort))
+                     for s in self.svars]) if len(self.svars) > 0 else "",
+                 str(self.children[0]))
+
+
 class SMTVarBindNode (SMTNode):
 
-    def __init__ (self, var, children = []):
+    def __init__ (self, var, children):
         assert (isinstance (var, SMTFunNode))
         assert (isinstance (children, list))
         assert (len(children) == 1)
@@ -253,7 +260,7 @@ class SMTFunNode (SMTNode):
 
 class SMTFunAppNode (SMTNode):        
 
-    def __init__ (self, fun, kind, sort, children = []):
+    def __init__ (self, fun, kind, sort, children):
         global g_fun_kinds
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
@@ -261,7 +268,7 @@ class SMTFunAppNode (SMTNode):
         self.fun = fun
 
     def __str__ (self):
-        return "({0:s}{1:s})".format(str(self.fun), self.children_to_str())
+        return "({0:s}{1:s})".format(str(self.fun), self.children2str())
 
 
 class SMTSortNode (SMTNode):
@@ -407,9 +414,9 @@ class SMTCmdNode:
             return "({0:s} {1:s} {2:d})".format(
                     self.kind, sort.name, sort.nparams)
 
-        return "({0:s}{1:s})".format(self.kind, self.children_to_str())
+        return "({0:s}{1:s})".format(self.kind, self.children2str())
 
-    def children_to_str (self):
+    def children2str (self):
         strings = []
         for c in self.children:
             if isinstance (c, list):
@@ -808,21 +815,20 @@ class SMTParser:
         return cmd
 
 
-    def __smtNode (self, kind, sort = None, children = []):
-        if kind in (KIND_FORALL, KIND_EXISTS):
-            prev_scope = self.cur_scope
-            assert (len(children) == 2)
-            svars = children[0]
-            self.__open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL 
-                                                  else KIND_ESCOPE)
-            for s in svars:
-                assert (self.__find_fun (s.name) != None)
-                assert (s.name in prev_scope.funs)
-                del(prev_scope.funs[s.name])
-                self.cur_scope.funs[s.name] = s
-            self.__close_scope ()
+    def __smtForallExistsNode (self, svars, kind, sort = None, children = []):
+        assert (kind in (KIND_FORALL, KIND_EXISTS))
+        prev_scope = self.cur_scope
+        assert (len(children) == 1)
+        self.__open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL 
+                                              else KIND_ESCOPE)
+        for s in svars:
+            assert (self.__find_fun (s.name) != None)
+            assert (s.name in prev_scope.funs)
+            del(prev_scope.funs[s.name])
+            self.cur_scope.funs[s.name] = s
+        self.__close_scope ()
         
-        return SMTNode (kind, sort, children)
+        return SMTForallExistsNode (svars, kind, sort, children)
 
 
     def __funNode (self, scope, name, kind, sort, sorts = [], indices = []):
@@ -975,16 +981,18 @@ class SMTParser:
             return t
         if str(t[0]) == SMTParser.LET:
             assert (len(t) == 3)
-            return self.__smtNode (KIND_LET, t[2].sort, [t[1][0:], t[2]])
+            return SMTNode (KIND_LET, t[2].sort, [t[1][0:], t[2]]) # TODO var_bindings flat in children
         elif str(t[0]) == SMTParser.FORALL:
             assert (len(t) == 3)
-            return self.__smtNode (KIND_FORALL, t[2].sort, [t[1][0:], t[2]])
+            return self.__smtForallExistsNode (
+                            t[1][0:], KIND_FORALL, t[2].sort, [t[2]])
         elif str(t[0]) == SMTParser.EXISTS:
             assert (len(t) == 3)
-            return self.__smtNode (KIND_EXISTS, t[2].sort, [t[1][0:], t[2]])
+            return self.__smtForallExistsNode (
+                            t[1][0:], KIND_EXISTS, t[2].sort, [t[2]])
         elif str(t[0]) == '!':
             assert (len(t) == 3)
-            return self.__smtNode (KIND_ANNOTN, t[1].sort, [t[1], t[2][0:]])
+            return SMTNode (KIND_ANNOTN, t[1].sort, [t[1], t[2][0:]])
         else:
             assert (isinstance(t[0], SMTFunNode))
             return self.__funAppNode (t[0], t[1][0:])
@@ -1209,12 +1217,21 @@ def _substitute_cmds ():
 #def _filter_terms (filter_fun = None, root = None):
 #    global g_scopes, g_subst_nodes
 #
-#    terms = []
+#    nodes = []
 #    asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
-#    to_visit = root if root != None else
-#                   [c.children[0] for c in asserts 
-#                       if not isinstance(c.children[0], SMTBoolConstNode)]
+#    to_visit = root if root != None else \
+#                   [c.children[0] for c in asserts if not 
+#                       isinstance(c.children[0].get_subst(), SMTBoolConstNode)]
 #    while to_visit:
+#        cur = to_visit.pop().get_subst()
+#        if filter_fun == None or filter_fun(cur):
+#            nodes.append(cur)
+#        for child in cur.children:
+#            to_visit.append(child)
+#
+#    return nodes
+#
+#
 #
 #
 #
@@ -1239,14 +1256,14 @@ def ddsmt_main ():
         rounds += 1
         nsubst = 0
 
-        #_dump (g_outfile)
-        nsubst += _substitute_scopes ()
+        _dump (g_outfile)
+        #nsubst += _substitute_scopes ()
 
-        nsubst += _substitute_cmds ()
-        #_filter_cmds ()
+        #nsubst += _substitute_cmds ()
+        #_filter_terms ()
 
 
-        nsubst_total += nsubst
+        #nsubst_total += nsubst
 
     _log (2)
     _log (2, "rounds total: {0:d}".format(rounds))
