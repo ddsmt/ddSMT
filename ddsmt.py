@@ -183,9 +183,6 @@ class SMTNode:
         self.sort = sort
         self.children = children
 
-    def arity(self):
-        return len(self.children)
-
     def __str__ (self):
         return "({0:s}{1:s})".format(self.kind, self.children2str())
 
@@ -197,7 +194,8 @@ class SMTNode:
                     " ".join([str(cc) for cc in c])))
             else:
                 strings.append(str(c))
-        return " " + " ".join([s for s in strings]) if self.arity() > 0 else ""
+        return " " + " ".join([s for s in strings]) if len(self.children) > 0 
+                                                    else ""
 
     def get_subst (self):
         global g_subst_nodes
@@ -382,9 +380,6 @@ class SMTCmdNode:
         self.kind = kind
         self.children = children
 
-    def arity (self):
-        return len(self.children)
-
     def __str__ (self):
         assert (self.kind != KIND_DECLSORT or 
                 self.children[0].kind == KIND_SORT)
@@ -432,7 +427,8 @@ class SMTCmdNode:
                     " ".join([str(cc) for cc in c])))
             else:
                 strings.append(str(c))
-        return " " + " ".join([s for s in strings]) if self.arity() > 0 else ""
+        return " " + " ".join([s for s in strings]) if len(self.children) > 0 
+                                                       else ""
 
     def get_subst (self):
         global g_subst_cmds
