@@ -221,7 +221,7 @@ class SMTVarBindNode (SMTNode):
         assert (isinstance (var, SMTFunNode))
         assert (isinstance (children, list))
         assert (len(children) == 1)
-        super().__init__ (KIND_VARB, children = children)
+        super().__init__(KIND_VARB, children = children)
         self.var = var
 
     def __str__ (self):
@@ -235,7 +235,7 @@ class SMTFunNode (SMTNode):
         assert (kind in (KIND_FUN, KIND_ANNFUN))
         assert (isinstance (sorts, list))
         assert (isinstance (indices, list))
-        super().__init__ (kind, sort)
+        super().__init__(kind, sort)
         self.name = name
         self.sorts = sorts      # signature sorts
         self.indices = [int(s.value) for s in indices]
@@ -253,7 +253,7 @@ class SMTFunAppNode (SMTNode):
         global g_fun_kinds
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
-        super().__init__ (kind, sort, children)
+        super().__init__(kind, sort, children)
         self.fun = fun
 
     def __str__ (self):
@@ -263,7 +263,7 @@ class SMTFunAppNode (SMTNode):
 class SMTSortNode (SMTNode):
 
     def __init__ (self, name, nparams = 0):
-        super().__init__ (KIND_SORT)
+        super().__init__(KIND_SORT)
         self.name = name
         self.nparams = nparams
     
@@ -275,7 +275,7 @@ class SMTConstNode (SMTNode):
 
     def __init__ (self, kind, sort, value = 0, original_str = "none"):
         assert (kind in g_const_kinds)                    # ^^^^ TODO debug
-        super().__init__ (kind, sort)
+        super().__init__(kind, sort)
         self.value = value
         self.original_str = original_str # TODO debug
 
@@ -283,13 +283,40 @@ class SMTConstNode (SMTNode):
         #return str(self.value)
         return "{0:s}".format(self.original_str if self.original_str != "none"
                                                 else str(self.value))
+    #@staticmethod
+    #def zero_const ():
+    #    if kind == CONST:
+    #        value = 
+    #    if kind == CONSTN:
+    #        value = 0
+    #    elif kind == CONSTD:
+    #        value = 0.0
+    #    
+
+
+    #        return SMTConstNode (kind, 
+
+
+class SMTBoolConstNode (SMTConstNode):
+
+    def __init__ (self, value):
+        assert (value in ("true", "false"))
+        super().__init__(KIND_CONST, _sortNode ("Bool"), value)
+
+    @staticmethod
+    def true_const ():
+        return self.__init__("true")
+
+    @staticmethod
+    def false_const ():
+        return self.__init__("false")
 
 
 class SMTBVConstNode (SMTConstNode):
 
     def __init__ (self, kind, sort, value = 0, bitwidth = 1, original_str = "none"):                                                         #^^^^ TODO debug
         assert (kind in g_const_kinds)
-        super().__init__ (kind, sort, value)
+        super().__init__(kind, sort, value)
         self.bitwidth = bitwidth
         self.original_str = original_str  # TODO debug
 
@@ -308,7 +335,6 @@ class SMTBVConstNode (SMTConstNode):
         assert (self.kind == KIND_CONSTN)
         return "(_ bv{0:d} {1:d})".format(self.value, self.bitwidth)
 
-    #def zero_const ():
 
 
 class SMTCmdNode:
@@ -381,7 +407,7 @@ class SMTCmdNode:
 class SMTPushCmdNode (SMTCmdNode):
 
     def __init__ (self, scope, kind, children = []):
-        super().__init__ (kind, children)
+        super().__init__(kind, children)
         self.scope = scope
 
 
@@ -665,6 +691,8 @@ class SMTParser:
         SMTParser.attribute.setParseAction(lambda s,l,t: 
                 " ".join([str(to) for to in t]))
 
+        SMTParser.option.setParseAction(lambda s, l, t:
+                SMTBoolConstNode (str(t[0])))
         SMTParser.option.setParseAction(lambda s,l,t: 
                 " ".join([str(to) for to in t]))
 
@@ -1181,6 +1209,7 @@ def ddsmt_main ():
         rounds += 1
         nsubst = 0
 
+        #_dump (g_outfile)
         nsubst += _substitute_scopes ()
 
         nsubst += _substitute_cmds ()
