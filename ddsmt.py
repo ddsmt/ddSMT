@@ -1249,27 +1249,27 @@ def _substitute_cmds ():
     return nsubst_total
     
 
-#def _filter_terms (filter_fun = None, root = None):
-#    global g_scopes, g_subst_nodes
-#
-#    nodes = []
-#    asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
-#    to_visit = root if root != None else \
-#                   [c.children[0] for c in asserts if not 
-#                       isinstance(c.children[0].get_subst(), SMTBoolConstNode)]
-#    while to_visit:
-#        cur = to_visit.pop().get_subst()
-#        if filter_fun == None or filter_fun(cur):
-#            nodes.append(cur)
-#        for child in cur.children:
-#            to_visit.append(child)
-#
-#    return nodes
-#
-#
-#
-#
-#
+def _filter_terms (filter_fun = None, root = None):
+    global g_scopes, g_subst_nodes
+
+    nodes = []
+    asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+    to_visit = root if root != None else \
+                   [c.children[0] for c in asserts if not 
+                       isinstance(c.children[0].get_subst(), SMTBoolConstNode)]
+    while to_visit:
+        cur = to_visit.pop().get_subst()
+        if filter_fun == None or filter_fun(cur):
+            nodes.append(cur)
+        for child in cur.children:
+            to_visit.append(child)
+
+    return nodes
+
+
+
+
+
 #def _substitute_terms (subst_fun, filter_fun, msg = None):
 #    global g_subst_nodes
 #
@@ -1291,11 +1291,11 @@ def ddsmt_main ():
         rounds += 1
         nsubst = 0
 
-        _dump (g_outfile)
-        #nsubst += _substitute_scopes ()
+        #_dump (g_outfile)
+        nsubst += _substitute_scopes ()
 
-        #nsubst += _substitute_cmds ()
-        #_filter_terms ()
+        nsubst += _substitute_cmds ()
+        print (_filter_terms ())
 
 
         #nsubst_total += nsubst
