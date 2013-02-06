@@ -424,7 +424,7 @@ class SMTScopeNode:
                 strings.append(str(cmd.scope))
             else:
                 strings.append(str(cmd))
-        return " ".join([s for s in strings])
+        return " ".join([s for s in strings if s != ""])
 
 
 class SMTParser:
@@ -1145,7 +1145,7 @@ def _substitute_cmds ():
     _log (2, "substitute COMMANDS:")
 
     nsubst_total = 0
-    cmds = _filter_cmds (lambda x: x not in (KIND_SETLOGIC, KIND_EXIT))
+    cmds = _filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT))
     gran = len(cmds)
 
     while gran > 0:
