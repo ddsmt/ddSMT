@@ -161,12 +161,13 @@ g_subst_scopes = {}
 g_subst_cmds = {}
 g_subst_nodes = {}
 
+
 class DDSMTException (Exception):
 
-    def __init__(self, msg):
+    def __init__ (self, msg):
         self.msg = msg
     
-    def __str__(self):
+    def __str__ (self):
         return "[ddsmt] Error: {0:s}".format(self.msg)
 
 
@@ -174,7 +175,7 @@ class SMTNode:
 
     g_id = 0
 
-    def __init__(self, kind, sort = None, children = []):
+    def __init__ (self, kind, sort = None, children = []):
         assert (isinstance (children, list))
         SMTNode.g_id += 1
         self.id = SMTNode.g_id
@@ -185,7 +186,7 @@ class SMTNode:
     def arity(self):
         return len(self.children)
 
-    def __str__(self):
+    def __str__ (self):
         if self.kind in (KIND_EXISTS, KIND_FORALL):
             assert (len(self.children) == 2)
             svars = self.children[0]
@@ -204,45 +205,42 @@ class SMTNode:
         return "({0:s}{1:s})".format(self.kind, self.children2string())
 
     def children2string(self):
-        if self.arity() >= 1:
-            strings = []
-            for c in self.children:
-                if isinstance(c, list):
-                    strings.append("({0:s})".format(
-                        " ".join([str(cc) for cc in c])))
-                else:
-                    strings.append(str(c))
-            return " " + " ".join([s for s in strings])
-        else:
-            return ""
+        strings = []
+        for c in self.children:
+            if isinstance(c, list):
+                strings.append("({0:s})".format(
+                    " ".join([str(cc) for cc in c])))
+            else:
+                strings.append(str(c))
+        return " " + " ".join([s for s in strings]) if self.arity() > 0 else ""
 
 
 class SMTVarBindNode (SMTNode):
 
-    def __init__(self, var, children = []):
+    def __init__ (self, var, children = []):
         assert (isinstance (var, SMTFunNode))
         assert (isinstance (children, list))
         assert (len(children) == 1)
-        super().__init__(KIND_VARB, children = children)
+        super().__init__ (KIND_VARB, children = children)
         self.var = var
 
-    def __str__(self):
+    def __str__ (self):
         assert (len(self.children) == 1)
         return "({0:s} {1:s})".format(self.var.name, str(self.children[0]))
 
         
 class SMTFunNode (SMTNode):
 
-    def __init__(self, name, kind, sort, sorts = [], indices = []):
+    def __init__ (self, name, kind, sort, sorts = [], indices = []):
         assert (kind in (KIND_FUN, KIND_ANNFUN))
         assert (isinstance (sorts, list))
         assert (isinstance (indices, list))
-        super().__init__(kind, sort)
+        super().__init__ (kind, sort)
         self.name = name
         self.sorts = sorts      # signature sorts
         self.indices = [int(s.value) for s in indices]
 
-    def __str__(self):
+    def __str__ (self):
         if self.indices == []:
             return self.name
         return "(_ {0:s} {1:s})".format(
@@ -251,45 +249,37 @@ class SMTFunNode (SMTNode):
 
 class SMTFunAppNode (SMTNode):        
 
-    def __init__(self, fun, kind, sort, children = []):
+    def __init__ (self, fun, kind, sort, children = []):
         global g_fun_kinds
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
-        super().__init__(kind, sort, children)
+        super().__init__ (kind, sort, children)
         self.fun = fun
 
-    def __str__(self):
+    def __str__ (self):
         return "({0:s}{1:s})".format(str(self.fun), self.children2string())
+
 
 class SMTSortNode (SMTNode):
 
-    def __init__(self, name, nparams = 0):
-        super().__init__(KIND_SORT)
+    def __init__ (self, name, nparams = 0):
+        super().__init__ (KIND_SORT)
         self.name = name
         self.nparams = nparams
     
-    def __str__(self):
+    def __str__ (self):
         return self.name
 
-#    def __eq__(self, other):
-#        if self is None or other is None:
-#            return self is None and other is None
-#        return self.name == other.name
-# 
-#    def __ne__(self, other):
-#        if self is None or other is None:
-#            return not (self is None and other is None)
-#        return self.name != other.name
 
 class SMTConstNode (SMTNode):
 
-    def __init__(self, kind, sort, value = 0, original_str = "none"):
+    def __init__ (self, kind, sort, value = 0, original_str = "none"):
         assert (kind in g_const_kinds)                    # ^^^^ TODO debug
-        super().__init__(kind, sort)
+        super().__init__ (kind, sort)
         self.value = value
         self.original_str = original_str # TODO debug
 
-    def __str__(self):
+    def __str__ (self):
         #return str(self.value)
         return "{0:s}".format(self.original_str if self.original_str != "none"
                                                 else str(self.value))
@@ -297,13 +287,13 @@ class SMTConstNode (SMTNode):
 
 class SMTBVConstNode (SMTConstNode):
 
-    def __init__(self, kind, sort, value = 0, bitwidth = 1, original_str = "none"):                                                         #^^^^ TODO debug
+    def __init__ (self, kind, sort, value = 0, bitwidth = 1, original_str = "none"):                                                         #^^^^ TODO debug
         assert (kind in g_const_kinds)
-        super().__init__(kind, sort, value)
+        super().__init__ (kind, sort, value)
         self.bitwidth = bitwidth
         self.original_str = original_str  # TODO debug
 
-    def __str__(self):
+    def __str__ (self):
         if self.kind == KIND_CONST:
             assert (self.bw == 1)
             return "{0:s}".format(TRUE if value == 1 else FALSE)
@@ -318,12 +308,14 @@ class SMTBVConstNode (SMTConstNode):
         assert (self.kind == KIND_CONSTN)
         return "(_ bv{0:d} {1:d})".format(self.value, self.bitwidth)
 
+    #def zero_const ():
+
 
 class SMTCmdNode:
 
     g_id = 0
     
-    def __init__(self, kind, children = []):
+    def __init__ (self, kind, children = []):
         global g_cmd_kinds
         assert (kind in g_cmd_kinds)
         assert (isinstance (children, list))
@@ -332,10 +324,10 @@ class SMTCmdNode:
         self.kind = kind
         self.children = children
 
-    def arity(self):
+    def arity (self):
         return len(self.children)
 
-    def __str__(self):
+    def __str__ (self):
         assert (self.kind != KIND_DECLSORT or 
                 self.children[0].kind == KIND_SORT)
         
@@ -376,23 +368,22 @@ class SMTCmdNode:
         return "({0:s}{1:s})".format(self.kind, self.children2string())
 
     def children2string(self):
-        if self.arity() >= 1:
-            strings = []
-            for c in self.children:
-                if isinstance (c, list):
-                    strings.append("({0:s})".format(
-                        " ".join([str(cc) for cc in c])))
-                else:
-                    strings.append(str(c))
-            return " " + " ".join([s for s in strings])
-        else:
-            return ""
+        strings = []
+        for c in self.children:
+            if isinstance (c, list):
+                strings.append("({0:s})".format(
+                    " ".join([str(cc) for cc in c])))
+            else:
+                strings.append(str(c))
+        return " " + " ".join([s for s in strings]) if self.arity() > 0 else ""
+
 
 class SMTPushCmdNode (SMTCmdNode):
 
-    def __init__(self, scope, kind, children = []):
-        super().__init__(kind, children)
+    def __init__ (self, scope, kind, children = []):
+        super().__init__ (kind, children)
         self.scope = scope
+
 
 class SMTScopeNode:
 
@@ -632,7 +623,7 @@ class SMTParser:
     script          = OneOrMore(command)
 
 
-    def __init__(self):
+    def __init__ (self):
         self.scopes = SMTScopeNode()
         self.cur_scope = self.scopes
 
@@ -1176,6 +1167,8 @@ def _substitute_cmds ():
     _log (2, "  > {0:d} command(s) substituted in total".format(nsubst_total))
     return nsubst_total
     
+
+#def _substitute_terms ():
 
 def ddsmt_main ():
     global g_tmpfile, g_outfile
