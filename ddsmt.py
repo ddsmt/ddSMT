@@ -321,10 +321,8 @@ class SMTBVConstNode (SMTConstNode):
         self.original_str = original_str  # TODO debug
 
     def __str__ (self):
-        if self.kind == KIND_CONST:
-            assert (self.bw == 1)
-            return "{0:s}".format(TRUE if value == 1 else FALSE)
-        elif self.kind == KIND_CONSTH:
+        assert (kind != KIND_CONST)
+        if self.kind == KIND_CONSTH:
             #return "#x{0:s}".format(hex(self.value)[2:])
             if self.original_str != "none":
                 return self.original_str
@@ -334,6 +332,21 @@ class SMTBVConstNode (SMTConstNode):
             return "#b{0:s}".format(bin(self.value)[2:])
         assert (self.kind == KIND_CONSTN)
         return "(_ bv{0:d} {1:d})".format(self.value, self.bitwidth)
+
+
+class SMTBoolBVConstNode (SMTBVConstNode):
+
+    def __init__ (self, value):
+        assert (value in (1, 0))
+        super().__init__(KIND_CONST, _sortNode ("Bool"), value)
+
+    @staticmethod
+    def true_const ():
+        return self.__init__(1)
+
+    @staticmethod
+    def false_const ():
+        return self.__init__(0)
 
 
 
