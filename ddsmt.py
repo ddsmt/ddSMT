@@ -202,9 +202,9 @@ class SMTNode:
                     str(self.children[0]), 
                     " ".join([str(c) for c in self.children[1]]))
 
-        return "({0:s}{1:s})".format(self.kind, self.children2string())
+        return "({0:s}{1:s})".format(self.kind, self.children_to_str())
 
-    def children2string(self):
+    def children_to_str(self):
         strings = []
         for c in self.children:
             if isinstance(c, list):
@@ -213,6 +213,10 @@ class SMTNode:
             else:
                 strings.append(str(c))
         return " " + " ".join([s for s in strings]) if self.arity() > 0 else ""
+
+    def get_subst (self):
+        global g_subst_nodes
+        return g_subst_nodes[self.id] if self.id in g_subst_nodes else self
 
 
 class SMTVarBindNode (SMTNode):
@@ -257,7 +261,7 @@ class SMTFunAppNode (SMTNode):
         self.fun = fun
 
     def __str__ (self):
-        return "({0:s}{1:s})".format(str(self.fun), self.children2string())
+        return "({0:s}{1:s})".format(str(self.fun), self.children_to_str())
 
 
 class SMTSortNode (SMTNode):
@@ -370,8 +374,7 @@ class SMTCmdNode:
         assert (self.kind != KIND_DECLSORT or 
                 self.children[0].kind == KIND_SORT)
         
-        if self.id in g_subst_cmds:
-            assert (g_subst_cmds[self.id] == None)
+        if self.get_subst() == None:
             return ""
 
         if self.kind == KIND_DECLFUN:
@@ -404,9 +407,9 @@ class SMTCmdNode:
             return "({0:s} {1:s} {2:d})".format(
                     self.kind, sort.name, sort.nparams)
 
-        return "({0:s}{1:s})".format(self.kind, self.children2string())
+        return "({0:s}{1:s})".format(self.kind, self.children_to_str())
 
-    def children2string(self):
+    def children_to_str (self):
         strings = []
         for c in self.children:
             if isinstance (c, list):
@@ -415,6 +418,11 @@ class SMTCmdNode:
             else:
                 strings.append(str(c))
         return " " + " ".join([s for s in strings]) if self.arity() > 0 else ""
+
+    def get_subst (self):
+        global g_subst_cmds
+        assert (self.id not in g_subst_cmds or g_subst_cmds[self.id] == None)
+        return g_subst_cmds[self.id] if self.id in g_subst_cmds else self
 
 
 class SMTPushCmdNode (SMTCmdNode):
@@ -447,14 +455,18 @@ class SMTScopeNode:
                 assert (len(self.scopes) > 0)
                 assert (cmd.scope in self.scopes)
                 assert (cmd.scope.kind not in (KIND_ESCOPE, KIND_FSCOPE))
-                if cmd.scope.id in g_subst_scopes:
-                    assert (g_subst_scopes[cmd.scope.id] == None)
+                if cmd.scope.get_subst() == None:
                     continue
                 strings.append(str(cmd))
                 strings.append(str(cmd.scope))
             else:
                 strings.append(str(cmd))
         return " ".join([s for s in strings if s != ""])
+
+    def get_subst (self):
+        global g_subst_scopes
+        assert(self.id not in g_subst_scopes or g_subst_scopes[self.id] == None)
+        return g_subst_scopes[self.id] if self.id in g_subst_scopes else self
 
 
 class SMTParser:
@@ -1073,16 +1085,16 @@ def _test ():
     return _run() == g_golden
 
 
+# TODO merge with _filter_cmds?
 def _filter_scopes (filter_fun = None, root = None):
-    global g_scopes, g_subst_scopes
+    global g_scopes
 
     scopes = []
     to_visit = [root if root != None else g_scopes]
     
     while to_visit:
         cur = to_visit.pop()
-        if cur.id in g_subst_scopes:
-            assert (g_subst_scopes[cur.id] == None)
+        if cur.get_subst() == None:
             continue
         if filter_fun == None or filter_fun(cur):
             scopes.append(cur)
@@ -1114,7 +1126,7 @@ def _substitute_scopes ():
                 cpy_subst_scopes = g_subst_scopes.copy()
                 nsubst = 0
                 for scope in subset:
-                    if scope.id not in g_subst_scopes:
+                    if scope.get_subst() != None:
                         g_subst_scopes[scope.id] = None
                         nsubst += 1
                 if nsubst == 0:
@@ -1138,6 +1150,7 @@ def _substitute_scopes ():
     return nsubst_total
 
         
+# TODO merge with _filter_scopes?
 def _filter_cmds (filter_fun = None, root = None):
     global g_scopes
 
@@ -1147,25 +1160,11 @@ def _filter_cmds (filter_fun = None, root = None):
 
     while to_visit:
         cur = to_visit.pop()
-        if cur.id in g_subst_cmds:
-            assert (g_subst_cmds[cur.id] == None)
+        if cur.get_subst() == None:
             continue
         if filter_fun == None or filter_fun(cur):
             cmds.append(cur)
     return cmds
-#    cmds = []
-#    scopes = _filter_scopes (lambda x: x.kind not in (KIND_ESCOPE, KIND_FSCOPE))
-#    to_visit = [s.cmds[0:] for s in scopes]
-#    while to_visit:
-#        cur_cmds = to_visit.pop()
-#        while cur_cmds:
-#            cur = cur_cmds.pop()
-#            if cur.id in g_subst_cmds:
-#                assert (g_subst_cmds[cur.id] == None)
-#                continue
-#            if filter_fun == None or filter_fun(cur):
-#                cmds.append(cur)
-#    return cmds
 
 
 def _substitute_cmds ():
@@ -1184,7 +1183,7 @@ def _substitute_cmds ():
             cpy_subst_cmds = g_subst_cmds.copy()
             nsubst = 0
             for cmd in subset:
-                if cmd.id not in g_subst_cmds:
+                if cmd.get_subst() != None:
                     g_subst_cmds[cmd.id] = None
                     nsubst += 1
             if nsubst == 0:
@@ -1207,6 +1206,18 @@ def _substitute_cmds ():
     return nsubst_total
     
 
+#def _filter_terms (filter_fun = None, root = None):
+#    global g_scopes, g_subst_nodes
+#
+#    terms = []
+#    asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+#    to_visit = root if root != None else
+#                   [c.children[0] for c in asserts 
+#                       if not isinstance(c.children[0], SMTBoolConstNode)]
+#    while to_visit:
+#
+#
+#
 #def _substitute_terms (subst_fun, filter_fun, msg = None):
 #    global g_subst_nodes
 #
@@ -1214,8 +1225,8 @@ def _substitute_cmds ():
 #    _log (2, msg if msg != None else "substitute TERMS:")
 #
 #    nsubst_total = 0
-#    asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
-#
+
+
 
 def ddsmt_main ():
     global g_tmpfile, g_outfile
