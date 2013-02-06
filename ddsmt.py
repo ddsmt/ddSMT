@@ -338,7 +338,7 @@ class SMTBoolBVConstNode (SMTBVConstNode):
 
     def __init__ (self, value):
         assert (value in (1, 0))
-        super().__init__(KIND_CONST, _sortNode ("Bool"), value)
+        super().__init__(KIND_CONSTN, _sortNode ("Bool"), value)
 
     @staticmethod
     def true_const ():
@@ -691,8 +691,6 @@ class SMTParser:
 
         SMTParser.s_expr.setParseAction(self.__sexprAttrv2token)
 
-        SMTParser.spec_constant.setParseAction(self.__specConst2token)
-
         SMTParser.sort.setParseAction(lambda s,l,t:
                 self.__sortNode (
                     self.scopes, 
@@ -932,17 +930,6 @@ class SMTParser:
         value = int(t[0][2:], 2)
         bw = value.bit_length()
         return SMTBVConstNode (KIND_CONSTB, self.__bvSortNode (bw), value, bw)
-
-    def __specConst2token (self, s, l, t):
-        assert (len(t) == 1)
-        if t[0] == SMTParser.TRUE or t[0] == SMTParser.FALSE:
-            if g_is_bv_logic:
-                return SMTBVConstNode (KIND_CONST, self.__bvSortNode (bw),
-                        1 if t[0] == TRUE else 0, 1, t[0])
-            else:
-                return SMTConstNode (
-                        KIND_CONST, self.__sortNode (
-                                        self.scopes, "Bool"), t[0], t[0])
 
     def __sexprAttrv2token (self, s, l, t):
         if not t[0] == '(':
