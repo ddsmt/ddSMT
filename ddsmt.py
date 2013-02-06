@@ -187,12 +187,6 @@ class SMTNode:
         return len(self.children)
 
     def __str__ (self):
-        if self.kind == KIND_ANNOTN:
-            assert (len(self.children) == 2)
-            return "(! {0:s} {1:s})".format(
-                    str(self.children[0]), 
-                    " ".join([str(c) for c in self.children[1]]))
-
         return "({0:s}{1:s})".format(self.kind, self.children2str())
 
     def children2str(self):
@@ -210,36 +204,6 @@ class SMTNode:
         return g_subst_nodes[self.id] if self.id in g_subst_nodes else self
 
 
-class SMTForallExistsNode (SMTNode):
-
-    def __init__ (self, svars, kind, sort, children):
-        assert (kind in (KIND_FORALL, KIND_EXISTS))
-        assert (len(children) == 1)
-        super().__init__(kind, sort, children)
-        self.svars = svars
-
-    def __str__ (self):
-         return "({0:s} ({1:s}) {2:s})".format(
-                 self.kind, 
-                 " ".join(["({0:s} {1:s})".format(s.name, str(s.sort))
-                     for s in self.svars]) if len(self.svars) > 0 else "",
-                 str(self.children[0]))
-
-
-class SMTVarBindNode (SMTNode):
-
-    def __init__ (self, var, children):
-        assert (isinstance (var, SMTFunNode))
-        assert (isinstance (children, list))
-        assert (len(children) == 1)
-        super().__init__(KIND_VARB, children = children)
-        self.var = var
-
-    def __str__ (self):
-        assert (len(self.children) == 1)
-        return "({0:s} {1:s})".format(self.var.name, str(self.children[0]))
-
-        
 class SMTFunNode (SMTNode):
 
     def __init__ (self, name, kind, sort, sorts = [], indices = []):
@@ -258,6 +222,20 @@ class SMTFunNode (SMTNode):
                 self.name, " ".join([str(s) for s in self.indices]))
 
 
+class SMTAnFunNode (SMTNode):
+
+    def __init__ (self, attribs, kind, sort, children):
+        assert (len(children) == 1)
+        assert (kind == KIND_ANNOTN)
+        super().__init__(kind, sort, children)
+        self.attribs = attribs
+
+    def __str__ (self):
+         return "(! {0:s} {1:s})".format(
+                    str(self.children[0]), 
+                    " ".join([str(a) for a in self.attribs]))
+
+
 class SMTFunAppNode (SMTNode):        
 
     def __init__ (self, fun, kind, sort, children):
@@ -271,6 +249,20 @@ class SMTFunAppNode (SMTNode):
         return "({0:s}{1:s})".format(str(self.fun), self.children2str())
 
 
+class SMTVarBindNode (SMTNode):
+
+    def __init__ (self, var, children):
+        assert (isinstance (var, SMTFunNode))
+        assert (isinstance (children, list))
+        assert (len(children) == 1)
+        super().__init__(KIND_VARB, children = children)
+        self.var = var
+
+    def __str__ (self):
+        assert (len(self.children) == 1)
+        return "({0:s} {1:s})".format(self.var.name, str(self.children[0]))
+
+        
 class SMTSortNode (SMTNode):
 
     def __init__ (self, name, nparams = 0):
@@ -280,6 +272,22 @@ class SMTSortNode (SMTNode):
     
     def __str__ (self):
         return self.name
+
+
+class SMTForallExistsNode (SMTNode):
+
+    def __init__ (self, svars, kind, sort, children):
+        assert (kind in (KIND_FORALL, KIND_EXISTS))
+        assert (len(children) == 1)
+        super().__init__(kind, sort, children)
+        self.svars = svars
+
+    def __str__ (self):
+         return "({0:s} ({1:s}) {2:s})".format(
+                 self.kind, 
+                 " ".join(["({0:s} {1:s})".format(s.name, str(s.sort))
+                     for s in self.svars]) if len(self.svars) > 0 else "",
+                 str(self.children[0]))
 
 
 class SMTConstNode (SMTNode):
@@ -932,8 +940,6 @@ class SMTParser:
         sort = self.__funApp2Sort(fun, kind, children)
         return SMTFunAppNode (fun, kind, sort, children)
 
-
-
     def __hex2SMTNode (self, s, l, t):
         global g_is_bv_logic
         assert (len(t) == 1)
@@ -992,7 +998,7 @@ class SMTParser:
                             t[1][0:], KIND_EXISTS, t[2].sort, [t[2]])
         elif str(t[0]) == '!':
             assert (len(t) == 3)
-            return SMTNode (KIND_ANNOTN, t[1].sort, [t[1], t[2][0:]])
+            return SMTAnFunNode (t[2][0:], KIND_ANNOTN, t[1].sort, [t[1]])
         else:
             assert (isinstance(t[0], SMTFunNode))
             return self.__funAppNode (t[0], t[1][0:])
