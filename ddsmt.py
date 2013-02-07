@@ -263,6 +263,37 @@ class SMTFunNode (SMTNode):
         return "(_ {0:s} {1:s})".format(
                 self.name, " ".join([str(s) for s in self.indices]))
 
+    @classmethod
+    def find_fun (cls, name, scope):
+        while scope:
+            if name in scope.funs:
+                return scope.funs[name]
+            scope = scope.prev
+        return None
+
+    @classmethod
+    def delete_fun (cls, name, scope):
+        while scope:
+            if name in scope.funs:
+                assert (isinstance (scope.funs[name], SMTFunNode))
+                del scope.funs[name]
+            scope = scope.prev
+
+    @classmethod
+    def add_fun (cls, name, kind, sort, sorts, indices, scope):
+        assert (cls.find_fun (name, scope) == None)
+        scope.funs[name] = SMTFunNode (name, kind, sort, sorts, indices)
+        return scope.funs[name]
+
+    @classmethod
+    def funNode (cls, name, kind, sort, sorts = [], indices = [], scope = None):
+        global g_scopes
+        scope = scope if scope != None else g_scopes
+        fun = cls.find_fun (name, scope)
+        if not fun:
+            return cls.add_fun (name, kind, sort, sorts, indices, scope)
+        return fun
+
 
 class SMTAnFunNode (SMTNode):
 
@@ -336,6 +367,7 @@ class SMTSortNode (SMTNode):
             if name in scope.sorts:
                 assert (isinstance (scope.sorts[name], SMTSortNode))
                 del scope.sorts[name]
+            scope = scope.prev
 
     @classmethod
     def add_sort (cls, name, scope, nparams):
@@ -375,6 +407,7 @@ class SMTArraySortNode (SMTSortNode):
 
     @classmethod
     def sortNode (cls, index_sort, elem_sort, scope = None):
+        global g_scopes
         scope = scope if scope != None else g_scopes
         name = SMTArraySortNode.name(index_sort, elem_sort)
         sort = super().find_sort(name, scope)
@@ -387,8 +420,8 @@ class SMTArraySortNode (SMTSortNode):
 
 class SMTBVSortNode (SMTSortNode):
 
-    def __init__ (self, name, bw):
-        super().__init__(name, 0, KIND_BVSORT)
+    def __init__ (self, bw):
+        super().__init__(SMTBVSortNode.name(bw), 0, KIND_BVSORT)
         self.bw = bw
 
     @staticmethod
@@ -397,17 +430,19 @@ class SMTBVSortNode (SMTSortNode):
 
     @classmethod
     def add_sort (cls, bw):
+        global g_scopes
         name = SMTBVSortNode.name(bw)
         assert (super().find_sort(name, g_scopes) == None)
-        scope.sorts[name] = cls.__init__(bw)
-        return scope.sorts[name]
+        g_scopes.sorts[name] = SMTBVSortNode (bw)
+        return g_scopes.sorts[name]
 
     @classmethod
     def sortNode (cls, bw):
+        global g_scopes
         name = SMTBVSortNode.name(bw)
         sort = super().find_sort(name, g_scopes)
         if not sort:
-            return cls.add_sort (bw, g_scopes)
+            return cls.add_sort (bw)
         return sort
 
 
@@ -639,17 +674,19 @@ class SMTScopeNode:
 
     @staticmethod
     def open_scope (nscopes = 1, kind = KIND_SCOPE):
+        global g_cur_scope
         first_scope = None
         for i in range (nscopes):
             new_scope = SMTScopeNode (g_cur_scope.level + 1, g_cur_scope, kind)
             if not first_scope:
                 first_scope = new_scope
-            g_cur_scope.scopes.appen(new_scope)
+            g_cur_scope.scopes.append(new_scope)
             g_cur_scope = new_scope
         return first_scope  # scope associated with parent push cmd
 
     @staticmethod
     def close_scope (nscopes = 1):
+        global g_cur_scope
         for i in range (nscopes):
             g_cur_scope = g_cur_scope.prev
             assert (g_cur_scope != None)
@@ -861,6 +898,7 @@ class SMTParser:
 
 
     def __init__ (self):
+        global g_cur_scope
         self.loc = None
         self.instring = None
 #        self.scopes = SMTScopeNode()
@@ -904,7 +942,7 @@ class SMTParser:
 
         SMTParser.qual_identifier.setParseAction(self.__qualIdent2SMTNode)
         SMTParser.sorted_var.setParseAction(lambda s,l,t: 
-                self.__funNode (g_cur_scope, t[0], KIND_FUN, t[1]))
+                SMTFunNode.funNode (t[0], KIND_FUN, t[1], scope = g_cur_scope))
         SMTParser.var_binding.setParseAction(self.__varBind2SMTNode)
         SMTParser.term.setParseAction(self.__term2SMTNode)
 
@@ -913,22 +951,8 @@ class SMTParser:
         SMTParser.script.ignore(SMTParser.comment)
 
 
-    def __add_fun (self, scope, name, kind, sort, sorts, indices):
-        assert (self.__find_fun (name) == None)
-        fun = SMTFunNode (name, kind, sort, sorts, indices)
-        scope.funs[name] = fun
-        return fun
-
-    def __find_fun (self, name):
-        scope = g_cur_scope
-        while scope != None:
-            if name in scope.funs:
-                return scope.funs[name]
-            scope = scope.prev
-        return None
-
     def __cmdNode (self, kind, children = []):
-        global g_logic, g_is_bv_logic
+        global g_logic, g_is_bv_logic, g_cur_scope
 
         scope = None
 
@@ -957,13 +981,14 @@ class SMTParser:
 
 
     def __smtForallExistsNode (self, svars, kind, sort = None, children = []):
+        global g_cur_scope
         assert (kind in (KIND_FORALL, KIND_EXISTS))
         prev_scope = g_cur_scope
         assert (len(children) == 1)
         SMTScopeNode.open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL 
                                                     else KIND_ESCOPE)
         for s in svars:
-            assert (self.__find_fun (s.name) != None)
+            assert (SMTFunNode.find_fun (s.name, g_cur_scope) != None)
             assert (s.name in prev_scope.funs)
             del(prev_scope.funs[s.name])
             g_cur_scope.funs[s.name] = s
@@ -972,12 +997,12 @@ class SMTParser:
         return SMTForallExistsNode (svars, kind, sort, children)
 
 
-    def __funNode (self, scope, name, kind, sort, sorts = [], indices = []):
-        fun = self.__find_fun (name)
-        if fun == None:
-            return self.__add_fun (scope, name, kind, sort, sorts, indices)
-        assert (fun.name == name)
-        return fun
+    #def __funNode (self, scope, name, kind, sort, sorts = [], indices = []):
+    #    fun = self.__find_fun (name)
+    #    if fun == None:
+    #        return self.__add_fun (scope, name, kind, sort, sorts, indices)
+    #    assert (fun.name == name)
+    #    return fun
 
 
     def __funApp_check (self, fun, kind, children):
@@ -1234,9 +1259,10 @@ class SMTParser:
 
 
     def __qualIdent2SMTNode (self, s, l, t):
-        global g_is_bv_logic
+        global g_is_bv_logic, g_scopes
         if t[0] == SMTParser.AS:
-            return self.__funNode (g_scopes, t[1], KIND_ANNFUN, t[2])
+            return SMTFunNode.funNode (
+                    t[1], KIND_ANNFUN, t[2], scope = g_scopes)
         elif t[0] == '_':
             if t[1].find("bv") == 0 and g_is_bv_logic:
                 assert (len(t) == 3)
@@ -1246,14 +1272,18 @@ class SMTParser:
                         KIND_CONSTN, SMTBVSortNode.sortNode(bw), value, bw)
             else:
                 assert (len(t) > 1)
-                return self.__funNode (
-                        g_scopes, t[1], KIND_FUN, None, indices = t[2:])
+                return SMTFunNode.funNode (
+                        t[1], KIND_FUN, None, [], t[2:], g_cur_scope)
         else:
-            return self.__funNode (g_scopes, t[0], KIND_FUN, None)
+            return SMTFunNode.funNode (
+                    t[0], KIND_FUN, None, [], [], g_cur_scope)
 
     def __varBind2SMTNode (self, s, l, t):
+        global g_scopes
         return SMTVarBindNode (
-                self.__funNode (g_scopes, t[0], KIND_FUN, t[1].sort), [t[1]])
+                SMTFunNode.funNode (
+                    t[0], KIND_FUN, t[1].sort, scope = g_scopes), 
+                [t[1]])
 
     def __term2SMTNode (self, s, l, t):
         self.loc = l
@@ -1279,14 +1309,17 @@ class SMTParser:
             return self.__funAppNode (t[0], t[1][0:])
 
     def __cmd2SMTCmdNode (self, s, l, t):
+        global g_cur_scope
         kind = t[0]
         if kind == KIND_DECLSORT:
             assert (len(t) == 3)
+            # sort has been added to scope level 0 when recursively stepping
+            # through declare-sort -> move to cur_scope
             sort = SMTSortNode.find_sort(t[1], g_cur_scope)
             if sort not in g_cur_scope.sorts:
-                SMTSortNode.delete_sort(t[1])
+                SMTSortNode.delete_sort(t[1], g_cur_scope)
                 sort = SMTSortNode.add_sort(t[1], g_cur_scope, t[2].value)
-            return self.__cmdNode (KIND_DECLSORT, [sort, t[1], t[2].value])
+            return self.__cmdNode (KIND_DECLSORT, [sort])
         elif kind == KIND_DEFSORT:
             assert (len(t) == 4)
             # TODO sort is currently not added here, concrete sort is added to 
@@ -1299,16 +1332,21 @@ class SMTParser:
             return self.__cmdNode (KIND_DEFSORT, [string])
         elif kind == KIND_DECLFUN:
             assert (len(t) == 4)
-            return self.__cmdNode (
-                KIND_DECLFUN, 
-                [self.__funNode (
-                    g_cur_scope, t[1], KIND_FUN, t[3], t[2][0:])])
+            # fun has been added to scope level 0 when recursively stepping
+            # through declare-fun -> move to cur_scope
+            fun = SMTFunNode.find_fun(t[1], g_cur_scope)
+            if fun not in g_cur_scope.funs:
+                SMTFunNode.delete_fun(t[1], g_cur_scope)
+                fun = SMTFunNode.add_fun(
+                        t[1], KIND_FUN, t[3], t[2][0:], [], scope = g_cur_scope)
+            return self.__cmdNode (KIND_DECLFUN, [fun])
         elif kind == KIND_DEFFUN:
             assert (len(t) == 5)
             sorts = [to.sort for to in t[2]]
             return self.__cmdNode (
                 KIND_DEFFUN, 
-                [self.__funNode (g_cur_scope, t[1], KIND_FUN, t[3], sorts), 
+                [SMTFunNode.funNode (
+                    t[1], KIND_FUN, t[3], sorts, scope = g_cur_scope), 
                  t[2][0:], 
                  t[4]])
         elif kind == KIND_GETVALUE:
@@ -1336,6 +1374,7 @@ def _log(verbosity, msg = "", update = False):
 
 
 def _dump (filename, root = None):
+    global g_scopes
     try:
         with open(filename, 'w') as outfile:
             outfile.write(str(root if root != None else g_scopes))
