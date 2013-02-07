@@ -637,6 +637,23 @@ class SMTScopeNode:
         assert(self.id not in g_subst_scopes or g_subst_scopes[self.id] == None)
         return g_subst_scopes[self.id] if self.id in g_subst_scopes else self
 
+    @staticmethod
+    def open_scope (nscopes = 1, kind = KIND_SCOPE):
+        first_scope = None
+        for i in range (nscopes):
+            new_scope = SMTScopeNode (g_cur_scope.level + 1, g_cur_scope, kind)
+            if not first_scope:
+                first_scope = new_scope
+            g_cur_scope.scopes.appen(new_scope)
+            g_cur_scope = new_scope
+        return first_scope  # scope associated with parent push cmd
+
+    @staticmethod
+    def close_scope (nscopes = 1):
+        for i in range (nscopes):
+            g_cur_scope = g_cur_scope.prev
+            assert (g_cur_scope != None)
+
 
 class SMTParser:
 
@@ -896,22 +913,6 @@ class SMTParser:
         SMTParser.script.ignore(SMTParser.comment)
 
 
-    def __open_scope (self, nscopes = 1, kind = KIND_SCOPE):
-        push_scope = None
-        for i in range (nscopes):
-            new_scope = SMTScopeNode(
-                    g_cur_scope.level + 1, g_cur_scope, kind)
-            if not push_scope:
-                push_scope = new_scope
-            g_cur_scope.scopes.append(new_scope)
-            g_cur_scope = new_scope
-        return push_scope   # scope associated with parent push cmd
-
-    def __close_scope (self, nscopes = 1):
-        for i in range (nscopes):
-            g_cur_scope = g_cur_scope.prev
-            assert (g_cur_scope != None)
-
     def __add_fun (self, scope, name, kind, sort, sorts, indices):
         assert (self.__find_fun (name) == None)
         fun = SMTFunNode (name, kind, sort, sorts, indices)
@@ -936,13 +937,13 @@ class SMTParser:
             assert (isinstance (children[0], SMTConstNode))
             cmd = SMTPushCmdNode (children[0].value, None)
             g_cur_scope.cmds.append(cmd)
-            cmd.scope = self.__open_scope (cmd.nscopes)
+            cmd.scope = SMTScopeNode.open_scope (cmd.nscopes)
         elif kind == KIND_POP:
             assert (len(children) == 1)
             assert (isinstance (children[0], SMTConstNode))
             cmd = SMTPopCmdNode (children[0].value)
             g_cur_scope.cmds.append(cmd)
-            self.__close_scope (cmd.nscopes)
+            SMTScopeNode.close_scope (cmd.nscopes)
         else:
             cmd = SMTCmdNode (kind, children)
             g_cur_scope.cmds.append(cmd)
@@ -959,14 +960,14 @@ class SMTParser:
         assert (kind in (KIND_FORALL, KIND_EXISTS))
         prev_scope = g_cur_scope
         assert (len(children) == 1)
-        self.__open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL 
-                                              else KIND_ESCOPE)
+        SMTScopeNode.open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL 
+                                                    else KIND_ESCOPE)
         for s in svars:
             assert (self.__find_fun (s.name) != None)
             assert (s.name in prev_scope.funs)
             del(prev_scope.funs[s.name])
             g_cur_scope.funs[s.name] = s
-        self.__close_scope ()
+        SMTScopeNode.close_scope ()
         
         return SMTForallExistsNode (svars, kind, sort, children)
 
