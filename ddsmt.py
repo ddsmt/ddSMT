@@ -299,7 +299,6 @@ class SMTVarBindNode (SMTNode):
         assert (len(children) == 1)
         super().__init__(KIND_VARB, children[0].sort, children)
         self.var = var
-        print (">> VARB " + self.var.name + " " + str(children[0].sort) + " " + str(children[0]))
 
     def __str__ (self):
         assert (len(self.children) == 1)
@@ -322,21 +321,94 @@ class SMTSortNode (SMTNode):
     def is_arr_sort (self):
         return self.kind == KIND_ASORT
 
+    @classmethod
+    def find_sort (cls, name, scope):
+        while scope:
+            if name in scope.sorts:
+                assert (isinstance (scope.sorts[name], SMTSortNode))
+                return scope.sorts[name]
+            scope = scope.prev
+        return None
+
+    @classmethod
+    def delete_sort (cls, name, scope):
+        while scope:
+            if name in scope.sorts:
+                assert (isinstance (scope.sorts[name], SMTSortNode))
+                del scope.sorts[name]
+
+    @classmethod
+    def add_sort (cls, name, scope, nparams):
+        assert (cls.find_sort (name, scope) == None)
+        scope.sorts[name] = SMTSortNode (name, nparams)
+        return scope.sorts[name]
+    
+    @classmethod
+    def sortNode (cls, name, scope = None, nparams = 0):
+        global g_scopes
+        scope = scope if scope != None else g_scopes
+        sort = cls.find_sort(name, scope)
+        if not sort:
+            # add sort to scope level 0 (otherwise it would have been declared
+            # or defined already and thus be found previously)
+            return cls.add_sort (name, g_scopes, nparams)
+        return sort
 
 class SMTArraySortNode (SMTSortNode):
 
-    def __init__ (self, index_sort, element_sort):
-        name = "(Array {0:s} {1:s})".format(str(index_sort), str(element_sort))
-        super().__init__(name, 2, KIND_ASORT)
+    def __init__ (self, index_sort, elem_sort):
+        super().__init__(
+                SMTArraySortNode.name(index_sort, elem_sort), 2, KIND_ASORT)
         self.index_sort = index_sort
-        self.element_sort = element_sort
+        self.elem_sort = elem_sort
 
+    @staticmethod
+    def name (index_sort, elem_sort):
+        return "(Array {0:s} {1:s})".format(str(index_sort), str(elem_sort))
+
+    @classmethod
+    def add_sort (cls, index_sort, elem_sort, scope):
+        name = SMTArraySortNode.name(index_sort, elem_sort)
+        assert (super().find_sort(name, scope) == None)
+        scope.sorts[name] = SMTArraySortNode (index_sort, elem_sort)
+        return scope.sorts[name]
+
+    @classmethod
+    def sortNode (cls, index_sort, elem_sort, scope = None):
+        scope = scope if scope != None else g_scopes
+        name = SMTArraySortNode.name(index_sort, elem_sort)
+        sort = super().find_sort(name, scope)
+        if not sort:
+            # add sort to scope level 0 (otherwise it would have been declared
+            # or defined already and thus be found previously)
+            return cls.add_sort (index_sort, elem_sort, g_scopes)
+        return sort
+        
 
 class SMTBVSortNode (SMTSortNode):
 
     def __init__ (self, name, bw):
         super().__init__(name, 0, KIND_BVSORT)
         self.bw = bw
+
+    @staticmethod
+    def name (bw):
+        return "(_ BitVec {0:d})".format(bw)
+
+    @classmethod
+    def add_sort (cls, bw):
+        name = SMTBVSortNode.name(bw)
+        assert (super().find_sort(name, g_scopes) == None)
+        scope.sorts[name] = cls.__init__(bw)
+        return scope.sorts[name]
+
+    @classmethod
+    def sortNode (cls, bw):
+        name = SMTBVSortNode.name(bw)
+        sort = super().find_sort(name, g_scopes)
+        if not sort:
+            return cls.add_sort (bw, g_scopes)
+        return sort
 
 
 class SMTForallExistsNode (SMTNode):
@@ -385,7 +457,7 @@ class SMTBoolConstNode (SMTConstNode):
 
     def __init__ (self, value):
         assert (value in ("true", "false"))
-        super().__init__(KIND_CONST, SMTSortNode ("Bool"), value) # FIXME sort
+        super().__init__(KIND_CONST, SMTSortNode.sortNode ("Bool"), value)
 
 
     @staticmethod
@@ -774,26 +846,24 @@ class SMTParser:
     def __init__ (self):
         self.loc = None
         self.instring = None
-        self.scopes = SMTScopeNode()
-        self.cur_scope = self.scopes
+#        self.scopes = SMTScopeNode()
+#        self.cur_scope = self.scopes
 
         SMTParser.numeral.setParseAction(lambda s,l,t: 
-                SMTConstNode (
-                    KIND_CONSTN, self.__sortNode (
-                                    self.scopes, "Int"), value=int(t[0])))
+            SMTConstNode (
+                KIND_CONSTN, SMTSortNode.sortNode ("Int"), value=int(t[0])))
 
         SMTParser.decimal.setParseAction(lambda s,l,t:
-                SMTConstNode (
-                    KIND_CONSTD, self.__sortNode (
-                                    self.scopes, "Real"), value=float(t[0])))
+            SMTConstNode (
+                KIND_CONSTD, SMTSortNode.sortNode ("Real"), value=float(t[0])))
 
         SMTParser.hexadecimal.setParseAction(self.__hex2SMTNode)
         SMTParser.binary.setParseAction(self.__bin2SMTNode)
 
         SMTParser.string.setParseAction(lambda s,l,t:
-                SMTConstNode (
-                    KIND_CONSTS, self.__sortNode (
-                                    self.scopes, "String"), value=t[0]))
+            SMTConstNode (
+                KIND_CONSTS, SMTSortNode.sortNode ("String"), value=t[0]))
+
         SMTParser.b_value.setParseAction(lambda s, l, t:
                 SMTBoolConstNode (str(t[0])))
 
@@ -805,12 +875,6 @@ class SMTParser:
         SMTParser.s_expr.setParseAction(self.__sexprAttrv2token)
 
         SMTParser.sort.setParseAction(self.__sort2SMTNode)
-        #SMTParser.sort.setParseAction(lambda s,l,t:
-        #        self.__sortNode (
-        #            self.scopes, 
-        #            "(" + " ".join([str(to) for to in t]) + ")" if len(t) > 1 
-        #                                                        else t[0],
-        #            len(t) - 1))
 
         SMTParser.attr_value.setParseAction(self.__sexprAttrv2token)
         SMTParser.attribute.setParseAction(lambda s,l,t: 
@@ -823,7 +887,7 @@ class SMTParser:
 
         SMTParser.qual_identifier.setParseAction(self.__qualIdent2SMTNode)
         SMTParser.sorted_var.setParseAction(lambda s,l,t: 
-                self.__funNode (self.cur_scope, t[0], KIND_FUN, t[1]))
+                self.__funNode (g_cur_scope, t[0], KIND_FUN, t[1]))
         SMTParser.var_binding.setParseAction(self.__varBind2SMTNode)
         SMTParser.term.setParseAction(self.__term2SMTNode)
 
@@ -836,44 +900,17 @@ class SMTParser:
         push_scope = None
         for i in range (nscopes):
             new_scope = SMTScopeNode(
-                    self.cur_scope.level + 1, self.cur_scope, kind)
+                    g_cur_scope.level + 1, g_cur_scope, kind)
             if not push_scope:
                 push_scope = new_scope
-            self.cur_scope.scopes.append(new_scope)
-            self.cur_scope = new_scope
+            g_cur_scope.scopes.append(new_scope)
+            g_cur_scope = new_scope
         return push_scope   # scope associated with parent push cmd
 
     def __close_scope (self, nscopes = 1):
         for i in range (nscopes):
-            self.cur_scope = self.cur_scope.prev
-            assert (self.cur_scope != None)
-
-    def __add_sort (self, scope, name, nparams):
-        assert (self.__find_sort (name) == None)
-        sort = SMTSortNode (name, nparams) 
-        scope.sorts[name] = sort
-        return sort
-
-    def __add_arrSort (self, scope, name, index_sort, element_sort):
-        assert (self.__find_sort (name) == None)
-        sort = SMTArraySortNode (index_sort, element_sort)
-        scope.sorts[name] = sort
-        return sort
-
-    def __add_bvSort (self, scope, name, bw):
-        assert (self.__find_sort (name) == None)
-        sort = SMTBVSortNode (name, bw)
-        scope.sorts[name] = sort
-        return sort
-
-    def __find_sort (self, name):
-        scope = self.cur_scope
-        while scope != None:
-            if name in scope.sorts:
-                assert (isinstance (scope.sorts[name], SMTSortNode))
-                return scope.sorts[name]
-            scope = scope.prev
-        return None
+            g_cur_scope = g_cur_scope.prev
+            assert (g_cur_scope != None)
 
     def __add_fun (self, scope, name, kind, sort, sorts, indices):
         assert (self.__find_fun (name) == None)
@@ -882,7 +919,7 @@ class SMTParser:
         return fun
 
     def __find_fun (self, name):
-        scope = self.cur_scope
+        scope = g_cur_scope
         while scope != None:
             if name in scope.funs:
                 return scope.funs[name]
@@ -898,17 +935,17 @@ class SMTParser:
             assert (len(children) == 1)
             assert (isinstance (children[0], SMTConstNode))
             cmd = SMTPushCmdNode (children[0].value, None)
-            self.cur_scope.cmds.append(cmd)
+            g_cur_scope.cmds.append(cmd)
             cmd.scope = self.__open_scope (cmd.nscopes)
         elif kind == KIND_POP:
             assert (len(children) == 1)
             assert (isinstance (children[0], SMTConstNode))
             cmd = SMTPopCmdNode (children[0].value)
-            self.cur_scope.cmds.append(cmd)
+            g_cur_scope.cmds.append(cmd)
             self.__close_scope (cmd.nscopes)
         else:
             cmd = SMTCmdNode (kind, children)
-            self.cur_scope.cmds.append(cmd)
+            g_cur_scope.cmds.append(cmd)
 
             if kind == KIND_SETLOGIC:
                 assert (len(children) == 1)
@@ -920,7 +957,7 @@ class SMTParser:
 
     def __smtForallExistsNode (self, svars, kind, sort = None, children = []):
         assert (kind in (KIND_FORALL, KIND_EXISTS))
-        prev_scope = self.cur_scope
+        prev_scope = g_cur_scope
         assert (len(children) == 1)
         self.__open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL 
                                               else KIND_ESCOPE)
@@ -928,7 +965,7 @@ class SMTParser:
             assert (self.__find_fun (s.name) != None)
             assert (s.name in prev_scope.funs)
             del(prev_scope.funs[s.name])
-            self.cur_scope.funs[s.name] = s
+            g_cur_scope.funs[s.name] = s
         self.__close_scope ()
         
         return SMTForallExistsNode (svars, kind, sort, children)
@@ -941,38 +978,6 @@ class SMTParser:
         assert (fun.name == name)
         return fun
 
-
-    def __sortNode (self, scope, name, nparams = 0):
-        sort = self.__find_sort (name)
-        if sort == None:
-            # add sort to scope level 0 (otherwise it would have been declared
-            # or defined already and thus be found previously)
-            return self.__add_sort (scope, name, nparams)
-        assert (sort.name == name)
-        assert (sort.kind == KIND_SORT)
-        return sort
-
-    def __arrSortNode (self, scope, index_sort, element_sort):
-        name = "(Array {0:s} {1:s})".format(str(index_sort), str(element_sort))
-        sort = self.__find_sort (name)
-        if sort == None:
-            # add sort to scope level 0 (otherwise it would have been declared
-            # or defined already and thus be found previously)
-            return self.__add_arrSort (scope, name, index_sort, element_sort)
-        assert (sort.name == name)
-        assert (sort.kind == KIND_ASORT)
-        return sort
-
-    def __bvSortNode (self, bw):
-        name = "(_ BitVec {0:d})".format(bw)
-        sort = self.__find_sort (name)
-        if sort == None:
-            # add sort to scope level 0 (otherwise it would have been declared
-            # or defined already and thus be found previously)
-            return self.__add_bvSort (self.scopes, name, bw)
-        assert (sort.name == name)
-        assert (sort.kind == KIND_BVSORT)
-        return sort
 
     def __funApp_check (self, fun, kind, children):
         global g_is_bv_logic
@@ -1021,7 +1026,7 @@ class SMTParser:
         elif kind in (KIND_AND, KIND_IMPL, KIND_NOT, KIND_OR, KIND_XOR,
                     KIND_LE,  KIND_LT):
             for c in children:
-                if not c.sort == self.__sortNode (self.scopes, "Bool"):
+                if not c.sort == SMTSortNode.sortNode ("Bool"):
                     raise DDSMTParseException (
                         lineno (self.loc, self.instring),
                         col (self.loc, self.instring),
@@ -1030,7 +1035,7 @@ class SMTParser:
         # args Int check
         elif kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOR):
             for c in children:
-                if not c.sort == self.__sortNode (self.scopes, "Int"):
+                if not c.sort == SMTSortNode.sortNode("Int"):
                     raise DDSMTParseException (
                         lineno (self.loc, self.instring),
                         col (self.loc, self.instring),
@@ -1039,7 +1044,7 @@ class SMTParser:
         # args Real check
         elif kind in (KIND_RDIV, KIND_ISI, KIND_TOI):
             for c in children:
-                if not c.sort == self.__sortNode (self.scopes, "Real"):
+                if not c.sort == SMTSortNode.sortNode("Real"):
                     raise DDSMTParseException (
                         lineno (self.loc, self.instring),
                         col (self.loc, self.instring),
@@ -1048,10 +1053,10 @@ class SMTParser:
         # args Int or Real check
         elif kind in (KIND_ADD, KIND_GE, KIND_GT, KIND_MUL, KIND_NEG, KIND_SUB):
             csort = children[0].sort
-            if csort not in (self.__sortNode (self.scopes, "Int"),
-                             self.__sortNode (self.scopes, "Real")):
+            if csort not in (SMTSortNode.sortNode("Int"),
+                             SMTSortNode.sortNode("Real")):
                 raise DDSMTParseException (
-                    lineo (l, s),
+                    lineno (self.loc, self.instring),
                     col (self.loc, self.instring),
                     "'{0:s}' expects 'Int' or 'Real' as argument(s)".format(
                         str(fun)))
@@ -1073,11 +1078,9 @@ class SMTParser:
                         "'{0:s}' expects BV sort as argument(s)".format(
                             str(fun)))
         # args equal sort check
-        elif kind in (KIND_DIST, KIND_EQ, KIND_ITE):
-            print ("ite " + " ".join([str(c) for c in children]))
+        elif kind in (KIND_DIST, KIND_EQ):
             csort = children[0].sort
             for c in children[1:]:
-                print ("> ite " + str(c))
                 if c.sort != csort:
                     raise DDSMTParseException (
                         lineno (self.loc, self.instring),
@@ -1112,50 +1115,65 @@ class SMTParser:
                 raise DDSMTParseException (
                     lineo (l, s),
                     col (self.loc, self.instring),
-                    "'{0:s}' expects Array sort as argument(s)".format(
+                    "'{0:s}' expects Array sort as first argument".format(
                         str(fun)))
-                
+        # ITE arg check
+        elif kind == KIND_ITE:
+            if not children[0].sort == SMTSortNode.sortNode("Bool"):
+                raise DDSMTParseException (
+                    lineo (l, s),
+                    col (self.loc, self.instring),
+                    "'{0:s}' expects sort 'Bool' as first argument".format(
+                        str(fun)))
+            if children[1].sort != children[2].sort:
+                    raise DDSMTParseException (
+                        lineno (self.loc, self.instring),
+                        col (self.loc, self.instring),
+                        "'ite' with mismatching sorts: '{1:s}' '{2:s}'"\
+                        "".format(str(children[1].sort), str(children[2].sort))) 
 
     def __funApp2Sort (self, fun, kind, children):
         global g_is_bv_logic, g_bv_fun_kinds
 
         self.__funApp_check(fun, kind, children)
-        print ("####### funapp2sort " + kind)
         # sort Bool
         if kind in (KIND_AND,   KIND_IMPL,  KIND_NOT,   KIND_OR,    KIND_XOR, 
                     KIND_EQ,    KIND_DIST,  KIND_LE,    KIND_LT,    KIND_GE,
                     KIND_GT,    KIND_ISI,   KIND_BVSGE, KIND_BVSGT, KIND_BVSLE,
                     KIND_BVSLT, KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT):
-            return self.__sortNode (self.scopes, "Bool")
+            return SMTSortNode.sortNode("Bool")
         # sort Int
         elif kind in (KIND_ABS, KIND_DIV, KIND_MOD):
-            return self.__sortNode (self.scopes, "Int")
+            return SMTSortNode.sortNode("Int")
         # sort Real
         elif kind in (KIND_RDIV, KIND_TOI, KIND_TOR):
-            return self.__sortNode (self.scopes, "Real")
+            return SMTSortNode.sortNode("Real")
         # sort BV sort != children sort
         elif kind == KIND_CONC:
-            return self.__bvSortNode(children[0].sort.bw + children[1].sort.bw)
+            return SMTBVSortNode.sortNode(
+                       children[0].sort.bw + children[1].sort.bw)
         elif kind == KIND_EXTR:
-            return self.__bvSortNode(fun.indices[0] - fun.indices[1] + 1)
+            return SMTBVSortNode.sortNode(fun.indices[0] - fun.indices[1] + 1)
         elif kind == KIND_REP:
-            return self.__bvSortNode(fun.indices[0] * children[0].bw)
+            return SMTBVSortNode.sortNode(fun.indices[0] * children[0].bw)
         elif kind in (KIND_SEXT, KIND_ZEXT):
-            return self.__bvSortNode(fun.indices[0] + children[0].bw)
+            return SMTBVSortNode.sortNode(fun.indices[0] + children[0].bw)
         elif kind == KIND_BVCOMP:
-            return self.__bvSortNode(1)
+            return SMtBVSortNode.sortNode(1)
         # sort defined by children
         elif kind in (KIND_ADD,    KIND_MUL,    KIND_NEG,    KIND_SUB,
-                      KIND_ITE,    KIND_ROL,    KIND_ROR,    KIND_BVADD,
-                      KIND_BVAND,  KIND_BVASHR, KIND_BVLSHR, KIND_BVMUL,
-                      KIND_BVNAND, KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,
-                      KIND_BVOR,   KIND_BVSDIV, KIND_BVSHL,  KIND_BVSMOD, 
-                      KIND_BVSREM, KIND_BVSUB,  KIND_BVUDIV, KIND_BVUREM, 
-                      KIND_BVXNOR, KIND_BVXOR):
+                      KIND_ROL,    KIND_ROR,    KIND_BVADD,  KIND_BVAND,
+                      KIND_BVASHR, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND,
+                      KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,
+                      KIND_BVSDIV, KIND_BVSHL,  KIND_BVSMOD, KIND_BVSREM, 
+                      KIND_BVSUB,  KIND_BVUDIV, KIND_BVUREM, KIND_BVXNOR,
+                      KIND_BVXOR):
             return children[0].sort
         # special cases
+        elif kind == KIND_ITE: 
+            return children[1].sort
         elif kind == KIND_SELECT:
-            return children[0].sort.element_sort
+            return children[0].sort.elem_sort
         elif kind == KIND_STORE:
             return children[0].sort
 
@@ -1164,18 +1182,13 @@ class SMTParser:
 
     def __funAppNode (self, fun, children = []):
         global g_fun_kinds
-        print ("funappnode " + fun.name)
         if fun.name in g_fun_kinds:
-            print ("in fun_kinds " + fun.name)
             if fun.name == '-' and len(children) == 1:
                 kind = KIND_NEG
             else:
                 kind = fun.name
         else:
             kind = fun.kind
-        print ("-------- fun: " + str(fun))
-        print ("         kind: " + str(kind))
-        print ("         sort: " + str(self.__funApp2Sort(fun, kind, children)))
         sort = self.__funApp2Sort(fun, kind, children)
         return SMTFunAppNode (fun, kind, sort, children)
 
@@ -1185,14 +1198,15 @@ class SMTParser:
         value = int(t[0][2:], 16)
         bw = value.bit_length()
         return SMTBVConstNode (
-                KIND_CONSTH, self.__bvSortNode (bw), value, bw, original_str = t[0]) # TODO debug
+                KIND_CONSTH, SMTBVSortNode.sortNode(bw), value, bw, original_str = t[0]) # TODO debug
 
     def __bin2SMTNode (self, s, l, t):
         global g_is_bv_logic
         assert (len(t) == 1)
         value = int(t[0][2:], 2)
         bw = value.bit_length()
-        return SMTBVConstNode (KIND_CONSTB, self.__bvSortNode (bw), value, bw)
+        return SMTBVConstNode (
+                KIND_CONSTB, SMTBVSortNode.sortNode(bw), value, bw)
 
     def __sexprAttrv2token (self, s, l, t):
         if not t[0] == '(':
@@ -1202,44 +1216,43 @@ class SMTParser:
     def __sort2SMTNode (self, s, l, t):
         if t[0] == '_':
             assert (len(t) == 3)
-            return self.__bvSortNode (t[2].value)
-        elif t[0] == '(':
-            assert (len(t) >= 2)
-            if t[1] == "Array":
-                assert (len(t) == 4)
-                return self.__arrSortNode (
-                           self.scopes, # FIXME
-                           t[2],
-                           t[3])
+            # add all bv sorts to scope level 0
+            return SMTBVSortNode.sortNode (t[2].value)
+        elif t[0] == '(' and t[1] == "Array":
+            assert (len(t) == 4)
+            # add sort to scope level 0 by default (we have to fix this later
+            # in case of define-sort / declare-sort)
+            return SMTArraySortNode.sortNode (t[2], t[3])
         else:
-            return self.__sortNode (
-                   self.scopes, # FIXME
-                   t[0],
-                   len(t) - 1)
+            # add sort to scope level 0 by default (we have to fix this later
+            # in case of define-sort / declare-sort)
+            return SMTSortNode.sortNode (
+                    "({0:s})".format([str(to) for to in t[1:]]) \
+                            if t[0] == '(' else t[0], 
+                    nparams = len(t[2:]))
 
 
     def __qualIdent2SMTNode (self, s, l, t):
         global g_is_bv_logic
         if t[0] == SMTParser.AS:
-            return self.__funNode (self.scopes, t[1], KIND_ANNFUN, t[2])
+            return self.__funNode (g_scopes, t[1], KIND_ANNFUN, t[2])
         elif t[0] == '_':
             if t[1].find("bv") == 0 and g_is_bv_logic:
                 assert (len(t) == 3)
                 value = int(t[1][2:])
                 bw = t[2].value
                 return SMTBVConstNode (
-                        KIND_CONSTN, self.__bvSortNode (bw), value, bw)
+                        KIND_CONSTN, SMTBVSortNode.sortNode(bw), value, bw)
             else:
                 assert (len(t) > 1)
                 return self.__funNode (
-                        self.scopes, t[1], KIND_FUN, None, indices = t[2:])
+                        g_scopes, t[1], KIND_FUN, None, indices = t[2:])
         else:
-            return self.__funNode (self.scopes, t[0], KIND_FUN, None)
+            return self.__funNode (g_scopes, t[0], KIND_FUN, None)
 
     def __varBind2SMTNode (self, s, l, t):
-        print ("!! " + str(t[1].sort))
         return SMTVarBindNode (
-                self.__funNode (self.scopes, t[0], KIND_FUN, t[1].sort), [t[1]])
+                self.__funNode (g_scopes, t[0], KIND_FUN, t[1].sort), [t[1]])
 
     def __term2SMTNode (self, s, l, t):
         self.loc = l
@@ -1268,8 +1281,11 @@ class SMTParser:
         kind = t[0]
         if kind == KIND_DECLSORT:
             assert (len(t) == 3)
-            return self.__cmdNode (KIND_DECLSORT, 
-                    [self.__sortNode (self.cur_scope, t[1], t[2].value)])
+            sort = SMTSortNode.find_sort(t[1], g_cur_scope)
+            if sort not in g_cur_scope.sorts:
+                SMTSortNode.delete_sort(t[1])
+                sort = SMTSortNode.add_sort(t[1], g_cur_scope, t[2].value)
+            return self.__cmdNode (KIND_DECLSORT, [sort, t[1], t[2].value])
         elif kind == KIND_DEFSORT:
             assert (len(t) == 4)
             # TODO sort is currently not added here, concrete sort is added to 
@@ -1285,13 +1301,13 @@ class SMTParser:
             return self.__cmdNode (
                 KIND_DECLFUN, 
                 [self.__funNode (
-                    self.cur_scope, t[1], KIND_FUN, t[3], t[2][0:])])
+                    g_cur_scope, t[1], KIND_FUN, t[3], t[2][0:])])
         elif kind == KIND_DEFFUN:
             assert (len(t) == 5)
             sorts = [to.sort for to in t[2]]
             return self.__cmdNode (
                 KIND_DEFFUN, 
-                [self.__funNode (self.cur_scope, t[1], KIND_FUN, t[3], sorts), 
+                [self.__funNode (g_cur_scope, t[1], KIND_FUN, t[3], sorts), 
                  t[2][0:], 
                  t[4]])
         elif kind == KIND_GETVALUE:
@@ -1574,9 +1590,9 @@ if __name__ == "__main__":
 
         parser = SMTParser()
         #parsed = SMTParser.script.parseFile(g_infile, parseAll = True)
+        g_scopes = SMTScopeNode()
+        g_cur_scope = g_scopes
         SMTParser.script.parseFile(g_infile, parseAll = True)
-        g_scopes = parser.scopes
-        g_cur_scope = parser.cur_scope
         #print (" ".join(str(s) for s in parsed.asList()))
         #print ("--------------------------------------------------")
         #print (g_scopes)
