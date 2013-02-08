@@ -547,21 +547,29 @@ class SMTCmdNode:
     g_id = 0
     
     def __init__ (self, kind, children = []):
-        global g_cmd_kinds
-        assert (kind in g_cmd_kinds)
+        global g_cmd_kinds, g_logic, g_is_bv_logic, g_cur_scope
         assert (isinstance (children, list))
+        assert (kind in g_cmd_kinds)
+
+        if kind == KIND_SETLOGIC:
+            assert (len(children) == 1)
+            g_logic = children[0]
+            g_is_bv_logic = g_logic.find("BV") >= 0
+        
         SMTCmdNode.g_id += 1
         self.id = SMTCmdNode.g_id
         self.kind = kind
         self.children = children
+        assert (g_cur_scope != None)
+        g_cur_scope.cmds.append(self)
 
     def __str__ (self):
-        assert (self.kind != KIND_DECLSORT or 
-                self.children[0].kind == KIND_SORT)
-        
         if self.get_subst() == None:
             return ""
 
+        assert (self.kind != KIND_DECLSORT or 
+                self.children[0].kind == KIND_SORT)
+        
         if self.kind == KIND_DECLFUN:
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTFunNode))
@@ -612,15 +620,16 @@ class SMTCmdNode:
 
 class SMTPushCmdNode (SMTCmdNode):
 
-    def __init__ (self, nscopes, scope):
+    def __init__ (self, nscopes):
+        global g_cur_scope
         assert (nscopes > 0)
         super().__init__(KIND_PUSH)
         self.nscopes = nscopes
-        self.scope = scope 
+        self.scope = SMTScopeNode.open_scope(nscopes)
         # Note: self.scope is the scope directly associated with this push
         #       i.e. for e.g. push 2, 2 scopes are opened and the first one
         #       is the  one associated with the resp. push command
-
+        
     def __str__ (self):
         return "({0:s} {1:d})".format(self.kind, self.nscopes)
 
@@ -628,9 +637,11 @@ class SMTPushCmdNode (SMTCmdNode):
 class SMTPopCmdNode (SMTCmdNode):
 
     def __init__ (self, nscopes):
+        global g_cur_scope
         assert (nscopes > 0)
         super().__init__(KIND_POP)
         self.nscopes = nscopes
+        SMTScopeNode.close_scope(nscopes)
 
     def __str__ (self):
         return "({0:s} {1:d})".format(self.kind, self.nscopes)
@@ -899,10 +910,13 @@ class SMTParser:
 
     def __init__ (self):
         global g_cur_scope
+
+        # needed for raising a DDSMTParseException
+        # Note: make sure to update them before entering code chucks that
+        #       might raise such an exception as these are not up-to-date
+        #       for each token by default
         self.loc = None
         self.instring = None
-#        self.scopes = SMTScopeNode()
-#        self.cur_scope = self.scopes
 
         SMTParser.numeral.setParseAction(lambda s,l,t: 
             SMTConstNode (
@@ -952,32 +966,15 @@ class SMTParser:
 
 
     def __cmdNode (self, kind, children = []):
-        global g_logic, g_is_bv_logic, g_cur_scope
-
-        scope = None
-
         if kind == KIND_PUSH:
             assert (len(children) == 1)
             assert (isinstance (children[0], SMTConstNode))
-            cmd = SMTPushCmdNode (children[0].value, None)
-            g_cur_scope.cmds.append(cmd)
-            cmd.scope = SMTScopeNode.open_scope (cmd.nscopes)
+            return SMTPushCmdNode (children[0].value)
         elif kind == KIND_POP:
             assert (len(children) == 1)
             assert (isinstance (children[0], SMTConstNode))
-            cmd = SMTPopCmdNode (children[0].value)
-            g_cur_scope.cmds.append(cmd)
-            SMTScopeNode.close_scope (cmd.nscopes)
-        else:
-            cmd = SMTCmdNode (kind, children)
-            g_cur_scope.cmds.append(cmd)
-
-            if kind == KIND_SETLOGIC:
-                assert (len(children) == 1)
-                g_logic = children[0]
-                g_is_bv_logic = g_logic.find("BV") >= 0
-                    
-        return cmd
+            return SMTPopCmdNode (children[0].value)
+        return SMTCmdNode (kind, children)
 
 
     def __smtForallExistsNode (self, svars, kind, sort = None, children = []):
