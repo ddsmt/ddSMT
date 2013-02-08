@@ -449,10 +449,20 @@ class SMTBVSortNode (SMTSortNode):
 class SMTForallExistsNode (SMTNode):
 
     def __init__ (self, svars, kind, sort, children):
+        global g_cur_scope
         assert (kind in (KIND_FORALL, KIND_EXISTS))
         assert (len(children) == 1)
         super().__init__(kind, sort, children)
         self.svars = svars
+        prev_scope = g_cur_scope
+        SMTScopeNode.open_scope(
+                kind = KIND_FSCOPE if kind == KIND_FORALL else KIND_ESCOPE)
+        for s in svars:
+            assert (SMTFunNode.find_fun (s.name, prev_scope) != None)
+            assert (s.name in prev_scope.funs)
+            del prev_scope.funs[s.name]
+            g_cur_scope.funs[s.name] = s
+        SMTScopeNode.close_scope ()
 
     def __str__ (self):
          return "({0:s} ({1:s}) {2:s})".format(
@@ -977,23 +987,6 @@ class SMTParser:
         return SMTCmdNode (kind, children)
 
 
-    def __smtForallExistsNode (self, svars, kind, sort = None, children = []):
-        global g_cur_scope
-        assert (kind in (KIND_FORALL, KIND_EXISTS))
-        prev_scope = g_cur_scope
-        assert (len(children) == 1)
-        SMTScopeNode.open_scope (kind = KIND_FSCOPE if kind == KIND_FORALL 
-                                                    else KIND_ESCOPE)
-        for s in svars:
-            assert (SMTFunNode.find_fun (s.name, g_cur_scope) != None)
-            assert (s.name in prev_scope.funs)
-            del(prev_scope.funs[s.name])
-            g_cur_scope.funs[s.name] = s
-        SMTScopeNode.close_scope ()
-        
-        return SMTForallExistsNode (svars, kind, sort, children)
-
-
     def __funApp_check (self, fun, kind, children):
         global g_is_bv_logic
         # number of args check
@@ -1284,11 +1277,11 @@ class SMTParser:
             return SMTNode (KIND_LET, t[2].sort, [t[1][0:], t[2]]) # TODO var_bindings flat in children
         elif str(t[0]) == SMTParser.FORALL:
             assert (len(t) == 3)
-            return self.__smtForallExistsNode (
+            return SMTForallExistsNode (
                             t[1][0:], KIND_FORALL, t[2].sort, [t[2]])
         elif str(t[0]) == SMTParser.EXISTS:
             assert (len(t) == 3)
-            return self.__smtForallExistsNode (
+            return SMTForallExistsNode (
                             t[1][0:], KIND_EXISTS, t[2].sort, [t[2]])
         elif str(t[0]) == '!':
             assert (len(t) == 3)
