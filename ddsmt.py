@@ -997,14 +997,6 @@ class SMTParser:
         return SMTForallExistsNode (svars, kind, sort, children)
 
 
-    #def __funNode (self, scope, name, kind, sort, sorts = [], indices = []):
-    #    fun = self.__find_fun (name)
-    #    if fun == None:
-    #        return self.__add_fun (scope, name, kind, sort, sorts, indices)
-    #    assert (fun.name == name)
-    #    return fun
-
-
     def __funApp_check (self, fun, kind, children):
         global g_is_bv_logic
         # number of args check
