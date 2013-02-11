@@ -67,10 +67,10 @@ KIND_TOR    = "to_real"
 KIND_CONC   = "concat"
 KIND_EXTR   = "extract"
 KIND_REP    = "repeat"
-KIND_ROL    = "rotate-left"
-KIND_ROR    = "rotate-right"
-KIND_SEXT   = "sign-extend"
-KIND_ZEXT   = "zero-extend"
+KIND_ROL    = "rotate_left"
+KIND_ROR    = "rotate_right"
+KIND_SEXT   = "sign_extend"
+KIND_ZEXT   = "zero_extend"
 
 KIND_BVADD  = "bvadd"
 KIND_BVAND  = "bvand"
@@ -311,16 +311,222 @@ class SMTAnFunNode (SMTNode):
 
 class SMTFunAppNode (SMTNode):        
 
-    def __init__ (self, fun, kind, sort, children):
+    def __init__ (self, fun, children):
         global g_fun_kinds
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
+        kind = fun.kind
+        if fun.name in g_fun_kinds:
+            if fun.name == '-' and len(children) == 1:
+                kind = KIND_NEG
+            else:
+                kind = fun.name
+        sort = self.to_sort(fun, kind, children)
         super().__init__(kind, sort, children)
         self.fun = fun
 
     def __str__ (self):
         return "({0:s}{1:s})".format(str(self.fun), self.children2str())
 
+    @classmethod
+    def check (cls, fun, kind, children):
+        global g_is_bv_logic, g_cur_scope
+        # args declaration check
+        for c in children:
+            if not c.sort:
+                assert (c.kind == KIND_FUN)
+                raise DDSMTException (
+                        "'{0:s}' used before declaration".format(str(c)))
+        # number of args check
+        if ((len(children) != 1 and 
+                 kind in (KIND_ABS, KIND_BVNEG, KIND_BVNOT, KIND_EXTR, KIND_ISI,
+                          KIND_NOT, KIND_NEG,   KIND_TOI,   KIND_TOR,  KIND_REP,
+                          KIND_ROL, KIND_ROR,   KIND_SEXT,  KIND_ZEXT)) or
+            (len(children) != 2 and
+                 kind in (KIND_ADD,    KIND_AND,    KIND_BVADD,  KIND_BVAND,  
+                          KIND_BVASHR, KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,
+                          KIND_BVNAND, KIND_BVNOR,  KIND_BVOR,   KIND_BVSDIV,
+                          KIND_BVSGE,  KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,
+                          KIND_BVSLT,  KIND_BVSMOD, KIND_BVSREM, KIND_BVSUB,
+                          KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV, KIND_BVULE,
+                          KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR,
+                          KIND_CONC,   KIND_DIV,    KIND_DIST,   KIND_EQ,
+                          KIND_IMPL,   KIND_GE,     KIND_GT,     KIND_LE, 
+                          KIND_LT,     KIND_MOD,    KIND_MUL,    KIND_OR,
+                          KIND_SELECT, KIND_SUB,    KIND_RDIV,   KIND_XOR)) or
+            (len(children) != 3 and 
+                kind in (KIND_ITE, KIND_STORE))):
+            raise DDSMTParseException (
+                    lineno (self.loc, self.instring),
+                    col (self.loc, self.instring),
+                    "invalid number of arguments to '{0:s}': {1:d}".format(
+                        str(fun), len(children)))
+        # number of indices check
+        if g_is_bv_logic:
+            if kind == KIND_EXTR and len(fun.indices) != 2:
+                raise DDSMTException (
+                    "'{0:s}' expects exactly two indices, {1:d} given".format(
+                        str(fun.name), len(fun.indices)))
+            elif kind in (KIND_REP, KIND_ROL, KIND_ROR, KIND_SEXT, KIND_ZEXT) \
+                 and len(fun.indices) != 1:
+                raise DDSMTException (
+                    "'{0:s}' expects exactly one index, {1:d} given".format(
+                        str(fun.name), len(fun.indices)))
+        # args sort Bool check
+        if kind in (KIND_AND, KIND_IMPL, KIND_NOT, KIND_OR, KIND_XOR,
+                    KIND_LE,  KIND_LT):
+            for c in children:
+                if not c.sort == SMTSortNode.sortNode ("Bool"):
+                    raise DDSMTException (
+                        "'{0:s}' expects sort 'Bool' as argument(s)".format(
+                            str(fun)))
+        # args Int check
+        elif kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOR):
+            for c in children:
+                if not c.sort == SMTSortNode.sortNode("Int"):
+                    raise DDSMTException (
+                        "'{0:s}' expects sort 'Int' as argument(s)".format(
+                            str(fun)))
+        # args Real check
+        elif kind in (KIND_RDIV, KIND_ISI, KIND_TOI):
+            for c in children:
+                if not c.sort == SMTSortNode.sortNode("Real"):
+                    raise DDSMTException (
+                        "'{0:s}' expects sort 'Real' as argument(s)".format(
+                            str(fun)))
+        # args Int or Real check
+        elif kind in (KIND_ADD, KIND_GE, KIND_GT, KIND_MUL, KIND_NEG, KIND_SUB):
+            csort = children[0].sort
+            if csort not in (SMTSortNode.sortNode("Int"),
+                             SMTSortNode.sortNode("Real")):
+                raise DDSMTException (
+                    "'{0:s}' expects 'Int' or 'Real' as argument(s)".format(
+                        str(fun)))
+            for c in children[1:]:
+                if c.sort != csort:
+                    raise DDSMTException (
+                        "'{0:s}' with mismatching sorts: '{1:s}' '{2:s}'"\
+                        "".format(str(fun), str(csort), str(c.sort))) 
+        # args BV sort check
+        elif kind in (KIND_CONC, KIND_EXTR, KIND_REP,   KIND_ROL,  KIND_ROR, 
+                      KIND_SEXT, KIND_ZEXT, KIND_BVNEG, KIND_BVNOT):
+            for c in children:
+                if not c.sort.is_bv_sort:
+                    raise DDSMTException (
+                        "'{0:s}' expects BV sort as argument(s)".format(
+                            str(fun)))
+        # args equal sort check
+        elif kind in (KIND_DIST, KIND_EQ):
+            csort = children[0].sort
+            for c in children[1:]:
+                if c.sort != csort:
+                    raise DDSMTException (
+                        "'{0:s}' with mismatching sorts: '{1:s}' '{2:s}'"\
+                        "".format(str(fun), str(csort), str(c.sort))) 
+        # args equal bw check
+        elif kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP, 
+                      KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
+                      KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,  
+                      KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, 
+                      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  
+                      KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, 
+                      KIND_BVXNOR, KIND_BVXOR):
+            csort = children[0].sort
+            if not csort.is_bv_sort:
+                raise DDSMTException (
+                    "'{0:s}' expects BV sort as argument(s)".format(
+                        str(fun)))
+            for c in children[1:]:
+                if c.sort != csort:
+                    raise DDSMTException (
+                        "'{0:s}' with mismatching sorts: '{1:s}' '{2:s}'"\
+                        "".format(str(fun), str(csort), str(c.sort))) 
+        # first arg Array check
+        elif kind in (KIND_SELECT, KIND_STORE):
+            if not children[0].sort.is_arr_sort:
+                raise DDSMTException (
+                    "'{0:s}' expects Array sort as first argument".format(
+                        str(fun)))
+        # ITE arg check
+        elif kind == KIND_ITE:
+            if not children[0].sort == SMTSortNode.sortNode("Bool"):
+                raise DDSMTException (
+                    "'{0:s}' expects sort 'Bool' as first argument".format(
+                        str(fun)))
+            if children[1].sort != children[2].sort:
+                    raise DDSMTException (
+                        "'ite' with mismatching sorts: '{1:s}' '{2:s}'"\
+                        "".format(str(children[1].sort), str(children[2].sort)))        # not predefined
+        else:
+            declfun = SMTFunNode.find_fun(fun.name, g_cur_scope)
+            if declfun.sort == None:  # not declared yet
+                raise DDSMTException (
+                        "'{0:s}' used before declaration".format(str(fun)))
+            else:
+                if len(children) != len(declfun.sorts):
+                    raise DDSMTException (
+                            "'{0:s}' expects {1:d} argument(s), " \
+                            "{2:d} given".format(
+                                str(declfun),
+                                len(declfun.sorts),
+                                len(children)))
+                for i in range(len(children)):
+                    if children[i].sort != declfun.sorts[i]:
+                        raise DDSMTException (
+                            "'{0:s}' with incompatible sort " \
+                            "(expects '{2:s}'): '{1:s}'".format(
+                                str(declfun), 
+                                str(children[i].sort), 
+                                str(declfun.sorts[i])))
+                
+
+
+    @classmethod
+    def to_sort (cls, fun, kind, children):
+        cls.check(fun, kind, children)
+        # sort Bool
+        if kind in (KIND_AND,   KIND_IMPL,  KIND_NOT,   KIND_OR,    KIND_XOR, 
+                    KIND_EQ,    KIND_DIST,  KIND_LE,    KIND_LT,    KIND_GE,
+                    KIND_GT,    KIND_ISI,   KIND_BVSGE, KIND_BVSGT, KIND_BVSLE,
+                    KIND_BVSLT, KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT):
+            return SMTSortNode.sortNode("Bool")
+        # sort Int
+        elif kind in (KIND_ABS, KIND_DIV, KIND_MOD):
+            return SMTSortNode.sortNode("Int")
+        # sort Real
+        elif kind in (KIND_RDIV, KIND_TOI, KIND_TOR):
+            return SMTSortNode.sortNode("Real")
+        # sort BV sort != children sort
+        elif kind == KIND_CONC:
+            return SMTBVSortNode.sortNode(
+                       children[0].sort.bw + children[1].sort.bw)
+        elif kind == KIND_EXTR:
+            return SMTBVSortNode.sortNode(fun.indices[0] - fun.indices[1] + 1)
+        elif kind == KIND_REP:
+            return SMTBVSortNode.sortNode(fun.indices[0] * children[0].sort.bw)
+        elif kind in (KIND_SEXT, KIND_ZEXT):
+            return SMTBVSortNode.sortNode(fun.indices[0] + children[0].sort.bw)
+        elif kind == KIND_BVCOMP:
+            return SMtBVSortNode.sortNode(1)
+        # sort defined by children
+        elif kind in (KIND_ADD,    KIND_MUL,    KIND_NEG,    KIND_SUB,
+                      KIND_ROL,    KIND_ROR,    KIND_BVADD,  KIND_BVAND,
+                      KIND_BVASHR, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND,
+                      KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,
+                      KIND_BVSDIV, KIND_BVSHL,  KIND_BVSMOD, KIND_BVSREM, 
+                      KIND_BVSUB,  KIND_BVUDIV, KIND_BVUREM, KIND_BVXNOR,
+                      KIND_BVXOR):
+            return children[0].sort
+        # special cases
+        elif kind == KIND_ITE: 
+            return children[1].sort
+        elif kind == KIND_SELECT:
+            return children[0].sort.elem_sort
+        elif kind == KIND_STORE:
+            return children[0].sort
+        return fun.sort
+
+    
 
 class SMTVarBindNode (SMTNode):
 
@@ -385,6 +591,7 @@ class SMTSortNode (SMTNode):
             # or defined already and thus be found previously)
             return cls.add_sort (name, g_scopes, nparams)
         return sort
+
 
 class SMTArraySortNode (SMTSortNode):
 
@@ -921,12 +1128,12 @@ class SMTParser:
     def __init__ (self):
         global g_cur_scope
 
-        # needed for raising a DDSMTParseException
-        # Note: make sure to update them before entering code chucks that
-        #       might raise such an exception as these are not up-to-date
-        #       for each token by default
-        self.loc = None
-        self.instring = None
+     #   # needed for raising a DDSMTParseException
+     #   # Note: make sure to update them before entering code chucks that
+     #   #       might raise such an exception as these are not up-to-date
+     #   #       for each token by default
+     #   self.loc = None
+     #   self.instring = None
 
         SMTParser.numeral.setParseAction(lambda s,l,t: 
             SMTConstNode (
@@ -986,225 +1193,11 @@ class SMTParser:
             return SMTPopCmdNode (children[0].value)
         return SMTCmdNode (kind, children)
 
-
-    def __funApp_check (self, fun, kind, children):
-        global g_is_bv_logic
-        # number of args check
-        if ((len(children) != 1 and 
-                 kind in (KIND_ABS, KIND_BVNEG, KIND_BVNOT, KIND_EXTR, KIND_ISI,
-                          KIND_NOT, KIND_NEG,   KIND_TOI,   KIND_TOR,  KIND_REP,
-                          KIND_ROL, KIND_ROR,   KIND_SEXT,  KIND_ZEXT)) or
-            (len(children) != 2 and
-                 kind in (KIND_ADD,    KIND_AND,    KIND_BVADD,  KIND_BVAND,  
-                          KIND_BVASHR, KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,
-                          KIND_BVNAND, KIND_BVNOR,  KIND_BVOR,   KIND_BVSDIV,
-                          KIND_BVSGE,  KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,
-                          KIND_BVSLT,  KIND_BVSMOD, KIND_BVSREM, KIND_BVSUB,
-                          KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV, KIND_BVULE,
-                          KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR,
-                          KIND_CONC,   KIND_DIV,    KIND_DIST,   KIND_EQ,
-                          KIND_IMPL,   KIND_GE,     KIND_GT,     KIND_LE, 
-                          KIND_LT,     KIND_MOD,    KIND_MUL,    KIND_OR,
-                          KIND_SELECT, KIND_SUB,    KIND_RDIV,   KIND_XOR)) or
-            (len(children) != 3 and 
-                kind in (KIND_ITE, KIND_STORE))):
-            raise DDSMTParseException (
-                    lineno (self.loc, self.instring),
-                    col (self.loc, self.instring),
-                    "invalid number of arguments to '{0:s}': {1:d}".format(
-                        str(fun), len(children)))
-
-        # number of indices check
-        if g_is_bv_logic:
-            if kind == KIND_EXTR and len(fun.indices) != 2:
-                raise DDSMTParseException (
-                    lineno (self.loc, self.instring),
-                    col (self.loc, self.instring),
-                    "'{0:s}' expects exactly two indices, {1:d} given".format(
-                        str(fun.name), len(fun.indices)))
-            elif kind in (KIND_REP, KIND_ROL, KIND_ROR, KIND_SEXT, KIND_ZEXT) \
-                 and len(fun.indices) != 1:
-                raise DDSMTParseException (
-                    lineno (self.loc, self.instring),
-                    col (self.loc, self.instring),
-                    "'{0:s}' expects exactly one index, {1:d} given".format(
-                        str(fun.name), len(fun.indices)))
-
-        # args sort Bool check
-        elif kind in (KIND_AND, KIND_IMPL, KIND_NOT, KIND_OR, KIND_XOR,
-                    KIND_LE,  KIND_LT):
-            for c in children:
-                if not c.sort == SMTSortNode.sortNode ("Bool"):
-                    raise DDSMTParseException (
-                        lineno (self.loc, self.instring),
-                        col (self.loc, self.instring),
-                        "'{0:s}' expects sort 'Bool' as argument(s)".format(
-                            str(fun)))
-        # args Int check
-        elif kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOR):
-            for c in children:
-                if not c.sort == SMTSortNode.sortNode("Int"):
-                    raise DDSMTParseException (
-                        lineno (self.loc, self.instring),
-                        col (self.loc, self.instring),
-                        "'{0:s}' expects sort 'Int' as argument(s)".format(
-                            str(fun)))
-        # args Real check
-        elif kind in (KIND_RDIV, KIND_ISI, KIND_TOI):
-            for c in children:
-                if not c.sort == SMTSortNode.sortNode("Real"):
-                    raise DDSMTParseException (
-                        lineno (self.loc, self.instring),
-                        col (self.loc, self.instring),
-                        "'{0:s}' expects sort 'Real' as argument(s)".format(
-                            str(fun)))
-        # args Int or Real check
-        elif kind in (KIND_ADD, KIND_GE, KIND_GT, KIND_MUL, KIND_NEG, KIND_SUB):
-            csort = children[0].sort
-            if csort not in (SMTSortNode.sortNode("Int"),
-                             SMTSortNode.sortNode("Real")):
-                raise DDSMTParseException (
-                    lineno (self.loc, self.instring),
-                    col (self.loc, self.instring),
-                    "'{0:s}' expects 'Int' or 'Real' as argument(s)".format(
-                        str(fun)))
-            for c in children[1:]:
-                if c.sort != csort:
-                    raise DDSMTParseException (
-                        lineno (self.loc, self.instring),
-                        col (self.loc, self.instring),
-                        "'{0:s}' with mismatching sorts: '{1:s}' '{2:s}'"\
-                        "".format(str(fun), str(csort), str(c.sort))) 
-        # args BV sort check
-        elif kind in (KIND_CONC, KIND_EXTR, KIND_REP,   KIND_ROL,  KIND_ROR, 
-                      KIND_SEXT, KIND_ZEXT, KIND_BVNEG, KIND_BVNOT):
-            for c in children:
-                if not c.sort.is_bv_sort:
-                    raise DDSMTParseException (
-                        lineno (self.loc, self.instring),
-                        col (self.loc, self.instring),
-                        "'{0:s}' expects BV sort as argument(s)".format(
-                            str(fun)))
-        # args equal sort check
-        elif kind in (KIND_DIST, KIND_EQ):
-            csort = children[0].sort
-            for c in children[1:]:
-                if c.sort != csort:
-                    raise DDSMTParseException (
-                        lineno (self.loc, self.instring),
-                        col (self.loc, self.instring),
-                        "'{0:s}' with mismatching sorts: '{1:s}' '{2:s}'"\
-                        "".format(str(fun), str(csort), str(c.sort))) 
-        # args equal bw check
-        elif kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP, 
-                      KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
-                      KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,  
-                      KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, 
-                      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  
-                      KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, 
-                      KIND_BVXNOR, KIND_BVXOR):
-            csort = children[0].sort
-            if not csort.is_bv_sort:
-                raise DDSMTParseException (
-                    lineo (l, s),
-                    col (self.loc, self.instring),
-                    "'{0:s}' expects BV sort as argument(s)".format(
-                        str(fun)))
-            for c in children[1:]:
-                if c.sort != csort:
-                    raise DDSMTParseException (
-                        lineno (self.loc, self.instring),
-                        col (self.loc, self.instring),
-                        "'{0:s}' with mismatching sorts: '{1:s}' '{2:s}'"\
-                        "".format(str(fun), str(csort), str(c.sort))) 
-        # first arg Array check
-        elif kind in (KIND_SELECT, KIND_STORE):
-            if not children[0].sort.is_arr_sort:
-                raise DDSMTParseException (
-                    lineo (l, s),
-                    col (self.loc, self.instring),
-                    "'{0:s}' expects Array sort as first argument".format(
-                        str(fun)))
-        # ITE arg check
-        elif kind == KIND_ITE:
-            if not children[0].sort == SMTSortNode.sortNode("Bool"):
-                raise DDSMTParseException (
-                    lineo (l, s),
-                    col (self.loc, self.instring),
-                    "'{0:s}' expects sort 'Bool' as first argument".format(
-                        str(fun)))
-            if children[1].sort != children[2].sort:
-                    raise DDSMTParseException (
-                        lineno (self.loc, self.instring),
-                        col (self.loc, self.instring),
-                        "'ite' with mismatching sorts: '{1:s}' '{2:s}'"\
-                        "".format(str(children[1].sort), str(children[2].sort))) 
-
-    def __funApp2Sort (self, fun, kind, children):
-        global g_is_bv_logic, g_bv_fun_kinds
-
-        self.__funApp_check(fun, kind, children)
-        # sort Bool
-        if kind in (KIND_AND,   KIND_IMPL,  KIND_NOT,   KIND_OR,    KIND_XOR, 
-                    KIND_EQ,    KIND_DIST,  KIND_LE,    KIND_LT,    KIND_GE,
-                    KIND_GT,    KIND_ISI,   KIND_BVSGE, KIND_BVSGT, KIND_BVSLE,
-                    KIND_BVSLT, KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT):
-            return SMTSortNode.sortNode("Bool")
-        # sort Int
-        elif kind in (KIND_ABS, KIND_DIV, KIND_MOD):
-            return SMTSortNode.sortNode("Int")
-        # sort Real
-        elif kind in (KIND_RDIV, KIND_TOI, KIND_TOR):
-            return SMTSortNode.sortNode("Real")
-        # sort BV sort != children sort
-        elif kind == KIND_CONC:
-            return SMTBVSortNode.sortNode(
-                       children[0].sort.bw + children[1].sort.bw)
-        elif kind == KIND_EXTR:
-            return SMTBVSortNode.sortNode(fun.indices[0] - fun.indices[1] + 1)
-        elif kind == KIND_REP:
-            return SMTBVSortNode.sortNode(fun.indices[0] * children[0].bw)
-        elif kind in (KIND_SEXT, KIND_ZEXT):
-            return SMTBVSortNode.sortNode(fun.indices[0] + children[0].bw)
-        elif kind == KIND_BVCOMP:
-            return SMtBVSortNode.sortNode(1)
-        # sort defined by children
-        elif kind in (KIND_ADD,    KIND_MUL,    KIND_NEG,    KIND_SUB,
-                      KIND_ROL,    KIND_ROR,    KIND_BVADD,  KIND_BVAND,
-                      KIND_BVASHR, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND,
-                      KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,
-                      KIND_BVSDIV, KIND_BVSHL,  KIND_BVSMOD, KIND_BVSREM, 
-                      KIND_BVSUB,  KIND_BVUDIV, KIND_BVUREM, KIND_BVXNOR,
-                      KIND_BVXOR):
-            return children[0].sort
-        # special cases
-        elif kind == KIND_ITE: 
-            return children[1].sort
-        elif kind == KIND_SELECT:
-            return children[0].sort.elem_sort
-        elif kind == KIND_STORE:
-            return children[0].sort
-
-        return fun.sort
-
-
-    def __funAppNode (self, fun, children = []):
-        global g_fun_kinds
-        if fun.name in g_fun_kinds:
-            if fun.name == '-' and len(children) == 1:
-                kind = KIND_NEG
-            else:
-                kind = fun.name
-        else:
-            kind = fun.kind
-        sort = self.__funApp2Sort(fun, kind, children)
-        return SMTFunAppNode (fun, kind, sort, children)
-
     def __hex2SMTNode (self, s, l, t):
         global g_is_bv_logic
         assert (len(t) == 1)
         value = int(t[0][2:], 16)
-        bw = value.bit_length()
+        bw = len(t[0][2:]) * 4
         return SMTBVConstNode (
                 KIND_CONSTH, SMTBVSortNode.sortNode(bw), value, bw, original_str = t[0]) # TODO debug
 
@@ -1212,7 +1205,7 @@ class SMTParser:
         global g_is_bv_logic
         assert (len(t) == 1)
         value = int(t[0][2:], 2)
-        bw = value.bit_length()
+        bw = len(t[0][2:])
         return SMTBVConstNode (
                 KIND_CONSTB, SMTBVSortNode.sortNode(bw), value, bw)
 
@@ -1288,7 +1281,10 @@ class SMTParser:
             return SMTAnFunNode (t[2][0:], KIND_ANNOTN, t[1].sort, [t[1]])
         else:
             assert (isinstance(t[0], SMTFunNode))
-            return self.__funAppNode (t[0], t[1][0:])
+            try:
+                return SMTFunAppNode (t[0], t[1][0:])
+            except DDSMTException as e:
+                raise DDSMTParseException (lineno(l, s), col(l, s), e.msg) 
 
     def __cmd2SMTCmdNode (self, s, l, t):
         global g_cur_scope
