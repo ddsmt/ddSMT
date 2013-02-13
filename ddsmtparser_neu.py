@@ -553,6 +553,10 @@ class SMTFormula:
             ch.extend([children[1]])
         return SMTNode (kind, sort, ch)
 
+    def boolConstNode (value):
+        assert (value in ("true", "false"))
+        return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
+
     def find_sort_and_scope (self, name, scope = None):
         scope = scope if scope else self.cur_scope
         while scope:
@@ -948,9 +952,8 @@ class DDSMTParser (SMTParser):
                     KIND_CONSTS, self.smtformula.sortNode ("String"), 
                     value=t[0]))
 
-            # TODO TODO TODO boolconstnode
-            #self.b_value.setParseAction(lambda s, l, t:
-            #        SMTBoolConstNode (str(t[0])))
+            self.b_value.setParseAction(lambda s, l, t:
+                    self.smtformula.boolConstNode (str(t[0])))
 
             self.symb_str.setParseAction(lambda s,l,t: 
                     " ".join([str(to) for to in t]))
@@ -965,9 +968,6 @@ class DDSMTParser (SMTParser):
             self.attribute.setParseAction(lambda s,l,t: 
                     " ".join([str(to) for to in t]))
 
-            # TODO TODO TODO boolconstnode
-            #self.option.setParseAction(lambda s, l, t:
-            #        SMTBoolConstNode (str(t[0])))
             self.option.setParseAction(lambda s,l,t: 
                     " ".join([str(to) for to in t]))
 
