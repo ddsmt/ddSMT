@@ -515,6 +515,17 @@ class SMTFormula:
     def is_bv_logic (self):
         return self.logic.find("BV") >= 0
 
+    def get_subst (self, node):
+        if isinstance (node, SMTScopeNode):
+            return self.subst_scopes[node.id] \
+                    if node.id in self.subst_scopes else node
+        elif isinstance (node, SMTCmdNode):
+            return self.subst_cmds[node.id] \
+                    if node.id in self.subst_cmds else node
+        elif isinstance (node, SMTNode):
+            return self.subst_nodes[node.id] \
+                    if node.id in self.subst_nodes else node
+
     def open_scope (self, nscopes = 1, kind = KIND_SCOPE):
         assert (kind == KIND_SCOPES or nscopes == 1) 
         # Note: forall, exists open exactly one scope
