@@ -520,9 +520,13 @@ class SMTFormula:
             return self.subst_scopes[node.id] \
                     if node.id in self.subst_scopes else node
         elif isinstance (node, SMTCmdNode):
+            assert (node.id not in self.subst_cmds or 
+                    self.subst_cmds[node.id] == None)
             return self.subst_cmds[node.id] \
                     if node.id in self.subst_cmds else node
         elif isinstance (node, SMTNode):
+            assert(node.id not in self.subst_scopes or 
+                   self.subst_scopes[node.id] == None)
             return self.subst_nodes[node.id] \
                     if node.id in self.subst_nodes else node
 
