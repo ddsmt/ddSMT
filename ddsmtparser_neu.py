@@ -1,6 +1,180 @@
 from smtparser import SMTParser
 
-# TODO kinds
+KIND_ANNFUN = "<annotated fun symbol>"
+KIND_FUN    = "<var or fun symbol>"
+KIND_FUNAPP = "<fun application>"
+KIND_VARB   = "<var binding>"
+
+KIND_SCOPE  = "<scope>"
+KIND_ESCOPE = "<exists scope>"
+KIND_FSCOPE = "<forall scope>"
+
+KIND_SORT   = "<sort>"
+KIND_ASORT  = "<array sort>"
+KIND_BVSORT = "<bv sort>"
+
+KIND_CONST  = "<const bool>"
+KIND_CONSTB = "<const bin>"
+KIND_CONSTD = "<const dec>"
+KIND_CONSTN = "<const num>"
+KIND_CONSTH = "<const hex>"
+KIND_CONSTS = "<const string>"
+
+KIND_ANNOTN = "!"
+KIND_EXISTS = "exists"
+KIND_FORALL = "forall"
+KIND_LET    = "let"
+
+KIND_AND    = "and"
+KIND_IMPL   = "implies"
+KIND_ITE    = "ite"
+KIND_NOT    = "not"
+KIND_OR     = "or"
+KIND_XOR    = "xor"
+
+KIND_EQ     = "="
+KIND_DIST   = "distinct"
+KIND_LE     = "<="
+KIND_LT     = "<"
+KIND_GE     = ">="
+KIND_GT     = ">"
+
+KIND_ABS    = "abs"
+KIND_ADD    = "+"
+KIND_DIV    = "div"
+KIND_MOD    = "mod"
+KIND_MUL    = "*"
+KIND_NEG    = "neg"
+KIND_SUB    = "-"
+KIND_RDIV   = "/"
+
+KIND_ISI    = "is_int"
+KIND_TOI    = "to_int"
+KIND_TOR    = "to_real"
+
+KIND_CONC   = "concat"
+KIND_EXTR   = "extract"
+KIND_REP    = "repeat"
+KIND_ROL    = "rotate_left"
+KIND_ROR    = "rotate_right"
+KIND_SEXT   = "sign_extend"
+KIND_ZEXT   = "zero_extend"
+
+KIND_BVADD  = "bvadd"
+KIND_BVAND  = "bvand"
+KIND_BVASHR = "bvashr"
+KIND_BVCOMP = "bvcomp"
+KIND_BVLSHR = "bvlshr"
+KIND_BVMUL  = "bvmul"
+KIND_BVNAND = "bvnand"
+KIND_BVNEG  = "bvneg"
+KIND_BVNOR  = "bvnor"
+KIND_BVNOT  = "bvnot"
+KIND_BVOR   = "bvor"
+KIND_BVSDIV = "bvsdiv"
+KIND_BVSGE  = "bvsge"
+KIND_BVSGT  = "bvsgt"
+KIND_BVSHL  = "bvshl"
+KIND_BVSLE  = "bvsle"
+KIND_BVSLT  = "bvslt"
+KIND_BVSMOD = "bvsmod"
+KIND_BVSREM = "bvsrem"
+KIND_BVSUB  = "bvsub"
+KIND_BVUGE  = "bvuge"
+KIND_BVUGT  = "bvugt"
+KIND_BVUDIV = "bvudiv"
+KIND_BVULE  = "bvule"
+KIND_BVULT  = "bvult"
+KIND_BVUREM = "bvurem"
+KIND_BVXNOR = "bvxnor"
+KIND_BVXOR  = "bvxor"
+
+KIND_SELECT = "select"
+KIND_STORE  = "store"
+
+KIND_ASSERT    = "assert"
+KIND_CHECKSAT  = "check-sat"
+KIND_DECLFUN   = "declare-fun"
+KIND_DEFFUN    = "define-fun"
+KIND_DECLSORT  = "declare-sort"
+KIND_DEFSORT   = "define-sort"
+KIND_GETASSERT = "get-assertions"
+KIND_GETASSIGN = "get-assignment"
+KIND_GETPROOF  = "get-proof"
+KIND_GETUCORE  = "get-unsat-core"
+KIND_GETVALUE  = "get-value"
+KIND_GETOPT    = "get-option"
+KIND_GETINFO   = "get-info"
+KIND_EXIT      = "exit"
+KIND_PUSH      = "push"
+KIND_POP       = "pop"
+KIND_SETLOGIC  = "set-logic"
+KIND_SETINFO   = "set-info"
+KIND_SETOPT    = "set-option"
+
+
+g_const_kinds = \
+    [ KIND_CONST, KIND_CONSTB, KIND_CONSTD, KIND_CONSTN, KIND_CONSTH, 
+      KIND_CONSTS ]
+
+g_fun_kinds   = \
+    [ KIND_ABS,    KIND_ADD,    KIND_AND,    KIND_BVADD,  KIND_BVAND,
+      KIND_BVASHR, KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, 
+      KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,   KIND_BVSDIV,
+      KIND_BVSGE,  KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT, 
+      KIND_BVSMOD, KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,
+      KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, 
+      KIND_BVXOR,  KIND_CONC,   KIND_DIST,   KIND_DIV,    KIND_EQ,
+      KIND_EXTR,   KIND_GE,     KIND_GT,     KIND_IMPL,   KIND_ISI,
+      KIND_ITE,    KIND_LE,     KIND_LT,     KIND_MOD,    KIND_MUL,
+      KIND_NEG,    KIND_NOT,    KIND_OR,     KIND_RDIV,   KIND_REP,
+      KIND_ROL,    KIND_ROR,    KIND_SELECT, KIND_SEXT,   KIND_STORE,
+      KIND_SUB,    KIND_TOI,    KIND_TOR,    KIND_XOR,    KIND_ZEXT]
+
+g_bv_fun_kinds = \
+    [ 
+      KIND_CONC,   KIND_EXTR,   KIND_REP,    KIND_ROL,    KIND_ROR,
+      KIND_SEXT,   KIND_ZEXT,   KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, 
+      KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNEG,  
+      KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,
+      KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, 
+      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV,
+      KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR ]
+
+g_arr_fun_kinds = \
+    [ KIND_SELECT, KIND_STORE ]
+
+g_cmd_kinds   = \
+    [ KIND_ASSERT,   KIND_CHECKSAT, KIND_DECLFUN,   KIND_DEFFUN, 
+      KIND_DECLSORT, KIND_DEFSORT,  KIND_GETASSERT, KIND_GETASSIGN, 
+      KIND_GETPROOF, KIND_GETUCORE, KIND_GETVALUE,  KIND_GETOPT,
+      KIND_GETINFO,  KIND_EXIT,     KIND_PUSH,      KIND_POP,
+      KIND_SETLOGIC, KIND_SETINFO,  KIND_SETOPT ]
+
+
+
+class DDSMTParseCheckException (Exception):
+
+    def __init__ (self, msg):
+        self.msg = msg
+    
+    def __str__ (self):
+        return "[ddsmt] Error: {0:s}".format(self.msg)
+
+
+
+class DDSMTParseException (Exception):
+
+    def __init__ (self, line, col, msg):
+        self.line = line
+        self.col = col
+        self.msg = msg
+    
+    def __str__ (self):
+        return "[ddsmt] {0:s}:{1:d}:{2:d}: {3:s}".format(
+                g_infile.strip().split("/")[-1], self.line, self.col, self.msg)
+
+
 
 class SMTNode:
 
