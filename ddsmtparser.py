@@ -1,4 +1,5 @@
 from smtparser import SMTParser
+from pyparsing import ParseSyntaxException
 
 KIND_ANNFUN = "<annotated fun symbol>"
 KIND_FUN    = "<var or fun symbol>"
@@ -506,11 +507,11 @@ class SMTFormula:
         self.subst_nodes = {}
         self.__add_predefined_sorts ()
 
-    def __add_predefined_sorts ():
-        self.scopes.add_sort ("Bool")
-        self.scopes.add_sort ("Int")
-        self.scopes.add_sort ("Real")
-        self.scopes.add_arrSort ("Array", 2)
+    def __add_predefined_sorts (self):
+        self.add_sort ("Bool")
+        self.add_sort ("Int")
+        self.add_sort ("Real")
+        self.add_arrSort ("Array", 2)
 
     def is_bv_logic (self):
         return self.logic.find("BV") >= 0
@@ -578,7 +579,7 @@ class SMTFormula:
     def delete_sort (self, name, scope = None):
         scope = scope if scope else self.cur_scope
         assert (self.find_sort (name, scope))
-        while scope
+        while scope:
             if name in scope.sorts:
                 assert (isinstance (scope.sorts[name], SMTSortNode))
                 del scope.sorts[name]
@@ -586,7 +587,7 @@ class SMTFormula:
                 return
             scope = scope.prev
 
-    def add_sort (self, name, nparams, scope = None):
+    def add_sort (self, name, nparams = 0, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
         assert (not self.find_sort (name, self.cur_scope))
         scope.sorts[name] = SMTSortNode (name, nparams)
@@ -990,10 +991,10 @@ class DDSMTParser (SMTParser):
 
     def __hex2SMTNode (self, s, l, t):
         assert (len(t) == 1)
-            value = int(t[0][2:], 16)
-            bw = len(t[0][2:]) * 4
-            return SMTBVConstNode (
-                    KIND_CONSTH, self.smtformula.bvSortNode(bw), value, original_str = t[0]) # TODO debug
+        value = int(t[0][2:], 16)
+        bw = len(t[0][2:]) * 4
+        return SMTBVConstNode (
+                KIND_CONSTH, self.smtformula.bvSortNode(bw), value, original_str = t[0]) # TODO debug
 
     def __bin2SMTNode (self, s, l, t):
         assert (len(t) == 1)
@@ -1087,7 +1088,7 @@ class DDSMTParser (SMTParser):
             if not sort:
                 sort = self.smtformula.sortNode (
                         t[1], t[2].value, self.smtformula.cur_scope)
-            return self.__cmdNode (KIND_DECLSORT, [sort])
+            return self.smtformula.cmdNode (KIND_DECLSORT, [sort])
         elif kind == KIND_DEFSORT:
             assert (len(t) == 4)
             sort = self.smtformula.find_sort(t[1])
@@ -1100,7 +1101,7 @@ class DDSMTParser (SMTParser):
             if not sort:
                 sort = self.smtformula.sortNode (
                         t[1], len(t[2]), self.smtformula.cur_scope)
-            return self.__cmdNode (
+            return self.smtformula.cmdNode (
                     KIND_DEFSORT, [sort, [str(to) for to in t[2]], t[3]])
         elif kind == KIND_DECLFUN:
             assert (len(t) == 4)
@@ -1113,11 +1114,11 @@ class DDSMTParser (SMTParser):
                 fun = self.smtformula.add_fun(
                         t[1], KIND_FUN, t[3], t[2][0:], [], 
                         self.smtformula.cur_scope)
-            return self.__cmdNode (KIND_DECLFUN, [fun])
+            return self.smtformula.cmdNode (KIND_DECLFUN, [fun])
         elif kind == KIND_DEFFUN:
             assert (len(t) == 5)
             sorts = [to.sort for to in t[2]]
-            return self.__cmdNode (
+            return self.smtformula.cmdNode (
                 KIND_DEFFUN, 
                 [SMTFunNode.funNode (
                     t[1], KIND_FUN, t[3], sorts, [], self.smtformula.cur_scope),
@@ -1125,6 +1126,6 @@ class DDSMTParser (SMTParser):
                  t[4]])
         elif kind == KIND_GETVALUE:
             assert (len(t) == 2)
-            return self.__cmdNode (KIND_GETVALUE, [t[1][0:]])
+            return self.smtformula.cmdNode (KIND_GETVALUE, [t[1][0:]])
         else:
-            return self.__cmdNode (t[0], children = t[1:])
+            return self.smtformula.cmdNode (t[0], children = t[1:])
