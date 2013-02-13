@@ -62,174 +62,227 @@ class SMTParser:
         self.spec_chars      = "+-/*=%?!.$_~&^<>@"
         self.comment         = Suppress (';' + restOfLine)
 
-        self.numeral         = NoMatch().setName("numeral") \
-                               | '0' | Regex (r'[1-9][0-9]*')
+        self.numeral         = \
+                NoMatch().setName("numeral") \
+                | '0'                        \
+                | Regex (r'[1-9][0-9]*')
 
-        self.decimal         = NoMatch().setName("decimal constant") \
-                               | Combine (numeral \
-                                     + '.'   \
-                                     + Word(nums).setName("numerical digit"))
+        self.decimal         = \
+                NoMatch().setName("decimal constant") \
+                | Combine (self.numeral               \
+                           + '.'                      \
+                           + Word(nums).setName("numerical digit"))
 
-        self.hexadecimal     = NoMatch().setName("hexadecimal constant") \
-                               | Combine ("#x" \
-                                     - Word(hexnums).setName(
-                                                        "hexadecimal digits"))
+        self.hexadecimal     = \
+                NoMatch().setName("hexadecimal constant") \
+                | Combine ("#x" - Word(hexnums).setName("hexadecimal digits"))
 
-        self.binary          = NoMatch().setName("binary constant") \
-                               | Combine ("#b" \
-                                     - Word("01").setName("binary digits"))
+        self.binary          = \
+                NoMatch().setName("binary constant") \
+                | Combine ("#b" - Word("01").setName("binary digits"))
 
-        self.string          = NoMatch().setName("string constant") 
-                               | dblQuotedString
+        self.string          = \
+                NoMatch().setName("string constant") \
+                | dblQuotedString
 
-        self.b_value         = NoMatch().setName("'true' or 'false'") 
-                               | TRUE | FALSE
+        self.b_value         = \
+                NoMatch().setName("'true' or 'false'") \
+                | SMTParser.TRUE                       \
+                | SMTParser.FALSE
 
-        self.symb_str        = Word(alphas + self.spec_chars, 
-                                    alphas + nums + self.spec_chars,
-                                    excludeChars = ['|', '\\'])
-        self.symbol          = NoMatch().setName("symbol") \
-                               | '|' + self.symb_str + '|' | self.symb_str
+        self.symb_str        = \
+                Word(alphas + self.spec_chars, alphas + nums + self.spec_chars,
+                        excludeChars = ['|', '\\'])
 
-        self.spec_symb_str   = OneOrMore (Word (printables, 
-                                                excludeChars = ['|', '\\']))
-        self.spec_symbol     = NoMatch().setName("symbol") \
-                               | '|' + self.spec_symb_str + '|' | self.symb_str
+        self.symbol          = \
+                NoMatch().setName("symbol") \
+                | '|' + self.symb_str + '|' \
+                | self.symb_str
 
-        self.keyword         = NoMatch().setName("keyword") \
-                               | Combine (':' - Word(alphas \
-                                                 + nums     \
-                                                 + self.spec_chars).setName(
+        self.spec_symb_str   = \
+                OneOrMore (Word (printables, excludeChars = ['|', '\\']))
+
+        self.spec_symbol     = \
+                NoMatch().setName("symbol")      \
+                | '|' + self.spec_symb_str + '|' \
+                | self.symb_str
+
+        self.keyword         = \
+                NoMatch().setName("keyword") \
+                | Combine (':' - Word(alphas + nums + self.spec_chars).setName(
                                                               "keyword string"))
 
-        self.spec_constant   = NoMatch().setName("special constant") \
-                               | self.b_value                        \
-                               | self.decimal                        \
-                               | self.numeral                        \
-                               | self.hexadecimal                    \
-                               | self.binary                         \
-                               | self.string
+        self.spec_constant   = \
+                NoMatch().setName("special constant") \
+                | self.b_value                        \
+                | self.decimal                        \
+                | self.numeral                        \
+                | self.hexadecimal                    \
+                | self.binary                         \
+                | self.string
 
         self.s_expr          = Forward()
-        self.s_expr         << (NoMatch().setName("s-expression") \
-                               | self.spec_constant               \
-                               | self.symbol                      \
-                               | self.keyword                     \
-                               | '(' + ZeroOrMore(self.s_expr) - RPAR)
+        self.s_expr         << \
+                (NoMatch().setName("s-expression") \
+                | self.spec_constant               \
+                | self.symbol                      \
+                | self.keyword                     \
+                | '(' + ZeroOrMore(self.s_expr) - SMTParser.RPAR)
 
-        self.identifier      = NoMatch().setName("identifier") \
-                               | self.symbol                   \
-                               | LPAR + IDXED - self.symbol    \
-                                              + OneOrMore(self.numeral) + RPAR
+        self.identifier      = \
+                NoMatch().setName("identifier") \
+                | self.symbol                   \
+                | SMTParser.LPAR                \
+                    + SMTParser.IDXED           \
+                    - self.symbol               \
+                    + OneOrMore(self.numeral)   \
+                  + SMTParser.RPAR
 
         self.sort            = Forward()
-        self.sort           << (NoMatch().setName("sort") \
-                               | self.identifier          \
-                               | '(' + self.identifier    \
-                                     + OneOrMore(self.sort) + RPAR)
+        self.sort           << \
+                (NoMatch().setName("sort") \
+                | self.identifier          \
+                | '(' + self.identifier + OneOrMore(self.sort) + SMTParser.RPAR)
 
-        self.attr_value      = NoMatch().setName("attribute value") \
-                               | self.spec_constant                 \
-                               | self.symbol                        \
-                               | '(' + ZeroOrMore(self.s_expr) - RPAR
-        self.attribute       = NoMatch().setName("attribute")       \
-                               | self.keyword + Optional (self.attr_value)
+        self.attr_value      = \
+                NoMatch().setName("attribute value") \
+                | self.spec_constant                 \
+                | self.symbol                        \
+                | '(' + ZeroOrMore(self.s_expr) - SMTParser.RPAR
+
+        self.attribute       = \
+                NoMatch().setName("attribute")       \
+                | self.keyword + Optional (self.attr_value)
 
         # be more lenient towards comment-style symbols in set-info
-        self.spec_attr_value = NoMatch().setName("attribute value") \
-                               | self.attr_value | self.spec_symbol  
-        self.spec_attribute  = NoMatch().setName("attribute")       \
-                               | self.keyword + Optional (self.spec_attr_value)
+        self.spec_attr_value = \
+                NoMatch().setName("attribute value") \
+                | self.attr_value                    \
+                | self.spec_symbol  
+
+        self.spec_attribute  = \
+                NoMatch().setName("attribute") \
+                | self.keyword + Optional (self.spec_attr_value)
 
         self.term            = Forward()
 
-        self.qual_identifier = NoMatch().setName("qualified identifier") \
-                               | self.identifier                         \
-                               | LPAR + AS - self.identifier + self.sort + RPAR
+        self.qual_identifier = \
+                NoMatch().setName("qualified identifier")        \
+                | self.identifier                                \
+                | SMTParser.LPAR                                 \
+                    + SMTParser.AS - self.identifier + self.sort \
+                  + SMTParser.RPAR
 
-        self.var_binding     = NoMatch().setName("variable binding") \
-                               | LPAR + self.symbol + self.term + RPAR
+        self.var_binding     = \
+                NoMatch().setName("variable binding") \
+                | SMTParser.LPAR + self.symbol + self.term + SMTParser.RPAR
 
-        self.sorted_var      = NoMatch().setName("sorted variable") \
-                               | LPAR + self.symbol + self.sort + RPAR
+        self.sorted_var      = \
+                NoMatch().setName("sorted variable") \
+                | SMTParser.LPAR + self.symbol + self.sort + SMTParser.RPAR
 
-        self.term           << (NoMatch().setName("term")                      \
-                       | self.spec_constant                                    \
-                       | self.qual_identifier                                  \
-                       | LPAR + LET                                            \
-                              - LPAR                                           \
-                                    + Group(OneOrMore(self.var_binding))       \
-                              + RPAR                                           \
-                              + self.term + RPAR                               \
-                       | LPAR + FORALL                                         \
-                              - LPAR                                           \
-                                    + Group(OneOrMore(self.sorted_var))        \
-                              - RPAR + self.term + RPAR                        \
-                       | LPAR + EXISTS                                         \
-                              - LPAR                                           \
-                                    + Group(OneOrMore(self.sorted_var))        \
-                              - RPAR + self.term + RPAR                        \
-                       | LPAR + '!' - self.term                                \
-                                    + Group(OneOrMore(self.attribute)) + RPAR  \
-                       | LPAR + self.qual_identifier                           \
-                              + Group(OneOrMore(self.term)) + RPAR) 
+        self.term           << \
+                (NoMatch().setName("term")                                     \
+                | self.spec_constant                                           \
+                | self.qual_identifier                                         \
+                | SMTParser.LPAR + SMTParser.LET                               \
+                                    - SMTParser.LPAR                           \
+                                          + Group(OneOrMore(self.var_binding)) \
+                                    + SMTParser.RPAR                           \
+                                    + self.term + SMTParser.RPAR               \
+                | SMTParser.LPAR + SMTParser.FORALL                            \
+                                    - SMTParser.LPAR                           \
+                                          + Group(OneOrMore(self.sorted_var))  \
+                                    - SMTParser.RPAR                           \
+                                    + self.term + SMTParser.RPAR               \
+                | SMTParser.LPAR + SMTParser.EXISTS                            \
+                                    - SMTParser.LPAR                           \
+                                          + Group(OneOrMore(self.sorted_var))  \
+                                    - SMTParser.RPAR                           \
+                                    + self.term + SMTParser.RPAR               \
+                | SMTParser.LPAR + '!' - self.term                             \
+                                    + Group(OneOrMore(self.attribute))         \
+                                    + SMTParser.RPAR                           \
+                | SMTParser.LPAR + self.qual_identifier                        \
+                                    + Group(OneOrMore(self.term))              \
+                                    + SMTParser.RPAR) 
 
-        self.option          = NoMatch().setName("option") \
-                               | PRINTSUCC - self.b_value \
-                               | EXPANDDEF - self.b_value \
-                               | INTERMODE - self.b_value \
-                               | PRODPROOF - self.b_value \
-                               | PRODUCORE - self.b_value \
-                               | PRODMODEL - self.b_value \
-                               | PRODASSGN - self.b_value \
-                               | ROUTCHANN - self.string  \
-                               | DOUTCHANN - self.string  \
-                               | RANDMSEED - self.numeral \
-                               | VERBOSITY - self.numeral \
-                               | self.attribute
+        self.option          = \
+                NoMatch().setName("option") \
+                | SMTParser.PRINTSUCC - self.b_value \
+                | SMTParser.EXPANDDEF - self.b_value \
+                | SMTParser.INTERMODE - self.b_value \
+                | SMTParser.PRODPROOF - self.b_value \
+                | SMTParser.PRODUCORE - self.b_value \
+                | SMTParser.PRODMODEL - self.b_value \
+                | SMTParser.PRODASSGN - self.b_value \
+                | SMTParser.ROUTCHANN - self.string  \
+                | SMTParser.DOUTCHANN - self.string  \
+                | SMTParser.RANDMSEED - self.numeral \
+                | SMTParser.VERBOSITY - self.numeral \
+                | self.attribute
 
-        self.info_flag       = NoMatch().setName("info flag") \
-                               | ERRBEHAVR                    \
-                               | NAME                         \
-                               | AUTHORS                      \
-                               | VERSION                      \
-                               | STATUS                       \
-                               | RUNKNOWN                     \
-                               | ALLSTAT                      \
-                               | self.keyword
+        self.info_flag       = \
+                NoMatch().setName("info flag") \
+                | SMTParser.ERRBEHAVR          \
+                | SMTParser.NAME               \
+                | SMTParser.AUTHORS            \
+                | SMTParser.VERSION            \
+                | SMTParser.STATUS             \
+                | SMTParser.RUNKNOWN           \
+                | SMTParser.ALLSTAT            \
+                | self.keyword
 
-        self.command         = NoMatch().setName("command")                    \
-                       | LPAR + SETLOGIC  - self.symbol + RPAR                 \
-                       | LPAR + SETOPT    - self.option - RPAR                 \
-                       | LPAR + SETINFO   - self.spec_attribute - RPAR         \
-                       | LPAR + DECLSORT  - self.symbol + self.numeral + RPAR  \
-                       | LPAR + DEFSORT   - self.symbol                        \
-                                          + LPAR                               \
-                                              + Group(ZeroOrMore(self.symbol)) \
-                                          + RPAR + self.sort + RPAR            \
-                       | LPAR + DECLFUN   - self.symbol                        \
-                                          + LPAR                               \
-                                              + Group(ZeroOrMore(self.sort))   \
-                                          + RPAR + self.sort + RPAR            \
-                       | LPAR + DEFFUN    - self.symbol                        \
-                                          + LPAR                               \
-                                          + Group(ZeroOrMore(self.sorted_var)) \
-                                          - RPAR + self.sort + self.term       \
-                                          + RPAR                               \
-                       | LPAR + PUSH      - self.numeral + RPAR                \
-                       | LPAR + POP       - self.numeral + RPAR                \
-                       | LPAR + ASSERT    - self.term + RPAR                   \
-                       | LPAR + CHECKSAT  - RPAR                               \
-                       | LPAR + GETASSERT - RPAR                               \
-                       | LPAR + GETPROOF  - RPAR                               \
-                       | LPAR + GETUCORE  - RPAR                               \
-                       | LPAR + GETVALUE  - LPAR + Group(OneOrMore(self.term)) \
-                                          + RPAR + RPAR                        \
-                       | LPAR + GETASSIGN - RPAR                               \
-                       | LPAR + GETOPT    - self.keyword + RPAR                \
-                       | LPAR + GETINFO   - self.info_flag - RPAR              \
-                       | LPAR + EXIT      - RPAR                               \
-                       | self.unknown
+        self.command         = \
+                NoMatch().setName("command")                                 \
+                | SMTParser.LPAR + SMTParser.SETLOGIC                        \
+                                    - self.symbol + SMTParser.RPAR           \
+                | SMTParser.LPAR + SMTParser.SETOPT                          \
+                                    - self.option - SMTParser.RPAR           \
+                | SMTParser.LPAR + SMTParser.SETINFO                         \
+                                    - self.spec_attribute - SMTParser.RPAR   \
+                | SMTParser.LPAR + SMTParser.DECLSORT                        \
+                                    - self.symbol + self.numeral             \
+                                    + SMTParser.RPAR                         \
+                | SMTParser.LPAR + SMTParser.DEFSORT                         \
+                                    - self.symbol                            \
+                                    + SMTParser.LPAR                         \
+                                        + Group(ZeroOrMore(self.symbol))     \
+                                    + SMTParser.RPAR                         \
+                                    + self.sort + SMTParser.RPAR             \
+                | SMTParser.LPAR + SMTParser.DECLFUN                         \
+                                    - self.symbol                            \
+                                    + SMTParser.LPAR                         \
+                                        + Group(ZeroOrMore(self.sort))       \
+                                    + SMTParser.RPAR                         \
+                                    + self.sort + SMTParser.RPAR             \
+                | SMTParser.LPAR + SMTParser.DEFFUN                          \
+                                    - self.symbol                            \
+                                    + SMTParser.LPAR                         \
+                                        + Group(ZeroOrMore(self.sorted_var)) \
+                                    - SMTParser.RPAR                         \
+                                    + self.sort + self.term + SMTParser.RPAR \
+                | SMTParser.LPAR + SMTParser.PUSH                            \
+                                     - self.numeral + SMTParser.RPAR         \
+                | SMTParser.LPAR + SMTParser.POP                             \
+                                     - self.numeral + SMTParser.RPAR         \
+                | SMTParser.LPAR + SMTParser.ASSERT                          \
+                                     - self.term + SMTParser.RPAR            \
+                | SMTParser.LPAR + SMTParser.CHECKSAT  - SMTParser.RPAR      \
+                | SMTParser.LPAR + SMTParser.GETASSERT - SMTParser.RPAR      \
+                | SMTParser.LPAR + SMTParser.GETPROOF  - SMTParser.RPAR      \
+                | SMTParser.LPAR + SMTParser.GETUCORE  - SMTParser.RPAR      \
+                | SMTParser.LPAR + SMTParser.GETVALUE                        \
+                                     - SMTParser.LPAR                        \
+                                         + Group(OneOrMore(self.term))       \
+                                     + SMTParser.RPAR + SMTParser.RPAR       \
+                | SMTParser.LPAR + SMTParser.GETASSIGN - SMTParser.RPAR      \
+                | SMTParser.LPAR + SMTParser.GETOPT                          \
+                                 - self.keyword        + SMTParser.RPAR      \
+                | SMTParser.LPAR + SMTParser.GETINFO                         \
+                                 - self.info_flag      - SMTParser.RPAR      \
+                | SMTParser.LPAR + SMTParser.EXIT      - SMTParser.RPAR      \
+                | self.unknown
 
         self.script          = OneOrMore(self.command)
 
