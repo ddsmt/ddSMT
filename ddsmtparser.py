@@ -584,7 +584,7 @@ class SMTFormula:
             assert (self.cur_scope.prev != None)
             self.cur_scope = cur_scope.prev
 
-    def smtNode (kind, sort, children):
+    def smtNode (self, kind, sort, children):
         ch = children
         if (kind == KIND_LET):
             assert (len(children) == 2)
@@ -593,7 +593,7 @@ class SMTFormula:
             ch.extend([children[1]])
         return SMTNode (kind, sort, ch)
 
-    def boolConstNode (value):
+    def boolConstNode (self, value):
         assert (value in ("true", "false"))
         return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
 
@@ -973,6 +973,13 @@ class DDSMTParser (SMTParser):
        SMTScope.g_smtformula = self.smtformula
        return self.smtformula
 
+   # TODO debug
+    def debug (self, s, l, t):
+        print ("> DEBUG " + str(t[0]))
+        const = SMTConstNode (KIND_CONST, self.smtformula.sortNode ("Bool"), str(t[0]))
+        print ("> DEBUG const " + str(const))
+        return t
+
     def __set_parse_actions (self):
         try:
             self.smtformula = SMTFormula()
@@ -996,7 +1003,7 @@ class DDSMTParser (SMTParser):
                     value=t[0]))
 
             self.b_value.setParseAction(lambda s, l, t:
-                    self.smtformula.boolConstNode (str(t[0])))
+                self.smtformula.boolConstNode (str(t[0])))
 
             self.symb_str.setParseAction(lambda s,l,t: 
                     " ".join([str(to) for to in t]))
@@ -1113,6 +1120,7 @@ class DDSMTParser (SMTParser):
                 raise DDSMTParseException (lineno(l, s), col(l, s), e.msg) 
 
     def __cmd2SMTCmdNode (self, s, l, t):
+        print ("### " + str(t))
         kind = t[0]
         if kind == KIND_DECLSORT:
             assert (len(t) == 3)
@@ -1167,5 +1175,6 @@ class DDSMTParser (SMTParser):
             return self.smtformula.cmdNode (KIND_GETVALUE, [t[1][0:]])
         else:
             node = self.smtformula.cmdNode (t[0], children = t[1:])
+            print ("#### CMD2SMTNODE " + str(node))
             return node        
             #return self.smtformula.cmdNode (t[0], children = t[1:])
