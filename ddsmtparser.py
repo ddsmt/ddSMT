@@ -262,6 +262,7 @@ class SMTSortExprNode (SMTNode):
     def __init__ (self, sort, symbols = []):
         super().__init__(KIND_SORTEXPR, sort)
         self.symbols = symbols  # arg symbols
+        print (">>> symbols " + str(self.symbols))
         
     def __str__ (self):
         if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
@@ -1119,7 +1120,7 @@ class DDSMTParser (SMTParser):
                 return SMTSortExprNode (
                         self.smtformula.sortNode(
                             str(t[1]) if t[0] == '(' else str(t[0])),
-                        t[2:-1])
+                        t[2:])
             return SMTSortExprNode (self.smtformula.sortNode(t[0]), t[1:-1])
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (
