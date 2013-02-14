@@ -1101,12 +1101,18 @@ class DDSMTParser (SMTParser):
                 return SMTSortExprNode (
                         self.smtformula.arrSortNode ("Array"), 
                         [str(t[2]), str(t[3])]) 
-            elif t[0] == '(':
-                return SMTSortExprNode (
-                        self.smtformula.sortNode(
-                            str(t[1]) if t[0] == '(' else str(t[0])),
-                        t[2:])
-            return SMTSortExprNode (self.smtformula.sortNode(t[0]), t[1:-1])
+            sort = self.smtformula.sortNode(
+                        str(t[1]) if t[0] == '(' else str(t[0]))
+            nparams = len(t[2:]) if t[0] == '(' else len(t[1:])
+            if nparams != sort.nparams:
+                raise DDSMTParseException (
+                        self.infile,
+                        lineno (l, s),
+                        col (l, s),
+                        "sort '{!s}' expects {} argument(s), {} given".format(
+                            sort, sort.nparams, len(t[2:])))
+            return SMTSortExprNode (sort, t[2:]) \
+                    if t[0] == '(' else SMTSortExprNode (sort, t[1:])
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (
                     self.infile, lineno(l, s), col(l, s), e.msg) 
