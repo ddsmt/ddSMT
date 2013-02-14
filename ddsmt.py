@@ -12,7 +12,9 @@ import time
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 
-from ddsmtparser import DDSMTParser, DDSMTParseException
+from ddsmtparser import DDSMTParser, DDSMTParseException, \
+                        KIND_CONST, KIND_ESCOPE, KIND_FSCOPE, \
+                        KIND_ASSERT, KIND_SETLOGIC, KIND_EXIT
 
 g_infile  = ""
 g_outfile = ""
@@ -103,7 +105,7 @@ def _filter_scopes (filter_fun = None, root = None):
     
     while to_visit:
         cur = to_visit.pop()
-        if cur.get_subst() == None:
+        if g_smtformula.get_subst(cur) == None:
             continue
         if filter_fun == None or filter_fun(cur):
             scopes.append(cur)
@@ -136,7 +138,7 @@ def _substitute_scopes ():
                 cpy_subst_scopes = g_smtformula.subst_scopes.copy()
                 nsubst = 0
                 for scope in subset:
-                    if scope.get_subst() != None:
+                    if g_smtformula.get_subst(scope) != None:
                         g_smtformula.subst_scopes[scope.id] = None
                         nsubst += 1
                 if nsubst == 0:
@@ -168,7 +170,7 @@ def _filter_cmds (filter_fun = None, root = None):
 
     while to_visit:
         cur = to_visit.pop()
-        if cur.get_subst() == None:
+        if g_smtformula.get_subst(cur) == None:
             continue
         if filter_fun == None or filter_fun(cur):
             cmds.append(cur)
@@ -192,7 +194,7 @@ def _substitute_cmds ():
             cpy_subst_cmds = g_smtformula.subst_cmds.copy()
             nsubst = 0
             for cmd in subset:
-                if cmd.get_subst() != None:
+                if g_smtformula.get_subst(cmd) != None:
                     g_smtformula.subst_cmds[cmd.id] = None
                     nsubst += 1
             if nsubst == 0:
@@ -219,10 +221,10 @@ def _filter_terms (filter_fun = None, root = None):
     nodes = []
     asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
     to_visit = root if root != None else \
-                   [c.children[0] for c in asserts if not 
-                       isinstance(c.children[0].get_subst(), SMTBoolConstNode)]
+            [c.children[0] for c in asserts if not 
+                    g_smtformula.get_subst(c.children[0]).kind == KIND_CONST]
     while to_visit:
-        cur = to_visit.pop().get_subst()
+        cur = g_smtformula.get_subst(to_visit.pop())
         if filter_fun == None or filter_fun(cur):
             nodes.append(cur)
         if cur.children:
@@ -254,14 +256,22 @@ def ddsmt_main ():
         rounds += 1
         nsubst = 0
 
+        scopes = [g_smtformula.scopes]
+        while scopes:
+            scope = scopes.pop()
+            for sort in scope.sorts:
+                print ("level " + str(scope.level) + ": " + str(sort))
+            scopes.extend(scope.scopes)
+
+
         _dump (g_outfile)
-        #nsubst += _substitute_scopes ()
+        nsubst += _substitute_scopes ()
 
-        #nsubst += _substitute_cmds ()
-        #print (_filter_terms ())
+        nsubst += _substitute_cmds ()
+        print (_filter_terms ())
 
 
-        #nsubst_total += nsubst
+        nsubst_total += nsubst
 
     _log (2)
     _log (2, "rounds total: {0:d}".format(rounds))

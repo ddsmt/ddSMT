@@ -539,8 +539,8 @@ class SMTScopeNode:
                 assert (len(self.scopes) > 0)
                 assert (cmd.scope in self.scopes)
                 assert (cmd.scope.kind not in (KIND_ESCOPE, KIND_FSCOPE))
-                #if cmd.scope.get_subst() == None:
-                #    continue
+                if SMTScopeNode.g_smtformula.get_subst(cmd.scope) == None:
+                    continue
                 res.append(str(cmd))
                 res.append(str(cmd.scope))
             else:
@@ -565,7 +565,15 @@ class SMTFormula:
         self.add_sort ("Int")
         self.add_sort ("Real")
         self.add_sort ("String")
-        self.add_arrSort ("Array")
+        self.add_arrSort ()  # abstract array base sort
+        print ("----")
+        scopes = [self.scopes]
+        while scopes:
+            scope = scopes.pop()
+            for sort in scope.sorts:
+                print ("level " + str(scope.level) + ": " + str(sort))
+            scopes.extend(scope.scopes)
+        print ("----")
 
     def is_bv_logic (self):
         return self.logic.find("BV") >= 0
@@ -990,17 +998,8 @@ class DDSMTParser (SMTParser):
         SMTScopeNode.g_smtformula = self.smtformula
         return self.smtformula
 
-   # TODO debug
-    def debug (self, s, l, t):
-        print ("> DEBUG " + str(t[0]))
-        const = SMTConstNode (KIND_CONST, self.smtformula.sortNode ("Bool"), str(t[0]))
-        print ("> DEBUG const " + str(const))
-        return t
-
     def __set_parse_actions (self):
         try:
-            self.smtformula = SMTFormula()
-
             self.numeral.setParseAction(lambda s,l,t: 
                 SMTConstNode (
                     KIND_CONSTN, self.smtformula.sortNode ("Int"), 
