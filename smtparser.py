@@ -129,7 +129,7 @@ class SMTParser:
                 | self.keyword                     \
                 | '(' + ZeroOrMore(self.s_expr) - SMTParser.RPAR)
 
-        self.identifier      = \
+        self.ident           = \
                 NoMatch().setName("identifier") \
                 | self.symbol                   \
                 | SMTParser.LPAR                \
@@ -141,8 +141,14 @@ class SMTParser:
         self.sort            = Forward()
         self.sort           << \
                 (NoMatch().setName("sort") \
-                | self.identifier          \
-                | '(' + self.identifier + OneOrMore(self.sort) + SMTParser.RPAR)
+                | self.ident               \
+                | '(' + self.ident + OneOrMore(self.sort) + SMTParser.RPAR)
+
+        # prevent overeager sort checking if define-sort
+        self.sort_expr       = \
+                (NoMatch().setName("sort expression")) \
+                | self.ident                           \
+                | '(' + self.ident + OneOrMore(self.symbol) + SMTParser.RPAR
 
         self.attr_value      = \
                 NoMatch().setName("attribute value") \
@@ -166,11 +172,11 @@ class SMTParser:
 
         self.term            = Forward()
 
-        self.qual_identifier = \
+        self.qual_ident      = \
                 NoMatch().setName("qualified identifier")        \
-                | self.identifier                                \
+                | self.ident                                     \
                 | SMTParser.LPAR                                 \
-                    + SMTParser.AS - self.identifier + self.sort \
+                    + SMTParser.AS - self.ident + self.sort \
                   + SMTParser.RPAR
 
         self.var_binding     = \
@@ -184,7 +190,7 @@ class SMTParser:
         self.term           << \
                 (NoMatch().setName("term")                                     \
                 | self.spec_constant                                           \
-                | self.qual_identifier                                         \
+                | self.qual_ident                                              \
                 | SMTParser.LPAR + SMTParser.LET                               \
                                     - SMTParser.LPAR                           \
                                           + Group(OneOrMore(self.var_binding)) \
@@ -203,7 +209,7 @@ class SMTParser:
                 | SMTParser.LPAR + '!' - self.term                             \
                                     + Group(OneOrMore(self.attribute))         \
                                     + SMTParser.RPAR                           \
-                | SMTParser.LPAR + self.qual_identifier                        \
+                | SMTParser.LPAR + self.qual_ident                             \
                                     + Group(OneOrMore(self.term))              \
                                     + SMTParser.RPAR) 
 
@@ -249,7 +255,7 @@ class SMTParser:
                                     + SMTParser.LPAR                         \
                                         + Group(ZeroOrMore(self.symbol))     \
                                     + SMTParser.RPAR                         \
-                                    + self.sort + SMTParser.RPAR             \
+                                    + self.sort_expr + SMTParser.RPAR        \
                 | SMTParser.LPAR + SMTParser.DECLFUN                         \
                                     - self.symbol                            \
                                     + SMTParser.LPAR                         \
@@ -285,7 +291,6 @@ class SMTParser:
                 | self.unknown
 
         self.script          = OneOrMore(self.command)
-
 
     def parse (self, infile):
         return self.script.parseFile(infile, parseAll = True)
