@@ -193,8 +193,8 @@ class SMTNode:
         self.children = children
 
     def __str__ (self):
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
+        if self.is_subst():
+            return str(self.get_subst())
         if self.kind == KIND_LET:
             assert (self.children)
             return "({} ({}) {!s})".format(
@@ -208,8 +208,15 @@ class SMTNode:
         return " " + " ".join([str(c) for c in self.children]) \
                             if self.children else ""
 
+    def get_subst (self):
+        return self if not self.is_subst() else \
+                SMTNode.g_smtformula.get_subst(self)
 
+    def is_subst (self):
+        return SMTNode.g_smtformula and SMTNode.g_smtformula.is_subst(self)
                             
+
+
 class SMTSortNode (SMTNode):
 
     def __init__ (self, name, nparams = 0, kind = KIND_SORT):
@@ -263,8 +270,8 @@ class SMTSortExprNode (SMTNode):
         self.symbols = symbols  # arg symbols
         
     def __str__ (self):
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
+        if self.is_subst():
+            return str(self.get_subst())
         return str(self.sort) \
                 if self.sort.nparams == 0 else "({!s} {})".format(
                         self.sort, " ".join([str(s) for s in self.symbols]))
@@ -279,8 +286,8 @@ class SMTConstNode (SMTNode):
         self.original_str = original_str # TODO debug
 
     def __str__ (self):
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
+        if self.is_subst():
+            return str(self.get_subst())
         #return str(self.value)
         return "{}".format(self.original_str \
                 if self.original_str != "none" else str(self.value))
@@ -297,8 +304,8 @@ class SMTBVConstNode (SMTConstNode):
 
     def __str__ (self):
         assert (self.kind != KIND_CONST)
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
+        if self.is_subst():
+            return str(self.get_subst())
         if self.kind == KIND_CONSTH:
             if self.original_str != "none":
                 return self.original_str
@@ -322,8 +329,8 @@ class SMTFunNode (SMTNode):
         self.indices = [int(s.value) for s in indices]
 
     def __str__ (self):
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
+        if self.is_subst():
+            return str(self.get_subst())
         if self.indices == []:
             return self.name
         return "(_ {} {})".format(
@@ -337,9 +344,8 @@ class SMTAnFunNode (SMTNode):
         self.fun = fun
 
     def __str__ (self):
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
-        return "(AS {!s} {!s})".format(self.fun, self.sort)
+        return str(self.get_subst()) if self.is_subst() else \
+                "(AS {!s} {!s})".format(self.fun, self.sort)
 
 
 
@@ -352,9 +358,8 @@ class SMTFunAppNode (SMTNode):
         self.fun = fun
 
     def __str__ (self):
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
-        return "({!s}{})".format(self.fun, self.children2str())
+        return str(self.get_subst()) if self.is_subst() else \
+                "({!s}{})".format(self.fun, self.children2str())
 
 
 
@@ -369,9 +374,8 @@ class SMTVarBindNode (SMTNode):
 
     def __str__ (self):
         assert (len(self.children) == 1)
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
-        return "({} {!s})".format(self.var.name, self.children[0])
+        return str(self.get_subst()) if self.is_subst() else \
+                "({} {!s})".format(self.var.name, self.children[0])
 
 
 
@@ -384,13 +388,13 @@ class SMTForallExistsNode (SMTNode):
         self.svars = svars
 
     def __str__ (self):
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
-        return "({} ({}) {!s})".format(
-                self.kind, 
-                " ".join(["({} {!s})".format(s.name, s.sort)
-                    for s in self.svars]) if len(self.svars) > 0 else "",
-                self.children[0])
+        return str(self.get_subst()) if self.is_subst() else \
+                "({} ({}) {!s})".format(
+                        self.kind, 
+                        " ".join(["({} {!s})".format(s.name, s.sort)
+                            for s in self.svars]) \
+                                    if len(self.svars) > 0 else "",
+                        self.children[0])
 
 
 
@@ -402,11 +406,10 @@ class SMTAnnNode (SMTNode):
         self.attribs = attribs
 
     def __str__ (self):
-        if SMTNode.g_smtformula and self.id in SMTNode.g_smtformula.subst_nodes:
-            return str(SMTNode.g_smtformula.get_subst(self))
-        return "(! {!s} {})".format(
-                self.children[0], 
-                " ".join([str(a) for a in self.attribs]))
+        return str(self.get_subst()) if self.is_subst() else \
+                "(! {!s} {})".format(
+                        self.children[0], 
+                        " ".join([str(a) for a in self.attribs]))
 
 
 
@@ -425,9 +428,7 @@ class SMTCmdNode:
         self.children = children
 
     def __str__ (self):
-        if SMTCmdNode.g_smtformula and \
-                self.id in SMTCmdNode.g_smtformula.subst_cmds:
-            assert (SMTCmdNode.g_smtformula.get_subst(self) == None)
+        if self.is_subst():
             return ""
         if self.kind == KIND_DECLFUN:
             assert (len(self.children) == 1)
@@ -473,6 +474,14 @@ class SMTCmdNode:
                 res.append(str(c))
         return " ".join([s for s in res]) if self.children else ""
 
+    def get_subst (self):
+        return self if not self.is_subst() else \
+                SMTCmdNode.g_smtformula.get_subst(self)
+
+    def is_subst (self):
+        return SMTCmdNode.g_smtformula and \
+                SMTCmdNode.g_smtformula.is_subst(self)
+
 
 
 class SMTPushCmdNode (SMTCmdNode):
@@ -487,11 +496,8 @@ class SMTPushCmdNode (SMTCmdNode):
         #       is the  one associated with the resp. push command
         
     def __str__ (self):
-        if SMTCmdNode.g_smtformula and \
-                self.id in SMTCmdNode.g_smtformula.subst_cmds:
-            assert (SMTCmdNode.g_smtformula.get_subst(self) == None)
-            return ""
-        return "({} {})".format(self.kind, self.nscopes)
+        return "" if self.is_subst() else \
+                "({} {})".format(self.kind, self.nscopes)
 
 
 
@@ -503,11 +509,8 @@ class SMTPopCmdNode (SMTCmdNode):
         self.nscopes = nscopes
 
     def __str__ (self):
-        if SMTCmdNode.g_smtformula and \
-                self.id in SMTCmdNode.g_smtformula.subst_cmds:
-            assert (SMTCmdNode.g_smtformula.get_subst(self) == None)
-            return ""
-        return "({} {})".format(self.kind, self.nscopes)
+        return "" if self.is_subst() else \
+                "({} {})".format(self.kind, self.nscopes)
 
 
 
@@ -529,9 +532,7 @@ class SMTScopeNode:
         self.sorts  = {}
 
     def __str__ (self):
-        if SMTScopeNode.g_smtformula and \
-                self.id in SMTScopeNode.g_smtformula.subst_scopes:
-            assert (SMTScopeNode.g_smtformula.get_subst(self) == None)
+        if self.is_subst():
             return ""
         res = []
         for cmd in self.cmds:
@@ -539,7 +540,7 @@ class SMTScopeNode:
                 assert (len(self.scopes) > 0)
                 assert (cmd.scope in self.scopes)
                 assert (cmd.scope.kind not in (KIND_ESCOPE, KIND_FSCOPE))
-                if SMTScopeNode.g_smtformula.get_subst(cmd.scope) == None:
+                if cmd.scope.is_subst():
                     continue
                 res.append(str(cmd))
                 res.append(str(cmd.scope))
@@ -547,6 +548,13 @@ class SMTScopeNode:
                 res.append(str(cmd))
         return " ".join([s for s in res if s != ""])
 
+    def get_subst (self):
+        return self if not self.is_subst() else \
+                SMTScopeNode.g_smtformula.get_subst(self)
+
+    def is_subst (self):
+        return SMTScopeNode.g_smtformula and \
+                SMTScopeNode.g_smtformula.is_subst(self)
 
 
 class SMTFormula:
@@ -580,6 +588,8 @@ class SMTFormula:
 
     def get_subst (self, node):
         if isinstance (node, SMTScopeNode):
+            assert(node.id not in self.subst_scopes or 
+                   self.subst_scopes[node.id] == None)
             return self.subst_scopes[node.id] \
                     if node.id in self.subst_scopes else node
         elif isinstance (node, SMTCmdNode):
@@ -587,11 +597,17 @@ class SMTFormula:
                     self.subst_cmds[node.id] == None)
             return self.subst_cmds[node.id] \
                     if node.id in self.subst_cmds else node
-        elif isinstance (node, SMTNode):
-            assert(node.id not in self.subst_scopes or 
-                   self.subst_scopes[node.id] == None)
-            return self.subst_nodes[node.id] \
-                    if node.id in self.subst_nodes else node
+        assert (isinstance (node, SMTNode))
+        return self.subst_nodes[node.id] \
+                if node.id in self.subst_nodes else node
+
+    def is_subst (self, node):
+        if isinstance (node, SMTScopeNode):
+            return node.id in self.subst_scopes
+        elif isinstance (node, SMTCmdNode):
+            return node.id in self.subst_cmds
+        assert (isinstance (node, SMTNode))
+        return node.id in self.subst_nodes
 
     def open_scope (self, nscopes = 1, kind = KIND_SCOPE):
         assert (kind == KIND_SCOPE or nscopes == 1) 

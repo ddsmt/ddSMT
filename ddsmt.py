@@ -105,7 +105,7 @@ def _filter_scopes (filter_fun = None, root = None):
     
     while to_visit:
         cur = to_visit.pop()
-        if g_smtformula.get_subst(cur) == None:
+        if cur.is_subst():
             continue
         if filter_fun == None or filter_fun(cur):
             scopes.append(cur)
@@ -138,7 +138,7 @@ def _substitute_scopes ():
                 cpy_subst_scopes = g_smtformula.subst_scopes.copy()
                 nsubst = 0
                 for scope in subset:
-                    if g_smtformula.get_subst(scope) != None:
+                    if not scope.is_subst():
                         g_smtformula.subst_scopes[scope.id] = None
                         nsubst += 1
                 if nsubst == 0:
@@ -170,7 +170,7 @@ def _filter_cmds (filter_fun = None, root = None):
 
     while to_visit:
         cur = to_visit.pop()
-        if g_smtformula.get_subst(cur) == None:
+        if cur.is_subst():
             continue
         if filter_fun == None or filter_fun(cur):
             cmds.append(cur)
@@ -194,7 +194,7 @@ def _substitute_cmds ():
             cpy_subst_cmds = g_smtformula.subst_cmds.copy()
             nsubst = 0
             for cmd in subset:
-                if g_smtformula.get_subst(cmd) != None:
+                if not cmd.is_subst():
                     g_smtformula.subst_cmds[cmd.id] = None
                     nsubst += 1
             if nsubst == 0:
@@ -222,9 +222,9 @@ def _filter_terms (filter_fun = None, root = None):
     asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
     to_visit = root if root != None else \
             [c.children[0] for c in asserts if not 
-                    g_smtformula.get_subst(c.children[0]).kind == KIND_CONST]
+                    c.children[0].get_subst().kind == KIND_CONST]
     while to_visit:
-        cur = g_smtformula.get_subst(to_visit.pop())
+        cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
             nodes.append(cur)
         if cur.children:
