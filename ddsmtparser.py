@@ -208,6 +208,9 @@ class SMTNode:
         return " " + " ".join([str(c) for c in self.children]) \
                             if self.children else ""
 
+    def is_bv_const (self):
+        return True if type(self) == SMTBVConstNode else False
+
     def get_subst (self):
         return self if not self.is_subst() else \
                 SMTNode.g_smtformula.get_subst(self)
@@ -228,7 +231,7 @@ class SMTSortNode (SMTNode):
         return self.name
 
     def is_bv_sort (self):
-        return self.kind == KIND_BV_SORT
+        return self.kind == KIND_BVSORT
 
     def is_arr_sort (self):
         return self.kind == KIND_ARRSORT
@@ -345,7 +348,7 @@ class SMTAnFunNode (SMTNode):
 
     def __str__ (self):
         return str(self.get_subst()) if self.is_subst() else \
-                "(AS {!s} {!s})".format(self.fun, self.sort)
+                "(as {!s} {!s})".format(self.fun, self.sort)
 
 
 
@@ -598,6 +601,7 @@ class SMTFormula:
             return self.subst_cmds[node.id] \
                     if node.id in self.subst_cmds else node
         assert (isinstance (node, SMTNode))
+        assert (self.subst_nodes[node.id])
         return self.subst_nodes[node.id] \
                 if node.id in self.subst_nodes else node
 
@@ -636,9 +640,22 @@ class SMTFormula:
             ch.extend([children[1]])
         return SMTNode (kind, sort, ch)
 
+    def constNode (self, kind, sort, value):
+        assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTS))
+        return SMTConstNode (kind, sort, value)
+
     def boolConstNode (self, value):
         assert (value in ("true", "false"))
         return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
+
+                                          #vvvv TODO debug
+    def bvConstNode (self, kind, bw, value, original_str = None):
+        assert (isinstance (bw, int))
+        return SMTBVConstNode (kind, self.bvSortNode(bw), value, original_str)
+
+    def bvZeroConstNode (self, sort):
+        assert (sort.is_bv_sort())
+        return self.bvConstNode (KIND_CONSTN, sort.bw, 0)
 
     def find_sort_and_scope (self, name, scope = None):
         scope = scope if scope else self.cur_scope
@@ -731,18 +748,19 @@ class SMTFormula:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
-    def find_fun (self, name, scope = None):
+    def find_fun (self, name, indices = [], scope = None):
         scope = scope if scope else self.cur_scope
         while scope:
             if name in scope.funs:
                 assert (isinstance (scope.funs[name], SMTFunNode))
-                return scope.funs[name]
+                if indices == scope.funs[name].indices:
+                    return scope.funs[name]
             scope = scope.prev
         return None
 
     def add_fun (self, name, sort, sorts, indices, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
-        assert (not self.find_fun (name, scope))
+        assert (not self.find_fun (name, indices, scope))
         scope.funs[name] = SMTFunNode (name, sort, sorts, indices)
         return scope.funs[name]
 
@@ -758,20 +776,20 @@ class SMTFormula:
 
     def funNode (self, name, sort, sorts = [], indices = [], scope = None):
         scope = scope if scope else self.scopes  # default: level 0
-        fun = self.find_fun (name, scope)
+        fun = self.find_fun (name, indices, scope)
         if not fun:
             return self.add_fun (name, sort, sorts, indices, scope)
         return fun
 
-    def anFunNode (self, name, sort):
+    def anFunNode (self, name, sort, indices = []):
         if name in g_fun_kinds:
-            fun = smtformula.funNode (name, None)
+            fun = self.funNode (name, None, indices = indices)
         else:
-            fun = self.find_fun (name)
+            fun = self.find_fun (name, indices)
             if not fun:
                 raise DDSMTParseCheckException (
                         "function '{}' undeclared".format(name))
-        return fun
+        return SMTAnFunNode (fun, sort)
 
     def check_funApp (self, fun, kind, children):
         # args declaration check
@@ -892,7 +910,7 @@ class SMTFormula:
                         "".format(children[1].sort, children[2].sort)) 
         # not predefined
         else:
-            declfun = self.find_fun(fun.name)
+            declfun = self.find_fun(fun.name, fun.indices)
             if declfun.sort == None:  # not declared yet
                 raise DDSMTParseCheckException (
                         "function '{!s}' undeclared".format(fun))
@@ -909,7 +927,7 @@ class SMTFormula:
                                 declfun, children[i].sort, declfun.sorts[i]))
 
     def funApp2sort (self, fun, kind, children):
-        self.check_funApp(fun, kind, children)
+        #self.check_funApp(fun, kind, children)
         # sort Bool
         if kind in (KIND_AND,   KIND_IMPL,  KIND_NOT,   KIND_OR,    KIND_XOR, 
                     KIND_EQ,    KIND_DIST,  KIND_LE,    KIND_LT,    KIND_GE,
@@ -1017,22 +1035,31 @@ class DDSMTParser (SMTParser):
     def __set_parse_actions (self):
         try:
             self.numeral.setParseAction(lambda s,l,t: 
-                SMTConstNode (
-                    KIND_CONSTN, self.smtformula.sortNode ("Int"), 
-                    value=int(t[0])))
+                    self.smtformula.constNode (
+                        KIND_CONSTN, self.smtformula.sortNode ("Int"),
+                        value = int(t[0])))
+                #SMTConstNode (
+                #    KIND_CONSTN, self.smtformula.sortNode ("Int"), 
+                #    value=int(t[0])))
 
             self.decimal.setParseAction(lambda s,l,t:
-                SMTConstNode (
-                    KIND_CONSTD, self.smtformula.sortNode ("Real"), 
-                    value=float(t[0])))
+                    self.smtformula.constNode (
+                        KIND_CONSTD, self.smtformula.sortNode ("Real"),
+                        value = float(t[0])))
+                #SMTConstNode (
+                #    KIND_CONSTD, self.smtformula.sortNode ("Real"), 
+                #    value=float(t[0])))
 
             self.hexadecimal.setParseAction(self.__hex2SMTNode)
             self.binary.setParseAction(self.__bin2SMTNode)
 
             self.string.setParseAction(lambda s,l,t:
-                SMTConstNode (
-                    KIND_CONSTS, self.smtformula.sortNode ("String"), 
-                    value=t[0]))
+                    self.smtformula.constNode (
+                        KIND_CONSTS, self.smtformula.sortNode ("String"),
+                        value = str(t[0])))
+                #SMTConstNode (
+                #    KIND_CONSTS, self.smtformula.sortNode ("String"), 
+                #    value=t[0]))
 
             self.b_value.setParseAction(lambda s, l, t:
                 self.smtformula.boolConstNode (str(t[0])))
@@ -1057,7 +1084,7 @@ class DDSMTParser (SMTParser):
             self.qual_ident.setParseAction(self.__qualIdent2SMTNode)
             self.sorted_var.setParseAction(lambda s,l,t: 
                     self.smtformula.funNode (
-                        t[0], t[1], scope = self.smtformula.cur_scope))
+                        str(t[0]), t[1], scope = self.smtformula.cur_scope))
             self.var_binding.setParseAction(self.__varBind2SMTNode)
             self.term.setParseAction(self.__term2SMTNode)
 
@@ -1072,15 +1099,17 @@ class DDSMTParser (SMTParser):
         assert (len(t) == 1)
         value = int(t[0][2:], 16)
         bw = len(t[0][2:]) * 4
-        return SMTBVConstNode (
-                KIND_CONSTH, self.smtformula.bvSortNode(bw), value, original_str = t[0]) # TODO debug
+        return self.smtformula.bvConstNode (KIND_CONSTH, bw, value, str(t[0]))
+        #return SMTBVConstNode (
+        #        KIND_CONSTH, self.smtformula.bvSortNode(bw), value, original_str = t[0]) # TODO debug
 
     def __bin2SMTNode (self, s, l, t):
         assert (len(t) == 1)
         value = int(t[0][2:], 2)
         bw = len(t[0][2:])
-        return SMTBVConstNode (
-                KIND_CONSTB, self.smtformula.bvSortNode(bw), value)
+        return self.smtformula.bvConstNode (KIND_CONSTB, bw, value)
+        #return SMTBVConstNode (
+        #        KIND_CONSTB, self.smtformula.bvSortNode(bw), value)
 
     def __sexprAttrv2token (self, s, l, t):
         if not t[0] == '(':
@@ -1135,7 +1164,9 @@ class DDSMTParser (SMTParser):
     def __qualIdent2SMTNode (self, s, l, t):
         if t[0] == SMTParser.AS:
             try:
-                return self.smtformula.anFunNode (t[1], t[2])
+                if t[1] == '_':
+                    return self.smtformula.anFunNode (str(t[2]), t[-1], t[3:-1])
+                return self.smtformula.anFunNode (str(t[1]), t[2])
             except DDSMTParseCheckException as e:
                 raise DDSMTParseException (
                         self.infile, lineno(l, s), col(l, s), e.msg) 
@@ -1144,12 +1175,13 @@ class DDSMTParser (SMTParser):
                 assert (len(t) == 3)
                 value = int(t[1][2:])
                 bw = t[2].value
-                return SMTBVConstNode (
-                        KIND_CONSTN, self.smtformula.bvSortNode(bw), value)
+                return self.smtformula.bvConstNode (KIND_CONSTN, bw, value)
+                #return SMTBVConstNode (
+                #        KIND_CONSTN, self.smtformula.bvSortNode(bw), value)
             else:
                 assert (len(t) > 1)
                 return self.smtformula.funNode (
-                        t[1], None, [], t[2:], self.smtformula.cur_scope)
+                        str(t[1]), None, [], t[2:], self.smtformula.cur_scope)
         else:
             return self.smtformula.funNode (
                     t[0], None, scope = self.smtformula.cur_scope)
