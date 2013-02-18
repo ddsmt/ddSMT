@@ -574,14 +574,14 @@ class SMTFormula:
         self.add_sort ("Real")
         self.add_sort ("String")
         self.add_arrSort ()  # abstract array base sort
-        print ("----")
-        scopes = [self.scopes]
-        while scopes:
-            scope = scopes.pop()
-            for sort in scope.sorts:
-                print ("level " + str(scope.level) + ": " + str(sort))
-            scopes.extend(scope.scopes)
-        print ("----")
+        #print ("----")
+        #scopes = [self.scopes]
+        #while scopes:
+        #    scope = scopes.pop()
+        #    for sort in scope.sorts:
+        #        print ("level " + str(scope.level) + ": " + str(sort))
+        #    scopes.extend(scope.scopes)
+        #print ("----")
 
     def is_bv_logic (self):
         return self.logic.find("BV") >= 0

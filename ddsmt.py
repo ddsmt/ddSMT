@@ -24,6 +24,11 @@ g_golden = 0
 
 g_smtformula = None
 
+NONE = 0
+SCOPES = 1
+CMDS = 2
+NODES = 3
+    
 
 class DDSMTException (Exception):
 
@@ -52,13 +57,18 @@ def _log(verbosity, msg = "", update = False):
             sys.stdout.write("[ddsmt] {0:s}\n".format(msg))
 
 
-def _dump (filename, root = None):
+def _dump (filename = None, root = None):
     global g_smtformula
     assert (g_smtformula)
     try:
-        with open(filename, 'w') as outfile:
-            outfile.write(str(root if root != None else g_smtformula.scopes))
-            outfile.write("\n")
+        out = str(root if root != None else g_smtformula.scopes)
+        if not filename:
+            sys.stdout.write(out)
+            sys.stdout.write("\n")
+        else:
+            with open(filename, 'w') as outfile:
+                outfile.write(out)
+                outfile.write("\n")
     except IOError as e:
         raise DDSMTException (str(e))
 
@@ -113,55 +123,6 @@ def _filter_scopes (filter_fun = None, root = None):
     return scopes
 
 
-def _substitute_scopes ():
-    global g_smtformula
-    assert (g_smtformula)
-
-    _log (2)
-    _log (2, "substitute SCOPES:")
-
-    nsubst_total = 0
-    level = 1
-    while True:
-        scopes = _filter_scopes (lambda x: x.level == level and 
-                                     x.kind not in (KIND_ESCOPE, KIND_FSCOPE))
-        gran = len(scopes)
-
-        if not scopes:
-            break
-
-        _log (2, "  level: {0:d}".format(level))
-
-        while gran > 0:
-            subsets = [scopes[s:s+gran] for s in range (0, len(scopes), gran)]
-            for subset in subsets:
-                cpy_subst_scopes = g_smtformula.subst_scopes.copy()
-                nsubst = 0
-                for scope in subset:
-                    if not scope.is_subst():
-                        g_smtformula.subst_scopes[scope.id] = None
-                        nsubst += 1
-                if nsubst == 0:
-                    continue
-
-                _dump (g_tmpfile)
-                if _test():
-                    _dump (g_outfile)
-                    nsubst_total += nsubst
-                    _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
-                             "substituted: {2:d}".format(
-                                 gran, len(subsets), nsubst))
-                else:
-                    _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
-                             "substituted: 0".format(gran, len(subsets)))
-                    g_smtformula.subst_scopes = cpy_subst_scopes
-            gran = gran // 2
-        level += 1
-        
-    _log (2, "  > {0:d} scope(s) substituted in total".format(nsubst_total))
-    return nsubst_total
-
-        
 # TODO merge with _filter_scopes?
 def _filter_cmds (filter_fun = None, root = None):
     cmds = []
@@ -176,46 +137,6 @@ def _filter_cmds (filter_fun = None, root = None):
             cmds.append(cur)
     return cmds
 
-
-def _substitute_cmds ():
-    global g_smtformula
-    assert (g_smtformula)
-
-    _log (2)
-    _log (2, "substitute COMMANDS:")
-
-    nsubst_total = 0
-    cmds = _filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT))
-    gran = len(cmds)
-
-    while gran > 0:
-        subsets = [cmds[s:s+gran] for s in range (0, len(cmds), gran)]
-        for subset in subsets:
-            cpy_subst_cmds = g_smtformula.subst_cmds.copy()
-            nsubst = 0
-            for cmd in subset:
-                if not cmd.is_subst():
-                    g_smtformula.subst_cmds[cmd.id] = None
-                    nsubst += 1
-            if nsubst == 0:
-                continue
-
-            _dump (g_tmpfile)
-            if _test():
-                _dump (g_outfile)
-                nsubst_total += nsubst
-                _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
-                         "substituted: {2:d}".format(
-                             gran, len(subsets), nsubst))
-            else:
-                _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
-                         "substituted: 0".format(gran, len(subsets)))
-                g_smtformula.subst_cmds = cpy_subst_cmds
-        gran = gran // 2
-
-    _log (2, "  > {0:d} command(s) substituted in total".format(nsubst_total))
-    return nsubst_total
-    
 
 def _filter_terms (filter_fun = None, root = None):
     nodes = []
@@ -233,6 +154,114 @@ def _filter_terms (filter_fun = None, root = None):
     return nodes
 
 
+def _cpy_substs (substs):
+    global g_smtformula
+    assert (g_smtformula)
+    assert (substs in (SCOPES, CMDS, NODES))
+    if substs == SCOPES:
+        return g_smtformula.subst_scopes.copy()
+    elif substs == CMDS:
+        return g_smtformula.subst_cmds.copy()
+    return g_smtformula.subst_nodes.copy()
+
+
+def _substitute_item (item, subst_fun, substs):
+    global g_smtformula
+    assert (g_smtformula)
+    assert (substs in (SCOPES, CMDS, NODES))
+    if substs == SCOPES:
+        g_smtformula.subst_scopes[item.id] = subst_fun(item)
+    elif substs == CMDS:
+        g_smtformula.subst_cmds[item.id] = subst_fun(item)
+    else:
+        g_smtformulaubst_nodes[item.id] = subst_fun(item)
+
+
+def _reset_substitution (cpy_substs, substs):
+    global g_smtformula
+    assert (g_smtformula)
+    assert (substs in (SCOPES, CMDS, NODES))
+    if substs == SCOPES:
+        g_smtformula.subst_scopes = cpy_substs
+    elif substs == CMDS:
+        g_smtformula.subst_cmds = cpy_substs
+    g_smtformula.subst_nodes = cpy_substs
+
+
+def _substitute (subst_fun, substs, superset):
+    global g_smtformula
+    assert (g_smtformula)
+    assert (substs in (SCOPES, CMDS, NODES))
+
+    nsubst_total = 0
+    gran = len(superset)
+
+    while gran > 0:
+        subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
+        for subset in subsets:
+            nsubst = 0
+            
+            cpy_substs = _cpy_substs (substs)
+
+            for item in subset:
+                if not item.is_subst():
+                    _substitute_item (item, subst_fun, substs)
+                    nsubst += 1
+            if nsubst == 0:
+                continue
+
+            _dump (g_tmpfile)
+
+            if _test():
+                _dump (g_outfile)
+                nsubst_total += nsubst
+                _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
+                         "substituted: {2:d}".format(
+                              gran, len(subsets), nsubst))
+            else:
+                _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
+                         "substituted: 0".format(gran, len(subsets)))
+                _reset_substitution (cpy_substs, substs)
+
+        gran = gran // 2
+
+    return nsubst_total
+
+                    
+def _substitute_scopes ():
+    global g_smtformula
+    assert (g_smtformula)
+
+    _log (2)
+    _log (2, "substitute SCOPES:")
+
+    nsubst_total = 0
+    level = 1
+    while True:
+        scopes = _filter_scopes (lambda x: x.level == level and 
+                                     x.kind not in (KIND_ESCOPE, KIND_FSCOPE))
+        if not scopes:
+            break
+        nsubst_total += _substitute (lambda x: None, SCOPES, scopes)
+        level += 1
+        
+    _log (2, "  > {0:d} scope(s) substituted in total".format(nsubst_total))
+    return nsubst_total
+
+        
+def _substitute_cmds ():
+    global g_smtformula
+    assert (g_smtformula)
+
+    _log (2)
+    _log (2, "substitute COMMANDS:")
+
+    nsubst_total = _substitute (lambda x: None, CMDS, 
+            _filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)))
+
+    _log (2, "  > {0:d} command(s) substituted in total".format(nsubst_total))
+    return nsubst_total
+    
 
 
 
@@ -242,6 +271,8 @@ def _filter_terms (filter_fun = None, root = None):
 #    _log (2, msg if msg != None else "substitute TERMS:")
 #
 #    nsubst_total = 0
+#    cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+
 
 
 
@@ -256,19 +287,19 @@ def ddsmt_main ():
         rounds += 1
         nsubst = 0
 
-        scopes = [g_smtformula.scopes]
-        while scopes:
-            scope = scopes.pop()
-            for sort in scope.sorts:
-                print ("level " + str(scope.level) + ": " + str(sort))
-            scopes.extend(scope.scopes)
+        #scopes = [g_smtformula.scopes]
+        #while scopes:
+        #    scope = scopes.pop()
+        #    for sort in scope.sorts:
+        #        print ("level " + str(scope.level) + ": " + str(sort))
+        #    scopes.extend(scope.scopes)
 
 
         _dump (g_outfile)
         nsubst += _substitute_scopes ()
 
         nsubst += _substitute_cmds ()
-        print (_filter_terms ())
+        #print (_filter_terms ())
 
 
         nsubst_total += nsubst
