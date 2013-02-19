@@ -9,6 +9,7 @@ KIND_VARB      = "<var binding>"
 KIND_SCOPE     = "<scope>"
 KIND_ESCOPE    = "<exists scope>"
 KIND_FSCOPE    = "<forall scope>"
+KIND_LSCOPE    = "<let scope>"
 
 KIND_SORT      = "<sort>"
 KIND_ARRSORT   = "<array sort>"
@@ -195,12 +196,6 @@ class SMTNode:
     def __str__ (self):
         if self.is_subst():
             return str(self.get_subst())
-        if self.kind == KIND_LET:
-            assert (self.children)
-            return "({} ({}) {!s})".format(
-                    self.kind,
-                    " ".join([str(c) for c in self.children[0:-1]]),
-                    self.children[-1])
         return "({}{})".format(self.kind, self.children2str())
 
     def children2str(self):
@@ -372,7 +367,8 @@ class SMTVarBindNode (SMTNode):
         assert (isinstance (var, SMTFunNode))
         assert (isinstance (children, list))
         assert (len(children) == 1)
-        super().__init__(KIND_VARB, children[0].sort, children)
+        #super().__init__(KIND_VARB, children[0].sort, children)
+        super().__init__(KIND_VARB, None, children)
         self.var = var
 
     def __str__ (self):
@@ -384,11 +380,12 @@ class SMTVarBindNode (SMTNode):
 
 class SMTForallExistsNode (SMTNode):
 
-    def __init__ (self, svars, kind, sort, children):
+    def __init__ (self, svars, scope, kind, children):
         assert (kind in (KIND_FORALL, KIND_EXISTS))
         assert (len(children) == 1)
-        super().__init__(kind, sort, children)
+        super().__init__(kind, children[0].sort, children)
         self.svars = svars
+        self.scope = scope
 
     def __str__ (self):
         return str(self.get_subst()) if self.is_subst() else \
@@ -399,6 +396,27 @@ class SMTForallExistsNode (SMTNode):
                                     if len(self.svars) > 0 else "",
                         self.children[0])
 
+
+
+class SMTLetNode (SMTNode):
+
+    def __init__ (self, scope, children):
+        assert (len(children) == 2)
+        assert (isinstance (children[0], list))
+        # flatten children
+        ch = children[0]
+        ch.extend([children[1]])
+        super().__init__(KIND_LET, children[1].sort, ch) 
+        self.scope = scope
+
+    def __str__ (self):
+        if self.is_subst():
+            return str(self.get_subst())
+        assert (self.children)
+        return "({} ({}) {!s})".format(
+                self.kind,
+                " ".join([str(c) for c in self.children[0:-1]]),
+                self.children[-1])
 
 
 class SMTAnnNode (SMTNode):
@@ -523,7 +541,7 @@ class SMTScopeNode:
     g_smtformula = None
 
     def __init__ (self, level = 0, prev = None, kind = KIND_SCOPE):
-        assert (kind in (KIND_SCOPE, KIND_FSCOPE, KIND_ESCOPE))
+        assert (kind in (KIND_SCOPE, KIND_FSCOPE, KIND_ESCOPE, KIND_LSCOPE))
         SMTScopeNode.g_id += 1
         self.id = SMTScopeNode.g_id
         self.level  = level
@@ -631,14 +649,14 @@ class SMTFormula:
             assert (self.cur_scope.prev != None)
             self.cur_scope = self.cur_scope.prev
 
-    def smtNode (self, kind, sort, children):
-        ch = children
-        if (kind == KIND_LET):
-            assert (len(children) == 2)
-            # flatten children
-            ch = children[0]
-            ch.extend([children[1]])
-        return SMTNode (kind, sort, ch)
+   # def smtNode (self, kind, sort, children):
+   #     ch = children
+   #     if (kind == KIND_LET):
+   #         assert (len(children) == 2)
+   #         # flatten children
+   #         ch = children[0]
+   #         ch.extend([children[1]])
+   #     return SMTNode (kind, sort, ch)
 
     def constNode (self, kind, sort, value):
         assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTS))
@@ -764,18 +782,22 @@ class SMTFormula:
         scope.funs[name] = SMTFunNode (name, sort, sorts, indices)
         return scope.funs[name]
 
-    def delete_fun (self, name, scope = None):
+    def delete_fun (self, name, indices = [], scope = None):
         scope = scope if scope else self.cur_scope
         while scope:
             if name in scope.funs:
                 assert (isinstance (scope.funs[name], SMTFunNode))
+                if scope.funs[name].indices != indices:
+                    continue
                 del scope.funs[name]
-                assert (not self.find_sort (name, scope))
+                assert (not self.find_fun (name, indices, scope))
                 return
             scope = scope.prev
 
     def funNode (self, name, sort, sorts = [], indices = [], scope = None):
-        scope = scope if scope else self.scopes  # default: level 0
+        global g_fun_kinds
+        scope = scope if scope and name not in g_fun_kinds \
+                      else self.scopes  # default: level 0
         fun = self.find_fun (name, indices, scope)
         if not fun:
             return self.add_fun (name, sort, sorts, indices, scope)
@@ -981,15 +1003,160 @@ class SMTFormula:
         sort = self.funApp2sort(fun, kind, children)
         return SMTFunAppNode (fun, kind, sort, children)
 
-    def feNode (self, svars, kind, sort, children):
-        prev_scope = self.cur_scope
-        self.open_scope (
-                kind = KIND_FSCOPE if kind == KIND_FORALL else KIND_ESCOPE)
-        for s in svars:  # reattach
-            self.delete_fun(s.name, prev_scope)
-            self.cur_scope.funs[s.name] = s
-        self.close_scope ()
-        return SMTForallExistsNode (svars, kind, sort, children)
+    #def varBindNode (self, name, children):
+    #    assert (len(children) == 1)
+    #    prev_scope = self.cur_scope
+    #    self.open_scope (kind = KIND_VBSCOPE)
+    #    # TODO blödsinn weil scope muss von let aufgemacht werden
+
+    ## find first bfs level with nested let and forall/exists occurences
+    ## and return them
+    #def find_nested_letFeNodes (self, root):
+    #    children = []
+    #    to_visit = [root]
+    #    while to_visit:
+    #        # check bfs level-wise for nested occurences
+    #        for node in to_visit:
+    #            if node.kind in (KIND_FORALL, KIND_EXISTS, KIND_LET):
+    #                children.append(node)
+    #        # all bfs levels below have been handled already
+    #        print (">> children: [" + ", ".join([str(c) for c in children]) + "]")
+    #        if children:
+    #            break
+    #        # otherwise, check next bfs level
+    #        tmp = []
+    #        while to_visit:
+    #            cur = to_visit.pop()
+    #            tmp.extend(cur.children)
+    #        to_visit = tmp
+    #    return children
+
+    # update levels of all scopes below root
+    def update_scope_level (self, new_level, root):
+        assert (new_level != root.level)
+        to_visit = [root]
+        delta = new_level - root.level
+        while to_visit:
+            cur = to_visit.pop()
+            cur.level += delta
+            to_visit.extend(cur.scopes)
+
+    def letFeNode (self, kind, children, svars = None):
+        print ("#### kind " + kind)
+        assert (kind in (KIND_FORALL, KIND_EXISTS, KIND_LET))
+        assert (kind != KIND_LET or svars == None)
+        assert ((kind == KIND_LET and len(children) == 2) or
+                (kind in (KIND_FORALL, KIND_EXISTS) and len(children) == 1))
+        # find let and forall/exists node of first bfs level with such nodes
+        nodes = []
+        to_visit = [children[0] if kind != KIND_LET else children[1]]
+        while to_visit:
+            # check bfs-level-wise for nested occurences
+            for node in to_visit:
+                if node.kind in (KIND_FORALL, KIND_EXISTS, KIND_LET):
+                    nodes.append(node)
+            # all bfs levels belw have been handled already
+            if nodes:
+                break
+            # else check next bfs level
+            tmp = []
+            while to_visit:
+                cur = to_visit.pop()
+                tmp.extend(cur.children)
+            to_visit = tmp
+
+        # move
+        new_prev_scope = self.cur_scope
+        scope_kind = KIND_LSCOPE
+        if kind in (KIND_FORALL, KIND_EXISTS):
+            scope_kind = KIND_FSCOPE if kind == KIND_FORALL else KIND_ESCOPE
+        new_cur_scope = self.open_scope (kind = scope_kind)
+        
+        for node in nodes:
+            scope = node.scope
+            # Note: new let resp. forall/exists nodes are added at resp. 
+            #       current scope level 1 by construction
+            print (">> scope level " + str(scope.level) + " " + str(scope.kind))
+            assert (scope.prev)
+            del (scope.prev.scopes[scope.prev.scopes.index(scope)])
+            self.cur_scope.scopes.append(scope)
+            scope.prev = new_cur_scope
+            self.update_scope_level (self.cur_scope.level + 1, scope)
+
+        # reattach (sorted variables are added to previous to current scope 
+        # level and variable bindings to scope level 0 by construction)
+        if kind == KIND_LET:
+            var_bindings = children[0]
+            for b in var_bindings:
+                assert (self.find_fun (b.var.name, b.var.indices, self.scopes))
+                self.delete_fun (b.var.name, b.var.indices, self.scopes)
+                self.cur_scope.funs[b.var.name] = b.var
+        else:
+            for s in svars:
+                assert (self.find_fun (s.name, s.indices, new_prev_scope))
+                self.delete_fun (s.name, s.indices, new_prev_scope)
+                self.cur_scope.funs[s.name] = s
+
+        self.close_scope()
+
+        print ("xxx children " + str(children))
+        return SMTLetNode (new_cur_scope, children) if kind == KIND_LET \
+                else SMTForallExistsNode (svars, new_cur_scope, kind, children)
+
+
+
+#    def feNode (self, svars, kind, children):
+#        assert (len(children) == 1)
+#        # check for nested let, forall/exists 
+#
+#        nested = self.find_nested_letFeNodes (children[0])
+#        new_prev_scope = self.cur_scope
+#        new_cur_scope = self.open_scope (
+#                kind = KIND_FSCOPE if kind == KIND_FORALL else KIND_ESCOPE)
+#        for node in nested:
+#            print (">>> node in nested: " + str(node))
+#            scope = node.scope
+#            print (">>> scope of node in nested: " + str(node.scope))
+#            # Note: new let resp. forall/exists nodes are added at scope
+#            # level 1 by construction.
+#            assert (scope.level == 1)
+#            prev_scope = scope.prev
+#            assert (prev_scope)
+#            # move
+#            del(prev_scope.scopes[prev_scope.scopes.index(scope)])
+#            self.cur_scope.scopes.append(scope)
+#            scope.prev = new_cur_scope
+#            self.update_scope_level(self.cur_scope.level + 1, scope)
+#            print ("--- index: " + str(self.cur_scope.scopes.index(scope)))
+#            print ("--- update: " + str(scope.level))
+#            node.scope = self.cur_scope
+#            self.close_scope ()
+#
+#        #for node in nested:
+#        #    assert (node.kind in (KIND_FORALL, KIND_EXISTS, KIND_LET))
+#        #    assert (node.scope == new_cur_scope)
+#        #    scope_kind = KIND_LSCOPE
+#        #    if node.kind in (KIND_FORALL, KIND_EXISTS):
+#        #        scope_kind = KIND_FSCOPE \
+#        #                if node.kind == KIND_FORALL else KIND_ESCOPE
+#        #    # move
+#        #    self.open_scope (kind = scope_kind)
+#        #    assert (not node.scope.sorts)
+#        #    self.cur_scope.funs = node.scope.funs
+#        #    self.cur_scope.scopes = node.scope.scopes
+#        #    node.scope = self.cur_scope
+#        #    self.close_scope ()
+#        
+#        #self.open_scope (
+#        #        kind = KIND_FSCOPE if kind == KIND_FORALL else KIND_ESCOPE)
+#        for s in svars:  # reattach
+#            self.delete_fun(s.name, new_prev_scope)
+#            self.cur_scope.funs[s.name] = s
+#        print ("## new_cur_scope " + str(new_cur_scope.level))
+#        print ("## new_cur_scope scopes: [" + " ".join([str(s.level) for s in new_cur_scope.scopes]) + "] " + str(new_cur_scope.scopes))
+#        self.close_scope ()
+#        print ("## vars " + " ".join([str(f) for f in new_cur_scope.funs]))
+#        return SMTForallExistsNode (svars, new_cur_scope, kind, children)
 
     def cmdNode (self, kind, children = []):
         assert (self.cur_scope != None)
@@ -1184,27 +1351,28 @@ class DDSMTParser (SMTParser):
                         str(t[1]), None, [], t[2:], self.smtformula.cur_scope)
         else:
             return self.smtformula.funNode (
-                    t[0], None, scope = self.smtformula.cur_scope)
+                    str(t[0]), None, scope = self.smtformula.cur_scope)
 
     def __varBind2SMTNode (self, s, l, t):
         return SMTVarBindNode (
-                self.smtformula.funNode (t[0], t[1].sort), [t[1]])
+                self.smtformula.funNode (str(t[0]), t[1].sort), [t[1]])
 
     def __term2SMTNode (self, s, l, t):
         if len(t) == 1:
             return t
         if str(t[0]) == SMTParser.LET:
             assert (len(t) == 3)
-            return self.smtformula.smtNode (
-                    KIND_LET, t[2].sort, [t[1][0:], t[2]])
+            #return self.smtformula.smtNode (
+            #        KIND_LET, t[2].sort, [t[1][0:], t[2]])
+            return self.smtformula.letFeNode (KIND_LET, [t[1][0:], t[2]])
         elif str(t[0]) == SMTParser.FORALL:
             assert (len(t) == 3)
-            return self.smtformula.feNode (
-                            t[1][0:], KIND_FORALL, t[2].sort, [t[2]])
+            return self.smtformula.letFeNode (
+                            KIND_FORALL, [t[2]], t[1][0:])
         elif str(t[0]) == SMTParser.EXISTS:
             assert (len(t) == 3)
-            return self.smtformula.feNode (
-                            t[1][0:], KIND_EXISTS, t[2].sort, [t[2]])
+            return self.smtformula.letFeNode (
+                            KIND_EXISTS, [t[2]], t[1][0:])
         elif str(t[0]) == '!':
             assert (len(t) == 3)
             return SMTAnnNode (t[2][0:], t[1].sort, [t[1]])
@@ -1252,7 +1420,7 @@ class DDSMTParser (SMTParser):
                         "previous declaration of function '{0!s}'"\
                         "was here".format(fun))
             fun = self.smtformula.funNode(
-                    t[1], t[3], t[2][0:], [], self.smtformula.cur_scope)
+                    str(t[1]), t[3], t[2][0:], [], self.smtformula.cur_scope)
             #if fun not in self.smtformula.cur_scope.funs:
             #    self.smtformula.delete_fun(t[1])
             #    fun = self.smtformula.add_fun(
@@ -1265,7 +1433,7 @@ class DDSMTParser (SMTParser):
             return self.smtformula.cmdNode (
                     KIND_DEFFUN, 
                     [self.smtformula.funNode (
-                        t[1], t[3], sorts, [], self.smtformula.cur_scope),
+                        str(t[1]), t[3], sorts, [], self.smtformula.cur_scope),
                      t[2][0:], 
                      t[4]])
         elif kind == KIND_GETVALUE:
