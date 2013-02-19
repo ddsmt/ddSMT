@@ -206,6 +206,9 @@ class SMTNode:
     def is_bv_const (self):
         return True if type(self) == SMTBVConstNode else False
 
+    def subst (self, substitution):
+        SMTNode.g_smtformula.subst(self, substitution)
+
     def get_subst (self):
         return self if not self.is_subst() else \
                 SMTNode.g_smtformula.get_subst(self)
@@ -495,6 +498,9 @@ class SMTCmdNode:
                 res.append(str(c))
         return " ".join([s for s in res]) if self.children else ""
 
+    def subst (self, substitution):
+        SMTCmdNode.g_smtformula.subst(self, substitution)
+
     def get_subst (self):
         return self if not self.is_subst() else \
                 SMTCmdNode.g_smtformula.get_subst(self)
@@ -569,6 +575,9 @@ class SMTScopeNode:
                 res.append(str(cmd))
         return " ".join([s for s in res if s != ""])
 
+    def subst (self, substitution):
+        SMTScopeNode.g_smtformula.subst(self, substitution)
+
     def get_subst (self):
         return self if not self.is_subst() else \
                 SMTScopeNode.g_smtformula.get_subst(self)
@@ -607,9 +616,20 @@ class SMTFormula:
     def is_bv_logic (self):
         return self.logic.find("BV") >= 0
 
+    def subst (self, node, substitution):
+        if isinstance (node, SMTScopeNode):
+            assert (node.id not in self.subst_scopes)
+            self.subst_scopes[node.id] = substitution
+        elif isinstance (node, SMTCmdNode):
+            assert (node.id not in self.subst_cmds)
+            self.subst_cmds[node.id] = substitution
+        else:
+            assert (isinstance (node, SMTNode))
+            self.subst_nodes[node.id] = substitution
+
     def get_subst (self, node):
         if isinstance (node, SMTScopeNode):
-            assert(node.id not in self.subst_scopes or 
+            assert (node.id not in self.subst_scopes or 
                    self.subst_scopes[node.id] == None)
             return self.subst_scopes[node.id] \
                     if node.id in self.subst_scopes else node
