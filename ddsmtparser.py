@@ -1062,7 +1062,6 @@ class SMTFormula:
             to_visit.extend(cur.scopes)
 
     def letFeNode (self, kind, children, svars = None):
-        print ("#### kind " + kind)
         assert (kind in (KIND_FORALL, KIND_EXISTS, KIND_LET))
         assert (kind != KIND_LET or svars == None)
         assert ((kind == KIND_LET and len(children) == 2) or
@@ -1096,7 +1095,6 @@ class SMTFormula:
             scope = node.scope
             # Note: new let resp. forall/exists nodes are added at resp. 
             #       current scope level 1 by construction
-            print (">> scope level " + str(scope.level) + " " + str(scope.kind))
             assert (scope.prev)
             del (scope.prev.scopes[scope.prev.scopes.index(scope)])
             self.cur_scope.scopes.append(scope)
@@ -1119,7 +1117,6 @@ class SMTFormula:
 
         self.close_scope()
 
-        print ("xxx children " + str(children))
         return SMTLetNode (new_cur_scope, children) if kind == KIND_LET \
                 else SMTForallExistsNode (svars, new_cur_scope, kind, children)
 

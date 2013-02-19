@@ -13,8 +13,9 @@ from optparse import OptionParser
 from subprocess import Popen, PIPE
 
 from ddsmtparser import DDSMTParser, DDSMTParseException, \
-                        KIND_CONST, KIND_ESCOPE, KIND_FSCOPE, \
-                        KIND_ASSERT, KIND_SETLOGIC, KIND_EXIT
+        SMTConstNode, \
+        KIND_ASSERT, KIND_CONST, KIND_CONSTN, KIND_ESCOPE, KIND_FSCOPE, \
+        KIND_LET, KIND_SETLOGIC, KIND_EXIT
 
 g_infile  = ""
 g_outfile = ""
@@ -90,6 +91,8 @@ def _run ():
                 time.sleep(1)
 
         (out, err) = sproc.communicate()
+        _log (3)
+        _log (3, "solver output: " + out.decode())
         return sproc.returncode
 
     # TODO this works from 3.3 upwards
@@ -141,16 +144,17 @@ def _filter_cmds (filter_fun = None, root = None):
 def _filter_terms (filter_fun = None, root = None):
     nodes = []
     asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
-    to_visit = root if root != None else \
-            [c.children[0] for c in asserts if not 
-                    c.children[0].get_subst().kind == KIND_CONST]
+    to_visit = [root if root != None else \
+            c.children[0] for c in asserts if not 
+                    isinstance (c.children[0].get_subst().kind, SMTConstNode)]
     while to_visit:
         cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
             nodes.append(cur)
         if cur.children:
             to_visit.extend(cur.children)
-
+    #nodes.sort(key = lambda x: x.id, reverse = True)
+    #print ("#### nodes " + " ".join([str(n) + " [" + str(n.id) + "]" for n in nodes]))
     return nodes
 
 
@@ -165,16 +169,16 @@ def _cpy_substs (substs):
     return g_smtformula.subst_nodes.copy()
 
 
-def _substitute_item (item, subst_fun, substs):
-    global g_smtformula
-    assert (g_smtformula)
-    assert (substs in (SCOPES, CMDS, NODES))
-    if substs == SCOPES:
-        g_smtformula.subst_scopes[item.id] = subst_fun(item)
-    elif substs == CMDS:
-        g_smtformula.subst_cmds[item.id] = subst_fun(item)
-    else:
-        g_smtformulaubst_nodes[item.id] = subst_fun(item)
+#def _substitute_item (item, subst_fun, substs):
+#    global g_smtformula
+#    assert (g_smtformula)
+#    assert (substs in (SCOPES, CMDS, NODES))
+#    if substs == SCOPES:
+#        g_smtformula.subst_scopes[item.id] = subst_fun(item)
+#    elif substs == CMDS:
+#        g_smtformula.subst_cmds[item.id] = subst_fun(item)
+#    else:
+#        g_smtformula.subst_nodes[item.id] = subst_fun(item)
 
 
 def _reset_substitution (cpy_substs, substs):
@@ -185,7 +189,8 @@ def _reset_substitution (cpy_substs, substs):
         g_smtformula.subst_scopes = cpy_substs
     elif substs == CMDS:
         g_smtformula.subst_cmds = cpy_substs
-    g_smtformula.subst_nodes = cpy_substs
+    else:
+        g_smtformula.subst_nodes = cpy_substs
 
 
 def _substitute (subst_fun, substs, superset):
@@ -200,27 +205,30 @@ def _substitute (subst_fun, substs, superset):
         subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
         for subset in subsets:
             nsubst = 0
-            
             cpy_substs = _cpy_substs (substs)
 
             for item in subset:
+                # TODO maybe we have to handle this differently later on 
+                # (in case that exps are substituted by exps rather than consts 
+                # and vars)
                 if not item.is_subst():
-                    _substitute_item (item, subst_fun, substs)
+                    item.subst (subst_fun(item))
+#                    _substitute_item (item, subst_fun, substs)
                     nsubst += 1
             if nsubst == 0:
                 continue
-
+            
             _dump (g_tmpfile)
-
+           
             if _test():
                 _dump (g_outfile)
                 nsubst_total += nsubst
                 _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
                          "substituted: {2:d}".format(
-                              gran, len(subsets), nsubst))
+                              gran, len(subsets), nsubst), True)
             else:
                 _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
-                         "substituted: 0".format(gran, len(subsets)))
+                         "substituted: 0".format(gran, len(subsets)), True)
                 _reset_substitution (cpy_substs, substs)
 
         gran = gran // 2
@@ -259,22 +267,101 @@ def _substitute_cmds ():
     nsubst_total = _substitute (lambda x: None, CMDS, 
             _filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)))
 
+    #nsubst_total = 0
+    #cmds = _filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT))
+    #gran = len(cmds)
+
+    #while gran > 0:
+    #    subsets = [cmds[s:s+gran] for s in range (0, len(cmds), gran)]
+    #    for subset in subsets:
+    #        cpy_subst_cmds = g_smtformula.subst_cmds.copy()
+    #        nsubst = 0
+    #        for cmd in subset:
+    #            if cmd.get_subst() != None:
+    #                g_smtformula.subst_cmds[cmd.id] = None
+    #                nsubst += 1
+    #        if nsubst == 0:
+    #            continue
+
+    #        _dump (g_tmpfile)
+    #        if _test():
+    #            _dump (g_outfile)
+    #            nsubst_total += nsubst
+    #            _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
+    #                     "substituted: {2:d}".format(
+    #                         gran, len(subsets), nsubst))
+    #        else:
+    #            _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
+    #                     "substituted: 0".format(gran, len(subsets)))
+    #            g_smtformula.subst_cmds = cpy_subst_cmds
+    #    gran = gran // 2
+
     _log (2, "  > {0:d} command(s) substituted in total".format(nsubst_total))
     return nsubst_total
+
+
+def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None):
+    _log (2)
+    _log (2, msg if msg != None else "substitute TERMS:")
+
+    nsubst_total = 0
+    #terms = []
+    cmds = cmds if cmds else _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+
+    for cmd in cmds:
+    #    terms.extend(_filter_terms(filter_fun, cmd.children[0]))
+        assert (len(cmd.children) == 1)
+        nsubst_total += _substitute (subst_fun, NODES,
+            _filter_terms (filter_fun, cmd.children[0]))
+    #nsubst_total += _substitute (subst_fun, NODES, terms)
+
+    _log (2, "  > {0:d} term(s) substituted in total".format(nsubst_total))
+    return nsubst_total
+
+
+def _substitute_lets (cmds = None):
+    _log (2)
+    _log (2, "substitute LET nodes (by children term)")
+
+    nsubst_total = 0 
+    cmds = cmds if cmds else _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+
+    for cmd in cmds:
+        assert (len(cmd.children) == 1)
+        nsubst_total += _substitute (lambda x: x.children[-1], NODES,
+                _filter_terms (lambda x: x.kind == KIND_LET))
+
+    _log (2, "  > {0:d} let(s) substituted in total".format(nsubst_total))
+    return nsubst_total
+
+    #cmds = cmds if cmds else _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+    #for cmd in cmds:
+    #    assert (cmd.kind == KIND_ASSERT)
+    #    # search for 'top' lets
+    #    to_visit = [cmd.children[0]]
+    #    lets = []
+    #    while to_visit:
+    #        cur = to_visit.pop().get_subst()
+    #        if cur.kind == KIND_LET:
+    #            lets.append(cur)
+    #        else:
+    #           to_visit.extend(cur.children)
+    #    # try to substitute lets (with all their variable bindings substituted
+    #    # by constants) by their terms
+    #    for let in lets:
+    #        to_visit = [let]
+    #        all_subst = True
+    #        for b in let.children[0:-1]:  # var bindings
+    #            if not b.is_subst():
+    #                all_subst = False
+    #                break
+    #        if all_subst:
+    #            # TODO
+
+
+
+
     
-
-
-
-#def _substitute_terms (subst_fun, filter_fun, msg = None):
-#
-#    _log (2)
-#    _log (2, msg if msg != None else "substitute TERMS:")
-#
-#    nsubst_total = 0
-#    cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
-
-
-
 
 def ddsmt_main ():
     global g_tmpfile, g_outfile
@@ -287,25 +374,65 @@ def ddsmt_main ():
         rounds += 1
         nsubst = 0
 
+        ## debug
+        #to_visit = [g_smtformula.scopes]
+        #while to_visit:
+        #    scope = to_visit.pop()
+        #    print ("scope: " + str(scope.level) + 
+        #           " kind: " + str(scope.kind) + 
+        #           " vars: " + " ".join([str(f) for f in scope.funs]))
+        #    if scope.prev:
+        #        print ("  prev: " + str(scope.prev.level) + 
+        #                " kind: " + str(scope.prev.kind) + 
+        #                " vars: " + " ".join([str(f) for f in scope.prev.funs]))
+        #    to_visit.extend(scope.scopes)
+
         #scopes = [g_smtformula.scopes]
         #while scopes:
         #    scope = scopes.pop()
         #    for sort in scope.sorts:
         #        print ("level " + str(scope.level) + ": " + str(sort))
+        #        #if not scope.level == 0:
+        #        #    print ("    prev: " + str(scope.prev.level) + ": " + str(scope.prev)) 
         #    scopes.extend(scope.scopes)
+        ## end debug
 
 
-        _dump (g_outfile)
-        nsubst += _substitute_scopes ()
+        #_dump (g_outfile)  # TODO debug
+        #nsubst += _substitute_scopes ()
 
-        nsubst += _substitute_cmds ()
-        #print (_filter_terms ())
+        #nsubst += _substitute_cmds ()
 
+        cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+        #_dump () # debug
+        #print ("bv " + " -- ".join(str(t) + " [" + str(t.sort) + "]" for t in _filter_terms (lambda x: x.sort.is_bv_sort())))
+        if g_smtformula.is_bv_logic:
+            nsubst += _substitute_terms (
+                    lambda x: g_smtformula.bvZeroConstNode(x.sort),
+                    lambda x: 
+                       x.sort and x.sort.is_bv_sort() and not x.is_bv_const(),
+                    cmds,
+                    "substitute BV TERMS with '0'")
+        
+        # TODO substitute Int, Real
+
+        nsubst += _substitute_lets (cmds)
+        
+
+        #nsubst += _substitute_terms (
+        #        lambda x: g_smtformula.boolConstNode("false"), 
+        #        lambda x: x.sort == g_smtformula.sortNode("Bool"), 
+        #        "substitute Boolean TERMS with 'false'")
+        #nsubst += _substitute_terms (
+        #        lambda x: g_smtformula.boolConstNode("true"), 
+        #        lambda x: x.sort == g_smtformula.sortNode("Bool"), 
+        #        "substitute Boolean TERMS with 'true'")
 
         nsubst_total += nsubst
 
     _log (2)
-    _log (2, "rounds total: {0:d}".format(rounds))
+    _log (2, "rounds total: {}".format(rounds))
+    _log (2, "substs total: {}".format(nsubst_total))
     # TODO log total reduction in %
 
     if nsubst_total == 0:
@@ -342,11 +469,12 @@ if __name__ == "__main__":
         _log (1, "command:     '{0:s}'".format(args[2]))
 
         # set recursion limit for pyparsing (default of 1000 is not enough)
-        sys.setrecursionlimit(4000)
+        sys.setrecursionlimit(10000)
 
         parser = DDSMTParser()
         g_smtformula = parser.parse(g_infile)
 
+        print (">>>>> parser done")
         shutil.copyfile(g_infile, g_tmpfile)
         g_cmd.append(g_tmpfile)
         g_golden = _run()
@@ -356,11 +484,11 @@ if __name__ == "__main__":
 
         ddsmt_main ()
         
-        _cleanup()
+        #_cleanup()
         sys.exit(0)
     except (DDSMTParseException, DDSMTException) as e:
-        _cleanup()
+        #_cleanup()
         sys.exit(str(e))
     except KeyboardInterrupt as e:
-        _cleanup()
+        #_cleanup()
         sys.exit("[ddsmt] {0:s}".format(str(e)))
