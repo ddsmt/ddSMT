@@ -13,8 +13,8 @@ from optparse import OptionParser
 from subprocess import Popen, PIPE
 
 from ddsmtparser import DDSMTParser, DDSMTParseException, \
-        SMTConstNode, \
-        KIND_ASSERT, KIND_CONST, KIND_CONSTN, KIND_ESCOPE, KIND_FSCOPE, \
+        KIND_ASSERT, KIND_CONST, KIND_CONSTN, KIND_CONSTD, \
+        KIND_ESCOPE, KIND_FSCOPE, \
         KIND_LET, KIND_SETLOGIC, KIND_EXIT
 
 g_infile  = ""
@@ -145,7 +145,7 @@ def _filter_terms (filter_fun = None, root = None):
     asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
     to_visit = [root if root != None else \
             c.children[0] for c in asserts if not 
-                    isinstance (c.children[0].get_subst().kind, SMTConstNode)]
+                    c.children[0].get_subst().is_const()]
     while to_visit:
         cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
@@ -314,17 +314,27 @@ def ddsmt_main ():
             nsubst += _substitute_terms (
                     lambda x: g_smtformula.bvZeroConstNode(x.sort),
                     lambda x: 
-                       x.sort and x.sort.is_bv_sort() and not x.is_bv_const(),
-                    cmds,
-                    "substitute BV TERMS with '0'")
+                       x.sort and x.sort.is_bv_sort() and not x.is_const(),
+                    cmds, "substitute BV TERMS with '0'")
         
-        # TODO substitute Int, Real
+        if g_smtformula.is_int_logic:
+            nsubst += _substitute_terms (
+                    lambda x: g_smtformula.zeroConstNode(KIND_CONSTN),
+                    lambda x: x.sort == g_smtformula.sortNode("Int") \
+                              and not x.is_const(),
+                    cmds, "substitute Int Terms with '0'")
+
+        if g_smtformula.is_real_logic:
+            nsubst += _substitute_terms (
+                    lambda x: g_smtformula.zeroConstNode(KIND_CONSTD),
+                    lambda x: x.sort == g_smtformula.sortNode("Real") \
+                              and not x.is_const(),
+                    cmds, "substitute Real Terms with '0'")
 
         nsubst += _substitute_terms (
                 lambda x: x.children[-1],
                 lambda x: x.kind == KIND_LET,
-                cmds,
-                "substitute LETs by child term")
+                cmds, "substitute LETs with child term")
 
         #nsubst += _substitute_terms (
         #        lambda x: g_smtformula.boolConstNode("false"), 
@@ -383,7 +393,7 @@ if __name__ == "__main__":
             _log (1, "command:     '{0:s}'".format(args[2]))
 
             # set recursion limit for pyparsing (default of 1000 is not enough)
-            sys.setrecursionlimit(10000)
+            sys.setrecursionlimit(16000)
 
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_infile)
