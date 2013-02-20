@@ -25,10 +25,10 @@ g_golden = 0
 
 g_smtformula = None
 
-NONE = 0
-SCOPES = 1
-CMDS = 2
-NODES = 3
+#NONE = 0
+#SCOPES = 1
+#CMDS = 2
+#NODES = 3
     
 
 class DDSMTException (Exception):
@@ -158,15 +158,15 @@ def _filter_terms (filter_fun = None, root = None):
     return nodes
 
 
-def _cpy_substs (substs):
-    global g_smtformula
-    assert (g_smtformula)
-    assert (substs in (SCOPES, CMDS, NODES))
-    if substs == SCOPES:
-        return g_smtformula.subst_scopes.copy()
-    elif substs == CMDS:
-        return g_smtformula.subst_cmds.copy()
-    return g_smtformula.subst_nodes.copy()
+#def _cpy_substs (substs):
+#    global g_smtformula
+#    assert (g_smtformula)
+#    assert (substs in (SCOPES, CMDS, NODES))
+#    if substs == SCOPES:
+#        return g_smtformula.subst_scopes.copy()
+#    elif substs == CMDS:
+#        return g_smtformula.subst_cmds.copy()
+#    return g_smtformula.subst_nodes.copy()
 
 
 #def _substitute_item (item, subst_fun, substs):
@@ -181,23 +181,23 @@ def _cpy_substs (substs):
 #        g_smtformula.subst_nodes[item.id] = subst_fun(item)
 
 
-def _reset_substitution (cpy_substs, substs):
+#def _reset_substitution (cpy_substs, substs):
+#    global g_smtformula
+#    assert (g_smtformula)
+#    assert (substs in (SCOPES, CMDS, NODES))
+#    if substs == SCOPES:
+#        g_smtformula.subst_scopes = cpy_substs
+#    elif substs == CMDS:
+#        g_smtformula.subst_cmds = cpy_substs
+#    else:
+#        g_smtformula.subst_nodes = cpy_substs
+
+
+def _substitute (subst_fun, substlist, superset):
     global g_smtformula
     assert (g_smtformula)
-    assert (substs in (SCOPES, CMDS, NODES))
-    if substs == SCOPES:
-        g_smtformula.subst_scopes = cpy_substs
-    elif substs == CMDS:
-        g_smtformula.subst_cmds = cpy_substs
-    else:
-        g_smtformula.subst_nodes = cpy_substs
-
-
-def _substitute (subst_fun, substs, superset):
-    global g_smtformula
-    assert (g_smtformula)
-    assert (substs in (SCOPES, CMDS, NODES))
-
+    assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds, 
+                          g_smtformula.subst_nodes))
     nsubst_total = 0
     gran = len(superset)
 
@@ -205,7 +205,8 @@ def _substitute (subst_fun, substs, superset):
         subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
         for subset in subsets:
             nsubst = 0
-            cpy_substs = _cpy_substs (substs)
+#            cpy_substs = _cpy_substs (substs)
+            cpy_substs = substlist.substs.copy()
 
             for item in subset:
                 # TODO maybe we have to handle this differently later on 
@@ -229,7 +230,8 @@ def _substitute (subst_fun, substs, superset):
             else:
                 _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
                          "substituted: 0".format(gran, len(subsets)), True)
-                _reset_substitution (cpy_substs, substs)
+#                _reset_substitution (cpy_substs, substs)
+                substlist.substs = cpy_substs
 
         gran = gran // 2
 
@@ -250,7 +252,8 @@ def _substitute_scopes ():
                                      x.kind not in (KIND_ESCOPE, KIND_FSCOPE))
         if not scopes:
             break
-        nsubst_total += _substitute (lambda x: None, SCOPES, scopes)
+        nsubst_total += _substitute (
+                lambda x: None, g_smtformula.subst_scopes, scopes)
         level += 1
         
     _log (2, "  > {0:d} scope(s) substituted in total".format(nsubst_total))
@@ -264,7 +267,7 @@ def _substitute_cmds ():
     _log (2)
     _log (2, "substitute COMMANDS:")
 
-    nsubst_total = _substitute (lambda x: None, CMDS, 
+    nsubst_total = _substitute (lambda x: None, g_smtformula.subst_cmds,
             _filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)))
 
     #nsubst_total = 0
@@ -311,7 +314,7 @@ def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None):
     for cmd in cmds:
     #    terms.extend(_filter_terms(filter_fun, cmd.children[0]))
         assert (len(cmd.children) == 1)
-        nsubst_total += _substitute (subst_fun, NODES,
+        nsubst_total += _substitute (subst_fun, g_smtformula.subst_nodes,
             _filter_terms (filter_fun, cmd.children[0]))
     #nsubst_total += _substitute (subst_fun, NODES, terms)
 
@@ -328,7 +331,8 @@ def _substitute_lets (cmds = None):
 
     for cmd in cmds:
         assert (len(cmd.children) == 1)
-        nsubst_total += _substitute (lambda x: x.children[-1], NODES,
+        nsubst_total += _substitute (lambda x: x.children[-1], 
+                g_smtformula.subst_nodes,
                 _filter_terms (lambda x: x.kind == KIND_LET))
 
     _log (2, "  > {0:d} let(s) substituted in total".format(nsubst_total))
@@ -449,43 +453,50 @@ if __name__ == "__main__":
                                  "(default: none)")
         oparser.add_option ("-v", action="count", dest="verbosity", default=0,
                             help="increase verbosity")
+        oparser.add_option ("-o", action="store_true", dest="optimize", 
+                            default=False, 
+                            help="remove assertions and debug code") # TODO
         # TODO add options here
         (g_opts, args) = oparser.parse_args ()
 
         #if len (args) != 3: TODO disabled for debugging
         #    oparser.error ("invalid number of arguments")
 
-        g_infile = args[0]
-        g_outfile = args[1]
-        g_cmd = shlex.split(args[2])
+        if g_opts.optimize:
+            sys.argv.remove("-o")
+            os.execl(sys.executable, sys.executable, '-O', *sys.argv)
+        else:
+            g_infile = args[0]
+            g_outfile = args[1]
+            g_cmd = shlex.split(args[2])
 
-        if not os.path.exists(g_infile):
-            raise DDSMTException ("given input file does not exist")
-        #if os.path.exists(g_outfile):
-        #    raise DDSMTException ("given output file does already exist")
+            if not os.path.exists(g_infile):
+                raise DDSMTException ("given input file does not exist")
+            #if os.path.exists(g_outfile):
+            #    raise DDSMTException ("given output file does already exist")
 
-        _log (1, "input  file: '{0:s}'".format(g_infile))
-        _log (1, "output file: '{0:s}'".format(g_outfile))
-        _log (1, "command:     '{0:s}'".format(args[2]))
+            _log (1, "input  file: '{0:s}'".format(g_infile))
+            _log (1, "output file: '{0:s}'".format(g_outfile))
+            _log (1, "command:     '{0:s}'".format(args[2]))
 
-        # set recursion limit for pyparsing (default of 1000 is not enough)
-        sys.setrecursionlimit(10000)
+            # set recursion limit for pyparsing (default of 1000 is not enough)
+            sys.setrecursionlimit(10000)
 
-        parser = DDSMTParser()
-        g_smtformula = parser.parse(g_infile)
+            parser = DDSMTParser()
+            g_smtformula = parser.parse(g_infile)
 
-        print (">>>>> parser done")
-        shutil.copyfile(g_infile, g_tmpfile)
-        g_cmd.append(g_tmpfile)
-        g_golden = _run()
-        
-        _log (1)
-        _log (1, "golden exit: {0:d}".format(g_golden))
+            print (">>>>> parser done")
+            shutil.copyfile(g_infile, g_tmpfile)
+            g_cmd.append(g_tmpfile)
+            g_golden = _run()
+            
+            _log (1)
+            _log (1, "golden exit: {0:d}".format(g_golden))
 
-        ddsmt_main ()
-        
-        #_cleanup()
-        sys.exit(0)
+            ddsmt_main ()
+            
+            #_cleanup()
+            sys.exit(0)
     except (DDSMTParseException, DDSMTException) as e:
         #_cleanup()
         sys.exit(str(e))
