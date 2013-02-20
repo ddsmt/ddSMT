@@ -167,6 +167,7 @@ def _substitute (subst_fun, substlist, superset):
 
     while gran > 0:
         subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
+        cpy_subsets = subsets[0:]
         for subset in subsets:
             nsubst = 0
             cpy_substs = substlist.substs.copy()
@@ -186,13 +187,14 @@ def _substitute (subst_fun, substlist, superset):
             if _test():
                 _dump (g_outfile)
                 nsubst_total += nsubst
-                _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
-                         "substituted: {2:d}".format(
-                              gran, len(subsets), nsubst), True)
+                _log (2, "  granularity: {}, subsets: {}, substituted: {}" \
+                         "".format(gran, len(subsets), nsubst), True)
+                del (cpy_subsets[cpy_subsets.index(subset)])
             else:
-                _log (2, "  granularity: {0:d}, subsets: {1:d}, " \
-                         "substituted: 0".format(gran, len(subsets)), True)
+                _log (2, "  granularity: {}, subsets: {}, substituted: 0" \
+                         "".format(gran, len(subsets)), True)
                 substlist.substs = cpy_substs
+        superset = [s for subset in cpy_subsets for s in subset]
         gran = gran // 2
     return nsubst_total
 
