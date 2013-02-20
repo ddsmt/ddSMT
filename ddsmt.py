@@ -23,6 +23,8 @@ g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
 g_opts = object
 g_golden = 0
 
+g_ntests = 0
+
 g_smtformula = None
 
 
@@ -100,8 +102,9 @@ def _run ():
 
 
 def _test ():
-    global g_cmd
+    global g_cmd, g_ntests
     # TODO compare output if option enabled?
+    g_ntests += 1
     return _run() == g_golden
 
 
@@ -212,7 +215,7 @@ def _substitute_scopes ():
                 lambda x: None, g_smtformula.subst_scopes, scopes)
         level += 1
         
-    _log (2, "  > {0:d} scope(s) substituted in total".format(nsubst_total))
+    _log (2, "  >> {0:d} scope(s) substituted in total".format(nsubst_total))
     return nsubst_total
 
         
@@ -226,7 +229,7 @@ def _substitute_cmds ():
     nsubst_total = _substitute (lambda x: None, g_smtformula.subst_cmds,
             _filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)))
 
-    _log (2, "  > {0:d} command(s) substituted in total".format(nsubst_total))
+    _log (2, "  >> {0:d} command(s) substituted in total".format(nsubst_total))
     return nsubst_total
 
 
@@ -242,36 +245,37 @@ def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None):
         nsubst_total += _substitute (subst_fun, g_smtformula.subst_nodes,
             _filter_terms (filter_fun, cmd.children[0]))
 
-    _log (2, "  > {0:d} term(s) substituted in total".format(nsubst_total))
+    _log (2, "  >> {0:d} term(s) substituted in total".format(nsubst_total))
     return nsubst_total
 
 
-def _substitute_lets (cmds = None):
-    _log (2)
-    _log (2, "substitute LET nodes (by children term)")
+#def _substitute_lets (cmds = None):
+#    _log (2)
+#    _log (2, "substitute LET nodes (by children term)")
+#
+#    nsubst_total = 0 
+#    cmds = cmds if cmds else _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+#
+#    for cmd in cmds:
+#        assert (len(cmd.children) == 1)
+#        nsubst_total += _substitute (lambda x: x.children[-1], 
+#                g_smtformula.subst_nodes,
+#                _filter_terms (lambda x: x.kind == KIND_LET))
+#
+#    _log (2, "  > {0:d} let(s) substituted in total".format(nsubst_total))
+#    return nsubst_total
 
-    nsubst_total = 0 
-    cmds = cmds if cmds else _filter_cmds (lambda x: x.kind == KIND_ASSERT)
-
-    for cmd in cmds:
-        assert (len(cmd.children) == 1)
-        nsubst_total += _substitute (lambda x: x.children[-1], 
-                g_smtformula.subst_nodes,
-                _filter_terms (lambda x: x.kind == KIND_LET))
-
-    _log (2, "  > {0:d} let(s) substituted in total".format(nsubst_total))
-    return nsubst_total
 
 
 def ddsmt_main ():
     global g_tmpfile, g_outfile
 
-    rounds = 0
+    nrounds = 0
     nsubst_total = 0
     nsubst = 1
     
     while nsubst:
-        rounds += 1
+        nrounds += 1
         nsubst = 0
 
         ## debug
@@ -316,8 +320,11 @@ def ddsmt_main ():
         
         # TODO substitute Int, Real
 
-        nsubst += _substitute_lets (cmds)
-        
+        nsubst += _substitute_terms (
+                lambda x: x.children[-1],
+                lambda x: x.kind == KIND_LET,
+                cmds,
+                "substitute LETs by child term")
 
         #nsubst += _substitute_terms (
         #        lambda x: g_smtformula.boolConstNode("false"), 
@@ -331,7 +338,8 @@ def ddsmt_main ():
         nsubst_total += nsubst
 
     _log (2)
-    _log (2, "rounds total: {}".format(rounds))
+    _log (2, "rounds total: {}".format(nrounds))
+    _log (2, "tests  total: {}".format(g_ntests))
     _log (2, "substs total: {}".format(nsubst_total))
     # TODO log total reduction in %
 
