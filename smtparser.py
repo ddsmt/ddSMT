@@ -69,17 +69,20 @@ class SMTParser:
 
         self.decimal         = \
                 NoMatch().setName("decimal constant") \
-                | Combine (self.numeral               \
-                           + '.'                      \
-                           + Word(nums).setName("numerical digit"))
+                | Regex (r'\d+\.\d*')
+                #| Combine (self.numeral               \
+                #           + '.'                      \
+                #           + Word(nums).setName("numerical digit"))
 
         self.hexadecimal     = \
                 NoMatch().setName("hexadecimal constant") \
-                | Combine ("#x" - Word(hexnums).setName("hexadecimal digits"))
+                | Regex (r'#h[0-9A-Fa-f]')
+                #| Combine ("#x" - Word(hexnums).setName("hexadecimal digits"))
 
         self.binary          = \
                 NoMatch().setName("binary constant") \
-                | Combine ("#b" - Word("01").setName("binary digits"))
+                | Regex (r'#b[01]')
+                #| Combine ("#b" - Word("01").setName("binary digits"))
 
         self.string          = \
                 NoMatch().setName("string constant") \
@@ -91,8 +94,9 @@ class SMTParser:
                 | SMTParser.FALSE
 
         self.symb_str        = \
-                Word(alphas + self.spec_chars, alphas + nums + self.spec_chars,
-                        excludeChars = ['|', '\\'])
+                Word(alphas + self.spec_chars, 
+                     alphas + nums + self.spec_chars,
+                     excludeChars = ['|', '\\'])
 
         self.symbol          = \
                 NoMatch().setName("symbol") \
@@ -294,6 +298,3 @@ class SMTParser:
 
     def parse (self, infile):
         return self.script.parseFile(infile, parseAll = True)
-
-
-
