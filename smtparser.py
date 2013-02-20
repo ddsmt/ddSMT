@@ -76,12 +76,12 @@ class SMTParser:
 
         self.hexadecimal     = \
                 NoMatch().setName("hexadecimal constant") \
-                | Regex (r'#h[0-9A-Fa-f]')
+                | Regex (r'#x[0-9A-Fa-f]*')
                 #| Combine ("#x" - Word(hexnums).setName("hexadecimal digits"))
 
         self.binary          = \
                 NoMatch().setName("binary constant") \
-                | Regex (r'#b[01]')
+                | Regex (r'#b[01]*')
                 #| Combine ("#b" - Word("01").setName("binary digits"))
 
         self.string          = \
