@@ -203,8 +203,8 @@ class SMTNode:
         return " " + " ".join([str(c) for c in self.children]) \
                             if self.children else ""
 
-    def is_bv_const (self):
-        return True if type(self) == SMTBVConstNode else False
+    def is_const (self):
+        return True if isinstance (self, SMTConstNode) else False
 
     def subst (self, substitution):
         SMTNode.g_smtformula.subst(self, substitution)
@@ -662,6 +662,12 @@ class SMTFormula:
     def is_bv_logic (self):
         return self.logic.find("BV") >= 0
 
+    def is_int_logic (self):
+        return self.logic.find("I") >= 0
+
+    def is_real_logic (self):
+        return self.logic.find("R") >= 0
+
     def subst (self, node, substitution):
         if isinstance (node, SMTScopeNode):
             self.subst_scopes.subst(node, substitution)
@@ -710,18 +716,25 @@ class SMTFormula:
             assert (self.cur_scope.prev != None)
             self.cur_scope = self.cur_scope.prev
 
-   # def smtNode (self, kind, sort, children):
-   #     ch = children
-   #     if (kind == KIND_LET):
-   #         assert (len(children) == 2)
-   #         # flatten children
-   #         ch = children[0]
-   #         ch.extend([children[1]])
-   #     return SMTNode (kind, sort, ch)
+    # update levels of all scopes below root
+    def update_scope_level (self, new_level, root):
+        assert (new_level != root.level)
+        to_visit = [root]
+        delta = new_level - root.level
+        while to_visit:
+            cur = to_visit.pop()
+            cur.level += delta
+            to_visit.extend(cur.scopes)
 
     def constNode (self, kind, sort, value):
-        assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTS))
+        assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
         return SMTConstNode (kind, sort, value)
+
+    def zeroConstNode (self,  kind):
+        assert (kind in (KIND_CONSTN, KIND_CONSTD))
+        return self.constNode (KIND_CONSTN, self.sortNode("Int"), 0) \
+                if kind == KIND_CONSTN \
+                else self.constNode (KIND_CONSTD, self.sortNode("Real"), 0.0)
 
     def boolConstNode (self, value):
         assert (value in ("true", "false"))
@@ -1091,16 +1104,6 @@ class SMTFormula:
     #            tmp.extend(cur.children)
     #        to_visit = tmp
     #    return children
-
-    # update levels of all scopes below root
-    def update_scope_level (self, new_level, root):
-        assert (new_level != root.level)
-        to_visit = [root]
-        delta = new_level - root.level
-        while to_visit:
-            cur = to_visit.pop()
-            cur.level += delta
-            to_visit.extend(cur.scopes)
 
     def letFeNode (self, kind, children, svars = None):
         assert (kind in (KIND_FORALL, KIND_EXISTS, KIND_LET))
