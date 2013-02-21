@@ -8,6 +8,7 @@ import sys
 import shlex
 import shutil
 import time
+import random
 
 from optparse import OptionParser
 from subprocess import Popen, PIPE
@@ -131,7 +132,7 @@ def _filter_cmds (filter_fun = None, root = None):
     scopes = _filter_scopes (
             lambda x: x.kind not in (KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE))
     to_visit = [c for cmd_list in [s.cmds for s in scopes] for c in cmd_list]
-
+    to_visit.extend(g_smtformula.scopes.declfuns)
     while to_visit:
         cur = to_visit.pop()
         if cur.is_subst():
@@ -158,7 +159,7 @@ def _filter_terms (filter_fun = None, root = None):
     return nodes
 
 
-def _substitute (subst_fun, substlist, superset):
+def _substitute (subst_fun, substlist, superset, with_vars = False):
     global g_smtformula
     assert (g_smtformula)
     assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds, 
@@ -169,14 +170,13 @@ def _substitute (subst_fun, substlist, superset):
     while gran > 0:
         subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
         cpy_subsets = subsets[0:]
+
         for subset in subsets:
             nsubst = 0
             cpy_substs = substlist.substs.copy()
-
+            cpy_declfuns = None if not with_vars \
+                    else g_smtformula.scopes.declfuns[0:]
             for item in subset:
-                # TODO maybe we have to handle this differently later on 
-                # (in case that exps are substituted by exps rather than consts 
-                # and vars)
                 if not item.is_subst():
                     item.subst (subst_fun(item))
                     nsubst += 1
@@ -195,9 +195,13 @@ def _substitute (subst_fun, substlist, superset):
                 _log (2, "  granularity: {}, subsets: {}, substituted: 0" \
                          "".format(gran, len(subsets)), True)
                 substlist.substs = cpy_substs
+                g_smtformula.scopes.declfuns = g_smtformula.scopes.declfuns \
+                        if not with_vars else cpy_declfuns
+
         superset = [s for subset in cpy_subsets for s in subset]
         gran = gran // 2
     return nsubst_total
+
 
                     
 def _substitute_scopes ():
@@ -241,9 +245,10 @@ def _substitute_cmds (filter_fun = None):
     return nsubst_total
 
 
-def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None):
+def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None, 
+                       with_vars = False):
     _log (2)
-    _log (2, msg if msg != None else "substitute TERMS:")
+    _log (2, msg if msg else "substitute TERMS:")
 
     nsubst_total = 0
     cmds = cmds if cmds else _filter_cmds (lambda x: x.kind == KIND_ASSERT)
@@ -251,10 +256,28 @@ def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None):
     for cmd in cmds:
         assert (len(cmd.children) == 1)
         nsubst_total += _substitute (subst_fun, g_smtformula.subst_nodes,
-            _filter_terms (filter_fun, cmd.children[0]))
+            _filter_terms (filter_fun, cmd.children[0]), with_vars)
 
     _log (2, "  >> {0:d} term(s) substituted in total".format(nsubst_total))
     return nsubst_total
+
+
+def _has_child_to_subst (term):
+    if not term.children:
+        return False
+    for child in term.children:
+        if child.get_subst().sort == term.sort:
+            return True
+    return False
+
+def _subst_term_with_child (term):
+    assert (term.children)
+    children = []
+    for child in term.children:
+        if child.get_subst().sort == term.sort:
+            children.append(child)
+    random.shuffle(children)
+    return term if not children else children[0]
 
 
 
@@ -308,15 +331,17 @@ def ddsmt_main ():
 
         cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
 
-        #_dump () # debug
-        #print ("bv " + " -- ".join(str(t) + " [" + str(t.sort) + "]" for t in _filter_terms (lambda x: x.sort.is_bv_sort())))
-
         if g_smtformula.is_bv_logic():
             nsubst += _substitute_terms (
                     lambda x: g_smtformula.bvZeroConstNode(x.sort),
                     lambda x: 
                        x.sort and x.sort.is_bv_sort() and not x.is_const(),
                     cmds, "substitute BV TERMS with '0'")
+            nsubst += _substitute_terms (
+                    lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
+                    lambda x:
+                        x.sort and x.sort.is_bv_sort() and not x.is_const(),
+                    cmds, "substitute BV TERMS with fresh variables", True)
         
         if g_smtformula.is_int_logic():
             nsubst += _substitute_terms (
@@ -324,6 +349,11 @@ def ddsmt_main ():
                     lambda x: x.sort == g_smtformula.sortNode("Int") \
                               and not x.is_const(),
                     cmds, "substitute Int Terms with '0'")
+            nsubst += _substitute_terms (
+                    lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
+                    lambda x: x.sort == g_smtformula.sortNode("Int") \
+                              and not x.is_const(),
+                    cmds, "substitute Int TERMS with fresh variables", True)
 
         if g_smtformula.is_real_logic():
             nsubst += _substitute_terms (
@@ -331,20 +361,31 @@ def ddsmt_main ():
                     lambda x: x.sort == g_smtformula.sortNode("Real") \
                               and not x.is_const(),
                     cmds, "substitute Real Terms with '0'")
+            nsubst += _substitute_terms (
+                    lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
+                    lambda x: x.sort == g_smtformula.sortNode("Real") \
+                              and not x.is_const(),
+                    cmds, "substitute Real TERMS with fresh variables", True)
 
         nsubst += _substitute_terms (
                 lambda x: x.children[-1],
                 lambda x: x.kind == KIND_LET,
                 cmds, "substitute LETs with child term")
 
+        nsubst += _substitute_terms (
+                lambda x: g_smtformula.boolConstNode("false"), 
+                lambda x: x.sort == g_smtformula.sortNode("Bool"), 
+                cmds, "substitute Boolean TERMS with 'false'")
+
+        nsubst += _substitute_terms (
+                lambda x: g_smtformula.boolConstNode("true"), 
+                lambda x: x.sort == g_smtformula.sortNode("Bool"), 
+                cmds, "substitute Boolean TERMS with 'true'")
+
         #nsubst += _substitute_terms (
-        #        lambda x: g_smtformula.boolConstNode("false"), 
-        #        lambda x: x.sort == g_smtformula.sortNode("Bool"), 
-        #        "substitute Boolean TERMS with 'false'")
-        #nsubst += _substitute_terms (
-        #        lambda x: g_smtformula.boolConstNode("true"), 
-        #        lambda x: x.sort == g_smtformula.sortNode("Bool"), 
-        #        "substitute Boolean TERMS with 'true'")
+        #        lambda x: _subst_term_with_child(x),
+        #        lambda x: _has_child_to_subst(x),
+        #        cmds, "substitute TERMS with child")
 
         nsubst_total += nsubst
 
