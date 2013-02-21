@@ -382,6 +382,16 @@ def ddsmt_main ():
                 lambda x: x.sort == g_smtformula.sortNode("Bool"), 
                 cmds, "substitute Boolean TERMS with 'true'")
 
+        if g_smtformula.is_arr_logic():
+            nsubst += _substitute_terms (
+                    lambda x: x.children[0],  # array
+                    lambda x: x.is_write(),
+                    cmds, "substitute STOREs with array child")
+            nsubst += _substitute_terms (
+                    lambda x: x.children[1],  # array
+                    lambda x: x.is_write(),
+                    cmds, "substitute SELECTs with index child")
+
         #nsubst += _substitute_terms (
         #        lambda x: _subst_term_with_child(x),
         #        lambda x: _has_child_to_subst(x),

@@ -206,6 +206,12 @@ class SMTNode:
     def is_const (self):
         return True if isinstance (self, SMTConstNode) else False
 
+    def is_write (self):
+        return False
+
+    def is_read (self):
+        return False
+
     def subst (self, substitution):
         SMTNode.g_smtformula.subst(self, substitution)
 
@@ -361,6 +367,12 @@ class SMTFunAppNode (SMTNode):
     def __str__ (self):
         return str(self.get_subst()) if self.is_subst() else \
                 "({!s}{})".format(self.fun, self.children2str())
+
+    def is_write (self):
+        return self.fun.kind == KIND_STORE
+
+    def is_read (self):
+        return self.fun.kind == KIND_READ
 
 
 
@@ -675,10 +687,10 @@ class SMTFormula:
     def is_real_logic (self):
         return self.logic.find("R") >= 0
 
-    #def is_arr_logic (self):
+    def is_arr_logic (self):
     #    print ("### (" + str(self.logic) + ") " + str(self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV", "QF_AUFBV", "QF_AUFLIA", "QF_AX")))
-    #    return self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV", 
-    #                          "QF_AUFBV", "QF_AUFLIA", "QF_AX"))
+        return self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV", 
+                              "QF_AUFBV", "QF_AUFLIA", "QF_AX")
 
     def subst (self, node, substitution):
         if isinstance (node, SMTScopeNode):
