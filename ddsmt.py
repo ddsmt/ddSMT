@@ -312,21 +312,21 @@ def ddsmt_main ():
         cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
         #_dump () # debug
         #print ("bv " + " -- ".join(str(t) + " [" + str(t.sort) + "]" for t in _filter_terms (lambda x: x.sort.is_bv_sort())))
-        if g_smtformula.is_bv_logic:
+        if g_smtformula.is_bv_logic():
             nsubst += _substitute_terms (
                     lambda x: g_smtformula.bvZeroConstNode(x.sort),
                     lambda x: 
                        x.sort and x.sort.is_bv_sort() and not x.is_const(),
                     cmds, "substitute BV TERMS with '0'")
         
-        if g_smtformula.is_int_logic:
+        if g_smtformula.is_int_logic():
             nsubst += _substitute_terms (
                     lambda x: g_smtformula.zeroConstNode(KIND_CONSTN),
                     lambda x: x.sort == g_smtformula.sortNode("Int") \
                               and not x.is_const(),
                     cmds, "substitute Int Terms with '0'")
 
-        if g_smtformula.is_real_logic:
+        if g_smtformula.is_real_logic():
             nsubst += _substitute_terms (
                     lambda x: g_smtformula.zeroConstNode(KIND_CONSTD),
                     lambda x: x.sort == g_smtformula.sortNode("Real") \
