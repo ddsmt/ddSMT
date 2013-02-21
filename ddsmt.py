@@ -221,15 +221,18 @@ def _substitute_scopes ():
     return nsubst_total
 
         
-def _substitute_cmds ():
+def _substitute_cmds (filter_fun = None):
     global g_smtformula
     assert (g_smtformula)
 
     _log (2)
     _log (2, "substitute COMMANDS:")
 
+    filter_fun = filter_fun if filter_fun else \
+            lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)
     nsubst_total = _substitute (lambda x: None, g_smtformula.subst_cmds,
-            _filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)))
+            _filter_cmds(filter_fun))
+            #_filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)))
 
     _log (2, "  >> {0:d} command(s) substituted in total".format(nsubst_total))
     return nsubst_total
@@ -306,37 +309,43 @@ def ddsmt_main ():
 
         #_dump (g_outfile)  # TODO debug
         #nsubst += _substitute_scopes ()
-
-        #nsubst += _substitute_cmds ()
+        
+        # initially, eliminate asserts only
+        # -> prevent lots of likely unsuccessful testing when eliminating
+        #    e.g. declare-funs previous to term substitution
+        if nrounds > 1:
+           nsubst += _substitute_cmds ()
+        else:
+           nsubst += _substitute_cmds (lambda x: x.kind == KIND_ASSERT)
 
         cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
         #_dump () # debug
         #print ("bv " + " -- ".join(str(t) + " [" + str(t.sort) + "]" for t in _filter_terms (lambda x: x.sort.is_bv_sort())))
-        if g_smtformula.is_bv_logic():
-            nsubst += _substitute_terms (
-                    lambda x: g_smtformula.bvZeroConstNode(x.sort),
-                    lambda x: 
-                       x.sort and x.sort.is_bv_sort() and not x.is_const(),
-                    cmds, "substitute BV TERMS with '0'")
-        
-        if g_smtformula.is_int_logic():
-            nsubst += _substitute_terms (
-                    lambda x: g_smtformula.zeroConstNode(KIND_CONSTN),
-                    lambda x: x.sort == g_smtformula.sortNode("Int") \
-                              and not x.is_const(),
-                    cmds, "substitute Int Terms with '0'")
+        #if g_smtformula.is_bv_logic():
+        #    nsubst += _substitute_terms (
+        #            lambda x: g_smtformula.bvZeroConstNode(x.sort),
+        #            lambda x: 
+        #               x.sort and x.sort.is_bv_sort() and not x.is_const(),
+        #            cmds, "substitute BV TERMS with '0'")
+        #
+        #if g_smtformula.is_int_logic():
+        #    nsubst += _substitute_terms (
+        #            lambda x: g_smtformula.zeroConstNode(KIND_CONSTN),
+        #            lambda x: x.sort == g_smtformula.sortNode("Int") \
+        #                      and not x.is_const(),
+        #            cmds, "substitute Int Terms with '0'")
 
-        if g_smtformula.is_real_logic():
-            nsubst += _substitute_terms (
-                    lambda x: g_smtformula.zeroConstNode(KIND_CONSTD),
-                    lambda x: x.sort == g_smtformula.sortNode("Real") \
-                              and not x.is_const(),
-                    cmds, "substitute Real Terms with '0'")
+        #if g_smtformula.is_real_logic():
+        #    nsubst += _substitute_terms (
+        #            lambda x: g_smtformula.zeroConstNode(KIND_CONSTD),
+        #            lambda x: x.sort == g_smtformula.sortNode("Real") \
+        #                      and not x.is_const(),
+        #            cmds, "substitute Real Terms with '0'")
 
-        nsubst += _substitute_terms (
-                lambda x: x.children[-1],
-                lambda x: x.kind == KIND_LET,
-                cmds, "substitute LETs with child term")
+        #nsubst += _substitute_terms (
+        #        lambda x: x.children[-1],
+        #        lambda x: x.kind == KIND_LET,
+        #        cmds, "substitute LETs with child term")
 
         #nsubst += _substitute_terms (
         #        lambda x: g_smtformula.boolConstNode("false"), 
