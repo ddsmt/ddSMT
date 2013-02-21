@@ -1447,6 +1447,9 @@ class DDSMTParser (SMTParser):
 
     def __cmd2SMTCmdNode (self, s, l, t):
         kind = t[0]
+        if kind == KIND_SETLOGIC:
+            assert (len(t) == 2)
+            self.smtformula.logic = str(t[1])
         if kind == KIND_DECLSORT:
             assert (len(t) == 3)
             sort = self.smtformula.find_sort (t[1])
