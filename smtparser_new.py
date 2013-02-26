@@ -279,7 +279,8 @@ class SMTParser:
         return tokens
 
     def symbol (self):
-        if not re.match(r'[0-9a-zA-Z\|]', self.la):
+        if not re.match(
+                r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
             raise SMTParseException (
                     "unexpected character: {}".format(self.la[0]), self)
         if self.la[0] == '|':
@@ -298,7 +299,8 @@ class SMTParser:
         return tokens
 
     def spec_symbol (self):
-        if not re.match(r'[0-9a-zA-Z\|]', self.la):
+        if not re.match(
+                r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
             raise SMTParseException (
                     "unexpected character: {}".format(self.la[0]), self)
         if self.la[0] == '|':
@@ -378,7 +380,7 @@ class SMTParser:
         elif self.la == SMTParser.IDXED:
             tokens.append(self.la)
             self.scan()
-            tokens.append(self.symbol)
+            tokens.append(self.symbol())
             tokens.append([])
             while self.la and self.la != SMTParser.RPAR:
                 tokens[-1].append(self.numeral())
