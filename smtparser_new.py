@@ -223,6 +223,7 @@ class SMTParser:
             self.scan()
         else:
             tokens.append(self.keyword())
+        return tokens
 
 
     def option (self):
@@ -253,14 +254,14 @@ class SMTParser:
     def term (self):
         tokens = []
         if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
-                or self.la[0].is_digit()                  \
-                or self.la[0] == '#'                      \
+                or self.la[0].is_digit()                \
+                or self.la[0] == '#'                    \
                 or self.la[0] == '\"':
             tokens.append(self.spec_constant())
         elif self.la[0].is_alpha()            \
-             or self.la[0] in self.spec_chars \
-             or self.la[0] == '|'             \
-             or self.la == SMTParser.IDXED:
+                or self.la[0] in self.spec_chars \
+                or self.la[0] == '|'             \
+                or self.la == SMTParser.IDXED:
             tokens.append(self.qual_ident())
         elif self.la == SMTParser.LPAR:
             self.check_lpar()
@@ -313,6 +314,172 @@ class SMTParser:
         self.check_rpar()
         return tokens
 
+    def sorted_var (self):
+        tokens = []
+        self.check_lpar()
+        tokens.append(self.symbol())
+        tokens.append(self.sort())
+        self.check_rpar()
+        return tokens
+
+    def var_binding (self):
+        tokens = []
+        self.check_lpar()
+        tokens.append(self.symbol())
+        tokens.append(self.term())
+        self.check_rpar()
+        return tokens
+
+    def qual_ident (self):
+        tokens = []
+        if self.la[0].is_alpha()                 \
+                or self.la[0] in self.spec_chars \
+                or self.la[0] == '|'             \
+                or self.la == SMTParser.IDXED:
+            tokens.append(self.ident())
+        elif self.la == SMTParser.LPAR:
+            self.check_lpar()
+            if self.la != SMTParser.AS:
+                raise SMTParseException ("'as' expected")
+            tokens.append(self.la)
+            self.scan()
+            tokens.append(self.ident())
+            tokens.append(self.sort())
+            self.check_rpar()
+        else:
+            raise SMTParseException ("qualified identifier expected")
+        return tokens
+        
+    def attribute (self):
+        tokens = []
+        tokens.append(self.keyword())
+        if self.la not in (':', SMTParser.RPAR):
+            tokens.append(self.attr_value())
+        return tokens
+
+    def attribute_value (self):
+        tokens = []
+        if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
+                or self.la[0].is_digit()                \
+                or self.la[0] == '#'                    \
+                or self.la[0] == '\"':
+            tokens.append(self.spec_constant())
+        elif self.la[0].is_alpha()            \
+                or self.la[0] in self.spec_chars \
+                or self.la[0] == '|':
+            tokens.append(self.symbol())
+        else:
+            self.check_lpar()
+            tokens.append(SMTParser.LPAR)  # necessary for distinction
+            tokens.append([])
+            while self.la and self.la != SMTParser.RPAR:
+                tokens[-1].append(self.s_expr())
+            self.check_rpar()
+        return tokens
+
+    def spec_attribute (self):
+        tokens = []
+        tokens.append(self.keyword())
+        if self.la not in (':', SMTParser.RPAR):
+            tokens.append(self.spec_attr_value())
+        return tokens
+
+    def spec_attr_value (self):
+        # be more lenient towards comment-style symbols in set-info
+        tokens = []
+        if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
+                or self.la[0].is_digit()                \
+                or self.la[0] == '#'                    \
+                or self.la[0] == '\"':
+            tokens.append(self.spec_constant())
+        elif self.la[0].is_alpha()            \
+                or self.la[0] in self.spec_chars \
+                or self.la[0] == '|':
+            tokens.append(self.spec_symbol())
+        else:
+            self.check_lpar()
+            tokens.append(SMTParser.LPAR)  # necessary for distinction
+            tokens.append([])
+            while self.la and self.la != SMTParser.RPAR:
+                tokens[-1].append(self.s_expr())
+            self.check_rpar()
+        return tokens
+
+    def sort_expr (self):
+        # prevent over-eager sort checking if define-sort
+        tokens = []
+        if self.la[0].is_alpha()                 \
+                or self.la[0] in self.spec_chars \
+                or self.la[0] == '|'             \
+                or self.la == SMTParser.IDXED:
+            tokens.append(self.ident())
+        else:
+            self.check_lpar()
+            tokens.append(SMTParser.LPAR)  # necessary for distinction
+            tokens.append(self.ident())
+            tokens.append([])
+            while self.la and self.la != SMTParser.RPAR:
+                tokens[-1].append(self.symbol())
+            if not tokens[-1]:
+                raise SMTParseException ("symbol expected")
+            self.check_rpar()
+        return tokens
+
+    def sort (self):
+        tokens = []
+        if self.la[0].is_alpha()                 \
+                or self.la[0] in self.spec_chars \
+                or self.la[0] == '|'             \
+                or self.la == SMTParser.IDXED:
+            tokens.append(self.ident())
+        else:
+            self.check_lpar()
+            tokens.append(SMTParser.LPAR)  # necessary for distinction
+            tokens.append(self.ident())
+            tokens.append([])
+            while self.la and self.la != SMTParser.RPAR:
+                tokens[-1].append(self.sort())
+            if not tokens[-1]:
+                raise SMTParseException ("sort expected")
+            self.check_rpar()
+        return tokens
+
+    def ident (self):
+        tokens = []
+        if self.la == SMTParser.IDXED:
+            tokens.append(self.la)
+            self.scan()
+            tokens.append(self.symbol)
+            tokens.append([])
+            while self.la and self.la != SMTParser.RPAR:
+                tokens[-1].append(self.numeral())
+            if not tokens[-1]:
+                raise SMTParseException ("numeral expected")
+            self.check_rpar()
+        return tokens
+
+    def s_expr (self):
+        tokens = []
+        if self.la[0] == ':':
+            tokens.append(self.keyword())
+        elif self.la in (SMTParser.TRUE, SMTParser.FALSE) \
+                or self.la[0].is_digit()                  \
+                or self.la[0] == '#'                      \
+                or self.la[0] == '\"':
+            tokens.append(self.spec_const)
+        elif self.la[0].is_alpha()               \
+                or self.la[0] in self.spec_chars \
+                or self.la[0] == '|':
+            tokens.append(self.symbol)
+        else:
+            self.check_lpar()
+            tokens.append(SMTParser.LPAR)  # necessary for distinction
+            tokens.append([])
+            while self.la and self.la != SMTParser.RPAR:
+                tokens[-1].append(self.s_expr())
+            self.check_rpar()
+        return tokens
+        
 
 
 

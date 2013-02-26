@@ -316,7 +316,8 @@ def ddsmt_main ():
         ## end debug
 
 
-        #_dump (g_outfile)  # TODO debug
+        _dump (g_outfile)  # TODO debug
+        sys.exit(0) # TODO debug
 
 
         nsubst += _substitute_scopes ()
@@ -445,7 +446,7 @@ if __name__ == "__main__":
             _log (1, "command:     '{0:s}'".format(args[2]))
 
             # set recursion limit for pyparsing (default of 1000 is not enough)
-            sys.setrecursionlimit(16000)
+            sys.setrecursionlimit(140)
 
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_infile)

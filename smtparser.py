@@ -191,6 +191,7 @@ class SMTParser:
                 NoMatch().setName("sorted variable") \
                 | SMTParser.LPAR + self.symbol + self.sort + SMTParser.RPAR
 
+
         self.term           << \
                 (NoMatch().setName("term")                                     \
                 | self.spec_constant                                           \
