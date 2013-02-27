@@ -88,7 +88,7 @@ class SMTParser:
         self.infile = infile
         with open (infile, 'r') as input_file:
             self.instring = input_file.read()
-            self.tokens = self.tokenize()
+            self.tokens = self.__tokenize()
             self.__scan()
             #print (self.tokens)
             tokens = self.__script()
@@ -126,7 +126,6 @@ class SMTParser:
                  idx += 1
         return (idx, line, col)
     
-
     def __scan (self):
         if self.pos < len(self.tokens):
             self.la = self.tokens[self.pos]
@@ -139,7 +138,7 @@ class SMTParser:
         self.pos -= steps
         self.la = self.tokens[self.pos - 1]
 
-    def tokenize (self):
+    def __tokenize (self):
         instring = re.sub(r';[\s\w]*\n', '', self.instring)
         instring = instring.split()
         result = []
@@ -171,6 +170,11 @@ class SMTParser:
             raise SMTParseException ("')' expected", self)
         self.__scan()
 
+    def __first_of_const (self, c):
+        return c.isdigit() or c == '#' or c == '\"'
+
+    def __first_of_symbol (self, c):
+        return c.isalpha() or c in self.spec_chars or c == '|'
 
     def __numeral (self):
         if not re.match(r'^0$|[1-9][0-9]*', self.la):
@@ -300,13 +304,9 @@ class SMTParser:
         if self.la[0] == ':':
             tokens.append(self.__keyword())
         elif self.la in (SMTParser.TRUE, SMTParser.FALSE) \
-                or self.la[0].isdigit()                   \
-                or self.la[0] == '#'                      \
-                or self.la[0] == '\"':
+                or self.__first_of_const(self.la[0]):
             tokens.append(self.__spec_constant())
-        elif self.la[0].isalpha()                \
-                or self.la[0] in self.spec_chars \
-                or self.la[0] == '|':
+        elif self.__first_of_symbol(self.la[0]):
             tokens.append(self.__symbol())
         else:
             self.__check_lpar("s-expression expected")
@@ -319,9 +319,7 @@ class SMTParser:
 
     def __ident (self):
         tokens = []
-        if self.la[0].isalpha()                  \
-                or self.la[0] in self.spec_chars \
-                or self.la[0] == '|':
+        if self.__first_of_symbol(self.la[0]):
             tokens.append(self.__symbol())
         elif self.la == SMTParser.IDXED:
             tokens.append(self.la)
@@ -339,10 +337,7 @@ class SMTParser:
 
     def __sort (self):
         tokens = []
-        if self.la[0].isalpha()                  \
-                or self.la[0] in self.spec_chars \
-                or self.la[0] == '|'             \
-                or self.la == SMTParser.IDXED:
+        if self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
             tokens.append(self.__ident())
         else:
             self.__check_lpar("sort expected")
@@ -359,10 +354,7 @@ class SMTParser:
     def __sort_expr (self):
         # prevent over-eager sort checking if define-sort
         tokens = []
-        if self.la[0].isalpha()                  \
-                or self.la[0] in self.spec_chars \
-                or self.la[0] == '|'             \
-                or self.la == SMTParser.IDXED:
+        if self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
             tokens.append(self.__ident())
         else:
             self.__check_lpar("sort expression expected")
@@ -379,13 +371,9 @@ class SMTParser:
     def __attr_value (self):
         tokens = []
         if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
-                or self.la[0].isdigit()                 \
-                or self.la[0] == '#'                    \
-                or self.la[0] == '\"':
+                or self.__first_of_const(self.la[0]):
             tokens.append(self.__spec_constant())
-        elif self.la[0].isalpha()                \
-                or self.la[0] in self.spec_chars \
-                or self.la[0] == '|':
+        elif self.__first_of_symbol(self.la[0]):
             tokens.append(self.__symbol())
         else:
             self.__check_lpar("attribute value expected")
@@ -407,13 +395,9 @@ class SMTParser:
         # be more lenient towards comment-style symbols in set-info
         tokens = []
         if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
-                or self.la[0].isdigit()                 \
-                or self.la[0] == '#'                    \
-                or self.la[0] == '\"':
+                or self.__first_of_const(self.la[0]):
             tokens.append(self.__spec_constant())
-        elif self.la[0].isalpha()                \
-                or self.la[0] in self.spec_chars \
-                or self.la[0] == '|':
+        elif self.__first_of_symbol(self.la[0]):
             tokens.append(self.__spec_symbol())
         else:
             self.__check_lpar("attribute value expected")
@@ -433,10 +417,7 @@ class SMTParser:
 
     def __qual_ident (self):
         tokens = []
-        if self.la[0].isalpha()                  \
-                or self.la[0] in self.spec_chars \
-                or self.la[0] == '|'             \
-                or self.la == SMTParser.IDXED:
+        if self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
             tokens.append(self.__ident())
         else:
             self.__check_lpar("qualified identifier expected")
@@ -468,14 +449,9 @@ class SMTParser:
     def __term (self):
         tokens = []
         if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
-                or self.la[0].isdigit()                 \
-                or self.la[0] == '#'                    \
-                or self.la[0] == '\"':
+                or self.__first_of_const(self.la[0]):
             tokens.append(self.__spec_constant())
-        elif self.la[0].isalpha()                \
-                or self.la[0] in self.spec_chars \
-                or self.la[0] == '|'             \
-                or self.la == SMTParser.IDXED:
+        elif self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
             tokens.append(self.__qual_ident())
         else:
             self.__check_lpar("term expected")
