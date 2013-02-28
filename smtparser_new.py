@@ -26,6 +26,29 @@ class SMTParseElement:
         self.parse_action = action
 
 
+class SMTParseResult:
+
+    def __init__ (self):
+        self.tokens = []
+
+    def __str__ (self):
+        if len(self.tokens) == 1:
+            return str(self.tokens[0])
+        return str(self.tokens)
+
+    def __getitem__ (self, key):
+        return self.tokens[key]
+
+    def __setitem__ (self, key, value):
+        self.tokens[key] = value
+
+    def __len__ (self):
+        return len(self.tokens)
+
+    def append (self, item):
+        self.tokens.append(item)
+
+
 class SMTParser:
 
     LPAR = '('
@@ -122,11 +145,15 @@ class SMTParser:
         self.infile = infile
         with open (infile, 'r') as input_file:
             self.instring = input_file.read()
+            #print (self.instring)
             self.tokens = self.__tokenize()
             self.__scan()
             #print (self.tokens)
             tokens = self.script.parse_action(self.__script())
-            print (tokens)
+            #print (tokens)
+            print ("\n".join([str(t) for t in tokens]))
+            ### TODO debug
+                
 
     def get_pos (self, offset = 0):  # TODO eliminate offset
         (idx, line, col) = self.__skip_space(0, 1, 0)
@@ -174,7 +201,8 @@ class SMTParser:
         self.la = self.tokens[self.pos - 1]
 
     def __tokenize (self):
-        instring = re.sub(r';[\s\w]*\n', '', self.instring)
+        instring = re.sub(r';[^\n]*\n', '', self.instring)
+        print (instring)
         instring = instring.split()
         result = []
         for item in instring:
@@ -212,34 +240,43 @@ class SMTParser:
         return c.isalpha() or c in self.spec_chars or c == '|'
 
     def __numeral (self):
+        tokens = SMTParseResult()
         if not re.match(r'^0$|[1-9][0-9]*', self.la):
             raise SMTParseException ("numeral expected", self)
-        tokens = [self.la]
+        #tokens = [self.la]
+        tokens.append(self.la)
         self.__scan()
         return tokens
 
     def __decimal (self):
+        tokens = SMTParseResult()
         if not re.match(r'\d+\.\d*', self.la):
             raise SMTParseException ("decimal expected", self)
-        tokens = [self.la]
+        #tokens = [self.la]
+        tokens.append(self.la)
         self.__scan()
         return tokens
 
     def __hexadecimal (self):
+        tokens = SMTParseResult()
         if not re.match(r'#x[0-9A-Fa-f]*', self.la):
             raise SMTParseException ("hexadecimal constant expected", self)
-        tokens = [self.la]
+        #tokens = [self.la]
+        tokens.append(self.la)
         self.__scan()
         return tokens
 
     def __binary (self):
+        tokens = SMTParseResult()
         if not re.match(r'#b[01]*', self.la):
             raise SMTParseException ("binary constant expected", self)
-        tokens = [self.la]
+        #tokens = [self.la]
+        tokens.append(self.la)
         self.__scan()
         return tokens
 
     def __string (self):
+        tokens = SMTParseResult()
         if not self.la[0] == '\"' or len(self.la) < 2:
             raise SMTParseException ("string expected", self)
         strings = [self.la]
@@ -249,20 +286,24 @@ class SMTParser:
                 strings.append(self.la)
                 self.__scan()
             strings.append(self.la)
-        tokens = [" ".join([s for s in strings])]
+        #tokens = [" ".join([s for s in strings])]
+        tokens.append(" ".join([s for s in strings]))
         if not tokens[-1][-1] == '\"':
             raise SMTParseException ("unclosed string, missing '\"'", self)
         self.__scan()
         return tokens
 
     def __b_value (self):
+        tokens = SMTParseResult()
         if self.la != SMTParser.TRUE and self.la != SMTParser.FALSE:
             raise SMTParseException ("'true' or 'false' expected", self)
-        tokens = [self.la]
+        #tokens = [self.la]
+        tokens.append(self.la)
         self.__scan()
         return tokens
 
     def __symbol (self):
+        tokens = SMTParseResult()
         if not re.match(
                 r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
             raise SMTParseException (
@@ -278,11 +319,13 @@ class SMTParser:
             if not c.isalpha() and not c.isdigit() and c not in self.spec_chars:
                 raise SMTParseException (
                         "unexpected character: '{}'".format(c), self, i)
-        tokens = [self.la]
+        #tokens = [self.la]
+        tokens.append(self.la)
         self.__scan()
         return tokens
 
     def __spec_symbol (self):
+        tokens = SMTParseResult()
         if not re.match(
                 r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
             raise SMTParseException (
@@ -295,15 +338,18 @@ class SMTParser:
                     strings.append(self.la)
                     self.__scan()
                 strings.append(self.la)
-            tokens = [" ".join([s for s in strings])]
+            #tokens = [" ".join([s for s in strings])]
+            tokens.append(" ".join([s for s in strings]))
             if tokens[-1][-1] != '|':        
                 raise SMTParseException ("unclosed symbol, missing '|'", self)
         else:
-            tokens = [self.la]
+            #tokens = [self.la]
+            tokens.append(self.la)
         self.__scan()
         return tokens
 
     def __keyword (self):
+        tokens = SMTParseResult()
         if self.la[0] != ':':
             raise SMTParseException ("keyword expected", self)
         for i in range(1, len(self.la)):
@@ -311,12 +357,14 @@ class SMTParser:
             if not c.isalpha() and not c.isdigit() and c not in self.spec_chars:
                 raise SMTParseException (
                         "unexpected character: '{}'".format(c), self, i)
-        tokens = ["{}".format(self.la)]    
+        #tokens = ["{}".format(self.la)]    
+        tokens.append("{}".format(self.la))
         self.__scan()
         return tokens
 
     def __spec_constant (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.la[0] == '\"':
             tokens.append(self.string.parse_action(self.__string()))
         elif re.match(r'^#b', self.la):
@@ -335,7 +383,8 @@ class SMTParser:
         return tokens
 
     def __s_expr (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.la[0] == ':':
             tokens.append(self.keyword.parse_action(self.__keyword()))
         elif self.la in (SMTParser.TRUE, SMTParser.FALSE) \
@@ -354,7 +403,8 @@ class SMTParser:
         return tokens
 
     def __ident (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.__first_of_symbol(self.la[0]):
             tokens.append(self.symbol.parse_action(self.__symbol()))
         elif self.la == SMTParser.IDXED:
@@ -372,7 +422,8 @@ class SMTParser:
         return tokens
 
     def __sort (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
             tokens.append(self.ident.parse_action(self.__ident()))
         else:
@@ -389,7 +440,8 @@ class SMTParser:
 
     def __sort_expr (self):
         # prevent over-eager sort checking if define-sort
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
             tokens.append(self.ident.parse_action(self.__ident()))
         else:
@@ -405,10 +457,12 @@ class SMTParser:
         return tokens
 
     def __attr_value (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
                 or self.__first_of_const(self.la[0]):
-            tokens.append(self.spec_constant(self.__spec_constant()))
+            tokens.append(
+                    self.spec_constant.parse_action(self.__spec_constant()))
         elif self.__first_of_symbol(self.la[0]):
             tokens.append(self.symbol.parse_action(self.__symbol()))
         else:
@@ -421,7 +475,8 @@ class SMTParser:
         return tokens
 
     def __attribute (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         tokens.append(self.keyword.parse_action(self.__keyword()))
         if self.la[0] not in (':', SMTParser.RPAR):
             tokens.append(self.attr_value.parse_action(self.__attr_value()))
@@ -429,7 +484,8 @@ class SMTParser:
 
     def __spec_attr_value (self):
         # be more lenient towards comment-style symbols in set-info
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
                 or self.__first_of_const(self.la[0]):
             tokens.append(
@@ -446,7 +502,8 @@ class SMTParser:
         return tokens
 
     def __spec_attribute (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         tokens.append(self.keyword.parse_action(self.__keyword()))
         if self.la[0] not in (':', SMTParser.RPAR):
             tokens.append(
@@ -454,7 +511,8 @@ class SMTParser:
         return tokens
 
     def __qual_ident (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
             tokens.append(self.ident.parse_action(self.__ident()))
         else:
@@ -469,7 +527,8 @@ class SMTParser:
         return tokens
         
     def __var_binding (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         self.__check_lpar()
         tokens.append(self.symbol.parse_action(self.__symbol()))
         tokens.append(self.term.parse_action(self.__term()))
@@ -477,7 +536,8 @@ class SMTParser:
         return tokens
 
     def __sorted_var (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         self.__check_lpar()
         tokens.append(self.symbol.parse_action(self.__symbol()))
         tokens.append(self.sort.parse_action(self.__sort()))
@@ -485,7 +545,8 @@ class SMTParser:
         return tokens
 
     def __term (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
                 or self.__first_of_const(self.la[0]):
             tokens.append(
@@ -546,7 +607,8 @@ class SMTParser:
         return tokens
 
     def __option (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.la in (SMTParser.PRINTSUCC, 
                        SMTParser.EXPANDDEF,
                        SMTParser.INTERMODE,
@@ -570,7 +632,8 @@ class SMTParser:
         return tokens
 
     def __info_flag (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         if self.la in (SMTParser.ERRBEHAVR, 
                        SMTParser.NAME,
                        SMTParser.AUTHORS,
@@ -585,7 +648,8 @@ class SMTParser:
         return tokens
 
     def __command (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         self.__check_lpar()
         tokens.append(self.la)
         if self.la == SMTParser.SETLOGIC:
@@ -675,7 +739,8 @@ class SMTParser:
         return tokens
 
     def __script (self):
-        tokens = []
+        #tokens = []
+        tokens = SMTParseResult()
         while self.pos < len(self.tokens):
             tokens.append(self.command.parse_action(self.__command()))
         return tokens
