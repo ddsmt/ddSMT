@@ -316,8 +316,12 @@ def ddsmt_main ():
         ## end debug
 
 
-        _dump (g_outfile)  # TODO debug
-        sys.exit(0) # TODO debug
+        #from ddsmtparser import SMTNode, SMTCmdNode, SMTScopeNode
+        #print ("## node " + str(SMTNode.g_id))
+        #print ("## cmd " + str(SMTCmdNode.g_id))
+        #print ("## scope " + str(SMTScopeNode.g_id))
+        #_dump (g_outfile)  # TODO debug
+        #sys.exit(0) # TODO debug
 
 
         nsubst += _substitute_scopes ()
@@ -390,7 +394,7 @@ def ddsmt_main ():
                     cmds, "substitute STOREs with array child")
             nsubst += _substitute_terms (
                     lambda x: x.children[1],  # array
-                    lambda x: x.is_write(),
+                    lambda x: x.is_read(),
                     cmds, "substitute SELECTs with index child")
 
         #nsubst += _substitute_terms (
@@ -446,7 +450,7 @@ if __name__ == "__main__":
             _log (1, "command:     '{0:s}'".format(args[2]))
 
             # set recursion limit for pyparsing (default of 1000 is not enough)
-            sys.setrecursionlimit(140)
+            sys.setrecursionlimit(7000)
 
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_infile)

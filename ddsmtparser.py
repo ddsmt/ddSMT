@@ -194,9 +194,12 @@ class SMTNode:
         self.children = children
 
     def __str__ (self):
-        if self.is_subst():
-            return str(self.get_subst())
-        return "({}{})".format(self.kind, self.children2str())
+        #print ("##### children " + str(self.children))
+        #if self.is_subst():
+        #    return str(self.get_subst())
+        #return "({}{})".format(self.kind, self.children2str())
+        return str(self.get_subst()) if self.is_subst() else \
+                "({}{})".format(self.kind, self.children2str())
 
     def children2str(self):
         for c in self.children: assert (not isinstance(c, list)) # TODO DEBUG
@@ -235,10 +238,10 @@ class SMTSortNode (SMTNode):
         return self.name
 
     def is_bv_sort (self):
-        return self.kind == KIND_BVSORT
+        return False
 
     def is_arr_sort (self):
-        return self.kind == KIND_ARRSORT
+        return False
 
 
 
@@ -256,6 +259,8 @@ class SMTArraySortNode (SMTSortNode):
         return "Array" if index_sort == None and elem_sort == None \
                        else "(Array {!s} {!s})".format(index_sort, elem_sort)
 
+    def is_arr_sort (self):
+        return True
 
 
 class SMTBVSortNode (SMTSortNode):
@@ -268,6 +273,8 @@ class SMTBVSortNode (SMTSortNode):
     def name (bw):
         return "(_ BitVec {})".format(bw)
 
+    def is_bv_sort (self):
+        return True
 
 
 class SMTSortExprNode (SMTNode):
@@ -365,8 +372,30 @@ class SMTFunAppNode (SMTNode):
         self.fun = fun
 
     def __str__ (self):
-        return str(self.get_subst()) if self.is_subst() else \
-                "({!s}{})".format(self.fun, self.children2str())
+        # we have to prevent recursive calls here, else deep nesting levels
+        # of function applications blow up the recursion depth limit
+        strings = {}
+        to_visit = [self]
+        visited = {}
+        while to_visit:
+            cur = to_visit.pop().get_subst()
+            if cur.id in strings:
+                continue
+            if type(cur) != SMTFunAppNode:
+                strings[cur.id] = str(cur)
+            else:
+                assert (cur.id not in strings)
+                if cur.id not in visited:
+                    to_visit.append(cur)
+                    to_visit.extend(cur.children)
+                    #visited.append(cur.id)
+                    visited[cur.id] = cur.id
+                else:
+                    strings[cur.id] = "({} {})".format(
+                            cur.fun, 
+                            " ".join([strings[c.id] for c in cur.children]))
+        assert (self.id in strings)
+        return strings[self.id]       
 
     def is_write (self):
         return self.fun.kind == KIND_STORE
@@ -1377,6 +1406,9 @@ class DDSMTParser (SMTParser):
                 if t_ident[0] == SMTParser.IDXED:
                     return sf.anFunNode (
                             str(t_ident[1]), t_sort, str(t_ident[2:]))
+                else:
+                    assert (len(t_ident) == 1)
+                    return sf.anFunNode (str(t_ident), t_sort, [])
         except DDSMTParseCheckException as e:
             (line, col) = self.get_pos()
             raise DDSMTParseException (self.infil, line, col, e.msg)
@@ -1385,10 +1417,10 @@ class DDSMTParser (SMTParser):
         sf = self.smtformula
         try:
             if len(t) == 1:
-                print (">>## " + str(t[0]) + " " + str(type(t[0])))
-                from smtparser_new import SMTParseResult
-                if type(t[0]) == SMTParseResult:
-                    print ("++## " + str(t[0][0]) + " " + str(type(t[0][0])))
+                #print (">>## " + str(t[0]) + " " + str(type(t[0])))
+                #from smtparser_new import SMTParseResult
+                #if type(t[0]) == SMTParseResult:
+                #    print ("++## " + str(t[0][0]) + " " + str(type(t[0][0])))
 
                 return t[0]
             if t[0] == SMTParser.LET:
@@ -1405,7 +1437,7 @@ class DDSMTParser (SMTParser):
                 return SMTAnnNode (t[2], t[1].sort, [t[1]]) #t[2][0:], t[1].sort, [t[1]])
             else:
                 assert (isinstance(t[0], SMTFunNode))
-                print ("#### " + str(t[1][0]) + " " + str(type(t[1][0])))
+                #print ("#### " + str(t[1][0]) + " " + str(type(t[1][0])))
                 return sf.funAppNode (t[0], t[1]) #[0:])
         except DDSMTParseCheckException as e:
             (line, col) = self.get_pos()
@@ -1428,14 +1460,14 @@ class DDSMTParser (SMTParser):
                         "was here".format(t[1], t[2].value))
             if not sort:
                 sort = sf.sortNode (t[1], t[2].value, sf.cur_scope, True)
-            print ("--- " + str(sf.cmdNode (KIND_DECLSORT, [sort])))
+            #print ("--- " + str(sf.cmdNode (KIND_DECLSORT, [sort])))
             return sf.cmdNode (KIND_DECLSORT, [sort])
         elif kind == KIND_DEFSORT:
             assert (len(t) == 4)
             assert (isinstance (t[3], SMTSortExprNode))
             sort = sf.sortNode (t[1], t[3].sort.nparams, sf.cur_scope, True)
-            print ("--- " + str(sf.cmdNode (
-                    KIND_DEFSORT, [sort, [str(to) for to in t[2]], t[3]])))
+            #print ("--- " + str(sf.cmdNode (
+            #        KIND_DEFSORT, [sort, [str(to) for to in t[2]], t[3]])))
 
             return sf.cmdNode (
                     KIND_DEFSORT, [sort, [str(to) for to in t[2]], t[3]])
@@ -1451,25 +1483,25 @@ class DDSMTParser (SMTParser):
                          "previous declaration of function '{0!s}'"\
                          "was here".format(fun))
             fun = sf.funNode (t[1], t[3], t[2][0:], [], sf.cur_scope)
-            print ("--- " + str(sf.cmdNode (KIND_DECLFUN, [fun])))
+            #print ("--- " + str(sf.cmdNode (KIND_DECLFUN, [fun])))
             return sf.cmdNode (KIND_DECLFUN, [fun])
         elif kind == KIND_DEFFUN:
             assert (len(t) == 5)
             sorts = [to.sort for to in t[2]]
-            print ("--- " + str(sf.cmdNode (
-                    KIND_DEFFUN,
-                    [sf.funNode (t[1], t[3], sorts, [], sf.cur_scope), 
-                     t[2], t[4]])))
+            #print ("--- " + str(sf.cmdNode (
+            #        KIND_DEFFUN,
+            #        [sf.funNode (t[1], t[3], sorts, [], sf.cur_scope), 
+            #         t[2], t[4]])))
             return sf.cmdNode (
                     KIND_DEFFUN,
                     [sf.funNode (t[1], t[3], sorts, [], sf.cur_scope), 
                      t[2], t[4]]) #[0:], t[4]])
         elif kind == KIND_GETVALUE:
             assert (len(t) == 2)
-            print ("--- " + str(sf.cmdNode (KIND_GETVALUE, [t[1]]))) #[0:]]))
+            #print ("--- " + str(sf.cmdNode (KIND_GETVALUE, [t[1]]))) #[0:]]))
             return sf.cmdNode (KIND_GETVALUE, [t[1]]) #[0:]])
         else:
-            print ("--- " + str(sf.cmdNode (t[0], children = t[1:])))
+            #print ("--- " + str(sf.cmdNode (t[0], children = t[1:])))
             return sf.cmdNode (t[0], children = t[1:])
 
 

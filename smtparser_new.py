@@ -149,9 +149,10 @@ class SMTParser:
             self.tokens = self.__tokenize()
             self.__scan()
             #print (self.tokens)
-            tokens = self.script.parse_action(self.__script())
+            #tokens = self.script.parse_action(self.__script())
+            return self.script.parse_action(self.__script())
             #print (tokens)
-            print ("\n".join([str(t) for t in tokens]))
+            #print ("\n".join([str(t) for t in tokens]))
             ### TODO debug
                 
 
@@ -202,7 +203,7 @@ class SMTParser:
 
     def __tokenize (self):
         instring = re.sub(r';[^\n]*\n', '', self.instring)
-        print (instring)
+        #print (instring)
         instring = instring.split()
         result = []
         for item in instring:
@@ -589,7 +590,7 @@ class SMTParser:
                 tokens.append(self.la)
                 self.__scan()
                 tokens.append(self.term.parse_action(self.__term()))
-                tokens.append([-1])
+                tokens.append([])
                 while self.la and self.la != SMTParser.RPAR:
                     tokens[-1].append(
                             self.attribute.parse_action(self.__attribute()))
