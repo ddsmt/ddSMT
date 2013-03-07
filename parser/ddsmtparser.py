@@ -1,4 +1,4 @@
-from smtparser import SMTParser, SMTParseException
+from parser.smtparser import SMTParser, SMTParseException
 
 KIND_ANNFUN    = "<annotated fun symbol>"
 KIND_FUN       = "<var or fun symbol>"

@@ -13,7 +13,7 @@ import random
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 
-from ddsmtparser import DDSMTParser, DDSMTParseException, \
+from parser.ddsmtparser import DDSMTParser, DDSMTParseException, \
         KIND_ASSERT, KIND_CONST, KIND_CONSTN, KIND_CONSTD, \
         KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE, \
         KIND_LET, KIND_SETLOGIC, KIND_EXIT
