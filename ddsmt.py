@@ -132,7 +132,7 @@ def _filter_cmds (filter_fun = None, root = None):
     scopes = _filter_scopes (
             lambda x: x.kind not in (KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE))
     to_visit = [c for cmd_list in [s.cmds for s in scopes] for c in cmd_list]
-    to_visit.extend(g_smtformula.scopes.declfuns)
+    to_visit.extend(g_smtformula.scopes.declfun_cmds.values())
     while to_visit:
         cur = to_visit.pop()
         if cur.is_subst():
@@ -149,11 +149,14 @@ def _filter_terms (filter_fun = None, root = None):
             c.children[0] for c in asserts if not 
                     c.children[0].get_subst().is_const()]
     while to_visit:
+        #cur = to_visit.pop()#.get_subst() TODO TODO debug hack
         cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
             nodes.append(cur)
         if cur.children:
             to_visit.extend(cur.children)
+    nodes.sort(key = lambda x: x.id) # TODO TODO TODO test
+
     #nodes.sort(key = lambda x: x.id, reverse = True)
     #print ("#### nodes " + " ".join([str(n) + " [" + str(n.id) + "]" for n in nodes]))
     return nodes
@@ -174,8 +177,11 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
         for subset in subsets:
             nsubst = 0
             cpy_substs = substlist.substs.copy()
-            cpy_declfuns = None if not with_vars \
-                    else g_smtformula.scopes.declfuns[0:]
+            #cpy_declfun_cmds = None if not with_vars \
+            #        else g_smtformula.scopes.declfun_cmds.copy()
+            cpy_declfun_cmds = g_smtformula.scopes.declfun_cmds.copy()
+            #cpy_cmds = None if not with_vars \
+            #        else g_smtformula.scopes.cmds[0:] # TODO NEEDED?
             for item in subset:
                 if not item.is_subst():
                     item.subst (subst_fun(item))
@@ -191,13 +197,22 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
                 _log (2, "  granularity: {}, subsets: {}, substituted: {}" \
                          "".format(gran, len(subsets), nsubst), True)
                 del (cpy_subsets[cpy_subsets.index(subset)])
+#                from ddsmtparser import SMTCmdSubstList
+#                if type(substlist) == SMTCmdSubstList:
+#                    print ("---- cmds " + " ".join([str(c) for c in substlist.substs]))
+#                    print ("---- cpy cmds " + " ".join([str(c) for c in cpy_substs]))
             else:
                 _log (2, "  granularity: {}, subsets: {}, substituted: 0" \
                          "".format(gran, len(subsets)), True)
                 substlist.substs = cpy_substs
-                g_smtformula.scopes.declfuns = g_smtformula.scopes.declfuns \
-                        if not with_vars else cpy_declfuns
-
+                if with_vars:
+                    for name in g_smtformula.scopes.declfun_cmds:
+                        assert (g_smtformula.find_fun(name))
+                        if name not in cpy_declfun_cmds:
+                            g_smtformula.delete_fun(name)
+                g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
+                    #g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
+                    #g_smtformula.scopes.cmds = cpy_cmds # TODO NEEDED?
         superset = [s for subset in cpy_subsets for s in subset]
         gran = gran // 2
     return nsubst_total
@@ -282,7 +297,7 @@ def _subst_term_with_child (term):
 
 
 def ddsmt_main ():
-    global g_tmpfile, g_outfile
+    global g_tmpfile, g_outfile, g_smtformula
 
     nrounds = 0
     nsubst_total = 0
@@ -345,7 +360,8 @@ def ddsmt_main ():
             nsubst += _substitute_terms (
                     lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
                     lambda x:
-                        x.sort and x.sort.is_bv_sort() and not x.is_const(),
+                        x.sort and x.sort.is_bv_sort() and not x.is_const() \
+                        and (not x.is_fun() or not g_smtformula.is_substvar(x)),
                     cmds, "substitute BV TERMS with fresh variables", True)
         
         if g_smtformula.is_int_logic():
@@ -379,23 +395,23 @@ def ddsmt_main ():
 
         nsubst += _substitute_terms (
                 lambda x: g_smtformula.boolConstNode("false"), 
-                lambda x: x.sort == g_smtformula.sortNode("Bool"), 
+                lambda x: x.sort == g_smtformula.sortNode("Bool") and not x.is_const(), 
                 cmds, "substitute Boolean TERMS with 'false'")
 
         nsubst += _substitute_terms (
                 lambda x: g_smtformula.boolConstNode("true"), 
-                lambda x: x.sort == g_smtformula.sortNode("Bool"), 
+                lambda x: x.sort == g_smtformula.sortNode("Bool") and not x.is_const(), 
                 cmds, "substitute Boolean TERMS with 'true'")
 
-        if g_smtformula.is_arr_logic():
-            nsubst += _substitute_terms (
-                    lambda x: x.children[0],  # array
-                    lambda x: x.is_write(),
-                    cmds, "substitute STOREs with array child")
-            nsubst += _substitute_terms (
-                    lambda x: x.children[1],  # array
-                    lambda x: x.is_read(),
-                    cmds, "substitute SELECTs with index child")
+        #if g_smtformula.is_arr_logic():
+        #    nsubst += _substitute_terms (
+        #            lambda x: x.children[0],  # array
+        #            lambda x: x.is_write(),
+        #            cmds, "substitute STOREs with array child")
+        #    nsubst += _substitute_terms (
+        #            lambda x: x.children[1],  # array
+        #            lambda x: x.is_read(),
+        #            cmds, "substitute SELECTs with index child")
 
         #nsubst += _substitute_terms (
         #        lambda x: _subst_term_with_child(x),
@@ -403,6 +419,7 @@ def ddsmt_main ():
         #        cmds, "substitute TERMS with child")
 
         nsubst_total += nsubst
+        #if nrounds == 2: break # TODO TODO DEBUG
 
     _log (2)
     _log (2, "rounds total: {}".format(nrounds))

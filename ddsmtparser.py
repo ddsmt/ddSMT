@@ -207,7 +207,10 @@ class SMTNode:
                             if self.children else ""
 
     def is_const (self):
-        return True if isinstance (self, SMTConstNode) else False
+        return False
+
+    def is_fun (self):
+        return False
 
     def is_write (self):
         return False
@@ -306,6 +309,8 @@ class SMTConstNode (SMTNode):
         return "{}".format(self.original_str \
                 if self.original_str != "none" else str(self.value))
 
+    def is_const (self):
+        return True
 
 
 class SMTBVConstNode (SMTConstNode):
@@ -350,6 +355,9 @@ class SMTFunNode (SMTNode):
         return "(_ {} {})".format(
                 self.name, " ".join([str(s) for s in self.indices]))
 
+    def is_fun (self):
+        return True
+
 
 class SMTAnFunNode (SMTNode):
 
@@ -373,7 +381,7 @@ class SMTFunAppNode (SMTNode):
 
     def __str__ (self):
         # we have to prevent recursive calls here, else deep nesting levels
-        # of function applications blow up the recursion depth limit
+        # blow up the recursion depth limit
         strings = {}
         to_visit = [self]
         visited = {}
@@ -388,14 +396,14 @@ class SMTFunAppNode (SMTNode):
                 if cur.id not in visited:
                     to_visit.append(cur)
                     to_visit.extend(cur.children)
-                    #visited.append(cur.id)
                     visited[cur.id] = cur.id
                 else:
                     strings[cur.id] = "({} {})".format(
                             cur.fun, 
-                            " ".join([strings[c.id] for c in cur.children]))
-        assert (self.id in strings)
-        return strings[self.id]       
+                            " ".join([strings[c.get_subst().id] \
+                                    for c in cur.children]))
+        assert (self.get_subst().id in strings)
+        return strings[self.get_subst().id]       
 
     def is_write (self):
         return self.fun.kind == KIND_STORE
@@ -454,13 +462,49 @@ class SMTLetNode (SMTNode):
         self.scope = scope
 
     def __str__ (self):
-        if self.is_subst():
-            return str(self.get_subst())
-        assert (self.children)
-        return "({} ({}) {!s})".format(
-                self.kind,
-                " ".join([str(c) for c in self.children[0:-1]]),
-                self.children[-1])
+
+
+        # we have to prevent recursive calls here, else deep nesting levels
+        # blow up the recursion depth limit
+        strings = {}
+        to_visit = [self]
+        visited = {}
+        while to_visit:
+            cur = to_visit.pop().get_subst()
+            if cur.id in strings:
+                continue
+            if type(cur) != SMTLetNode:
+                strings[cur.id] = str(cur)
+            else:
+                assert (cur.id not in strings)
+                if cur.id not in visited:
+                    to_visit.append(cur)
+                    to_visit.extend(cur.children)
+                    visited[cur.id] = cur.id
+                    #print (">> cur.id " + str(cur.id))
+                    #print ("-- to_visit " + " ".join([str(t.get_subst().id) for t in to_visit]))
+                else:
+                    strings[cur.id] = "({} ({}) {})".format(
+                            cur.kind,
+                            " ".join([strings[c.get_subst().id] \
+                                    for c in cur.children[0:-1]]),
+                            strings[cur.children[-1].get_subst().id])
+        #print ("### " + str(self.id) + " " + str(self.get_subst().id))
+        #print ("-- " + str(strings.keys()))
+        assert (self.get_subst().id in strings)
+        return strings[self.get_subst().id]       
+#
+#
+#
+#
+#
+#        if self.is_subst():
+#            return str(self.get_subst())
+#        assert (self.children)
+#        return "({} ({}) {!s})".format(
+#                self.kind,
+#                " ".join([str(c) for c in self.children[0:-1]]),
+#                self.children[-1])
 
 
 class SMTAnnNode (SMTNode):
@@ -599,7 +643,7 @@ class SMTScopeNode:
         self.funs   = {}
         self.sorts  = {}
         # used for substition with fresh variables
-        self.declfuns = []
+        self.declfun_cmds = {}
 
     def __str__ (self):
         if self.is_subst():
@@ -609,8 +653,8 @@ class SMTScopeNode:
             if cmd.kind == KIND_SETLOGIC:
                 res.append(str(cmd))
                 # dump substition variables
-                for declfun in self.declfuns:
-                    res.append(str(declfun))
+                for name in self.declfun_cmds:
+                    res.append(str(self.declfun_cmds[name]))
             elif cmd.kind == KIND_PUSH:
                 assert (len(self.scopes) > 0)
                 assert (cmd.scope in self.scopes)
@@ -634,6 +678,10 @@ class SMTScopeNode:
         return SMTScopeNode.g_smtformula and \
                 SMTScopeNode.g_smtformula.is_subst(self)
 
+    def is_substvar (self, node):
+        if not node.is_fun():
+            return False
+        return node.name in self.declfun_cmds
 
 
 class SMTSubstList:
@@ -642,13 +690,25 @@ class SMTSubstList:
         self.substs = {}
 
     def subst (self, node, substitution):
-        self.substs[node.id] = substitution
+        assert (not substitution or \
+                not substitution.is_subst() or \
+                not substitution.get_subst().is_subst())
+        self.substs[node.id] = substitution \
+                if not substitution else substitution.get_subst()
 
     def is_subst (self, node):
         return node.id in self.substs
 
     def get_subst (self, node):
-        return self.substs[node.id] if self.is_subst(node) else node
+        #i = 0
+        while node.is_subst():
+            #i += 1
+            #print ("> node.id: " + str(node.id))
+            node = self.substs[node.id]
+        #print ("i: " + str(i))
+        return node
+    
+        #return self.substs[node.id] if self.is_subst(node) else node
 
 
 
@@ -721,6 +781,9 @@ class SMTFormula:
         return self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV", 
                               "QF_AUFBV", "QF_AUFLIA", "QF_AX")
 
+    def is_substvar (self, node):
+        return self.scopes.is_substvar(node)
+
     def subst (self, node, substitution):
         if isinstance (node, SMTScopeNode):
             self.subst_scopes.subst(node, substitution)
@@ -729,6 +792,10 @@ class SMTFormula:
         else:
             assert (isinstance (node, SMTNode))
             self.subst_nodes.subst(node, substitution)
+            if node.is_fun() and self.is_substvar(node):
+                #print ("-- fun: " + node.name + " is_substvar " + str(self.is_substvar(node)))
+                del (self.scopes.declfun_cmds[node.name])
+
 
     def is_subst (self, node):
         if isinstance (node, SMTScopeNode):
@@ -1208,9 +1275,10 @@ class SMTFormula:
         return cmd
 
     def add_fresh_declfunCmdNode (self, sort):
-        fun = self.add_fun ("_substvar_{}_".format(len(self.scopes.declfuns)),
-                            sort, [], [])
-        self.scopes.declfuns.append(SMTCmdNode (KIND_DECLFUN, [fun]))
+        name = "_substvar_{}_".format(len(self.scopes.declfun_cmds))
+        #print ("### " + name)
+        fun = self.add_fun (name, sort, [], [])
+        self.scopes.declfun_cmds[name] = SMTCmdNode (KIND_DECLFUN, [fun])
         return fun
 
 
