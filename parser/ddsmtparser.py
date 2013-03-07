@@ -394,7 +394,7 @@ class SMTFunAppNode (SMTNode):
         return self.fun.kind == KIND_STORE
 
     def is_read (self):
-        return self.fun.kind == KIND_READ
+        return self.fun.kind == KIND_SELECT
 
 
 class SMTVarBindNode (SMTNode):

@@ -462,15 +462,25 @@ def ddsmt_main ():
         elif succeeded == "true":
             break
 
-        #if g_smtformula.is_arr_logic():
-        #    nsubst += _substitute_terms (
-        #            lambda x: x.children[0],  # array
-        #            lambda x: x.is_write(),
-        #            cmds, "substitute STOREs with array child")
-        #    nsubst += _substitute_terms (
-        #            lambda x: x.children[1],  # array
-        #            lambda x: x.is_read(),
-        #            cmds, "substitute SELECTs with index child")
+        if g_smtformula.is_arr_logic():
+            nsubst = _substitute_terms (
+                    lambda x: x.children[0],  # array
+                    lambda x: x.is_write(),
+                   cmds, "substitute STOREs with array child")
+            if nsubst:
+                succeeded = "store"
+                nsubst_round += nsubst
+            elif succeeded == "store":
+                break
+            nsubst = _substitute_terms (
+                    lambda x: x.children[1],  # array
+                    lambda x: x.is_read(),
+                    cmds, "substitute SELECTs with index child")
+            if nsubst:
+                succeeded = "select"
+                nsubst_round += nsubst
+            elif succeeded == "select":
+                break
 
         #nsubst += _substitute_terms (
         #        lambda x: _subst_term_with_child(x),
