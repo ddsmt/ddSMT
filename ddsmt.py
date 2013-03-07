@@ -466,9 +466,6 @@ if __name__ == "__main__":
             _log (1, "output file: '{0:s}'".format(g_outfile))
             _log (1, "command:     '{0:s}'".format(args[2]))
 
-            # set recursion limit for pyparsing (default of 1000 is not enough)
-            sys.setrecursionlimit(7000)
-
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_infile)
 
