@@ -301,11 +301,13 @@ def ddsmt_main ():
 
     nrounds = 0
     nsubst_total = 0
-    nsubst = 1
+    nsubst_round = 1
+    succeeded = "none"
     
-    while nsubst:
+    while nsubst_round:
         nrounds += 1
         nsubst = 0
+        nsubst_round = 0
 
         ## debug
         #to_visit = [g_smtformula.scopes]
@@ -339,69 +341,126 @@ def ddsmt_main ():
         #sys.exit(0) # TODO debug
 
 
-        nsubst += _substitute_scopes ()
+        nsubst = _substitute_scopes ()
+        if nsubst:
+            succeeded = "scopes"
+            nsubst_round += nsubst
+        elif succeeded == "scopes":
+            break
         
         # initially, eliminate asserts only
         # -> prevent lots of likely unsuccessful testing when eliminating
         #    e.g. declare-funs previous to term substitution
         if nrounds > 1:
-           nsubst += _substitute_cmds ()
+           nsubst = _substitute_cmds ()
         else:
-           nsubst += _substitute_cmds (lambda x: x.kind == KIND_ASSERT)
+           nsubst = _substitute_cmds (lambda x: x.kind == KIND_ASSERT)
+        if nsubst:
+           succeeded = "cmds"
+           nsubst_round += nsubst
+        elif succeeded == "cmds": 
+           break
 
         cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
 
         if g_smtformula.is_bv_logic():
-            nsubst += _substitute_terms (
+            nsubst = _substitute_terms (
                     lambda x: g_smtformula.bvZeroConstNode(x.sort),
                     lambda x: 
                        x.sort and x.sort.is_bv_sort() and not x.is_const(),
                     cmds, "substitute BV TERMS with '0'")
-            nsubst += _substitute_terms (
+            if nsubst:
+                succeeded = "bv0"
+                nsubst_round += nsubst
+            elif succeeded == "bv0":
+                break
+            nsubst = _substitute_terms (
                     lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
                     lambda x:
                         x.sort and x.sort.is_bv_sort() and not x.is_const() \
                         and (not x.is_fun() or not g_smtformula.is_substvar(x)),
                     cmds, "substitute BV TERMS with fresh variables", True)
-        
+            if nsubst:
+                succeeded = "bvvar"
+                nsubst_round += nsubst
+            elif succeeded == "bvvar": 
+                break
+
         if g_smtformula.is_int_logic():
-            nsubst += _substitute_terms (
+            nsubst = _substitute_terms (
                     lambda x: g_smtformula.zeroConstNode(KIND_CONSTN),
                     lambda x: x.sort == g_smtformula.sortNode("Int") \
                               and not x.is_const(),
                     cmds, "substitute Int Terms with '0'")
-            nsubst += _substitute_terms (
+            if nsubst:
+                succeeded = "int0"
+                nsubst_round += nsubst
+            elif succeeded == "int0":
+                break
+            nsubst = _substitute_terms (
                     lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
                     lambda x: x.sort == g_smtformula.sortNode("Int") \
                               and not x.is_const(),
                     cmds, "substitute Int TERMS with fresh variables", True)
+            if nsubst:
+                succeeded = "intvar"
+                nsubst_round += nsubst
+            elif succeeded == "intvar": 
+                break
 
         if g_smtformula.is_real_logic():
-            nsubst += _substitute_terms (
+            nsubst = _substitute_terms (
                     lambda x: g_smtformula.zeroConstNode(KIND_CONSTD),
                     lambda x: x.sort == g_smtformula.sortNode("Real") \
                               and not x.is_const(),
                     cmds, "substitute Real Terms with '0'")
-            nsubst += _substitute_terms (
+            if nsubst:
+                succeeded = "real0"
+                nsubst_round += nsubst
+            elif succeeded == "real0":
+                break
+            nsubst = _substitute_terms (
                     lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
                     lambda x: x.sort == g_smtformula.sortNode("Real") \
                               and not x.is_const(),
                     cmds, "substitute Real TERMS with fresh variables", True)
+            if nsubst:
+                succeeded = "realvar"
+                nsubst_round += nsubst
+            elif succeeded == "realvar":
+                break
 
-        nsubst += _substitute_terms (
+        nsubst = _substitute_terms (
                 lambda x: x.children[-1],
                 lambda x: x.kind == KIND_LET,
                 cmds, "substitute LETs with child term")
+        if nsubst:
+            succeeded = "let"
+            nsubst_round += nsubst
+        elif succeeded == "let":
+            break
 
-        nsubst += _substitute_terms (
+        nsubst = _substitute_terms (
                 lambda x: g_smtformula.boolConstNode("false"), 
-                lambda x: x.sort == g_smtformula.sortNode("Bool") and not x.is_const(), 
+                lambda x: x.sort == g_smtformula.sortNode("Bool") \
+                          and not x.is_const(), 
                 cmds, "substitute Boolean TERMS with 'false'")
+        if nsubst:
+            succeeded = "false"
+            nsubst_round += nsubst
+        elif succeeded == "false":
+            break
 
-        nsubst += _substitute_terms (
+        nsubst = _substitute_terms (
                 lambda x: g_smtformula.boolConstNode("true"), 
-                lambda x: x.sort == g_smtformula.sortNode("Bool") and not x.is_const(), 
+                lambda x: x.sort == g_smtformula.sortNode("Bool") \
+                          and not x.is_const(), 
                 cmds, "substitute Boolean TERMS with 'true'")
+        if nsubst:
+            succeeded = "true"
+            nsubst_round += nsubst
+        elif succeeded == "true":
+            break
 
         #if g_smtformula.is_arr_logic():
         #    nsubst += _substitute_terms (
@@ -418,7 +477,7 @@ def ddsmt_main ():
         #        lambda x: _has_child_to_subst(x),
         #        cmds, "substitute TERMS with child")
 
-        nsubst_total += nsubst
+        nsubst_total += nsubst_round
         #if nrounds == 2: break # TODO TODO DEBUG
 
     _log (2)
