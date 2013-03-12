@@ -422,13 +422,32 @@ class SMTForallExistsNode (SMTNode):
         self.scope = scope
 
     def __str__ (self):
-        return str(self.get_subst()) if self.is_subst() else \
-                "({} ({}) {!s})".format(
-                        self.kind, 
-                        " ".join(["({} {!s})".format(s.name, s.sort)
-                            for s in self.svars]) \
-                                    if len(self.svars) > 0 else "",
-                        self.children[0])
+        # we have to prevent recursive calls here, else deep nesting levels
+        # blow up the recursion depth limit
+        strings = {}
+        to_visit = [self]
+        visited = {}
+        while to_visit:
+            cur = to_visit.pop().get_subst()
+            if cur.id in strings:
+                continue
+            if type(cur) != SMTForallExistsNode:
+                strings[cur.id] = str(cur)
+            else:
+                assert (cur.id not in strings)
+                if cur.id not in visited:
+                    to_visit.append(cur)
+                    to_visit.extend(cur.children)
+                    visited[cur.id] = cur.id
+                else:
+                    strings[cur.id] = "({} ({}) {})".format(
+                            cur.kind,
+                            " ".join(["({} {!s})".format(s.name, s.sort)
+                                for s in cur.svars]) \
+                                        if len(cur.svars) > 0 else "",
+                            strings[cur.children[0].get_subst().id])
+        assert (self.get_subst().id in strings)
+        return strings[self.get_subst().id]       
 
 
 class SMTLetNode (SMTNode):
@@ -645,7 +664,6 @@ class SMTScopeNode:
 
 
 class SMTSubstList:
-
     def __init__ (self):
         self.substs = {}
 
