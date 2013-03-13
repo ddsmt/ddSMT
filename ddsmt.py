@@ -13,10 +13,10 @@ import random
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 
-from parser.ddsmtparser import DDSMTParser, DDSMTParseException, \
-        KIND_ASSERT, KIND_CONST, KIND_CONSTN, KIND_CONSTD, \
-        KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE, \
-        KIND_LET, KIND_SETLOGIC, KIND_EXIT
+from parser.ddsmtparser import DDSMTParser, DDSMTParseException#, \
+        #KIND_ASSERT, KIND_CONST, KIND_CONSTN, KIND_CONSTD, \
+        #KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE, \
+        #KIND_LET, KIND_SETLOGIC, KIND_EXIT
 
 g_infile  = ""
 g_outfile = ""
@@ -109,7 +109,6 @@ def _test ():
     return _run() == g_golden
 
 
-# TODO merge with _filter_cmds?
 def _filter_scopes (filter_fun = None, root = None):
     global g_smtformula
     assert (g_smtformula)
@@ -126,11 +125,10 @@ def _filter_scopes (filter_fun = None, root = None):
     return scopes
 
 
-# TODO merge with _filter_scopes?
 def _filter_cmds (filter_fun = None, root = None):
     cmds = []
-    scopes = _filter_scopes (
-            lambda x: x.kind not in (KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE))
+    scopes = _filter_scopes (lambda x: x.is_regular())
+    #kind not in (KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE))
     to_visit = [c for cmd_list in [s.cmds for s in scopes] for c in cmd_list]
     to_visit.extend(g_smtformula.scopes.declfun_cmds.values())
     while to_visit:
@@ -144,12 +142,12 @@ def _filter_cmds (filter_fun = None, root = None):
 
 def _filter_terms (filter_fun = None, root = None):
     nodes = []
-    asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+    #asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+    asserts = _filter_cmds (lambda x: x.is_assert())
     to_visit = [root if root != None else \
             c.children[0] for c in asserts if not 
                     c.children[0].get_subst().is_const()]
     while to_visit:
-        #cur = to_visit.pop()#.get_subst() TODO TODO debug hack
         cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
             nodes.append(cur)
@@ -177,11 +175,7 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
         for subset in subsets:
             nsubst = 0
             cpy_substs = substlist.substs.copy()
-            #cpy_declfun_cmds = None if not with_vars \
-            #        else g_smtformula.scopes.declfun_cmds.copy()
             cpy_declfun_cmds = g_smtformula.scopes.declfun_cmds.copy()
-            #cpy_cmds = None if not with_vars \
-            #        else g_smtformula.scopes.cmds[0:] # TODO NEEDED?
             for item in subset:
                 if not item.is_subst():
                     item.subst (subst_fun(item))
@@ -197,10 +191,6 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
                 _log (2, "  granularity: {}, subsets: {}, substituted: {}" \
                          "".format(gran, len(subsets), nsubst), True)
                 del (cpy_subsets[cpy_subsets.index(subset)])
-#                from ddsmtparser import SMTCmdSubstList
-#                if type(substlist) == SMTCmdSubstList:
-#                    print ("---- cmds " + " ".join([str(c) for c in substlist.substs]))
-#                    print ("---- cpy cmds " + " ".join([str(c) for c in cpy_substs]))
             else:
                 _log (2, "  granularity: {}, subsets: {}, substituted: 0" \
                          "".format(gran, len(subsets)), True)
@@ -211,8 +201,6 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
                         if name not in cpy_declfun_cmds:
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
-                    #g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
-                    #g_smtformula.scopes.cmds = cpy_cmds # TODO NEEDED?
         superset = [s for subset in cpy_subsets for s in subset]
         gran = gran // 2
     return nsubst_total
@@ -229,9 +217,9 @@ def _substitute_scopes ():
     nsubst_total = 0
     level = 1
     while True:
-        scopes = _filter_scopes (
-                lambda x: x.level == level and 
-                          x.kind not in (KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE))
+        scopes = _filter_scopes (lambda x: x.level == level and x.is_regular())
+                #lambda x: x.level == level and 
+                #          x.kind not in (KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE))
         if not scopes:
             break
 
@@ -251,10 +239,11 @@ def _substitute_cmds (filter_fun = None):
     _log (2, "substitute COMMANDS:")
 
     filter_fun = filter_fun if filter_fun else \
-            lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)
+            lambda x: not x.is_setlogic() and not x.is_exit()
+            #lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)
+
     nsubst_total = _substitute (lambda x: None, g_smtformula.subst_cmds,
             _filter_cmds(filter_fun))
-            #_filter_cmds (lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)))
 
     _log (2, "  >> {0:d} command(s) substituted in total".format(nsubst_total))
     return nsubst_total
@@ -333,10 +322,6 @@ def ddsmt_main ():
         ## end debug
 
 
-        #from ddsmtparser import SMTNode, SMTCmdNode, SMTScopeNode
-        #print ("## node " + str(SMTNode.g_id))
-        #print ("## cmd " + str(SMTCmdNode.g_id))
-        #print ("## scope " + str(SMTScopeNode.g_id))
         #_dump (g_outfile)  # TODO debug
         #sys.exit(0) # TODO debug
 
@@ -354,14 +339,16 @@ def ddsmt_main ():
         if nrounds > 1:
            nsubst = _substitute_cmds ()
         else:
-           nsubst = _substitute_cmds (lambda x: x.kind == KIND_ASSERT)
+           #nsubst = _substitute_cmds (lambda x: x.kind == KIND_ASSERT)
+           nsubst = _substitute_cmds (lambda x: x.is_assert())
         if nsubst:
            succeeded = "cmds"
            nsubst_round += nsubst
         elif succeeded == "cmds": 
            break
 
-        cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+        #cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+        cmds = _filter_cmds (lambda x: x.is_assert())
 
         if g_smtformula.is_bv_logic():
             nsubst = _substitute_terms (
@@ -388,7 +375,8 @@ def ddsmt_main ():
 
         if g_smtformula.is_int_logic():
             nsubst = _substitute_terms (
-                    lambda x: g_smtformula.zeroConstNode(KIND_CONSTN),
+                    #lambda x: g_smtformula.zeroConstNode(KIND_CONSTN),
+                    lambda x: g_smtformula.zeroConstNNode(),
                     lambda x: x.sort == g_smtformula.sortNode("Int") \
                               and not x.is_const(),
                     cmds, "substitute Int Terms with '0'")
@@ -410,7 +398,8 @@ def ddsmt_main ():
 
         if g_smtformula.is_real_logic():
             nsubst = _substitute_terms (
-                    lambda x: g_smtformula.zeroConstNode(KIND_CONSTD),
+                    #lambda x: g_smtformula.zeroConstNode(KIND_CONSTD),
+                    lambda x: g_smtformula.zeroConstDNode(),
                     lambda x: x.sort == g_smtformula.sortNode("Real") \
                               and not x.is_const(),
                     cmds, "substitute Real Terms with '0'")
@@ -432,7 +421,8 @@ def ddsmt_main ():
 
         nsubst = _substitute_terms (
                 lambda x: x.children[-1],
-                lambda x: x.kind == KIND_LET,
+                #lambda x: x.kind == KIND_LET,
+                lambda x: x.is_let(),
                 cmds, "substitute LETs with child term")
         if nsubst:
             succeeded = "let"
@@ -488,7 +478,6 @@ def ddsmt_main ():
         #        cmds, "substitute TERMS with child")
 
         nsubst_total += nsubst_round
-        #if nrounds == 2: break # TODO TODO DEBUG
 
     _log (2)
     _log (2, "rounds total: {}".format(nrounds))
@@ -515,8 +504,8 @@ if __name__ == "__main__":
                             help="remove assertions and debug code") # TODO
         (g_opts, args) = oparser.parse_args ()
 
-        #if len (args) != 3: TODO disabled for debugging
-        #    oparser.error ("invalid number of arguments")
+        if len (args) != 3:
+            oparser.error ("invalid number of arguments")
 
         if g_opts.optimize:
             sys.argv.remove("-o")

@@ -213,6 +213,9 @@ class SMTNode:
     def is_read (self):
         return False
 
+    def is_let (self):
+        return False
+
     def subst (self, substitution):
         SMTNode.g_smtformula.subst(self, substitution)
 
@@ -487,6 +490,9 @@ class SMTLetNode (SMTNode):
         assert (self.get_subst().id in strings)
         return strings[self.get_subst().id]       
 
+    def is_let (self):
+        return True
+
 
 class SMTAnnNode (SMTNode):
 
@@ -564,6 +570,15 @@ class SMTCmdNode:
                 res.append(str(c))
         return " ".join([s for s in res]) if self.children else ""
 
+    def is_assert (self):
+        return self.kind == KIND_ASSERT
+    
+    def is_setlogic (self):
+        return self.kind == KIND_SETLOGIC
+
+    def is_exit (self):
+        return self.kind == KIND_EXIT
+
     def subst (self, substitution):
         SMTCmdNode.g_smtformula.subst(self, substitution)
 
@@ -636,7 +651,8 @@ class SMTScopeNode:
             elif cmd.kind == KIND_PUSH:
                 assert (len(self.scopes) > 0)
                 assert (cmd.scope in self.scopes)
-                assert (cmd.scope.kind not in (KIND_ESCOPE, KIND_FSCOPE))
+                #assert (cmd.scope.kind not in (KIND_ESCOPE, KIND_FSCOPE))
+                assert (cmd.scope.is_regular())
                 if cmd.scope.is_subst():
                     continue
                 res.append(str(cmd))
@@ -644,6 +660,9 @@ class SMTScopeNode:
             else:
                 res.append(str(cmd))
         return "\n".join([s for s in res if s != ""])
+
+    def is_regular (self):
+        return self.kind == KIND_SCOPE
 
     def subst (self, substitution):
         SMTScopeNode.g_smtformula.subst(self, substitution)
@@ -812,6 +831,12 @@ class SMTFormula:
                 if kind == KIND_CONSTN \
                 else self.constNode (KIND_CONSTD, self.sortNode("Real"), 0.0)
 
+    def zeroConstNNode (self):
+        return self.zeroConstNode (KIND_CONSTN)
+
+    def zeroConstDNode (self):
+        return self.zeroConstNode (KIND_CONSTD)
+
     def boolConstNode (self, value):
         assert (value in ("true", "false"))
         return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
@@ -976,17 +1001,14 @@ class SMTFormula:
                           KIND_NOT, KIND_NEG,   KIND_TOI,   KIND_TOR,  KIND_REP,
                           KIND_ROL, KIND_ROR,   KIND_SEXT,  KIND_ZEXT)) or
             (len(children) != 2 and
-                 kind in (KIND_ADD,    KIND_AND,    KIND_BVADD,  KIND_BVAND,  
-                          KIND_BVASHR, KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,
-                          KIND_BVNAND, KIND_BVNOR,  KIND_BVOR,   KIND_BVSDIV,
-                          KIND_BVSGE,  KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,
-                          KIND_BVSLT,  KIND_BVSMOD, KIND_BVSREM, KIND_BVSUB,
-                          KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV, KIND_BVULE,
-                          KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR,
-                          KIND_CONC,   KIND_DIV,    KIND_DIST,   KIND_EQ,
-                          KIND_IMPL,   KIND_GE,     KIND_GT,     KIND_LE, 
-                          KIND_LT,     KIND_MOD,    KIND_MUL,    KIND_OR,
-                          KIND_SELECT, KIND_SUB,    KIND_RDIV,   KIND_XOR)) or
+                 kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP, 
+                          KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
+                          KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,
+                          KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD,
+                          KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,
+                          KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM,
+                          KIND_BVXNOR, KIND_BVXOR,  KIND_CONC,   KIND_MOD,
+                          KIND_SELECT)) or
             (len(children) != 3 and 
                 kind in (KIND_ITE, KIND_STORE))):
             raise DDSMTParseCheckException (
@@ -1019,6 +1041,7 @@ class SMTFormula:
         # args Real check
         elif kind in (KIND_RDIV, KIND_ISI, KIND_TOI):
             for c in children:
+                # TODO
                 if not c.sort == self.sortNode("Real"):
                     raise DDSMTParseCheckException (
                         "'{!s}' expects sort 'Real' as argument(s)".format(fun))
@@ -1031,6 +1054,7 @@ class SMTFormula:
                     "".format(fun))
             for c in children[1:]:
                 if c.sort != csort:
+                # TODO
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
                         "".format(fun, csort, c.sort)) 
@@ -1046,6 +1070,7 @@ class SMTFormula:
             csort = children[0].sort
             for c in children[1:]:
                 if c.sort != csort:
+                # TODO
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
                         "".format(fun, csort, c.sort)) 
@@ -1400,7 +1425,7 @@ class DDSMTParser (SMTParser):
                 return SMTSortExprNode (sort, t_sorts)
         except DDSMTParseCheckException as e:
             (line, col) = self.get_pos()
-            raise DDSMTParseException (self.infil, line, col, e.msg)
+            raise DDSMTParseException (self.infile, line, col, e.msg)
     
 
     def __qualIdent2SMTNode (self, t):
@@ -1435,7 +1460,7 @@ class DDSMTParser (SMTParser):
                     return sf.anFunNode (str(t_ident), t_sort, [])
         except DDSMTParseCheckException as e:
             (line, col) = self.get_pos()
-            raise DDSMTParseException (self.infil, line, col, e.msg)
+            raise DDSMTParseException (self.infile, line, col, e.msg)
 
     def __term2SMTNode (self, t):
         sf = self.smtformula
@@ -1459,7 +1484,7 @@ class DDSMTParser (SMTParser):
                 return sf.funAppNode (t[0], t[1])
         except DDSMTParseCheckException as e:
             (line, col) = self.get_pos()
-            raise DDSMTParseException (self.infil, line, col, e.msg)
+            raise DDSMTParseException (self.infile, line, col, e.msg)
 
     def __cmd2SMTCmdNode (self, t):
         sf = self.smtformula
