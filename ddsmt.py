@@ -57,17 +57,22 @@ def _log(verbosity, msg = "", update = False):
             sys.stdout.write("[ddsmt] {0:s}\n".format(msg))
 
 
+#@profile
 def _dump (filename = None, root = None):
     global g_smtformula
     assert (g_smtformula)
     try:
-        out = str(root if root != None else g_smtformula.scopes)
+        #out = str(root if root != None else g_smtformula.scopes)
+        #print ("#### " + str(sys.getsizeof(out)))
+        out = root if root != None else g_smtformula.scopes
         if not filename:
-            sys.stdout.write(out)
+            #sys.stdout.write(out)
+            out.dump(sys.stdout)    
             sys.stdout.write("\n")
         else:
             with open(filename, 'w') as outfile:
-                outfile.write(out)
+                #outfile.write(out)
+                out.dump(outfile)
                 outfile.write("\n")
     except IOError as e:
         raise DDSMTException (str(e))
@@ -322,8 +327,14 @@ def ddsmt_main ():
         ## end debug
 
 
-        #_dump (g_outfile)  # TODO debug
-        #sys.exit(0) # TODO debug
+        _dump (g_outfile)  # TODO debug
+        from parser.ddsmtparser import SMTScopeNode, SMTCmdNode, SMTNode
+        print ("# scopes: " + str(SMTScopeNode.g_id))
+        print ("# cmds: " + str(SMTCmdNode.g_id))
+        print ("# nodes: " + str(SMTNode.g_id))
+        #import time
+        #time.sleep(15)
+        sys.exit(0) # TODO debug
 
 
         nsubst = _substitute_scopes ()
@@ -504,25 +515,34 @@ if __name__ == "__main__":
                             help="remove assertions and debug code") # TODO
         (g_opts, args) = oparser.parse_args ()
 
-        if len (args) != 3:
-            oparser.error ("invalid number of arguments")
+        # TODO debug
+        #if len (args) != 3:
+        #    oparser.error ("invalid number of arguments")
 
         if g_opts.optimize:
             sys.argv.remove("-o")
             os.execl(sys.executable, sys.executable, '-O', *sys.argv)
         else:
+            # TODO debug
             g_infile = args[0]
             g_outfile = args[1]
             g_cmd = shlex.split(args[2])
+            #g_infile = "./trash/sc2011rules-qf-abv-ex.smt2"
+            #g_infile = "./trash/noregions-stpmem.stp.smt2"
+            #g_infile = "./trash/hard_to_minimize/bug-23744-6898-new.smt2"
+            #g_outfile = "sc2011_red.smt2"
+            #g_cmd = ["test/run1.sh"]
 
             if not os.path.exists(g_infile):
                 raise DDSMTException ("given input file does not exist")
             #if os.path.exists(g_outfile):
             #    raise DDSMTException ("given output file does already exist")
 
-            _log (1, "input  file: '{0:s}'".format(g_infile))
-            _log (1, "output file: '{0:s}'".format(g_outfile))
-            _log (1, "command:     '{0:s}'".format(args[2]))
+            _log (1, "input  file: '{}'".format(g_infile))
+            _log (1, "output file: '{}'".format(g_outfile))
+            _log (1, "command:     '{}'".format(args[2]))
+            # TODO debug
+            #_log (1, "command:     '{}'".format(g_cmd[0]))
 
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_infile)

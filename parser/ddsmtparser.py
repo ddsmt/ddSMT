@@ -192,6 +192,7 @@ class SMTNode:
         self.sort = sort
         self.children = children
 
+    #@profile
     def __str__ (self):
         return str(self.get_subst()) if self.is_subst() else \
                 "({}{})".format(self.kind, self.children2str())
@@ -200,6 +201,10 @@ class SMTNode:
         for c in self.children: assert (not isinstance(c, list)) # TODO DEBUG
         return " " + " ".join([str(c) for c in self.children]) \
                             if self.children else ""
+
+    def dump (self, outfile, lead = " "):
+        outfile.write(lead)
+        outfile.write(str(self))
 
     def is_const (self):
         return False
@@ -370,28 +375,79 @@ class SMTFunAppNode (SMTNode):
     def __str__ (self):
         # we have to prevent recursive calls here, else deep nesting levels
         # blow up the recursion depth limit
-        strings = {}
+        strings = []
         to_visit = [self]
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
-            if cur.id in strings:
-                continue
             if type(cur) != SMTFunAppNode:
-                strings[cur.id] = str(cur)
+                strings.append(str(cur))
             else:
-                assert (cur.id not in strings)
                 if cur.id not in visited:
                     to_visit.append(cur)
                     to_visit.extend(cur.children)
                     visited[cur.id] = cur.id
                 else:
-                    strings[cur.id] = "({} {})".format(
-                            cur.fun, 
-                            " ".join([strings[c.get_subst().id] \
-                                    for c in cur.children]))
-        assert (self.get_subst().id in strings)
-        return strings[self.get_subst().id]       
+                    cs = []
+                    for c in cur.children:
+                        cs.append(strings.pop())
+                    strings.append(
+                            "({} {})".format(
+                                cur.fun, 
+                                " ".join([s for s in cs])))
+        assert (len(strings) == 1)
+        return strings.pop()
+
+#    #@profile
+#    def __str__ (self):
+#        # we have to prevent recursive calls here, else deep nesting levels
+#        # blow up the recursion depth limit
+#        #import sys
+#        strings = {}
+#        to_visit = [self]
+#        visited = {}
+#        while to_visit:
+#            #print ("##1# " + str(sys.getsizeof(strings)))
+#            cur = to_visit.pop().get_subst()
+#    #        if cur.id in strings:
+#    #            continue
+#            if type(cur) != SMTFunAppNode:
+#                strings[cur.id] = str(cur)
+#            else:
+#                assert (cur.id not in strings)
+#                if cur.id not in visited:
+#                    to_visit.append(cur)
+#                    to_visit.extend(cur.children)
+#                    visited[cur.id] = cur.id
+#                else:
+#                    strings[cur.id] = "({} {})".format(
+#                            cur.fun, 
+#                            " ".join([strings[c.get_subst().id] \
+#                                    for c in cur.children]))
+#                    #for c in cur.children:
+#                    #    del(strings[c.get_subst().id])
+#        assert (self.get_subst().id in strings)
+#        return strings[self.get_subst().id]       
+
+    def dump (self, outfile, lead = " "):
+        to_visit = [self]
+        visited = {}
+        while to_visit:
+            cur = to_visit.pop().get_subst()
+            if type(cur) != SMTFunAppNode:
+                cur.dump(outfile)
+            else:
+                if cur.id not in visited:
+                    to_visit.append(cur)
+                    outfile.write(lead)
+                    outfile.write("({}".format(cur.fun))
+                    to_visit.extend(cur.children[::-1])
+                    visited[cur.id] = cur.id
+                else:
+                    outfile.write(")")
+
+    #def dump (self, outfile):
+    #    outfile.write(str(self))
 
     def is_write (self):
         return self.fun.kind == KIND_STORE
@@ -427,31 +483,84 @@ class SMTForallExistsNode (SMTNode):
     def __str__ (self):
         # we have to prevent recursive calls here, else deep nesting levels
         # blow up the recursion depth limit
-        strings = {}
+        strings = []
         to_visit = [self]
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
-            if cur.id in strings:
-                continue
             if type(cur) != SMTForallExistsNode:
-                strings[cur.id] = str(cur)
+                strings.append(str(cur))
             else:
-                assert (cur.id not in strings)
                 if cur.id not in visited:
                     to_visit.append(cur)
                     to_visit.extend(cur.children)
                     visited[cur.id] = cur.id
                 else:
-                    strings[cur.id] = "({} ({}) {})".format(
-                            cur.kind,
-                            " ".join(["({} {!s})".format(s.name, s.sort)
-                                for s in cur.svars]) \
-                                        if len(cur.svars) > 0 else "",
-                            strings[cur.children[0].get_subst().id])
-        assert (self.get_subst().id in strings)
-        return strings[self.get_subst().id]       
+                    assert (len(strings) == 1)
+                    strings.append(
+                            "({} ({}) {})".format(
+                                cur.kind, 
+                                " ".join(["({} {!s})".format(s.name, s.sort)
+                                    for s in cur.svars]) \
+                                            if len(cur.svars) > 0 else "",
+                                strings.pop()))
+        assert (len(strings) == 1)
+        return strings.pop()
 
+ #   #@profile
+ #   def __str__ (self):
+ #       # we have to prevent recursive calls here, else deep nesting levels
+ #       # blow up the recursion depth limit
+ #       strings = {}
+ #       to_visit = [self]
+ #       visited = {}
+ #       while to_visit:
+ #           cur = to_visit.pop().get_subst()
+ #           #if cur.id in strings:
+ #           #    continue
+ #           if type(cur) != SMTForallExistsNode:
+ #               strings[cur.id] = str(cur)
+ #           else:
+ #               assert (cur.id not in strings)
+ #               if cur.id not in visited:
+ #                   to_visit.append(cur)
+ #                   to_visit.extend(cur.children)
+ #                   visited[cur.id] = cur.id
+ #               else:
+ #                   strings[cur.id] = "({} ({}) {})".format(
+ #                           cur.kind,
+ #                           " ".join(["({} {!s})".format(s.name, s.sort)
+ #                               for s in cur.svars]) \
+ #                                       if len(cur.svars) > 0 else "",
+ #                           strings[cur.children[0].get_subst().id])
+ #                   #del(strings[cur.children[0].get_subst().id])
+ #       assert (self.get_subst().id in strings)
+ #       #import sys
+ #       #print ("##2# " + str(sys.getsizeof(strings)))
+ #       return strings[self.get_subst().id]       
+
+    def dump (self, outfile, lead = " "):
+        to_visit = [self]
+        visited = {}
+        while to_visit:
+            cur = to_visit.pop().get_subst()
+            if type(cur) != SMTForallExistsNode:
+                cur.dump(outfile)
+            else:
+                if cur.id not in visited:
+                    to_visit.append(cur)
+                    outfile.write(lead)
+                    outfile.write("({} ({})".format(
+                        cur.kind,
+                        " ".join(["({} {!s})".format(s.name, s.sort)
+                            for s in cur.svars]) if len(cur.svars) > 0 else ""))
+                    to_visit.extend(cur.children[::-1])
+                    visited[cur.id] = cur.id
+                else:
+                    outfile.write(")")
+
+    #def dump (self, outfile):
+    #    outfile.write(str(self))
 
 class SMTLetNode (SMTNode):
 
@@ -466,30 +575,93 @@ class SMTLetNode (SMTNode):
     def __str__ (self):
         # we have to prevent recursive calls here, else deep nesting levels
         # blow up the recursion depth limit
-        strings = {}
+        strings = []
         to_visit = [self]
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
-            if cur.id in strings:
-                continue
             if type(cur) != SMTLetNode:
-                strings[cur.id] = str(cur)
+                strings.append(str(cur))
             else:
-                assert (cur.id not in strings)
                 if cur.id not in visited:
                     to_visit.append(cur)
                     to_visit.extend(cur.children)
                     visited[cur.id] = cur.id
                 else:
-                    strings[cur.id] = "({} ({}) {})".format(
-                            cur.kind,
-                            " ".join([strings[c.get_subst().id] \
-                                    for c in cur.children[0:-1]]),
-                            strings[cur.children[-1].get_subst().id])
-        assert (self.get_subst().id in strings)
-        return strings[self.get_subst().id]       
+                    cs = []
+                    for c in cur.children:
+                        cs.append(strings.pop())
+                    strings.append(
+                            "({} ({}) {})".format(
+                                cur.kind, 
+                                " ".join([s for s in cs[0:-1]]),
+                                cs[-1]))
+        assert (len(strings) == 1)
+        return strings.pop()
+#    #@profile
+#    def __str__ (self):
+#        # we have to prevent recursive calls here, else deep nesting levels
+#        # blow up the recursion depth limit
+#        strings = {}
+#        to_visit = [self]
+#        visited = {}
+#        while to_visit:
+#            cur = to_visit.pop().get_subst()
+#            #if cur.id in strings:
+#            #    continue
+#            if type(cur) != SMTLetNode:
+#                strings[cur.id] = str(cur)
+#            else:
+#                assert (cur.id not in strings)
+#                if cur.id not in visited:
+#                    to_visit.append(cur)
+#                    to_visit.extend(cur.children)
+#                    visited[cur.id] = cur.id
+#                else:
+#                    strings[cur.id] = "({} ({}) {})".format(
+#                            cur.kind,
+#                            " ".join([strings[c.get_subst().id] \
+#                                    for c in cur.children[0:-1]]),
+#                            strings[cur.children[-1].get_subst().id])
+#                    #for c in cur.children:
+#                    #    del(strings[c.get_subst().id])
+#        assert (self.get_subst().id in strings)
+#        #import sys
+#        #print ("##3# " + str(sys.getsizeof(strings)))
+#        return strings[self.get_subst().id]       
 
+    def dump (self, outfile, lead = " "):
+        to_visit = [self]
+        visited = {}
+        cntvb = 0
+        while to_visit:
+            cur = to_visit.pop().get_subst()
+            if type(cur) != SMTLetNode:
+                if type(cur) != SMTVarBindNode:
+                    outfile.write(")")
+                    cur.dump(outfile)
+                    cntvb = 0
+                else:
+                    if cntvb:
+                        cur.dump(outfile)
+                    else:
+                        cur.dump(outfile, "")
+                    cntvb += 1
+            else:
+                if cntvb:
+                    outfile.write(")")
+                    cntvb = 0
+                if cur.id not in visited:
+                    to_visit.append(cur)
+                    outfile.write(lead)
+                    outfile.write("({} (".format(cur.kind))
+                    to_visit.extend(cur.children[::-1])
+                    visited[cur.id] = cur.id
+                else:
+                    outfile.write(")")
+
+    #def dump (self, outfile):
+    #    outfile.write(str(self))
     def is_let (self):
         return True
 
@@ -559,6 +731,57 @@ class SMTCmdNode:
             assert (len(self.children) == 3)
             assert (isinstance(self.children[0], SMTSortNode))
         return "({}{})".format(self.kind, self.children2str())
+
+    #@profile
+    def dump (self, outfile, lead = ""):
+        if self.is_subst():
+            return
+        outfile.write(lead)
+        if self.kind == KIND_DECLFUN:
+            assert (len(self.children) == 1)
+            assert (isinstance(self.children[0], SMTFunNode))
+            fun = self.children[0]
+            outfile.write("({} {} ({}) {})\n".format(
+                    self.kind, 
+                    fun.name,
+                    " ".join([str(s) for s in fun.sorts]) \
+                            if len(fun.sorts) > 0 else "",
+                    str(fun.sort)))
+        elif self.kind == KIND_DEFFUN:
+            assert (len(self.children) == 3)
+            assert (isinstance(self.children[0], SMTFunNode))
+            fun = self.children[0]
+            svars = self.children[1]
+            fterm = self.children[2]
+            outfile.write("({} {} ({}) {!s} {!s})\n".format(
+                    self.kind,
+                    fun.name,
+                    " ".join(["({} {!s})".format(s.name, s.sort) 
+                              for s in svars]) if len(svars) > 0 else "",
+                    fun.sort,
+                    fterm))
+        elif self.kind == KIND_DECLSORT:
+            assert (len(self.children) == 1)
+            assert (isinstance(self.children[0], SMTSortNode))
+            sort = self.children[0]
+            outfile.write("({} {} {})\n".format(
+                    self.kind, sort.name, sort.nparams))
+        elif self.kind == KIND_ASSERT:
+            outfile.write("({}".format(self.kind))
+            assert (len(self.children) == 1)
+            self.children[0].dump(outfile)
+            outfile.write(")\n")
+        else:
+            if self.kind == KIND_DEFSORT:
+                assert (len(self.children) == 3)
+                assert (isinstance(self.children[0], SMTSortNode))
+            outfile.write("{!s}".format(self))
+            if self.kind != KIND_EXIT:
+                outfile.write("\n")
+
+#    def dump (self, outfile):
+#        outfile.write(str(self))
+            
 
     def children2str (self):
         res = [""]
@@ -660,6 +883,33 @@ class SMTScopeNode:
             else:
                 res.append(str(cmd))
         return "\n".join([s for s in res if s != ""])
+        #return "  ".join([s for s in res if s != ""])
+
+    #@profile
+    def dump (self, outfile, lead = ""):
+        if self.is_subst():
+            return
+        outfile.write(lead)
+        for cmd in self.cmds:
+            if cmd.kind == KIND_SETLOGIC:
+                cmd.dump(outfile)
+                # dump declarations of substition variables
+                for name in self.declfun_cmds:
+                    self.declfun_cmds[name].dump(outfile)
+            elif cmd.kind == KIND_PUSH:
+                assert (len(self.scopes) > 0)
+                assert (cmd.scope in self.scopes)
+                assert (cmd.scope.is_regular())
+                if cmd.scope.is_subst():
+                    continue
+                cmd.dump(outfile)
+                cmd.scope.dump(outfile)
+            else:
+                cmd.dump(outfile)
+        #outfile.write("\n")
+        
+   # def dump (self, outfile):
+   #     outfile.write(str(self))
 
     def is_regular (self):
         return self.kind == KIND_SCOPE
@@ -1519,7 +1769,7 @@ class DDSMTParser (SMTParser):
                 (line, col) = self.get_pos()
                 raise DDSMTParseException (
                          self.infile, line, col, 
-                         "previous declaration of function '{0!s}'"\
+                         "previous declaration of function '{!s}'"\
                          "was here".format(fun))
             fun = sf.funNode (t[1], t[3], t[2][0:], [], sf.cur_scope)
             return sf.cmdNode (KIND_DECLFUN, [fun])
