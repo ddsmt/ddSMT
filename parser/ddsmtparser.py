@@ -1704,7 +1704,7 @@ class DDSMTParser (SMTParser):
                 t_sort = t[2]
                 if t_ident[0] == SMTParser.IDXED:
                     return sf.anFunNode (
-                            str(t_ident[1]), t_sort, str(t_ident[2:]))
+                            str(t_ident[1]), t_sort, t_ident[2])
                 else:
                     assert (len(t_ident) == 1)
                     return sf.anFunNode (str(t_ident), t_sort, [])
