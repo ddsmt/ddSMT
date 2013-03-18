@@ -1177,23 +1177,32 @@ class SMTFormula:
         # args Real check
         elif kind in (KIND_RDIV, KIND_ISI, KIND_TOI):
             for c in children:
-                # TODO
                 if not c.sort == self.sortNode("Real"):
                     raise DDSMTParseCheckException (
                         "'{!s}' expects sort 'Real' as argument(s)".format(fun))
         # args Int or Real check
         elif kind in (KIND_ADD, KIND_GE, KIND_GT, KIND_MUL, KIND_NEG, KIND_SUB):
-            csort = children[0].sort
-            if csort not in (self.sortNode("Int"), self.sortNode("Real")):
+            c0 = children[0]
+            if c0.sort not in (self.sortNode("Int"), self.sortNode("Real")):
                 raise DDSMTParseCheckException (
                     "'{!s}' expects sort 'Int' or 'Real' as argument(s)" \
                     "".format(fun))
             for c in children[1:]:
-                if c.sort != csort:
-                # TODO
-                    raise DDSMTParseCheckException (
-                        "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
-                        "".format(fun, csort, c.sort)) 
+                if c.sort != c0.sort:
+                    # be more lenient in case that int const given when 
+                    # real was expected
+                    if c.is_const() and c.kind == KIND_CONSTN:
+                        c.kind = KIND_CONSTD
+                        c.sort = c0.sort
+                        c.value = float(c.value)
+                    elif c0.is_const() and c0.kind == KIND_CONSTN:
+                        c0.kind = KIND_CONSTD
+                        c0.sort = c.sort
+                        c0.value = float(c0.value)
+                    else:
+                        raise DDSMTParseCheckException (
+                            "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
+                            "".format(fun, c0.sort, c.sort)) 
         # args BV sort check
         elif kind in (KIND_CONC, KIND_EXTR, KIND_REP,   KIND_ROL,  KIND_ROR, 
                       KIND_SEXT, KIND_ZEXT, KIND_BVNEG, KIND_BVNOT):
@@ -1203,13 +1212,24 @@ class SMTFormula:
                         "'{!s}' expects BV sort as argument(s)".format(fun))
         # args equal sort check
         elif kind in (KIND_DIST, KIND_EQ):
-            csort = children[0].sort
+            c0 = children[0]
             for c in children[1:]:
-                if c.sort != csort:
-                # TODO
-                    raise DDSMTParseCheckException (
-                        "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
-                        "".format(fun, csort, c.sort)) 
+                if c.sort != c0.sort:
+                    print ("## 1 kind: " + c0.kind + " other kind: " + c.kind)
+                    # be more lenient in case that int const given when 
+                    # real was expected
+                    if c.is_const() and c.kind == KIND_CONSTN:
+                        c.kind = KIND_CONSTD
+                        c.sort = c0.sort
+                        c.value = float(c.value)
+                    elif c0.is_const() and c0.kind == KIND_CONSTN:
+                        c0.kind = KIND_CONSTD
+                        c0.sort = c.sort
+                        c0.value = float(c0.value)
+                    else:
+                        raise DDSMTParseCheckException (
+                            "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
+                            "".format(fun, c0.sort, c.sort)) 
         # args equal bw check
         elif kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP, 
                       KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
@@ -1218,15 +1238,15 @@ class SMTFormula:
                       KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  
                       KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, 
                       KIND_BVXNOR, KIND_BVXOR):
-            csort = children[0].sort
-            if not csort.is_bv_sort:
+            c0 = children[0]
+            if not c0.sort.is_bv_sort:
                 raise DDSMTParseCheckException (
                     "'{!s}' expects BV sort as argument(s)".format(fun))
             for c in children[1:]:
-                if c.sort != csort:
+                if c.sort != c0.sort:
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
-                        "".format(fun, csort, c.sort)) 
+                        "".format(fun, c0.sort, c.sort)) 
         # first arg Array check
         elif kind in (KIND_SELECT, KIND_STORE):
             if not children[0].sort.is_arr_sort:
