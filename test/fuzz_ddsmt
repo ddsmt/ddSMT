@@ -31,11 +31,11 @@ do
   case $1 in
     -h | --help) 
         echo "usage: $(basename $0) [-h | --help] [<fuzzsmt_options>] [<logic>]"
-
         echo
         echo "  -h, --help:           print this message and exit"
         echo "  <logic>:              see fuzzsmt -h (default: QF_AUFBV)"
         echo "  <fuzzsmt_options>:    see fuzzsmt -h"
+        cleanup-and-exit
         ;;
     -*) opts="$opts $1"
         ;;
@@ -69,7 +69,8 @@ do
   #tr '\n' ' ' < $tmp > $input 2> /dev/null
   echo -en "runs: $count"
   $DDSMT "$input" > $output 2> /dev/null
-  res=`cmp -s $input $output`
+  cmp -s "$input" "$output"
+  res=$?
 
 case $res in
     0) echo -en "\r"

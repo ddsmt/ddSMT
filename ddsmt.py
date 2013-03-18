@@ -13,10 +13,7 @@ import random
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 
-from parser.ddsmtparser import DDSMTParser, DDSMTParseException#, \
-        #KIND_ASSERT, KIND_CONST, KIND_CONSTN, KIND_CONSTD, \
-        #KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE, \
-        #KIND_LET, KIND_SETLOGIC, KIND_EXIT
+from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 g_infile  = ""
 g_outfile = ""
@@ -57,21 +54,16 @@ def _log(verbosity, msg = "", update = False):
             sys.stdout.write("[ddsmt] {0:s}\n".format(msg))
 
 
-#@profile
 def _dump (filename = None, root = None):
     global g_smtformula
     assert (g_smtformula)
     try:
-        #out = str(root if root != None else g_smtformula.scopes)
-        #print ("#### " + str(sys.getsizeof(out)))
         out = root if root != None else g_smtformula.scopes
         if not filename:
-            #sys.stdout.write(out)
             out.dump(sys.stdout)    
             sys.stdout.write("\n")
         else:
             with open(filename, 'w') as outfile:
-                #outfile.write(out)
                 out.dump(outfile)
                 outfile.write("\n")
     except IOError as e:
@@ -133,7 +125,6 @@ def _filter_scopes (filter_fun = None, root = None):
 def _filter_cmds (filter_fun = None, root = None):
     cmds = []
     scopes = _filter_scopes (lambda x: x.is_regular())
-    #kind not in (KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE))
     to_visit = [c for cmd_list in [s.cmds for s in scopes] for c in cmd_list]
     to_visit.extend(g_smtformula.scopes.declfun_cmds.values())
     while to_visit:
@@ -147,21 +138,18 @@ def _filter_cmds (filter_fun = None, root = None):
 
 def _filter_terms (filter_fun = None, root = None):
     nodes = []
-    #asserts = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
     asserts = _filter_cmds (lambda x: x.is_assert())
-    to_visit = [root if root != None else \
-            c.children[0] for c in asserts if not 
-                    c.children[0].get_subst().is_const()]
+    to_visit = [root if root != None \
+                     else c.children[0] for c in asserts if not 
+                                c.children[0].get_subst().is_const()]
     while to_visit:
         cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
             nodes.append(cur)
         if cur.children:
             to_visit.extend(cur.children)
+    
     nodes.sort(key = lambda x: x.id) # TODO TODO TODO test
-
-    #nodes.sort(key = lambda x: x.id, reverse = True)
-    #print ("#### nodes " + " ".join([str(n) + " [" + str(n.id) + "]" for n in nodes]))
     return nodes
 
 
@@ -223,8 +211,6 @@ def _substitute_scopes ():
     level = 1
     while True:
         scopes = _filter_scopes (lambda x: x.level == level and x.is_regular())
-                #lambda x: x.level == level and 
-                #          x.kind not in (KIND_ESCOPE, KIND_FSCOPE, KIND_LSCOPE))
         if not scopes:
             break
 
@@ -245,7 +231,6 @@ def _substitute_cmds (filter_fun = None):
 
     filter_fun = filter_fun if filter_fun else \
             lambda x: not x.is_setlogic() and not x.is_exit()
-            #lambda x: x.kind not in (KIND_SETLOGIC, KIND_EXIT)
 
     nsubst_total = _substitute (lambda x: None, g_smtformula.subst_cmds,
             _filter_cmds(filter_fun))
@@ -260,7 +245,7 @@ def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None,
     _log (2, msg if msg else "substitute TERMS:")
 
     nsubst_total = 0
-    cmds = cmds if cmds else _filter_cmds (lambda x: x.kind == KIND_ASSERT)
+    cmds = cmds if cmds else _filter_cmds (lambda x: x.is_assert())
 
     for cmd in cmds:
         assert (len(cmd.children) == 1)
@@ -358,7 +343,6 @@ def ddsmt_main ():
         elif succeeded == "cmds": 
            break
 
-        #cmds = _filter_cmds (lambda x: x.kind == KIND_ASSERT)
         cmds = _filter_cmds (lambda x: x.is_assert())
 
         if g_smtformula.is_bv_logic():
@@ -386,7 +370,6 @@ def ddsmt_main ():
 
         if g_smtformula.is_int_logic():
             nsubst = _substitute_terms (
-                    #lambda x: g_smtformula.zeroConstNode(KIND_CONSTN),
                     lambda x: g_smtformula.zeroConstNNode(),
                     lambda x: x.sort == g_smtformula.sortNode("Int") \
                               and not x.is_const(),
@@ -409,7 +392,6 @@ def ddsmt_main ():
 
         if g_smtformula.is_real_logic():
             nsubst = _substitute_terms (
-                    #lambda x: g_smtformula.zeroConstNode(KIND_CONSTD),
                     lambda x: g_smtformula.zeroConstDNode(),
                     lambda x: x.sort == g_smtformula.sortNode("Real") \
                               and not x.is_const(),
@@ -432,7 +414,6 @@ def ddsmt_main ():
 
         nsubst = _substitute_terms (
                 lambda x: x.children[-1],
-                #lambda x: x.kind == KIND_LET,
                 lambda x: x.is_let(),
                 cmds, "substitute LETs with child term")
         if nsubst:
@@ -535,6 +516,8 @@ if __name__ == "__main__":
 
             if not os.path.exists(g_infile):
                 raise DDSMTException ("given input file does not exist")
+            if os.path.isdir(g_infile):
+                raise DDSMTException ("given input file is a directory")
             #if os.path.exists(g_outfile):
             #    raise DDSMTException ("given output file does already exist")
 
