@@ -296,18 +296,16 @@ class SMTSortExprNode (SMTNode):
 
 class SMTConstNode (SMTNode):
 
-    def __init__ (self, kind, sort, value = 0, original_str = "none"):
-        assert (kind in g_const_kinds)                    # ^^^^ TODO debug
+    def __init__ (self, kind, sort, value = 0, ostr = "none"):
+        assert (kind in g_const_kinds)
         super().__init__(kind, sort)
         self.value = value
-        self.original_str = original_str # TODO debug
+        self.ostr = ostr    # original string
 
     def __str__ (self):
         if self.is_subst():
             return str(self.get_subst())
-        #return str(self.value)
-        return "{}".format(self.original_str \
-                if self.original_str != "none" else str(self.value))
+        return "{!s}".format(self.ostr if self.ostr != "none" else self.value)
 
     def is_const (self):
         return True
@@ -320,8 +318,8 @@ class SMTBVConstNode (SMTConstNode):
         if self.is_subst():
             return str(self.get_subst())
         if self.kind == KIND_CONSTH:
-            if self.original_str != "none":
-                return self.original_str
+            if self.ostr != "none":
+                return self.ostr
             else:
                 return "#x{}".format(hex(self.value)[2:]) 
         elif self.kind == KIND_CONSTB:
@@ -957,9 +955,9 @@ class SMTFormula:
             cur.level += delta
             to_visit.extend(cur.scopes)
 
-    def constNode (self, kind, sort, value):
+    def constNode (self, kind, sort, value, ostr="none"):
         assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
-        return SMTConstNode (kind, sort, value)
+        return SMTConstNode (kind, sort, value, ostr)
 
     def zeroConstNode (self,  kind):
         assert (kind in (KIND_CONSTN, KIND_CONSTD))
@@ -977,10 +975,9 @@ class SMTFormula:
         assert (value in ("true", "false"))
         return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
 
-                                          #vvvv TODO debug
-    def bvConstNode (self, kind, bw, value, original_str = None):
+    def bvConstNode (self, kind, bw, value, ostr = None):
         assert (isinstance (bw, int))
-        return SMTBVConstNode (kind, self.bvSortNode(bw), value, original_str)
+        return SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr)
 
     def bvZeroConstNode (self, sort):
         assert (sort.is_bv_sort())
@@ -1162,8 +1159,7 @@ class SMTFormula:
                     "'{!s}' expects exactly one index, {} given" \
                     "".format(fun.name, len(fun.indices)))
         # args sort Bool check
-        if kind in (KIND_AND, KIND_IMPL, KIND_NOT, KIND_OR, KIND_XOR,
-                    KIND_LE,  KIND_LT):
+        if kind in (KIND_AND, KIND_IMPL, KIND_NOT, KIND_OR, KIND_XOR):
             for c in children:
                 if not c.sort == self.sortNode ("Bool"):
                     raise DDSMTParseCheckException (
@@ -1181,7 +1177,8 @@ class SMTFormula:
                     raise DDSMTParseCheckException (
                         "'{!s}' expects sort 'Real' as argument(s)".format(fun))
         # args Int or Real check
-        elif kind in (KIND_ADD, KIND_GE, KIND_GT, KIND_MUL, KIND_NEG, KIND_SUB):
+        elif kind in (KIND_ADD, KIND_GE, KIND_GT, KIND_LE, KIND_LT, KIND_MUL, 
+                KIND_NEG, KIND_SUB):
             c0 = children[0]
             if c0.sort not in (self.sortNode("Int"), self.sortNode("Real")):
                 raise DDSMTParseCheckException (
@@ -1191,14 +1188,26 @@ class SMTFormula:
                 if c.sort != c0.sort:
                     # be more lenient in case that int const given when 
                     # real was expected
-                    if c.is_const() and c.kind == KIND_CONSTN:
+                    if c.kind == KIND_CONSTN:
                         c.kind = KIND_CONSTD
                         c.sort = c0.sort
                         c.value = float(c.value)
+                    elif c.kind == KIND_NEG and \
+                         c.children[0].kind == KIND_CONSTN:
+                             c.children[0].kind = KIND_CONSTD
+                             c.children[0].sort = c0.sort
+                             c.children[0].value = float(c.children[0].value)
+                             c.sort = c.children[0].sort
                     elif c0.is_const() and c0.kind == KIND_CONSTN:
                         c0.kind = KIND_CONSTD
                         c0.sort = c.sort
                         c0.value = float(c0.value)
+                    elif c0.kind == KIND_NEG and \
+                         c0.children[0].kind == KIND_CONSTN:
+                             c0.children[0].kind = KIND_CONSTD
+                             c0.children[0].sort = c.sort
+                             c0.children[0].value = float(c0.children[0].value)
+                             c0.sort = c0.children[0].sort
                     else:
                         raise DDSMTParseCheckException (
                             "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
@@ -1215,17 +1224,28 @@ class SMTFormula:
             c0 = children[0]
             for c in children[1:]:
                 if c.sort != c0.sort:
-                    print ("## 1 kind: " + c0.kind + " other kind: " + c.kind)
                     # be more lenient in case that int const given when 
                     # real was expected
                     if c.is_const() and c.kind == KIND_CONSTN:
                         c.kind = KIND_CONSTD
                         c.sort = c0.sort
                         c.value = float(c.value)
+                    elif c.kind == KIND_NEG and \
+                         c.children[0].kind == KIND_CONSTN:
+                             c.children[0].kind = KIND_CONSTD
+                             c.children[0].sort = c0.sort
+                             c.children[0].value = float(c.children[0].value)
+                             c.sort = c.children[0].sort
                     elif c0.is_const() and c0.kind == KIND_CONSTN:
                         c0.kind = KIND_CONSTD
                         c0.sort = c.sort
                         c0.value = float(c0.value)
+                    elif c0.kind == KIND_NEG and \
+                         c0.children[0].kind == KIND_CONSTN:
+                             c0.children[0].kind = KIND_CONSTD
+                             c0.children[0].sort = c.sort
+                             c0.children[0].value = float(c0.children[0].value)
+                             c0.sort = c0.children[0].sort
                     else:
                         raise DDSMTParseCheckException (
                             "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
@@ -1442,11 +1462,11 @@ class DDSMTParser (SMTParser):
         try:
             self.numeral.set_parse_action (lambda t:
                     sf.constNode (
-                        KIND_CONSTN, sf.sortNode ("Int"), value = int(t[0])))
+                        KIND_CONSTN, sf.sortNode ("Int"), int(t[0]), t[0]))
 
             self.decimal.set_parse_action (lambda t:
                     sf.constNode (
-                        KIND_CONSTD, sf.sortNode ("Real"), value = float(t[0])))
+                        KIND_CONSTD, sf.sortNode ("Real"), float(t[0]), t[0]))
 
             self.hexadecimal.set_parse_action (lambda t:
                     sf.bvConstNode (
@@ -1463,11 +1483,9 @@ class DDSMTParser (SMTParser):
                         t[0]))
 
             self.string.set_parse_action (lambda t:
-                    sf.constNode (
-                        KIND_CONSTS, sf.sortNode ("String"), value = str(t[0])))
+                    sf.constNode (KIND_CONSTS, sf.sortNode ("String"), t[0]))
 
-            self.b_value.set_parse_action (lambda t:
-                    sf.boolConstNode (str(t[0])))
+            self.b_value.set_parse_action (lambda t: sf.boolConstNode (t[0]))
 
             self.symbol.set_parse_action (lambda t: str(t))
             self.keyword.set_parse_action (lambda t: str(t))
