@@ -28,7 +28,7 @@ KIND_FORALL    = "forall"
 KIND_LET       = "let"
 
 KIND_AND       = "and"
-KIND_IMPL      = "implies"
+KIND_IMPL      = "=>"
 KIND_ITE       = "ite"
 KIND_NOT       = "not"
 KIND_OR        = "or"
@@ -1077,6 +1077,7 @@ class SMTFormula:
     def find_fun (self, name, indices = [], scope = None):
         scope = scope if scope else self.cur_scope
         while scope:
+            #print ("FIND fun: " + name + " " + str(scope.funs))
             if name in scope.funs:
                 assert (isinstance (scope.funs[name], SMTFunNode))
                 if indices == scope.funs[name].indices:
@@ -1085,9 +1086,13 @@ class SMTFormula:
         return None
 
     def add_fun (self, name, sort, sorts, indices, scope = None):
+        #print ("ADD fun: " + name + " sort: " + str(sort) + " sorts: " + str(sorts) + " indices: " + str(indices))
+        #print ("ADD fun: " + name + " " + str(isinstance(name, str)) + " " + str(isinstance(indices, list)))
         scope = scope if scope else self.scopes  # default: level 0
+        #print ("ADD fun: scope: " + scope.kind + " level: " + str(scope.level))
         assert (not self.find_fun (name, indices, scope))
         scope.funs[name] = SMTFunNode (name, sort, sorts, indices)
+        #print ("ADD fun: " + name + " " + str(scope.funs))
         return scope.funs[name]
 
     def delete_fun (self, name, indices = [], scope = None):
@@ -1403,6 +1408,8 @@ class SMTFormula:
                 self.cur_scope.funs[b.var.name] = b.var
         else:
             for s in svars:
+                #print ("## svar: " + s.name + " " + str(isinstance(s.name, str)) + " " + str(isinstance(s.indices, list)))
+                #print ("## svars: " + s.name + " sort: " + str(s.indices) + " " + str(self.find_fun(s.name, s.indices, new_prev_scope)))
                 assert (self.find_fun (s.name, s.indices, new_prev_scope))
                 self.delete_fun (s.name, s.indices, new_prev_scope)
                 self.cur_scope.funs[s.name] = s
@@ -1637,6 +1644,9 @@ class DDSMTParser (SMTParser):
             raise DDSMTParseException (self.infile, line, col, e.msg)
 
     def __term2SMTNode (self, t):
+        #print ("## term2: " + str(t))
+        #from parser.smtparser import SMTParseResult
+        #assert (isinstance(t, SMTParseResult))
         sf = self.smtformula
         try:
             if len(t) == 1:
