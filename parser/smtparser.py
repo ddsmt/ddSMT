@@ -505,6 +505,7 @@ class SMTParser:
     def __sorted_var (self):
         tokens = SMTParseResult()
         self.__check_lpar()
+        #print ("POS: " + str(self.get_pos()))
         tokens.append(self.symbol.parse_action(self.__symbol()))
         tokens.append(self.sort.parse_action(self.__sort()))
         self.__check_rpar()
@@ -512,31 +513,57 @@ class SMTParser:
 
 
     def __term (self):
-        tokens = None
 
         stack = []
-        args = []
         cntpar = 0
+        terms = [["other", []]]
 
-        terms = [["other", []]]  # kind, nested term positions
-        
         while True:
+        
+            #print ("\n============ stack start =====================")
+            #for item in stack:
+            #    print ("   " + str(item))
+            #print ("============ stack end =======================\n")
+
 
             if self.la == SMTParser.RPAR:
                 # check number of nested terms given
                 nterms = len(terms[-1][1])
                 if terms[-1][0] == SMTParser.LPAR and nterms == 0:
                     raise SMTParseException ("term expected", self)
-                elif terms[-1][0] in (SMTParser.LET, SMTParser.EXISTS,
-                                        SMTParser.FORALL) and nterms != 1:
+                elif terms[-1][0] in (SMTParser.LET, SMTParser.EXISTS, 
+                                      SMTParser.FORALL) and nterms != 1:
                     self.pos = terms[-1][1][0]
                     self.__scan()
                     self.__check_rpar()
-                # use ')' as end-of-term
-                stack.append(SMTParser.RPAR)
+                # build term expression
+                tokens = SMTParseResult()
+                tmp = []
+                while stack and stack[-1] not in (SMTParser.LPAR, 
+                        SMTParser.LET, SMTParser.EXISTS, SMTParser.FORALL):
+                    tmp.append(stack.pop())
+                if stack:
+                    tmp.append(stack.pop())
+                assert (tmp)
+                if tmp[-1] == SMTParser.LPAR:
+                    tmp.pop()
+                    tokens.append(tmp.pop())  # function symbol
+                    tokens.append([])
+                    while tmp:
+                        tokens[-1].append(self.term.parse_action(tmp.pop()))
+                elif tmp[-1] in (
+                        SMTParser.LET, SMTParser.EXISTS, SMTParser.FORALL):
+                    tokens.append(tmp.pop())  # let, forall, exists
+                    assert (isinstance(tmp[-1], list))
+                    tokens.append(tmp.pop())  # var bindings, sorted vars
+                    tokens.append(self.term.parse_action(tmp.pop()))  # term
+                else:
+                    tokens = tmp.pop()
+                stack.append(tokens)
                 terms.pop()
                 cntpar -= 1
                 self.__check_rpar()
+
             else:
                 terms[-1][1].append(self.pos)
                 if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
@@ -545,17 +572,15 @@ class SMTParser:
                        tokens.append(self.spec_constant.parse_action(
                            self.__spec_constant()))
                        stack.append(tokens)
-                elif self.__first_of_symbol(self.la[0]) \
-                     or self.la == SMTParser.IDXED:
+                elif self.la == SMTParser.IDXED \
+                     or self.__first_of_symbol(self.la[0]):
                          tokens = SMTParseResult()
                          tokens.append(self.qual_ident.parse_action(
                              self.__qual_ident()))
                          stack.append(tokens)
                 else:
                     self.__check_lpar("term expected")
-                    cntpar += 1
                     if self.la == SMTParser.AS:
-                        cntpar -= 1
                         self.__scan_back(1)
                         assert (self.la == SMTParser.LPAR)
                         tokens = SMTParseResult()
@@ -563,6 +588,7 @@ class SMTParser:
                             self.__qual_ident()))
                         stack.append(tokens)
                     elif self.la == SMTParser.LET:
+                        cntpar += 1
                         stack.append(self.la)
                         terms.append([self.la, []])
                         self.__scan()
@@ -576,8 +602,9 @@ class SMTParser:
                             raise SMTParseException (
                                     "variable binding expected", self)
                         self.__check_rpar()
-                        # -> recursive call to term
+                        # -> term
                     elif self.la in (SMTParser.EXISTS, SMTParser.FORALL):
+                        cntpar += 1
                         stack.append(self.la)
                         terms.append([self.la, []])
                         self.__scan()
@@ -590,14 +617,16 @@ class SMTParser:
                         if not stack[-1]:
                             raise SMTParseException (
                                     "sorted variable expected", self)
+                        #print ("---------- sorted vars: ")
+                        #for var in stack[-1]:
+                        #    print (var)
                         self.__check_rpar()
-                        # -> recursive call to term
+                        # -> term
                     elif self.la == '!':
-                        cntpar -= 1
                         tokens = SMTParseResult()
                         tokens.append(self.la)
                         self.__scan()
-                        # TODO iterative rather than recursive?
+                        # recursive call to term
                         tokens.append(self.term.parse_action(self.__term()))
                         # attributes
                         tokens.append([])
@@ -608,118 +637,317 @@ class SMTParser:
                             raise SMTParseException (
                                     "attribute expected", self)
                         stack.append(tokens)
-                        #stack.append(self.la)
-                        #self.__scan()
-                        ## TODO iterative rather than recursive?
-                        #stack.append(self.term.parse_action(self.__term()))
-                        ## attributes
-                        #stack.append([])
-                        #while self.la and self.la != SMTParser.RPAR:
-                        #    stack[-1].append(self.attribute.parse_action(
-                        #        self.__attribute()))
-                        #if not stack[-1]:
-                        #    raise SMTParseException (
-                        #            "attribute expected", self)
                         self.__check_rpar()
                     else:
+                        cntpar += 1
                         stack.append(SMTParser.LPAR)  # fun app marker
                         terms.append([self.la, []])
                         stack.append(self.qual_ident.parse_action(
                             self.__qual_ident()))
-                        # -> recursive call to term
-
+                        # -> term+
+                        
             if not self.la and cntpar:
                 self.__check_rpar()
                 break
             elif cntpar == 0:
                 break
+ 
+        assert (len(stack) == 1)
+        return stack.pop()
+    
 
-        while stack:
 
-            #print ("\n============ stack start =====================")
-            #for item in stack:
-            #    print ("   " + str(item))
-            #print ("============ stack end =======================\n")
 
-            tokens = SMTParseResult()
-            tmp = []
+#    def __term (self):
+#        #tokens = None
+#
+#        stack = []
+#        #args = []
+#        cntpar = 0
+#
+#        terms = [["other", []]]  # kind, nested term positions
+#        
+#        #import time
+#        #start = time.time()  # TODO debug
+#
+#        while True:
+#
+#            if self.la == SMTParser.RPAR:
+#                # check number of nested terms given
+#                nterms = len(terms[-1][1])
+#                if terms[-1][0] == SMTParser.LPAR and nterms == 0:
+#                    raise SMTParseException ("term expected", self)
+#                elif terms[-1][0] in (SMTParser.LET, SMTParser.EXISTS,
+#                                        SMTParser.FORALL) and nterms != 1:
+#                    self.pos = terms[-1][1][0]
+#                    self.__scan()
+#                    self.__check_rpar()
+#                # use ')' as end-of-term
+#                stack.append(SMTParser.RPAR)
+#                terms.pop()
+#                cntpar -= 1
+#                self.__check_rpar()
+#            else:
+#                terms[-1][1].append(self.pos)
+#                if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
+#                   or self.__first_of_const(self.la[0]):
+#                       tokens = SMTParseResult()
+#                       tokens.append(self.spec_constant.parse_action(
+#                           self.__spec_constant()))
+#                       stack.append(tokens)
+#                elif self.__first_of_symbol(self.la[0]) \
+#                     or self.la == SMTParser.IDXED:
+#                         tokens = SMTParseResult()
+#                         tokens.append(self.qual_ident.parse_action(
+#                             self.__qual_ident()))
+#                         stack.append(tokens)
+#                else:
+#                    self.__check_lpar("term expected")
+#                    cntpar += 1
+#                    if self.la == SMTParser.AS:
+#                        cntpar -= 1
+#                        self.__scan_back(1)
+#                        assert (self.la == SMTParser.LPAR)
+#                        tokens = SMTParseResult()
+#                        tokens.append(self.qual_ident.parse_action(
+#                            self.__qual_ident()))
+#                        stack.append(tokens)
+#                    elif self.la == SMTParser.LET:
+#                        stack.append(self.la)
+#                        terms.append([self.la, []])
+#                        self.__scan()
+#                        # var bindings
+#                        self.__check_lpar()
+#                        stack.append([])
+#                        while self.la and self.la != SMTParser.RPAR:
+#                            stack[-1].append(self.var_binding.parse_action(
+#                                self.__var_binding()))
+#                        if not stack[-1]:
+#                            raise SMTParseException (
+#                                    "variable binding expected", self)
+#                        self.__check_rpar()
+#                        # -> recursive call to term
+#                    elif self.la in (SMTParser.EXISTS, SMTParser.FORALL):
+#                        stack.append(self.la)
+#                        terms.append([self.la, []])
+#                        self.__scan()
+#                        # sorted vars
+#                        self.__check_lpar()
+#                        stack.append([])
+#                        while self.la and self.la != SMTParser.RPAR:
+#                            stack[-1].append(self.sorted_var.parse_action(
+#                                self.__sorted_var()))
+#                        if not stack[-1]:
+#                            raise SMTParseException (
+#                                    "sorted variable expected", self)
+#                        self.__check_rpar()
+#                        # -> recursive call to term
+#                    elif self.la == '!':
+#                        cntpar -= 1
+#                        tokens = SMTParseResult()
+#                        tokens.append(self.la)
+#                        self.__scan()
+#                        # TODO iterative rather than recursive?
+#                        tokens.append(self.term.parse_action(self.__term()))
+#                        # attributes
+#                        tokens.append([])
+#                        while self.la and self.la != SMTParser.RPAR:
+#                            tokens[-1].append(self.attribute.parse_action(
+#                                self.__attribute()))
+#                        if not tokens[-1]:
+#                            raise SMTParseException (
+#                                    "attribute expected", self)
+#                        stack.append(tokens)
+#                        #stack.append(self.la)
+#                        #self.__scan()
+#                        ## TODO iterative rather than recursive?
+#                        #stack.append(self.term.parse_action(self.__term()))
+#                        ## attributes
+#                        #stack.append([])
+#                        #while self.la and self.la != SMTParser.RPAR:
+#                        #    stack[-1].append(self.attribute.parse_action(
+#                        #        self.__attribute()))
+#                        #if not stack[-1]:
+#                        #    raise SMTParseException (
+#                        #            "attribute expected", self)
+#                        self.__check_rpar()
+#                    else:
+#                        stack.append(SMTParser.LPAR)  # fun app marker
+#                        terms.append([self.la, []])
+#                        stack.append(self.qual_ident.parse_action(
+#                            self.__qual_ident()))
+#                        # -> recursive call to term
+#
+#            if not self.la and cntpar:
+#                self.__check_rpar()
+#                break
+#            elif cntpar == 0:
+#                break
+#
+#        #ttime = time.time() - start
+#        #if ttime > 0.5:
+#        #    print ("time: " + str(ttime)) # TODO debug
+#
+#
+#        #start = time.time()  # TODO debug
+#
+#        while len(stack) > 1:
+#
+#            #start2 = time.time()  # TODO debug
+#
+#            tokens = SMTParseResult()
+#            tmp = []
+#
+#            # build parse results starting from innermost to outermost term
+#
+#            assert (stack[-1] not in (SMTParser.LPAR, SMTParser.LET, 
+#                                      SMTParser.EXISTS, SMTParser.FORALL))
+#
+#
+#            spos = len(stack)
+#            epos = len(stack)
+#            for item in reversed(stack):
+#                spos -= 1
+#                assert (stack[spos] == item)
+#                if item in (SMTParser.LPAR, SMTParser.LET, SMTParser.EXISTS,
+#                            SMTParser.FORALL):
+#                    break
+#
+#        #    tttime = time.time() - start2
+#        #    print ("time3: " + str(tttime)) # TODO debug
+#
+#            if stack[spos] == SMTParser.LPAR:
+#                pos = spos + 1
+#                assert (len(stack[pos:]) >= 3)
+#                tokens.append(stack[pos])  # function symbol
+#                tokens.append([])
+#                while pos < len(stack):    # terms
+#                    pos += 1
+#                    if stack[pos] == SMTParser.RPAR:
+#                        break
+#                    tokens[-1].append(self.term.parse_action(stack[pos]))
+#                epos = pos
+#            elif stack[spos] in (
+#                    SMTParser.LET, SMTParser.EXISTS, SMTParser.FORALL):
+#                pos = spos
+#                tokens.append(stack[pos])
+#                assert (len(stack[pos:]) >= 3)
+#                pos += 1
+#                assert (isinstance(stack[pos], list))
+#                tokens.append(stack[pos])  # var bindings / sorted vars
+#                pos += 1
+#                tokens.append(self.term.parse_action(stack[pos]))  # term
+#                pos += 1
+#                assert (stack[pos] == SMTParser.RPAR)
+#                epos = pos
+#            #else:
+#            #    tokens = cur
+#
+#            stack[spos] = tokens
+#            del(stack[spos+1:epos+1])
+#
+#        #ttime = time.time() - start
+#        #if ttime > 0.5:
+#        #    print ("time2: " + str(ttime)) # TODO debug
+#
+#        return stack.pop()
+#
 
-            # work through stack from innermost to outermost term expression
+
+                
+
             
-            cur = stack.pop()
-            assert (cur not in (SMTParser.LPAR, SMTParser.LET,
-                                SMTParser.EXISTS, SMTParser.FORALL))
-            tmp.append(cur)
-            while stack:
-                cur = stack.pop()
-                tmp.append(cur)
-                if cur in (SMTParser.LPAR, SMTParser.LET,SMTParser.EXISTS,
-                           SMTParser.FORALL):
-                    break
 
-            #print ("\n++++++++++++ stack start +++++++++++++++++++++")
-            #for item in stack:
-            #    print ("   " + str(item))
-            #print ("++++++++++++ stack end +++++++++++++++++++++++\n")
+              
 
-            #print ("\n++++++++++++++ tmp start +++++++++++++++++++++")
-            #for item in tmp:
-            #    print ("   " + str(item))
-            #print ("++++++++++++++ tmp end +++++++++++++++++++++++\n")
 
-            cur = tmp.pop()
-            if cur == SMTParser.LPAR:
-                assert (len(tmp) > 2)
-                tokens.append(tmp.pop())  # function symbol
-                tokens.append([])
-                while tmp:
-                    cur = tmp.pop()
-                    if cur == SMTParser.RPAR:
-                        break
-                    #print ("++ " + str(self.term.parse_action(cur)))
-                    tokens[-1].append(self.term.parse_action(cur))
-            elif cur == SMTParser.LET:
-                tokens.append(cur)  # let
-                assert (len(tmp) >= 2)
-                cur = tmp.pop()
-                assert (isinstance(cur, list))
-                tokens.append(cur)  # var bindings
-                tokens.append(self.term.parse_action(tmp.pop()))  # term
-                cur = tmp.pop()
-                assert (cur == SMTParser.RPAR)
-            elif cur in (SMTParser.EXISTS, SMTParser.FORALL):
-                tokens.append(cur)  # forall, exists
-                assert (len(tmp) >= 2)
-                cur = tmp.pop()
-                assert (isinstance(cur, list))
-                tokens.append(cur)  # sorted vars
-                tokens.append(self.term.parse_action(tmp.pop()))  # term
-                cur = tmp.pop()
-                assert (cur == SMTParser.RPAR)
-            else:
-                tokens = cur
 
-            #print ("---  PARSE RESULT:  " + str(tokens))
-
-            assert (stack or not args)
-
-            #print ("\n------------ stack start ---------------------")
-            #for item in stack:
-            #    print ("   " + str(item))
-            #print ("------------ stack end -----------------------\n")
-
-            #print ("\n-------------- tmp start ---------------------")
-            #for item in tmp:
-            #    print ("   " + str(item))
-            #print ("-------------- tmp end -----------------------\n")
-
-            if stack:
-                stack.append(tokens)
-                while tmp:
-                    stack.append(tmp.pop())
-
-        assert (tokens)
-        return tokens
+#        while stack:
+#
+#            #print ("\n============ stack start =====================")
+#            #for item in stack:
+#            #    print ("   " + str(item))
+#            #print ("============ stack end =======================\n")
+#
+#            tokens = SMTParseResult()
+#            tmp = []
+#
+#            # work through stack from innermost to outermost term expression
+#            
+#            cur = stack.pop()
+#            assert (cur not in (SMTParser.LPAR, SMTParser.LET,
+#                                SMTParser.EXISTS, SMTParser.FORALL))
+#            tmp.append(cur)
+#            while stack:
+#                cur = stack.pop()
+#                tmp.append(cur)
+#                if cur in (SMTParser.LPAR, SMTParser.LET,SMTParser.EXISTS,
+#                           SMTParser.FORALL):
+#                    break
+#
+#            #print ("\n++++++++++++ stack start +++++++++++++++++++++")
+#            #for item in stack:
+#            #    print ("   " + str(item))
+#            #print ("++++++++++++ stack end +++++++++++++++++++++++\n")
+#
+#            #print ("\n++++++++++++++ tmp start +++++++++++++++++++++")
+#            #for item in tmp:
+#            #    print ("   " + str(item))
+#            #print ("++++++++++++++ tmp end +++++++++++++++++++++++\n")
+#
+#            cur = tmp.pop()
+#            if cur == SMTParser.LPAR:
+#                assert (len(tmp) > 2)
+#                tokens.append(tmp.pop())  # function symbol
+#                tokens.append([])
+#                while tmp:
+#                    cur = tmp.pop()
+#                    if cur == SMTParser.RPAR:
+#                        break
+#                    #print ("++ " + str(self.term.parse_action(cur)))
+#                    tokens[-1].append(self.term.parse_action(cur))
+#            elif cur == SMTParser.LET:
+#                tokens.append(cur)  # let
+#                assert (len(tmp) >= 2)
+#                cur = tmp.pop()
+#                assert (isinstance(cur, list))
+#                tokens.append(cur)  # var bindings
+#                tokens.append(self.term.parse_action(tmp.pop()))  # term
+#                cur = tmp.pop()
+#                assert (cur == SMTParser.RPAR)
+#            elif cur in (SMTParser.EXISTS, SMTParser.FORALL):
+#                tokens.append(cur)  # forall, exists
+#                assert (len(tmp) >= 2)
+#                cur = tmp.pop()
+#                assert (isinstance(cur, list))
+#                tokens.append(cur)  # sorted vars
+#                tokens.append(self.term.parse_action(tmp.pop()))  # term
+#                cur = tmp.pop()
+#                assert (cur == SMTParser.RPAR)
+#            else:
+#                tokens = cur
+#
+#            #print ("---  PARSE RESULT:  " + str(tokens))
+#
+#            assert (stack or not args)
+#
+#            #print ("\n------------ stack start ---------------------")
+#            #for item in stack:
+#            #    print ("   " + str(item))
+#            #print ("------------ stack end -----------------------\n")
+#
+#            #print ("\n-------------- tmp start ---------------------")
+#            #for item in tmp:
+#            #    print ("   " + str(item))
+#            #print ("-------------- tmp end -----------------------\n")
+#
+#            if stack:
+#                stack.append(tokens)
+#                while tmp:
+#                    stack.append(tmp.pop())
+#
+#        assert (tokens)
+#        return tokens
 
 
 
