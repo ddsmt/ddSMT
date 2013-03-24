@@ -233,19 +233,6 @@ class SMTParser:
                             result.append(item[i])
                             item = item[i+1:]
                             break
-
-                #while SMTParser.LPAR in item or SMTParser.RPAR in item:
-                #    print ("#### " + item)
-                #    i = item.index(SMTParser.LPAR)
-                #    itm = item[0:i]
-                #    rp = []
-                #    while itm and itm[-1] == SMTParser.RPAR:
-                #        rp.append(SMTParser.RPAR)
-                #        itm = itm[:-1]
-                #    result.append(itm)
-                #    result.extend(rp)
-                #    result.append(item[i])
-                #    item = item[i+1:]
             if item:
                 result.append(item)
             if rpars:
@@ -302,7 +289,7 @@ class SMTParser:
 
     def __string (self):
         tokens = SMTParseResult()
-        if not self.la[0] == '\"':# or len(self.la) < 2:
+        if not self.la[0] == '\"':
             raise SMTParseException ("string expected", self)
         strings = [self.la]
         if self.la == '\"' or self.la[-1] != '\"':
@@ -326,9 +313,6 @@ class SMTParser:
         return tokens
 
     def __symbol (self):
-        #import pdb
-        #if str(self.la) == "bv134541822":
-        #    pdb.set_trace()
         tokens = SMTParseResult()
         if not re.match(
                 r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
@@ -346,11 +330,10 @@ class SMTParser:
             string = self.la
             for i in range(0, len(string)):
                 c = string[i]
-                if not c.isalpha() and not c.isdigit() and c not in self.spec_chars:
-                #print ("self.pos[{}]: {}".format(self.pos, self.tokens[self.pos]))
-                #print ("self.la: {}".format(self.la))
-                    raise SMTParseException (
-                            "unexpected character: '{}'".format(c), self)
+                if not c.isalpha() and not c.isdigit() \
+                   and c not in self.spec_chars:
+                       raise SMTParseException (
+                               "unexpected character: '{}'".format(c), self)
         tokens.append(self.la)
         self.__scan()
         return tokens
@@ -596,19 +579,14 @@ class SMTParser:
 
 
     def __term (self):
-
         stack = []
         cntpar = 0
         terms = [["other", []]]
-
         while True:
-        
             #print ("\n============ stack start =====================")
             #for item in stack:
             #    print ("   " + str(item))
             #print ("============ stack end =======================\n")
-
-
             if self.la == SMTParser.RPAR:
                 # check number of nested terms given
                 nterms = len(terms[-1][1])
@@ -650,7 +628,6 @@ class SMTParser:
                 terms.pop()
                 cntpar -= 1
                 self.__check_rpar()
-
             else:
                 terms[-1][1].append(self.pos)
                 if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
@@ -679,36 +656,16 @@ class SMTParser:
                         stack.append(self.la)
                         terms.append([self.la, []])
                         self.__scan()
-                        # var bindings
                         stack.append(self.var_bindings.parse_action(
                             self.__var_bindings()))
-                        #self.__check_lpar()
-                        #stack.append([])
-                        #while self.la and self.la != SMTParser.RPAR:
-                        #    stack[-1].append(self.var_binding.parse_action(
-                        #        self.__var_binding()))
-                        #if not stack[-1]:
-                        #    raise SMTParseException (
-                        #            "variable binding expected", self)
-                        #self.__check_rpar()
                         # -> term
                     elif self.la in (SMTParser.EXISTS, SMTParser.FORALL):
                         cntpar += 1
                         stack.append(self.la)
                         terms.append([self.la, []])
                         self.__scan()
-                        # sorted vars
                         stack.append(self.sorted_qvars.parse_action(
                             self.__sorted_qvars()))
-                        #self.__check_lpar()
-                        #stack.append([])
-                        #while self.la and self.la != SMTParser.RPAR:
-                        #    stack[-1].append(self.sorted_var.parse_action(
-                        #        self.__sorted_var()))
-                        #if not stack[-1]:
-                        #    raise SMTParseException (
-                        #            "sorted variable expected", self)
-                        #self.__check_rpar()
                         # -> term
                     elif self.la == '!':
                         tokens = SMTParseResult()
@@ -733,16 +690,13 @@ class SMTParser:
                         stack.append(self.qual_ident.parse_action(
                             self.__qual_ident()))
                         # -> term+
-                        
             if not self.la and cntpar:
                 self.__check_rpar()
                 break
             elif cntpar == 0:
                 break
- 
         assert (len(stack) == 1)
         return stack.pop()
-
 
     def __option (self):
         tokens = SMTParseResult()

@@ -10,8 +10,6 @@ KIND_SCOPE     = "<scope>"
 KIND_ESCOPE    = "<exists scope>"
 KIND_FSCOPE    = "<forall scope>"
 KIND_LSCOPE    = "<let scope>"
-#KIND_SCOPE     = "<svar scope>"
-#KIND_VSCOPE    = "<varb scope>"
 
 KIND_SORT      = "<sort>"
 KIND_ARRSORT   = "<array sort>"
@@ -512,11 +510,6 @@ class SMTForallExistsNode (SMTNode):
 class SMTLetNode (SMTNode):
 
     def __init__ (self, scope, children):
-        #assert (len(children) == 2)
-        #assert (isinstance (children[0], list))
-        #ch = children[0]         # flatten children
-        #ch.extend([children[1]])
-        #super().__init__(KIND_LET, children[1].sort, ch) 
         super().__init__(KIND_LET, children[-1].sort, children)
         self.scope = scope
 
@@ -963,6 +956,7 @@ class SMTFormula:
             assert (self.cur_scope.prev != None)
             self.cur_scope = self.cur_scope.prev
 
+    # TODO still needed?
     def delete_scope (self, scope):
         assert (scope.prev)
         assert (scope in scope.prev.scopes)
@@ -1100,11 +1094,6 @@ class SMTFormula:
 
     def find_fun (self, name, indices = [], scope = None, find_nested = True):
         scope = scope if scope else self.cur_scope
-      #  print ("\n* scope: " + str(scope.level) + 
-      #         "  kind: " + str(scope.kind) + 
-      #         "  vars: " + " ".join([str(f) for f in scope.funs]))
-      #  print ("* name in " + str(name in scope.funs))
-      #  print ("* nested " + str(find_nested))
         while scope:
             if name in scope.funs:
                 assert (isinstance (scope.funs[name], SMTFunNode))
@@ -1157,7 +1146,6 @@ class SMTFormula:
         # args declaration check
         for c in children:
             if not c.sort:
-                #print ("#### " + str(c) + " " + str(c.sort))
                 assert (c.kind == KIND_FUN)
                 raise DDSMTParseCheckException (
                         "function '{!s}' undeclared".format(c))
@@ -1195,22 +1183,6 @@ class SMTFormula:
         if kind in (KIND_AND, KIND_IMPL, KIND_NOT, KIND_OR, KIND_XOR):
             for c in children:
                 if not c.sort == self.sortNode("Bool"):
-                    #print ("child: " + str(c))
-                    ## debug TODO
-                    #to_visit = [self.cur_scope]
-                    #while to_visit:
-                    #    scope = to_visit.pop()
-                    #    print ("scope: " + str(scope.level) + 
-                    #           " kind: " + str(scope.kind) + 
-                    #           " vars: " + " ".join([str(f) + " " + str(scope.funs[f].sort) for f in scope.funs]))
-                    #    if scope.prev:
-                    #        to_visit.append(scope.prev)
-                    #        #print ("  prev: " + str(scope.prev.level) + 
-                    #        #        " kind: " + str(scope.prev.kind) + 
-                    #        #        " vars: " + " ".join([str(f) + " " + str(scope.funs[f].sort) \
-                    #        #                for f in scope.prev.funs]))
-                    #    #to_visit.extend(scope.scopes)
-                    ## end debug
                     raise DDSMTParseCheckException (
                         "'{!s}' expects sort 'Bool' as argument(s), " \
                         "found '{}'".format(fun, c.sort))
@@ -1348,21 +1320,6 @@ class SMTFormula:
         # not predefined
         else:
             declfun = self.find_fun(fun.name, fun.indices)
-#            print ("### declfun: " + fun.name + " " + str(declfun))
-#            # debug TODO
-#            to_visit = [self.cur_scope]
-#            while to_visit:
-#                scope = to_visit.pop()
-#                print ("scope: " + str(scope.level) + 
-#                       " kind: " + str(scope.kind) + 
-#                       " vars: " + " ".join([str(f) for f in scope.funs]))
-#                if scope.prev:
-#                    print ("  prev: " + str(scope.prev.level) + 
-#                            " kind: " + str(scope.prev.kind) + 
-#                            " vars: " + " ".join([str(f) \
-#                                    for f in scope.prev.funs]))
-#                to_visit.extend(scope.scopes)
-#            # end debug
             assert (declfun)
             if declfun.sort == None:  # not declared yet
                 raise DDSMTParseCheckException (
@@ -1449,23 +1406,6 @@ class SMTFormula:
             assert (self.__assert_svar)
             ch = children
         scope = self.cur_scope
-        ## debug TODO
-        #print ("=============================================")
-        #to_visit = [scope]
-        #while to_visit:
-        #    scope = to_visit.pop()
-        #    print ("scope: " + str(scope.level) + 
-        #           " kind: " + str(scope.kind) + 
-        #           " vars: " + " ".join([str(f) for f in scope.funs]))
-        #    if scope.prev:
-        #        to_visit.append(scope.prev)
-        #        #print ("  prev: " + str(scope.prev.level) + 
-        #        #        " kind: " + str(scope.prev.kind) + 
-        #        #        " vars: " + " ".join([str(f) \
-        #        #                for f in scope.prev.funs]))
-        #    #to_visit.extend(scope.scopes)
-        #print ("=============================================")
-        ## end debug
         self.close_scope()
         return SMTLetNode (scope, ch) if kind == KIND_LET \
                 else SMTForallExistsNode (svars, scope, kind, ch)
@@ -1589,12 +1529,8 @@ class DDSMTParser (SMTParser):
 
             self.qual_ident.set_parse_action (self.__qualIdent2SMTNode)
             
-            #self.var_binding.set_parse_action (lambda t:
-            #        SMTVarBindNode (
-            #            sf.funNode (str(t[0]), t[1].sort, unique = False), 
-            #            [t[1]]))
             self.var_binding.set_parse_action(self.__varBinding2SMTNode)
-            #
+
             self.sorted_var.set_parse_action (lambda t:
                     sf.funNode (str(t[0]), t[1], scope = sf.cur_scope))
 
@@ -1607,7 +1543,9 @@ class DDSMTParser (SMTParser):
 
             self.option.set_parse_action (lambda t: 
                     " ".join([str(to) for to in t]))
+
             self.command.set_parse_action (self.__cmd2SMTCmdNode)
+
         except DDSMTParseCheckException as e:
             (line, col) = self.get_pos()
             raise DDSMTParseException (self.infile, line, col, e.msg)
@@ -1727,7 +1665,6 @@ class DDSMTParser (SMTParser):
                     find_nested = False),
                 [t[1]], 
                 sf.cur_scope)
-        #sf.close_scope()
         return varb
 
     def __sortedQVar2SMTNode (self, t):
@@ -1737,41 +1674,16 @@ class DDSMTParser (SMTParser):
                 sf.funNode (
                     str(t[0]), t[1], scope = sf.cur_scope, find_nested = False),
                 sf.cur_scope)
-        #sf.close_scope()
         return svar
 
     def __varBindings (self, t):
         assert (len(t) == 1)
         assert (isinstance(t[0], list))
         sf = self.smtformula
-        #sf.open_scope()
         sf.cur_scope = None
         for varb in t[0]:
-            if not sf.cur_scope:
-                sf.cur_scope = varb.scope
-                ## debug TODO
-                #print ("---------------------------------------------")
-                #to_visit = [sf.cur_scope]
-                #while to_visit:
-                #    scope = to_visit.pop()
-                #    print ("scope: " + str(scope.level) + 
-                #           " kind: " + str(scope.kind) + 
-                #           " vars: " + " ".join([str(f) for f in scope.funs]))
-                #    if scope.prev:
-                #        to_visit.append(scope.prev)
-                #        #print ("  prev: " + str(scope.prev.level) + 
-                #        #        " kind: " + str(scope.prev.kind) + 
-                #        #        " vars: " + " ".join([str(f) \
-                #        #                for f in scope.prev.funs]))
-                #    #to_visit.extend(scope.scopes)
-                ## end debug
-                continue
-            scope = varb.scope
-            assert (not scope.cmds)
-            assert (not scope.sorts)
-            assert (len(scope.funs) == 1)  # by construction
-            assert (not sf.find_fun (varb.var.name, varb.var.indices, find_nested = False))
             # Note: (varb1, varb2) results in (by construction)
+            #
             #       ---------
             #       | scope |
             #       | x     |-> funs: varb1
@@ -1779,80 +1691,31 @@ class DDSMTParser (SMTParser):
             #            |---->| scope |
             #                  | x+1   |-> funs: varb2
             #                   -------
+            #
+            # -> move all var bindings to scope of first var binding
+            if not sf.cur_scope:
+                sf.cur_scope = varb.scope
+                continue
+            scope = varb.scope
+            assert (not scope.cmds)
+            assert (not scope.sorts)
+            assert (len(scope.funs) == 1)  # by construction
+            assert (not sf.find_fun (
+                varb.var.name, varb.var.indices, find_nested = False))
             sf.cur_scope.funs[varb.var.name] = varb.var
             sf.cur_scope.scopes = scope.scopes
             for scope in scope.scopes:
                 scope.prev = sf.cur_scope
-            ## debug TODO
-            #print ("---------------------------------------------")
-            #to_visit = [sf.cur_scope]
-            #while to_visit:
-            #    scope = to_visit.pop()
-            #    print ("scope: " + str(scope.level) + 
-            #           " kind: " + str(scope.kind) + 
-            #           " vars: " + " ".join([str(f) for f in scope.funs]))
-            #    if scope.prev:
-            #        print ("  prev: " + str(scope.prev.level) + 
-            #                " kind: " + str(scope.prev.kind) + 
-            #                " vars: " + " ".join([str(f) \
-            #                        for f in scope.prev.funs]))
-            #    to_visit.extend(scope.scopes)
-            ## end debug
-        #sf.close_scope()
         return t[0]
-        #sf = self.smtformula
-        #sf.open_scope()
-        #for varb in t[0]:
-        #    scope = varb.scope
-        #    assert (not scope.cmds)
-        #    assert (not scope.scopes)
-        #    assert (not scope.sorts)
-        #    assert (len(scope.funs) == 1)
-        #    if sf.find_fun (varb.var.name, varb.var.indices):
-        #        (line, col) = self.get_pos()
-        #        raise DDSMTParseException (
-        #                self.infile, line, col, 
-        #                "previous declaration of '{}' was here" \
-        #                "".format(varb.var))
-        #    sf.cur_scope.funs.append(varb.var)
-        #    varb.scope = sf.cur_scope
-        #    sf.delete_scope(scope)
-        #sf.close_scope()
-        #return t[0]
 
     def __sortedQVars (self, t):
         assert (len(t) == 1)
         assert (isinstance(t[0], list))
         sf = self.smtformula
-        #sf.open_scope()
         sf.cur_scope = None
         for svar in t[0]:
-            if not sf.cur_scope:
-                sf.cur_scope = svar.scope
-                ## debug TODO
-                #print ("---------------------------------------------")
-                #to_visit = [sf.cur_scope]
-                #while to_visit:
-                #    scope = to_visit.pop()
-                #    print ("scope: " + str(scope.level) + 
-                #           " kind: " + str(scope.kind) + 
-                #           " vars: " + " ".join([str(f) for f in scope.funs]))
-                #    if scope.prev:
-                #        to_visit.append(scope.prev)
-                #        #print ("  prev: " + str(scope.prev.level) + 
-                #        #        " kind: " + str(scope.prev.kind) + 
-                #        #        " vars: " + " ".join([str(f) \
-                #        #                for f in scope.prev.funs]))
-                #    #to_visit.extend(scope.scopes)
-                ## end debug
-                continue
-            scope = svar.scope
-            assert (not scope.cmds)
-            assert (not scope.sorts)
-            assert (len(scope.funs) == 1)  # by construction
-            #print ("find_fun: " + svar.var.name + " " + str( sf.find_fun (svar.var.name, svar.var.indices, find_nested = False)))
-            assert (not sf.find_fun (svar.var.name, svar.var.indices, find_nested = False))
             # Note: (svar1, svar2) results in (by construction)
+            #
             #       ---------
             #       | scope |
             #       | x     |-> funs: svar1
@@ -1860,46 +1723,22 @@ class DDSMTParser (SMTParser):
             #            |---->| scope |
             #                  | x+1   |-> funs: svar2
             #                   -------
+            #
+            # -> move all sorted vars to scope of first sorted var
+            if not sf.cur_scope:
+                sf.cur_scope = svar.scope
+                continue
+            scope = svar.scope
+            assert (not scope.cmds)
+            assert (not scope.sorts)
+            assert (len(scope.funs) == 1)  # by construction
+            assert (not sf.find_fun (
+                svar.var.name, svar.var.indices, find_nested = False))
             sf.cur_scope.funs[svar.var.name] = svar.var
             sf.cur_scope.scopes = scope.scopes
             for scope in scope.scopes:
                 scope.prev = sf.cur_scope
-            ## debug TODO
-            #print ("---------------------------------------------")
-            #to_visit = [sf.cur_scope]
-            #while to_visit:
-            #    scope = to_visit.pop()
-            #    print ("scope: " + str(scope.level) + 
-            #           " kind: " + str(scope.kind) + 
-            #           " vars: " + " ".join([str(f) for f in scope.funs]))
-            #    if scope.prev:
-            #        print ("  prev: " + str(scope.prev.level) + 
-            #                " kind: " + str(scope.prev.kind) + 
-            #                " vars: " + " ".join([str(f) \
-            #                        for f in scope.prev.funs]))
-            #    to_visit.extend(scope.scopes)
-            ## end debug
-        #sf.close_scope()
         return t[0]
-        #sf = self.smtformula
-        #sf.open_scope()
-        #for svar in t[0]:
-        #    scope = svar.scope
-        #    assert (not scope.cmds)
-        #    assert (not scope.scopes)
-        #    assert (not scope.sorts)
-        #    assert (len(scope.funs) == 1)
-        #    if sf.find_fun (svar.var.name, svar.var.indices):
-        #        (line, col) = self.get_pos()
-        #        raise DDSMTParseException (
-        #                self.infile, line, col, 
-        #                "previous declaration of '{}' was here" \
-        #                "".format(svar.var))
-        #    sf.cur_scope.funs[svar.var.name] = svar.var
-        #    svar.scope = sf.cur_scope
-        #    sf.delete_scope(scope)
-        #sf.close_scope()
-        #return t[0]
 
     def __term2SMTNode (self, t):
         sf = self.smtformula
@@ -1971,5 +1810,3 @@ class DDSMTParser (SMTParser):
             return sf.cmdNode (KIND_GETVALUE, [t[1]])
         else:
             return sf.cmdNode (t[0], children = t[1:])
-
-
