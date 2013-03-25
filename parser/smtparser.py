@@ -539,11 +539,13 @@ class SMTParser:
 
     def __var_bindings (self):
         tokens = SMTParseResult()
+        cnt = 0
         self.__check_lpar()
         tokens.append([])
         while self.la and self.la != SMTParser.RPAR:
+            cnt += 1
             tokens[-1].append(self.var_binding.parse_action(
-                self.__var_binding()))
+                self.__var_binding(), cnt))
         if not tokens[-1]:
             raise SMTParseException ("variable binding expected", self)
         self.__check_rpar()
@@ -567,11 +569,13 @@ class SMTParser:
 
     def __sorted_qvars (self):
         tokens = SMTParseResult()
+        cnt = 0
         self.__check_lpar()
         tokens.append([])
         while self.la and self.la != SMTParser.RPAR:
+            cnt += 1
             tokens[-1].append(self.sorted_qvar.parse_action(
-                self.__sorted_qvar()))
+                self.__sorted_qvar(), cnt))
         if not tokens[-1]:
             raise SMTParseException ("sorted variable expected", self)
         self.__check_rpar()
