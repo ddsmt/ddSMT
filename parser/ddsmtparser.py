@@ -206,8 +206,11 @@ class SMTNode:
                             if self.children else ""
 
     def dump (self, outfile, lead = " "):
-        outfile.write(lead)
-        outfile.write(str(self))
+        if self.is_subst():
+            self.get_subst().dump(outfile, lead)
+        else:
+            outfile.write(lead)
+            outfile.write(str(self))
 
     def is_const (self):
         return False
@@ -437,6 +440,16 @@ class SMTVarBindNode (SMTNode):
         assert (len(self.children) == 1)
         return str(self.get_subst()) if self.is_subst() else \
                 "({} {!s})".format(self.var.name, self.children[0])
+
+    def dump (self, outfile, lead = " " ):
+        if self.is_subst():
+            self.get_subst().dump(outfile, lead)
+        else:
+            outfile.write(lead)
+            outfile.write("({}".format(self.var.name))
+            self.children[0].dump(outfile)
+            outfile.write(")")
+            # TODO TODO TODO TODO TEST
 
 
 class SMTSortedQVarNode (SMTNode):
@@ -1132,7 +1145,7 @@ class SMTFormula:
     #        scp = scp.prev
     #    return None
         
-    def find_fun (self, name, indices, scope = None):
+    def find_fun (self, name, indices, scope = None, find_nested = True):
         #if name in self.scopes.funs \
         #        and self.scopes.funs[name].indices == indices:
         #            return self.scopes.funs[name]
@@ -1141,23 +1154,26 @@ class SMTFormula:
         # Note: we check (given) scope prior to all its previous scopes in
         #       order to prevent duplicate funs and funs_cache entries
         if name in cache and cache[name].indices == indices:
-               assert (isinstance(cache[name], SMTFunNode))
-               return cache[name]
+            assert (name not in scope.funs)
+            assert (isinstance(cache[name], SMTFunNode))
+            return cache[name]
         if name in scope.funs and scope.funs[name].indices == indices:
             assert (isinstance(scope.funs[name], SMTFunNode))
             return scope.funs[name]
-        scope = scope.prev
-        while scope:
-            if name in scope.funs_cache \
-               and scope.funs_cache[name].indices == indices:
-                   assert (isinstance(scope.funs_cache[name], SMTFunNode))
-                   cache[name] = scope.funs_cache[name]
-                   return scope.funs_cache[name]
-            if name in scope.funs and scope.funs[name].indices == indices:
-                assert (isinstance(scope.funs[name], SMTFunNode))
-                cache[name] = scope.funs[name]
-                return scope.funs[name]
+        if find_nested:
             scope = scope.prev
+            while scope:
+                if name in scope.funs_cache \
+                   and scope.funs_cache[name].indices == indices:
+                       assert (name not in scope.funs)
+                       assert (isinstance(scope.funs_cache[name], SMTFunNode))
+                       cache[name] = scope.funs_cache[name]
+                       return scope.funs_cache[name]
+                if name in scope.funs and scope.funs[name].indices == indices:
+                    assert (isinstance(scope.funs[name], SMTFunNode))
+                    cache[name] = scope.funs[name]
+                    return scope.funs[name]
+                scope = scope.prev
         return None
 
     #def add_fun (self, name, sort, sorts, indices, scope = None):
@@ -1194,19 +1210,20 @@ class SMTFormula:
 
     #def funNode (self, name, sort, sorts = [], indices = [], 
     #             scope = None, find_nested = True):
-    def funNode (self, name, sort, sorts = [], indices = [], scope = None):
+    def funNode (self, name, sort, sorts = [], indices = [], scope = None,
+                 find_nested = True):
         global fun_kinds
         scope = scope if scope and name not in g_fun_kinds \
                       else self.scopes  # default: level 0
         #fun = self.find_fun (name, indices, scope, find_nested)
-        fun = self.find_fun (name, indices, scope)
+        fun = self.find_fun (name, indices, scope, find_nested)
         if not fun:
             return self.add_fun (name, sort, sorts, indices, scope)
         return fun
 
     def anFunNode (self, name, sort, indices = []):
         if name in g_fun_kinds:
-            fun = self.funNode (name, None, indices = indices)
+            fun = self.funNode (name, None, [], indices)
         else:
             fun = self.find_fun (name, indices)
             #fun = self.find_fun (name)
@@ -1610,7 +1627,7 @@ class DDSMTParser (SMTParser):
             self.var_binding.set_parse_action(self.__varBinding2SMTNode)
 
             self.sorted_var.set_parse_action (lambda t:
-                    sf.funNode (str(t[0]), t[1], scope = sf.cur_scope))
+                    sf.funNode (str(t[0]), t[1], [], [], sf.cur_scope, False))
 
             self.sorted_qvar.set_parse_action(self.__sortedQVar2SMTNode)
 
@@ -1742,7 +1759,7 @@ class DDSMTParser (SMTParser):
                 #sf.funNode (
                 #    str(t[0]), t[1].sort, scope = sf.cur_scope, 
                 #    find_nested = False),
-                sf.funNode (str(t[0]), t[1].sort, scope = sf.cur_scope), 
+                sf.funNode (str(t[0]), t[1].sort, [], [], sf.cur_scope, False), 
                 [t[1]], 
                 sf.cur_scope)
         return varb
@@ -1754,7 +1771,7 @@ class DDSMTParser (SMTParser):
         svar = SMTSortedQVarNode (
                 #sf.funNode (
                 #    str(t[0]), t[1], scope = sf.cur_scope, find_nested = False),
-                sf.funNode (str(t[0]), t[1], scope = sf.cur_scope),
+                sf.funNode (str(t[0]), t[1], [], [], sf.cur_scope, False),
                 sf.cur_scope)
         return svar
 
