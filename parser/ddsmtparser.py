@@ -137,18 +137,19 @@ g_fun_kinds   = \
       KIND_ROL,    KIND_ROR,    KIND_SELECT, KIND_SEXT,   KIND_STORE,
       KIND_SUB,    KIND_TOI,    KIND_TOR,    KIND_XOR,    KIND_ZEXT]
 
-g_bv_fun_kinds = \
-    [ 
-      KIND_CONC,   KIND_EXTR,   KIND_REP,    KIND_ROL,    KIND_ROR,
-      KIND_SEXT,   KIND_ZEXT,   KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, 
-      KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNEG,  
-      KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,
-      KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, 
-      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV,
-      KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR ]
-
-g_arr_fun_kinds = \
-    [ KIND_SELECT, KIND_STORE ]
+# TODO needed?
+#g_bv_fun_kinds = \
+#    [ 
+#      KIND_CONC,   KIND_EXTR,   KIND_REP,    KIND_ROL,    KIND_ROR,
+#      KIND_SEXT,   KIND_ZEXT,   KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, 
+#      KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNEG,  
+#      KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,
+#      KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, 
+#      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  KIND_BVUDIV,
+#      KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, KIND_BVXOR ]
+#
+#g_arr_fun_kinds = \
+#    [ KIND_SELECT, KIND_STORE ]
 
 g_cmd_kinds   = \
     [ KIND_ASSERT,   KIND_CHECKSAT, KIND_DECLFUN,   KIND_DEFFUN, 
@@ -775,10 +776,12 @@ class SMTScopeNode:
         self.level  = level
         self.prev   = prev
         self.kind   = kind
-        self.scopes = []
+        #self.scopes = []
+        self.scopes = {}
+        #self.prev_scopes = {}  # shortcut for find_fun, also TODO check if this helps
         self.cmds   = []
         self.funs   = {}
-        self.funs_cache = {}  # TODO check if this helps
+        #self.funs_cache = {}  # TODO check if this helps
         self.sorts  = {}
         self.declfun_cmds = {}  # used for substition with fresh variables
 
@@ -794,7 +797,8 @@ class SMTScopeNode:
                     res.append(str(self.declfun_cmds[name]))
             elif cmd.kind == KIND_PUSH:
                 assert (len(self.scopes) > 0)
-                assert (cmd.scope in self.scopes)
+                #assert (cmd.scope in self.scopes)
+                assert (cmd.scope.id in self.scopes)
                 assert (cmd.scope.is_regular())
                 if cmd.scope.is_subst():
                     continue
@@ -816,7 +820,8 @@ class SMTScopeNode:
                     self.declfun_cmds[name].dump(outfile)
             elif cmd.kind == KIND_PUSH:
                 assert (len(self.scopes) > 0)
-                assert (cmd.scope in self.scopes)
+                #assert (cmd.scope in self.scopes)
+                assert (cmd.scope.id in self.scopes)
                 assert (cmd.scope.is_regular())
                 if cmd.scope.is_subst():
                     continue
@@ -898,6 +903,7 @@ class SMTFormula:
         self.subst_scopes = SMTScopeSubstList ()
         self.subst_cmds = SMTCmdSubstList ()
         self.subst_nodes = SMTNodeSubstList ()
+        self.funs_cache = {}  # TODO CHECK IF THIS HELPS
         self.__add_predefined_sorts ()
 
     def __add_predefined_sorts (self):
@@ -963,9 +969,14 @@ class SMTFormula:
         for i in range (nscopes):
             new_scope = SMTScopeNode (
                     self.cur_scope.level + 1, self.cur_scope, kind)
+    #        ###
+    #        new_scope.prev_scopes = self.cur_scope.prev_scopes.copy()
+    #        new_scope.prev_scopes[self.cur_scope.id] = self.cur_scope
+    #        ###
             if not first_scope:
                 first_scope = new_scope
-            self.cur_scope.scopes.append(new_scope)
+            #self.cur_scope.scopes.append(new_scope)
+            self.cur_scope.scopes[new_scope.id] = new_scope
             self.cur_scope = new_scope
         return first_scope  # scope associated with parent push cmd
 
@@ -1107,109 +1118,132 @@ class SMTFormula:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
-    #def find_fun (self, name, indices = [], scope = None, find_nested = True):
-    #    scope = scope if scope else self.cur_scope
-    #    while scope:
-    #        if name in scope.funs:
-    #            assert (isinstance (scope.funs[name], SMTFunNode))
-    #            if indices == scope.funs[name].indices:
-    #                return scope.funs[name]
-    #        if not find_nested:  # check given scope resp. self.cur_scope only
-    #            break
-    #        scope = scope.prev
-    #    return None
+    #def find_fun (self, name, indices, scope = None, find_nested = True):
+    #    #if name in self.scopes.funs \
+    #    #        and self.scopes.funs[name].indices == indices:
+    #    #            return self.scopes.funs[name]
+    #    global g_fun_kinds
+    #    if name in g_fun_kinds:  # default at level 0
+    #        if name in self.scopes.funs \
+    #           and self.scopes.funs[name].indices == indices:
+    #               return self.scopes.funs[name]
+    #        else:
+    #            return None
 
-    #def find_fun (self, name, scope = None):
     #    scope = scope if scope else self.cur_scope
-    #    if name in scope.funs:
+    #    cache = scope.funs_cache
+    #    # Note: we check (given) scope prior to all its previous scopes in
+    #    #       order to prevent duplicate funs and funs_cache entries
+    #    if name in cache and cache[name].indices == indices:
+    #        assert (name not in scope.funs)
+    #        assert (isinstance(cache[name], SMTFunNode))
+    #        return cache[name]
+    #    if name in scope.funs and scope.funs[name].indices == indices:
+    #        assert (isinstance(scope.funs[name], SMTFunNode))
     #        return scope.funs[name]
+    #    if find_nested:
+    #        scope = scope.prev
+    #        while scope:
+    #            if name in scope.funs_cache \
+    #               and scope.funs_cache[name].indices == indices:
+    #                   assert (name not in scope.funs)
+    #                   assert (isinstance(scope.funs_cache[name], SMTFunNode))
+    #                   cache[name] = scope.funs_cache[name]
+    #                   return scope.funs_cache[name]
+    #            if name in scope.funs and scope.funs[name].indices == indices:
+    #                assert (isinstance(scope.funs[name], SMTFunNode))
+    #                cache[name] = scope.funs[name]
+    #                return scope.funs[name]
+    #            scope = scope.prev
     #    return None
 
-    #def find_fun (self, name, indices, scope = None):
-    #    scope = scope if scope else self.cur_scope
-    #    if name in scope.funs_cache \
-    #            and scope.funs_cache[name].indices == indices:
-    #        assert (isinstance (scope.funs_cache[name], SMTFunNode))
-    #        return scope.funs_cache[name]
-    #    scp = scope.prev
-    #    while scp:
-    #        if name in scp.funs_cache \
-    #            and scp.funs_cache[name].indices == indices:
-    #            assert (isinstance (scp.funs_cache[name], SMTFunNode))
-    #            scope.funs_cache[name] = scp.funs_cache[name]
-    #            return scp.funs_cache[name]
-    #        if name in scp.funs and scp.funs[name].indices == indices:
-    #            assert (isinstance (scp.funs[name], SMTFunNode))
-    #            scope.funs_cache[name] = scp.funs[name]
-    #            return scp.funs[name]
-    #        scp = scp.prev
-    #    return None
-        
     def find_fun (self, name, indices, scope = None, find_nested = True):
-        #if name in self.scopes.funs \
-        #        and self.scopes.funs[name].indices == indices:
-        #            return self.scopes.funs[name]
+        global g_fun_kinds
+        # level 0 shortcut
+        if name in g_fun_kinds:  # default at level 0
+            if name in self.scopes.funs \
+               and self.scopes.funs[name].indices == indices:
+                   return self.scopes.funs[name]
+            else:
+                return None
+        # check given / current scope first
         scope = scope if scope else self.cur_scope
-        cache = scope.funs_cache
-        # Note: we check (given) scope prior to all its previous scopes in
-        #       order to prevent duplicate funs and funs_cache entries
-        if name in cache and cache[name].indices == indices:
-            assert (name not in scope.funs)
-            assert (isinstance(cache[name], SMTFunNode))
-            return cache[name]
-        if name in scope.funs and scope.funs[name].indices == indices:
-            assert (isinstance(scope.funs[name], SMTFunNode))
+        if name in scope.funs:
             return scope.funs[name]
-        if find_nested:
-            scope = scope.prev
-            while scope:
-                if name in scope.funs_cache \
-                   and scope.funs_cache[name].indices == indices:
-                       assert (name not in scope.funs)
-                       assert (isinstance(scope.funs_cache[name], SMTFunNode))
-                       cache[name] = scope.funs_cache[name]
-                       return scope.funs_cache[name]
-                if name in scope.funs and scope.funs[name].indices == indices:
-                    assert (isinstance(scope.funs[name], SMTFunNode))
-                    cache[name] = scope.funs[name]
+        if find_nested and name in self.funs_cache:
+            scopes = self.funs_cache[name]
+            if len(scopes) == 1:
+                scope = scopes[0]
+                assert (name in scope.funs)
+                if scope.funs[name].indices == indices:
                     return scope.funs[name]
-                scope = scope.prev
+            else:
+                while scope:
+                    if scope in scopes:
+                        assert (name in scope.funs)
+                        if scope.funs[name].indices == indices:
+                            return scope.funs[name]
+                    scope = scope.prev
         return None
 
-    #def add_fun (self, name, sort, sorts, indices, scope = None):
-    #    scope = scope if scope else self.scopes
-    #    assert (not self.find_fun (name, indices, scope, False))
-    #    scope.funs[name] = SMTFunNode (name, sort, sorts, indices)
-    #    return scope.funs[name]
 
     #def add_fun (self, name, sort, sorts, indices, scope = None):
     #    scope = scope if scope else self.scopes
-    #    prev_scope = scope.prev if scope.prev else scope
-    #    assert (not self.find_fun (name, prev_scope))
     #    scope.funs[name] = SMTFunNode (name, sort, sorts, indices)
+    #    #scope.funs_cache[name] = scope.funs[name]
     #    return scope.funs[name]
 
     def add_fun (self, name, sort, sorts, indices, scope = None):
         scope = scope if scope else self.scopes
         scope.funs[name] = SMTFunNode (name, sort, sorts, indices)
-        #scope.funs_cache[name] = scope.funs[name]
+        if name in self.funs_cache:
+            self.funs_cache[name].append(scope)
+        else:
+            self.funs_cache[name] = [scope]
         return scope.funs[name]
 
-    def delete_fun (self,name, indices = [], scope = None):
+    def delete_fun (self, name, indices = [], scope = None):
+        global g_fun_kinds
+        # level 0 shortcut
+        if name in g_fun_kinds:  # default at level 0
+            if name in self.scopes.funs \
+               and self.scopes.funs[name].indices == indices:
+                   del(self.scopes.funs[name])
+            return
+        # check given / current scope first
         scope = scope if scope else self.cur_scope
-        while scope:
-            if name in scope.funs:
-                assert (isinstance (scope.funs[name], SMTFunNode))
-                if scope.funs[name].indices != indices:
-                    continue
-                del(scope.funs[name])
-                assert (not self.find_fun (name, indices, scope))
-                #assert (not self.find_fun (name, scope))
-                return
-            scope = scope.prev
+        if name in scope.funs:
+            del(scope.funs[name])
+        elif name in self.funs_cache:
+            scopes = self.funs_cache[name]
+            if len(scopes) == 1:
+                scope = scopes[0]
+                assert (name in scope.funs)
+                if scope.funs[name].indices == indices:
+                    del(scope.funs[name])
+            else:
+                while scope:
+                    if scope in scopes:
+                        assert (name in scope.funs)
+                        if scope.funs[name].indices == indices:
+                            del(scope.funs[name])
+                            return
+                    scope = scope.prev
 
-    #def funNode (self, name, sort, sorts = [], indices = [], 
-    #             scope = None, find_nested = True):
+
+   # def delete_fun (self,name, indices = [], scope = None):
+   #     scope = scope if scope else self.cur_scope
+   #     while scope:
+   #         if name in scope.funs:
+   #             assert (isinstance (scope.funs[name], SMTFunNode))
+   #             if scope.funs[name].indices != indices:
+   #                 continue
+   #             del(scope.funs[name])
+   #             assert (not self.find_fun (name, indices, scope))
+   #             #assert (not self.find_fun (name, scope))
+   #             return
+   #         scope = scope.prev
+
     def funNode (self, name, sort, sorts = [], indices = [], scope = None,
                  find_nested = True):
         global fun_kinds
