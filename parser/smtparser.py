@@ -1,6 +1,7 @@
 import sys
 import re
 
+import resource # TODO DEBUG
 
 class SMTParseException (Exception):
 
@@ -103,7 +104,7 @@ class SMTParser:
 
     def __init__ (self):
         self.infile = ""
-        self.instring = ""
+        #self.instring = ""
         self.tokens = []
         self.la = ""
         self.pos = 0
@@ -143,29 +144,32 @@ class SMTParser:
     def parse (self, infile):
         self.infile = infile
         sys.setrecursionlimit(7000)
-        with open (infile, 'r') as input_file:
-            self.instring = input_file.read()
-            self.tokens = self.__tokenize()
-            self.__scan()
-            return self.script.parse_action(self.__script())
+        print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
+        self.tokens = self.__tokenize()
+        print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
+        self.__scan()
+        return self.script.parse_action(self.__script())
                 
     def get_pos (self):
-        (idx, line, col) = self.__skip_space(0, 1, 0)
-        (idx, line, col) = self.__skip_comment(idx, line, col)
-        (idx, line, col) = self.__skip_space(idx, line, col)
+        instring = None
+        with open (self.infile, 'r') as input_file:
+            instring = input_file.read()
+        (idx, line, col) = self.__skip_space(instring, 0, 1, 0)
+        (idx, line, col) = self.__skip_comment(instring, idx, line, col)
+        (idx, line, col) = self.__skip_space(instring, idx, line, col)
         for token in self.tokens[:self.pos - 1]:
             for i in range(0, len(token)):
-                assert (token[i] == self.instring[idx])
+                assert (token[i] == instring[idx])
                 col += 1
                 idx += 1
-            (idx, line, col) = self.__skip_space(idx, line, col)
-            (idx, line, col) = self.__skip_comment(idx, line, col)
-            (idx, line, col) = self.__skip_space(idx, line, col)
+            (idx, line, col) = self.__skip_space(instring, idx, line, col)
+            (idx, line, col) = self.__skip_comment(instring, idx, line, col)
+            (idx, line, col) = self.__skip_space(instring, idx, line, col)
         return (line, col + 1)       
 
-    def __skip_space (self, idx, line, col):
-        while idx < len(self.instring) and self.instring[idx].isspace():
-            if self.instring[idx] == '\n':
+    def __skip_space (self, instring, idx, line, col):
+        while idx < len(instring) and instring[idx].isspace():
+            if instring[idx] == '\n':
                 line += 1
                 col = 0
             else:
@@ -173,9 +177,9 @@ class SMTParser:
             idx += 1
         return (idx, line, col)
 
-    def __skip_comment (self, idx, line, col):
-        if idx < len(self.instring) and self.instring[idx] == ';':
-            while idx < len(self.instring) and self.instring[idx] != '\n':
+    def __skip_comment (instring, self, idx, line, col):
+        if idx < len(instring) and instring[idx] == ';':
+            while idx < len(instring) and instring[idx] != '\n':
                  idx += 1
         return (idx, line, col)
     
@@ -192,51 +196,56 @@ class SMTParser:
         self.la = self.tokens[self.pos - 1]
 
     def __tokenize (self):
-        instring = re.sub(r';[^\n]*\n', '', self.instring)
-        instring = instring.split()
         result = []
-        stropen = False
-        for item in instring:
-            stropen = item[0] == '\"' if not stropen \
-                    else False if item[0] == '\"' else stropen
-            rpars = []
-            if stropen:
-                for i in range(0, len(item)):
-                    if item[i] == '\"':
-                        if i == 0:  # skip string opener
-                            continue
-                        else:
-                            stropen = False
-                            result.append(item[0:i+1])
-                            item = item[i+1:]
-                            break
-            if not stropen:
-                # check for opening parenthesis
-                while item and item[0] == SMTParser.LPAR:
-                    if item == SMTParser.IDXED:
-                        result.append(SMTParser.IDXED)
-                        item = ""
-                        continue
-                    result.append(SMTParser.LPAR)
-                    item = item[1:]
-                # check for closing parenthesis
-                while item and item[-1] == SMTParser.RPAR:
-                    rpars.append(SMTParser.RPAR)
-                    item = item[:-1]
-                # check for remaining parenthesis inbetween
-                while item and \
-                        (SMTParser.LPAR in item or SMTParser.RPAR in item):
+        with open (self.infile, 'r') as input_file:
+            instring = re.sub(r';[^\n]*\n', '', input_file.read()).split()
+        #instring = re.sub(r';[^\n]*\n', '', instring).split()
+        #print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
+        #instring = [sys.intern(s) for s in instring]
+        #print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
+        ###instring = instring.split()
+            stropen = False
+            for item in instring:
+                stropen = item[0] == '\"' if not stropen \
+                        else False if item[0] == '\"' else stropen
+                rpars = []
+                if stropen:
                     for i in range(0, len(item)):
-                        if item[i] in (SMTParser.LPAR, SMTParser.RPAR):
-                            if item[0:i]:
-                                result.append(item[0:i])
-                            result.append(item[i])
-                            item = item[i+1:]
-                            break
-            if item:
-                result.append(item)
-            if rpars:
-                result.extend(rpars)
+                        if item[i] == '\"':
+                            if i == 0:  # skip string opener
+                                continue
+                            else:
+                                stropen = False
+                                result.append(item[0:i+1])
+                                item = item[i+1:]
+                                break
+                if not stropen:
+                    # check for opening parenthesis
+                    while item and item[0] == SMTParser.LPAR:
+                        if item == SMTParser.IDXED:
+                            result.append(SMTParser.IDXED)
+                            item = ""
+                            continue
+                        result.append(SMTParser.LPAR)
+                        item = item[1:]
+                    # check for closing parenthesis
+                    while item and item[-1] == SMTParser.RPAR:
+                        rpars.append(SMTParser.RPAR)
+                        item = item[:-1]
+                    # check for remaining parenthesis inbetween
+                    while item and \
+                            (SMTParser.LPAR in item or SMTParser.RPAR in item):
+                        for i in range(0, len(item)):
+                            if item[i] in (SMTParser.LPAR, SMTParser.RPAR):
+                                if item[0:i]:
+                                    result.append(item[0:i])
+                                result.append(item[i])
+                                item = item[i+1:]
+                                break
+                if item:
+                    result.append(item)
+                if rpars:
+                    result.extend(rpars)
         return result
 
     def __check_lpar (self, msg = "'(' expected"):
