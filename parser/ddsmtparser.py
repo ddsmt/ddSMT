@@ -299,10 +299,12 @@ class SMTSortExprNode (SMTNode):
 
 class SMTConstNode (SMTNode):
 
-    def __init__ (self, kind, sort, value = 0):
+    #def __init__ (self, kind, sort, value = 0):
+    def __init__ (self, kind, sort, value = 0, ostr = ""): # TODO debug
         assert (kind in g_const_kinds)
         super().__init__(kind, sort)
         self.value = value
+        self.ostr = ostr # TODO debug
 
     #def __sizeof__ (self):
     #    return super().__sizeof__()      \
@@ -312,7 +314,8 @@ class SMTConstNode (SMTNode):
     def __str__ (self):
         if self.is_subst():
             return str(self.get_subst())
-        return str(self.value)
+        #return str(self.value)
+        return self.ostr if self.ostr else str(self.value) # TODO debug
 
     def is_const (self):
         return True
@@ -325,11 +328,19 @@ class SMTBVConstNode (SMTConstNode):
         if self.is_subst():
             return str(self.get_subst())
         if self.kind == KIND_CONSTH:
+            ##### TODO debug
+            if self.ostr:
+                return self.ostr 
+            #### end debug
             shex = str(hex(self.value)[2:])
             nzeros = self.sort.bw // 4 - len(shex)
             return "#x{}{}".format(
                     "".join(['0' for i in range(0, nzeros)]), shex)
         elif self.kind == KIND_CONSTB:
+            ##### TODO debug
+            if self.ostr:
+                return self.ostr 
+            #### end debug
             sbin = str(bin(self.value)[2:])
             nzeros = self.sort.bw - len(sbin)
             return "#b{}{}".format(
@@ -1031,9 +1042,11 @@ class SMTFormula:
             assert (self.cur_scope.prev != None)
             self.cur_scope = self.cur_scope.prev
 
-    def constNode (self, kind, sort, value):
+    #def constNode (self, kind, sort, value):
+    def constNode (self, kind, sort, value, ostr = ""): # TODO debug
         assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
-        return SMTConstNode (kind, sort, value)
+        #return SMTConstNode (kind, sort, value)
+        return SMTConstNode (kind, sort, value, ostr) # TODO debug
 
     def zeroConstNode (self,  kind):
         assert (kind in (KIND_CONSTN, KIND_CONSTD))
@@ -1051,9 +1064,11 @@ class SMTFormula:
         assert (value in ("true", "false"))
         return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
 
-    def bvConstNode (self, kind, bw, value):
+    #def bvConstNode (self, kind, bw, value):
+    def bvConstNode (self, kind, bw, value, ostr = ""): # TODO debug
         assert (isinstance (bw, int))
-        return SMTBVConstNode (kind, self.bvSortNode(bw), value)
+        #return SMTBVConstNode (kind, self.bvSortNode(bw), value)
+        return SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
 
     def bvZeroConstNode (self, sort):
         assert (sort.is_bv_sort())
@@ -1571,23 +1586,29 @@ class DDSMTParser (SMTParser):
         try:
             self.numeral.set_parse_action (lambda t:
                     sf.constNode (
-                        KIND_CONSTN, sf.sortNode ("Int"), int(t[0])))
+                        #KIND_CONSTN, sf.sortNode ("Int"), int(t[0])))
+                        KIND_CONSTN, sf.sortNode ("Int"), int(t[0]), t[0])) # TODO debug
 
             self.decimal.set_parse_action (lambda t:
                     sf.constNode (
-                        KIND_CONSTD, sf.sortNode ("Real"), float(t[0])))
+                        #KIND_CONSTD, sf.sortNode ("Real"), float(t[0])))
+                        KIND_CONSTD, sf.sortNode ("Real"), float(t[0]), t[0]))
 
             self.hexadecimal.set_parse_action (lambda t:
                     sf.bvConstNode (
                         KIND_CONSTH, 
                         len(t[0][2:]) * 4,   # bw
-                        int(t[0][2:], 16)))  # value
+                        #int(t[0][2:], 16)))  # value
+                        int(t[0][2:], 16),   # value TODO debug
+                        t[0]))
 
             self.binary.set_parse_action (lambda t:
                     sf.bvConstNode (
                         KIND_CONSTB,
                         len(t[0][2:]),       # bw
-                        int(t[0][2:], 2)))   # value
+                        #int(t[0][2:], 2)))   # value
+                        int(t[0][2:], 2),    # value TODO debug
+                        t[0]))
 
             self.string.set_parse_action (lambda t:
                     sf.constNode (KIND_CONSTS, sf.sortNode ("String"), t[0]))
