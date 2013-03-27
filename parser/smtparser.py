@@ -7,12 +7,12 @@ class SMTParseException (Exception):
 
     def __init__ (self, msg, parser):
         self.msg = msg
-        self.infile = parser.infile
+        self.filename = parser.filename
         (self.line, self.col) = parser.get_pos()
 
     def __str__ (self):
         return "[smtparser] {}:{}:{}: {}".format(
-                self.infile, self.line, self.col, self.msg)
+                self.filename, self.line, self.col, self.msg)
 
 
 class SMTParseElement:
@@ -103,8 +103,7 @@ class SMTParser:
     EXIT      = "exit"
 
     def __init__ (self):
-        self.infile = ""
-        #self.instring = ""
+        self.filename = ""
         self.tokens = []
         self.la = ""
         self.pos = 0
@@ -141,30 +140,33 @@ class SMTParser:
         self.command         = SMTParseElement()
         self.script          = SMTParseElement()
 
-    def parse (self, infile):
-        self.infile = infile
+    def parse (self, filename):
+        self.filename = filename
         sys.setrecursionlimit(7000)
         print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
+        print ("sizeof: " + str(sys.getsizeof(self.tokens)))
         self.tokens = self.__tokenize()
+        print ("sizeof tokens: " + str(sys.getsizeof(self.tokens)))
         print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
         self.__scan()
         return self.script.parse_action(self.__script())
                 
     def get_pos (self):
-        instring = None
-        with open (self.infile, 'r') as input_file:
-            instring = input_file.read()
-        (idx, line, col) = self.__skip_space(instring, 0, 1, 0)
-        (idx, line, col) = self.__skip_comment(instring, idx, line, col)
-        (idx, line, col) = self.__skip_space(instring, idx, line, col)
-        for token in self.tokens[:self.pos - 1]:
-            for i in range(0, len(token)):
-                assert (token[i] == instring[idx])
-                col += 1
-                idx += 1
-            (idx, line, col) = self.__skip_space(instring, idx, line, col)
+        line = 1
+        col = 0
+        with open (self.filename, 'r') as infile:
+            instring = infile.read()
+            (idx, line, col) = self.__skip_space(instring, 0, 1, 0)
             (idx, line, col) = self.__skip_comment(instring, idx, line, col)
             (idx, line, col) = self.__skip_space(instring, idx, line, col)
+            for token in self.tokens[:self.pos - 1]:
+                for i in range(0, len(token)):
+                    assert (token[i] == instring[idx])
+                    col += 1
+                    idx += 1
+                (idx, line, col) = self.__skip_space(instring, idx, line, col)
+                (idx, line, col) = self.__skip_comment(instring, idx, line, col)
+                (idx, line, col) = self.__skip_space(instring, idx, line, col)
         return (line, col + 1)       
 
     def __skip_space (self, instring, idx, line, col):
@@ -196,14 +198,13 @@ class SMTParser:
         self.la = self.tokens[self.pos - 1]
 
     def __tokenize (self):
-        result = []
-        with open (self.infile, 'r') as input_file:
-            instring = re.sub(r';[^\n]*\n', '', input_file.read()).split()
-        #instring = re.sub(r';[^\n]*\n', '', instring).split()
-        #print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
-        #instring = [sys.intern(s) for s in instring]
-        #print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
-        ###instring = instring.split()
+        with open (self.filename, 'r') as infile:
+            result = []
+            #instring = infile.read()
+            #instring = re.sub(r';[^\n]*\n', '', instring)
+            #instring = instring.split()
+            instring = re.sub(r';[^\n]*\n', '', infile.read()).split()
+            print ("sizeof instring: " + str(sys.getsizeof(instring)))  # TODO debug
             stropen = False
             for item in instring:
                 stropen = item[0] == '\"' if not stropen \
