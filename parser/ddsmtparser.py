@@ -325,9 +325,15 @@ class SMTBVConstNode (SMTConstNode):
         if self.is_subst():
             return str(self.get_subst())
         if self.kind == KIND_CONSTH:
-            return "#x{}".format(hex(self.value)[2:]) 
+            shex = str(hex(self.value)[2:])
+            nzeros = self.sort.bw // 4 - len(shex)
+            return "#x{}{}".format(
+                    "".join(['0' for i in range(0, nzeros)]), shex)
         elif self.kind == KIND_CONSTB:
-            return "#b{}".format(bin(self.value)[2:])
+            sbin = str(bin(self.value)[2:])
+            nzeros = self.sort.bw - len(sbin)
+            return "#b{}{}".format(
+                    "".join(['0' for i in range(0, nzeros)]), sbin)
         assert (self.kind == KIND_CONSTN)
         return "(_ bv{} {})".format(self.value, self.sort.bw)
 
@@ -1835,4 +1841,4 @@ class DDSMTParser (SMTParser):
             assert (len(t) == 2)
             return sf.cmdNode (KIND_GETVALUE, [t[1]])
         else:
-            return sf.cmdNode (t[0], children = t[1:])
+            return sf.cmdNode (kind, children = t[1:])
