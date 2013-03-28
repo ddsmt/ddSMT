@@ -1,12 +1,12 @@
 import sys
 import re
 
-import resource # TODO DEBUG
 
 class SMTParseException (Exception):
 
     def __init__ (self, msg, parser):
         self.msg = msg
+        self.parser = parser
         self.filename = parser.filename
         (self.line, self.col) = parser.get_pos()
 
@@ -143,11 +143,7 @@ class SMTParser:
     def parse (self, filename):
         self.filename = filename
         sys.setrecursionlimit(7000)
-        print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
-        print ("sizeof: " + str(sys.getsizeof(self.tokens)))
         self.tokens = self.__tokenize()
-        print ("sizeof tokens: " + str(sys.getsizeof(self.tokens)))
-        print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
         self.__scan()
         return self.script.parse_action(self.__script())
                 
@@ -179,7 +175,7 @@ class SMTParser:
             idx += 1
         return (idx, line, col)
 
-    def __skip_comment (instring, self, idx, line, col):
+    def __skip_comment (self, instring, idx, line, col):
         if idx < len(instring) and instring[idx] == ';':
             while idx < len(instring) and instring[idx] != '\n':
                  idx += 1
@@ -200,11 +196,7 @@ class SMTParser:
     def __tokenize (self):
         with open (self.filename, 'r') as infile:
             result = []
-            #instring = infile.read()
-            #instring = re.sub(r';[^\n]*\n', '', instring)
-            #instring = instring.split()
             instring = re.sub(r';[^\n]*\n', '', infile.read()).split()
-            print ("sizeof instring: " + str(sys.getsizeof(instring)))  # TODO debug
             stropen = False
             for item in instring:
                 stropen = item[0] == '\"' if not stropen \
@@ -597,10 +589,6 @@ class SMTParser:
         cntpar = 0
         terms = [["other", []]]
         while True:
-            #print ("\n============ stack start =====================")
-            #for item in stack:
-            #    print ("   " + str(item))
-            #print ("============ stack end =======================\n")
             if self.la == SMTParser.RPAR:
                 # check number of nested terms given
                 nterms = len(terms[-1][1])
