@@ -15,6 +15,8 @@ from subprocess import Popen, PIPE
 
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
+import resource  # TODO debug
+
 g_infile  = ""
 g_outfile = ""
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
@@ -292,14 +294,16 @@ def ddsmt_main ():
         #to_visit = [g_smtformula.scopes]
         #while to_visit:
         #    scope = to_visit.pop()
-        #    print ("scope: " + str(scope.level) + 
-        #           " kind: " + str(scope.kind) + 
-        #           " vars: " + " ".join([str(f) for f in scope.funs]))
+        #    print ("scope ({}): ".format(scope.id) + str(scope.level) + 
+        #           "\n kind: " + str(scope.kind) + 
+        #           "\n vars: " + " ".join([str(f) for f in scope.funs]),
+        #           "\n prev_scopes: " + " ".join([str(s) for s in scope.prev_scopes]))
+                   #"\n cache: " + " ".join([str(f) for f in scope.funs_cache]))
         #    if scope.prev:
-        #        print ("  prev: " + str(scope.prev.level) + 
-        #                " kind: " + str(scope.prev.kind) + 
-        #                " vars: " + " ".join([str(f) for f in scope.prev.funs]))
-        #    to_visit.extend(scope.scopes)
+        #       print ("  prev: " + str(scope.prev.level) + 
+        #                " kind: " + str(scope.prev.kind))# + 
+        #                #" vars: " + " ".join([str(f) for f in scope.prev.funs]))
+        #    to_visit.extend(scope.scopes.values())
 
         #scopes = [g_smtformula.scopes]
         #while scopes:
@@ -312,14 +316,14 @@ def ddsmt_main ():
         ## end debug
 
 
-        _dump (g_outfile)  # TODO debug
-        from parser.ddsmtparser import SMTScopeNode, SMTCmdNode, SMTNode
-        print ("# scopes: " + str(SMTScopeNode.g_id))
-        print ("# cmds: " + str(SMTCmdNode.g_id))
-        print ("# nodes: " + str(SMTNode.g_id))
-        #import time
-        #time.sleep(15)
-        sys.exit(0) # TODO debug
+       # _dump (g_outfile)  # TODO debug
+       # from parser.ddsmtparser import SMTScopeNode, SMTCmdNode, SMTNode
+       # print ("# scopes: " + str(SMTScopeNode.g_id))
+       # print ("# cmds: " + str(SMTCmdNode.g_id))
+       # print ("# nodes: " + str(SMTNode.g_id))
+       # #import time
+       # #time.sleep(15)
+       # sys.exit(0) # TODO debug
 
 
         nsubst = _substitute_scopes ()
@@ -368,7 +372,7 @@ def ddsmt_main ():
             elif succeeded == "bvvar": 
                 break
 
-        if g_smtformula.is_int_logic():
+        if g_smtformula.is_int_logic() or g_smtformula.is_real_logic():
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.zeroConstNNode(),
                     lambda x: x.sort == g_smtformula.sortNode("Int") \
@@ -497,8 +501,8 @@ if __name__ == "__main__":
         (g_opts, args) = oparser.parse_args ()
 
         # TODO debug
-        #if len (args) != 3:
-        #    oparser.error ("invalid number of arguments")
+        if len (args) != 3:
+            oparser.error ("invalid number of arguments")
 
         if g_opts.optimize:
             sys.argv.remove("-o")
@@ -510,7 +514,9 @@ if __name__ == "__main__":
             g_cmd = shlex.split(args[2])
             #g_infile = "./trash/sc2011rules-qf-abv-ex.smt2"
             #g_infile = "./trash/noregions-stpmem.stp.smt2"
+            #g_infile = "./trash/noregions-fullmemite.stp.smt2"
             #g_infile = "./trash/hard_to_minimize/bug-23744-6898-new.smt2"
+            #g_infile = "./trash/testcase8.stp.smt2"
             #g_outfile = "sc2011_red.smt2"
             #g_cmd = ["test/run1.sh"]
 
@@ -524,13 +530,19 @@ if __name__ == "__main__":
             _log (1, "input  file: '{}'".format(g_infile))
             _log (1, "output file: '{}'".format(g_outfile))
             _log (1, "command:     '{}'".format(args[2]))
-            # TODO debug
-            #_log (1, "command:     '{}'".format(g_cmd[0]))
+            _log (1, "command:     '{}'".format(g_cmd[0]))
 
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_infile)
 
+            # TODO debug
             print (">>>>> parser done")
+            #print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
+            #print ("sizeof smtformula: " + str(sys.getsizeof(g_smtformula)))
+            #print ("sizeof smtformula.scopes: " + str(sys.getsizeof(g_smtformula.scopes)))
+            #print ("sizeof smtformula.scopes.cmds: " + str(sys.getsizeof(g_smtformula.scopes.cmds)))
+            #print ("sizeof smtformula.scopes.funs: " + str(sys.getsizeof(g_smtformula.scopes.funs)))
+            #print ("sizeof smtformula.funs_cache: " + str(sys.getsizeof(g_smtformula.funs_cache)))
             shutil.copyfile(g_infile, g_tmpfile)
             g_cmd.append(g_tmpfile)
             g_golden = _run()
@@ -545,6 +557,6 @@ if __name__ == "__main__":
     except (DDSMTParseException, DDSMTException) as e:
         _cleanup()
         sys.exit(str(e))
-    except KeyboardInterrupt as e:
-        _cleanup()
-        sys.exit("[ddsmt] {0:s}".format(str(e)))
+    #except KeyboardInterrupt as e:
+    #    _cleanup()
+    #    sys.exit("[ddsmt] {0:s}".format(str(e)))
