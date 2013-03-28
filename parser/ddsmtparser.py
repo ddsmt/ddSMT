@@ -1353,6 +1353,26 @@ class SMTFormula:
                              c0.children[0].sort = c.sort
                              c0.children[0].value = float(c0.children[0].value)
                              c0.sort = c0.children[0].sort
+                    # be more lenient in case that ite with int consts as 
+                    # then/else is given
+                    elif c.kind == KIND_ITE:
+                        if False not in [cc.kind in g_const_kinds \
+                                for cc in c.children[1:]]:
+                            sortint = self.sortNode("Int")
+                            sortreal = self.sortNode("Real")
+                            cckind = KIND_CONSTD \
+                                    if c0.sort == self.sortNode("Real") \
+                                    else KIND_CONSTN
+                            ccsort = sortreal \
+                                    if cckind == KIND_CONSTD else sortint 
+                            for cc in c.children[1:]:
+                                if cc.kind != cckind:
+                                    cc.kind = cckind
+                                    cc.sort = ccsort
+                                    cc.value = float(cc.value) \
+                                            if cckind == KIND_CONSTD \
+                                            else int(cc.value)
+                            c.sort = ccsort
                     else:
                         raise DDSMTParseCheckException (
                             "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
@@ -1391,6 +1411,26 @@ class SMTFormula:
                              c0.children[0].sort = c.sort
                              c0.children[0].value = float(c0.children[0].value)
                              c0.sort = c0.children[0].sort
+                    # be more lenient in case that ite with int consts as 
+                    # then/else is given
+                    elif c.kind == KIND_ITE and \
+                         False not in [cc.kind in g_const_kinds \
+                         for cc in c.children[1:]]:
+                             sortint = self.sortNode("Int")
+                             sortreal = self.sortNode("Real")
+                             cckind = KIND_CONSTD \
+                                     if c0.sort == self.sortNode("Real") \
+                                     else KIND_CONSTN
+                             ccsort = sortreal \
+                                     if cckind == KIND_CONSTD else sortint 
+                             for cc in c.children[1:]:
+                                 if cc.kind != cckind:
+                                     cc.kind = cckind
+                                     cc.sort = ccsort
+                                     cc.value = float(cc.value) \
+                                             if cckind == KIND_CONSTD \
+                                             else int(cc.value)
+                             c.sort = ccsort
                     else:
                         raise DDSMTParseCheckException (
                             "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
