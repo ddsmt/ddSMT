@@ -412,6 +412,8 @@ class SMTFunAppNode (SMTNode):
         return strings.pop()
 
     def dump (self, outfile, lead = " "):
+        # we have to prevent recursive calls here, else deep nesting levels
+        # blow up the recursion depth limit
         to_visit = [self]
         visited = {}
         while to_visit:
@@ -508,6 +510,8 @@ class SMTForallExistsNode (SMTNode):
         return strings.pop()
 
     def dump (self, outfile, lead = " "):
+        # we have to prevent recursive calls here, else deep nesting levels
+        # blow up the recursion depth limit
         to_visit = [self]
         visited = {}
         while to_visit:
@@ -561,6 +565,8 @@ class SMTLetNode (SMTNode):
         return strings.pop()
 
     def dump (self, outfile, lead = " "):
+        # we have to prevent recursive calls here, else deep nesting levels
+        # blow up the recursion depth limit
         to_visit = [self]
         visited = {}
         cntvb = 0
@@ -909,6 +915,16 @@ class SMTFormula:
         self.add_sort ("Real")
         self.add_sort ("String")
         self.add_arrSort ()      # abstract array base sort
+
+    def dump (self, filename = None, root = None):
+        out = root if root != None else self.scopes
+        if not filename:
+            out.dump(sys.stdout)    
+            sys.stdout.write("\n")
+        else:
+            with open(filename, 'w') as outfile:
+                out.dump(outfile)
+                outfile.write("\n")
 
     def is_bv_logic (self):
         return self.logic.find("BV") >= 0

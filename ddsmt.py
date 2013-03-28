@@ -85,14 +85,7 @@ def _dump (filename = None, root = None):
     global g_smtformula
     assert (g_smtformula)
     try:
-        out = root if root != None else g_smtformula.scopes
-        if not filename:
-            out.dump(sys.stdout)    
-            sys.stdout.write("\n")
-        else:
-            with open(filename, 'w') as outfile:
-                out.dump(outfile)
-                outfile.write("\n")
+        g_smtformula.dump(filename, root)
     except IOError as e:
         raise DDSMTException (str(e))
 
@@ -308,6 +301,11 @@ def ddsmt_main ():
     nrounds = 0
     nsubst_total = 0
     nsubst_round = 1
+    
+    nscopes_subst = 0
+    ncmds_subst = 0
+    nterms_subst = 0
+
     succeeded = "none"
     
     while nsubst_round:
@@ -341,20 +339,21 @@ def ddsmt_main ():
         ## end debug
 
 
-       # _dump (g_outfile)  # TODO debug
+        #_dump (g_args.outfile)  # TODO debug
        # from parser.ddsmtparser import SMTScopeNode, SMTCmdNode, SMTNode
        # print ("# scopes: " + str(SMTScopeNode.g_id))
        # print ("# cmds: " + str(SMTCmdNode.g_id))
        # print ("# nodes: " + str(SMTNode.g_id))
        # #import time
        # #time.sleep(15)
-       # sys.exit(0) # TODO debug
+        #sys.exit(0) # TODO debug
 
 
         nsubst = _substitute_scopes ()
         if nsubst:
             succeeded = "scopes"
             nsubst_round += nsubst
+            nscopes_subst += nsubst
         elif succeeded == "scopes":
             break
         
@@ -369,6 +368,7 @@ def ddsmt_main ():
         if nsubst:
            succeeded = "cmds"
            nsubst_round += nsubst
+           ncmds_subst += nsubst
         elif succeeded == "cmds": 
            break
 
@@ -383,6 +383,7 @@ def ddsmt_main ():
             if nsubst:
                 succeeded = "bv0"
                 nsubst_round += nsubst
+                nterms_subst += nsubst
             elif succeeded == "bv0":
                 break
             nsubst = _substitute_terms (
@@ -394,6 +395,7 @@ def ddsmt_main ():
             if nsubst:
                 succeeded = "bvvar"
                 nsubst_round += nsubst
+                nterms_subst += nsubst
             elif succeeded == "bvvar": 
                 break
 
@@ -406,6 +408,7 @@ def ddsmt_main ():
             if nsubst:
                 succeeded = "int0"
                 nsubst_round += nsubst
+                nterms_subst += nsubst
             elif succeeded == "int0":
                 break
             nsubst = _substitute_terms (
@@ -416,6 +419,7 @@ def ddsmt_main ():
             if nsubst:
                 succeeded = "intvar"
                 nsubst_round += nsubst
+                nterms_subst += nsubst
             elif succeeded == "intvar": 
                 break
 
@@ -428,6 +432,7 @@ def ddsmt_main ():
             if nsubst:
                 succeeded = "real0"
                 nsubst_round += nsubst
+                nterms_subst += nsubst
             elif succeeded == "real0":
                 break
             nsubst = _substitute_terms (
@@ -438,6 +443,7 @@ def ddsmt_main ():
             if nsubst:
                 succeeded = "realvar"
                 nsubst_round += nsubst
+                nterms_subst += nsubst
             elif succeeded == "realvar":
                 break
 
@@ -448,6 +454,7 @@ def ddsmt_main ():
         if nsubst:
             succeeded = "let"
             nsubst_round += nsubst
+            nterms_subst += nsubst
         elif succeeded == "let":
             break
 
@@ -459,6 +466,7 @@ def ddsmt_main ():
         if nsubst:
             succeeded = "false"
             nsubst_round += nsubst
+            nterms_subst += nsubst
         elif succeeded == "false":
             break
 
@@ -470,6 +478,7 @@ def ddsmt_main ():
         if nsubst:
             succeeded = "true"
             nsubst_round += nsubst
+            nterms_subst += nsubst
         elif succeeded == "true":
             break
 
@@ -481,6 +490,7 @@ def ddsmt_main ():
             if nsubst:
                 succeeded = "store"
                 nsubst_round += nsubst
+                nterms_subst += nsubst
             elif succeeded == "store":
                 break
             nsubst = _substitute_terms (
@@ -490,6 +500,7 @@ def ddsmt_main ():
             if nsubst:
                 succeeded = "select"
                 nsubst_round += nsubst
+                nterms_subst += nsubst
             elif succeeded == "select":
                 break
 
@@ -500,11 +511,14 @@ def ddsmt_main ():
 
         nsubst_total += nsubst_round
 
-    _log (2)
-    _log (2, "rounds total: {}".format(nrounds))
-    _log (2, "tests  total: {}".format(g_ntests))
-    _log (2, "substs total: {}".format(nsubst_total))
-    # TODO log total reduction in %
+    _log (1)
+    _log (1, "rounds total: {}".format(nrounds))
+    _log (1, "tests  total: {}".format(g_ntests))
+    _log (1, "substs total: {}".format(nsubst_total))
+    _log (1)
+    _log (1, "scopes substituted: {}".format(nscopes_subst))
+    _log (1, "cmds   substituted: {}".format(ncmds_subst))
+    _log (1, "terms  substituted: {}".format(nterms_subst))
 
     if nsubst_total == 0:
         sys.exit ("[ddsmt] unable to reduce input file")
@@ -514,7 +528,6 @@ if __name__ == "__main__":
     try:
         usage="ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]"
         aparser = ArgumentParser (usage=usage)
-
         aparser.add_argument ("infile", 
                               help="the input file (in SMT-LIB v2 format)")
         aparser.add_argument ("outfile",
@@ -533,43 +546,12 @@ if __name__ == "__main__":
                               help="remove assertions and debug code")
         aparser.add_argument ("--version", action="version", 
                               version=__version__)
-        
-        #from optparse import OptionParser
-        #oparser = OptionParser (usage)
-        #oparser.add_option ("-t", dest="timeout", metavar="val",
-        #                    default=None, type="int",
-        #                    help="timeout for test runs in seconds "\
-        #                         "(default: none)")
-        #oparser.add_option ("-v", action="count", dest="verbosity", default=0,
-        #                    help="increase verbosity")
-        #oparser.add_option ("-o", action="store_true", dest="optimize", 
-        #                    default=False, 
-        #                    help="remove assertions and debug code") # TODO
-        #(g_opts, args) = oparser.parse_args ()
-
-        #(g_opts, args) = aparser.parse_args()
         g_args = aparser.parse_args()
-        print (g_args)
-        # TODO debug
-        #if len (args) != 3:
-        #    oparser.error ("invalid number of arguments")
 
         if g_args.optimize:
             sys.argv.remove("-o")
             os.execl(sys.executable, sys.executable, '-O', *sys.argv)
         else:
-            # TODO debug
-            #g_infile = args[0]
-            #g_outfile = args[1]
-            #g_cmd = shlex.split(args[2])
-            #g_infile = "./trash/sc2011rules-qf-abv-ex.smt2"
-            #g_infile = "./trash/noregions-stpmem.stp.smt2"
-            #g_infile = "./trash/noregions-fullmemite.stp.smt2"
-            #g_infile = "./trash/hard_to_minimize/bug-23744-6898-new.smt2"
-            #g_infile = "./trash/testcase8.stp.smt2"
-            #g_outfile = "sc2011_red.smt2"
-            #g_cmd = ["test/run1.sh"]
-
             if not os.path.exists(g_args.infile):
                 raise DDSMTException ("given input file does not exist")
             if os.path.isdir(g_args.infile):
@@ -579,19 +561,14 @@ if __name__ == "__main__":
 
             _log (1, "input  file: '{}'".format(g_args.infile))
             _log (1, "output file: '{}'".format(g_args.outfile))
-            _log (1, "command:     '{}'".format(g_args.cmd))
+            _log (1, "command:     '{}'".format(
+                " ".join([str(c) for c in g_args.cmd])))
+
+            ifilesize = os.path.getsize(g_args.infile)
 
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_args.infile)
 
-            # TODO debug
-            print (">>>>> parser done")
-            #print (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) # TODO debug
-            #print ("sizeof smtformula: " + str(sys.getsizeof(g_smtformula)))
-            #print ("sizeof smtformula.scopes: " + str(sys.getsizeof(g_smtformula.scopes)))
-            #print ("sizeof smtformula.scopes.cmds: " + str(sys.getsizeof(g_smtformula.scopes.cmds)))
-            #print ("sizeof smtformula.scopes.funs: " + str(sys.getsizeof(g_smtformula.scopes.funs)))
-            #print ("sizeof smtformula.funs_cache: " + str(sys.getsizeof(g_smtformula.funs_cache)))
             shutil.copyfile(g_args.infile, g_tmpfile)
             g_args.cmd.append(g_tmpfile)
             g_golden = _run()
@@ -601,11 +578,17 @@ if __name__ == "__main__":
 
             ddsmt_main ()
             
+            ofilesize = os.path.getsize(g_args.outfile)
+
+            _log (1)
+            _log (1, "input file size:  {} B (100%)".format(ifilesize))
+            _log (1, "output file size: {} B ({:3.2f}%)".format(
+                ofilesize, ofilesize / ifilesize * 100))
             _cleanup()
             sys.exit(0)
     except (DDSMTParseException, DDSMTException) as e:
         _cleanup()
         sys.exit(str(e))
-    #except KeyboardInterrupt as e:
-    #    _cleanup()
-    #    sys.exit("[ddsmt] {0:s}".format(str(e)))
+    except KeyboardInterrupt as e:
+        _cleanup()
+        sys.exit("[ddsmt] interrupted")
