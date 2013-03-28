@@ -1080,7 +1080,7 @@ class SMTFormula:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
-    def find_fun (self, name, indices, scope = None, find_nested = True):
+    def find_fun (self, name, indices = [], scope = None, find_nested = True):
         global g_fun_kinds
         # level 0 shortcut
         if name in g_fun_kinds:  # default at level 0
