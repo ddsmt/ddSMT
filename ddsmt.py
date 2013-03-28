@@ -29,17 +29,23 @@ import shutil
 import time
 import random
 
-from optparse import OptionParser
+#from optparse import OptionParser
+from argparse import ArgumentParser, REMAINDER
 from subprocess import Popen, PIPE
 
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 import resource  # TODO debug
 
-g_infile  = ""
-g_outfile = ""
+__version__ = "0.9-beta"
+__author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
+
+
+#g_infile  = ""
+#g_outfile = ""
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
-g_opts = object
+#g_opts = object
+g_args = None
 g_golden = 0
 
 g_ntests = 0
@@ -65,8 +71,8 @@ def _cleanup():
 
 
 def _log(verbosity, msg = "", update = False):
-    global g_opts
-    if g_opts.verbosity >= verbosity:
+    global g_args
+    if g_args.verbosity >= verbosity:
         sys.stdout.write(" " * 80 + "\r")
         if update:
             sys.stdout.write("[ddsmt] {0:s}\r".format(msg))
@@ -92,18 +98,18 @@ def _dump (filename = None, root = None):
 
 
 def _run ():
-    global g_cmd
+    global g_args
     try:
         start = time.time()
-        sproc = Popen(g_cmd, stdout=PIPE, stderr=PIPE)
+        sproc = Popen(g_args.cmd, stdout=PIPE, stderr=PIPE)
 
         # TODO this works from 3.3 upwards
         # (out, err) = sproc.communicate(g_opts.timeout)  # TODO use out, err
         
         # TODO disable this from 3.3. upwards
-        if g_opts.timeout:
+        if g_args.timeout:
             while (sproc.poll() == None):
-                if time.time() - start > g_opts.timeout:
+                if time.time() - start > g_args.timeout:
                     sproc.kill()
                 time.sleep(1)
 
@@ -121,7 +127,7 @@ def _run ():
 
 
 def _test ():
-    global g_cmd, g_ntests
+    global g_args, g_ntests
     # TODO compare output if option enabled?
     g_ntests += 1
     return _run() == g_golden
@@ -200,7 +206,7 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
             _dump (g_tmpfile)
            
             if _test():
-                _dump (g_outfile)
+                _dump (g_args.outfile)
                 nsubst_total += nsubst
                 _log (2, "  granularity: {}, subsets: {}, substituted: {}" \
                          "".format(gran, len(subsets), nsubst), True)
@@ -297,7 +303,7 @@ def _subst_term_with_child (term):
 
 
 def ddsmt_main ():
-    global g_tmpfile, g_outfile, g_smtformula
+    global g_tmpfile, g_args, g_smtformula
 
     nrounds = 0
     nsubst_total = 0
@@ -506,31 +512,56 @@ def ddsmt_main ():
 
 if __name__ == "__main__":
     try:
-        usage = "%prog [options] <infile> <outfile> \"<cmd> <cmd_options>\""
-        oparser = OptionParser (usage)
-        oparser.add_option ("-t", dest="timeout", metavar="val",
-                            default=None, type="int",
-                            help="timeout for test runs in seconds "\
-                                 "(default: none)")
-        oparser.add_option ("-v", action="count", dest="verbosity", default=0,
-                            help="increase verbosity")
-        oparser.add_option ("-o", action="store_true", dest="optimize", 
-                            default=False, 
-                            help="remove assertions and debug code") # TODO
-        (g_opts, args) = oparser.parse_args ()
+        usage="ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]"
+        aparser = ArgumentParser (usage=usage)
 
+        aparser.add_argument ("infile", 
+                              help="the input file (in SMT-LIB v2 format)")
+        aparser.add_argument ("outfile",
+                              help="the output file")
+        aparser.add_argument ("cmd", nargs=REMAINDER, 
+                              help="the command (with optional arguments)")
+
+        aparser.add_argument ("-t", dest="timeout", metavar="val",
+                              default=None, type=int, 
+                              help="timeout for test runs in seconds "\
+                                   "(default: none)")
+        aparser.add_argument ("-v", action="count", default=0, 
+                              dest="verbosity", help="increase verbosity")
+        aparser.add_argument ("-o", action="store_true", dest="optimize",
+                              default=False, 
+                              help="remove assertions and debug code")
+        aparser.add_argument ("--version", action="version", 
+                              version=__version__)
+        
+        #from optparse import OptionParser
+        #oparser = OptionParser (usage)
+        #oparser.add_option ("-t", dest="timeout", metavar="val",
+        #                    default=None, type="int",
+        #                    help="timeout for test runs in seconds "\
+        #                         "(default: none)")
+        #oparser.add_option ("-v", action="count", dest="verbosity", default=0,
+        #                    help="increase verbosity")
+        #oparser.add_option ("-o", action="store_true", dest="optimize", 
+        #                    default=False, 
+        #                    help="remove assertions and debug code") # TODO
+        #(g_opts, args) = oparser.parse_args ()
+
+        #(g_opts, args) = aparser.parse_args()
+        g_args = aparser.parse_args()
+        print (g_args)
         # TODO debug
-        if len (args) != 3:
-            oparser.error ("invalid number of arguments")
+        #if len (args) != 3:
+        #    oparser.error ("invalid number of arguments")
 
-        if g_opts.optimize:
+        if g_args.optimize:
             sys.argv.remove("-o")
             os.execl(sys.executable, sys.executable, '-O', *sys.argv)
         else:
             # TODO debug
-            g_infile = args[0]
-            g_outfile = args[1]
-            g_cmd = shlex.split(args[2])
+            #g_infile = args[0]
+            #g_outfile = args[1]
+            #g_cmd = shlex.split(args[2])
             #g_infile = "./trash/sc2011rules-qf-abv-ex.smt2"
             #g_infile = "./trash/noregions-stpmem.stp.smt2"
             #g_infile = "./trash/noregions-fullmemite.stp.smt2"
@@ -539,20 +570,19 @@ if __name__ == "__main__":
             #g_outfile = "sc2011_red.smt2"
             #g_cmd = ["test/run1.sh"]
 
-            if not os.path.exists(g_infile):
+            if not os.path.exists(g_args.infile):
                 raise DDSMTException ("given input file does not exist")
-            if os.path.isdir(g_infile):
+            if os.path.isdir(g_args.infile):
                 raise DDSMTException ("given input file is a directory")
             #if os.path.exists(g_outfile):
             #    raise DDSMTException ("given output file does already exist")
 
-            _log (1, "input  file: '{}'".format(g_infile))
-            _log (1, "output file: '{}'".format(g_outfile))
-            _log (1, "command:     '{}'".format(args[2]))
-            _log (1, "command:     '{}'".format(g_cmd[0]))
+            _log (1, "input  file: '{}'".format(g_args.infile))
+            _log (1, "output file: '{}'".format(g_args.outfile))
+            _log (1, "command:     '{}'".format(g_args.cmd))
 
             parser = DDSMTParser()
-            g_smtformula = parser.parse(g_infile)
+            g_smtformula = parser.parse(g_args.infile)
 
             # TODO debug
             print (">>>>> parser done")
@@ -562,8 +592,8 @@ if __name__ == "__main__":
             #print ("sizeof smtformula.scopes.cmds: " + str(sys.getsizeof(g_smtformula.scopes.cmds)))
             #print ("sizeof smtformula.scopes.funs: " + str(sys.getsizeof(g_smtformula.scopes.funs)))
             #print ("sizeof smtformula.funs_cache: " + str(sys.getsizeof(g_smtformula.funs_cache)))
-            shutil.copyfile(g_infile, g_tmpfile)
-            g_cmd.append(g_tmpfile)
+            shutil.copyfile(g_args.infile, g_tmpfile)
+            g_args.cmd.append(g_tmpfile)
             g_golden = _run()
             
             _log (1)
