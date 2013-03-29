@@ -158,10 +158,15 @@ def _filter_cmds (filter_fun = None, root = None):
 
 def _filter_terms (filter_fun = None, root = None):
     nodes = []
-    asserts = _filter_cmds (lambda x: x.is_assert())
-    to_visit = [root if root != None \
-                     else c.children[0] for c in asserts if not 
-                                c.children[0].get_subst().is_const()]
+    #asserts = _filter_cmds (lambda x: x.is_assert())
+    #to_visit = [root if root != None \
+    #                 else c.children[0] for c in asserts if not 
+    #                            c.children[0].get_subst().is_const()]
+    to_visit = [root]
+    if not root:
+        asserts = _filter_cmds (lambda x: x.is_assert())
+        to_visit = [c.children[0] for c in asserts \
+                if not c.children[0].get_subst().is_const()]
     while to_visit:
         cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
@@ -486,7 +491,7 @@ def ddsmt_main ():
             nsubst = _substitute_terms (
                     lambda x: x.children[0],  # array
                     lambda x: x.is_write(),
-                   cmds, "substitute STOREs with array child")
+                    cmds, "substitute STOREs with array child")
             if nsubst:
                 succeeded = "store"
                 nsubst_round += nsubst
@@ -503,6 +508,29 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "select":
                 break
+            nsubst = _substitute_terms (
+                    lambda x: x.children[1],  # left child
+                    lambda x: x.is_ite(),
+                    cmds, "substitute ITE with left child")
+            if nsubst:
+                succeeded = "iteleft"
+                nsubst_round += nsubst
+                nterms_subst += nsubst
+            elif succeeded == "iteleft":
+                break
+            nsubst = _substitute_terms (
+                    lambda x: x.children[2],  # right child
+                    lambda x: x.is_ite(),
+                    cmds, "substitute ITE with right child")
+            if nsubst:
+                succeeded = "iteright"
+                nsubst_round += nsubst
+                nterms_subst += nsubst
+            elif succeeded == "iteright":
+                break
+
+
+
 
         #nsubst += _substitute_terms (
         #        lambda x: _subst_term_with_child(x),
@@ -589,6 +617,9 @@ if __name__ == "__main__":
     except (DDSMTParseException, DDSMTException) as e:
         _cleanup()
         sys.exit(str(e))
+    except MemoryError as e:
+        _cleanup()
+        sys.exit("[ddsmt] memory exhausted")
     except KeyboardInterrupt as e:
         _cleanup()
         sys.exit("[ddsmt] interrupted")
