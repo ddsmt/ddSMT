@@ -218,6 +218,9 @@ class SMTNode:
     def is_read (self):
         return False
 
+    def is_ite (self):
+        return False
+
     def is_let (self):
         return False
 
@@ -431,10 +434,13 @@ class SMTFunAppNode (SMTNode):
                     outfile.write(")")
 
     def is_write (self):
-        return self.fun.kind == KIND_STORE
+        return self.kind == KIND_STORE
 
     def is_read (self):
-        return self.fun.kind == KIND_SELECT
+        return self.kind == KIND_SELECT
+
+    def is_ite (self):
+        return self.kind == KIND_ITE
 
 
 class SMTVarBindNode (SMTNode):
