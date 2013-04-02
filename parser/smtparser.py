@@ -74,16 +74,18 @@ class SMTParser:
 
     IDXED  = "(_"
 
-    QUOTE  = '\"'
-    BSLASH = '\\'
+    BSLASH  = '\\'
+    COMMA   = ','
+    COMMENT = ';'
+    QUOTE   = '\"'
 
-    AS     = "as"
-    LET    = "let"
-    FORALL = "forall"
-    EXISTS = "exists"
+    AS      = "as"
+    LET     = "let"
+    FORALL  = "forall"
+    EXISTS  = "exists"
 
-    TRUE   = "true"
-    FALSE  = "false"
+    TRUE    = "true"
+    FALSE   = "false"
 
     PRINTSUCC = ":print-success"
     EXPANDDEF = ":expand-definitions"
@@ -140,7 +142,7 @@ class SMTParser:
         self.string          = SMTParseElement()
         self.b_value         = SMTParseElement()
         self.symbol          = SMTParseElement()
-        self.spec_symbol     = SMTParseElement()
+        #self.spec_symbol     = SMTParseElement()
         self.keyword         = SMTParseElement() 
         self.spec_constant   = SMTParseElement()
         self.s_expr          = SMTParseElement()
@@ -149,8 +151,8 @@ class SMTParser:
         self.sort_expr       = SMTParseElement()
         self.attr_value      = SMTParseElement()
         self.attribute       = SMTParseElement()
-        self.spec_attr_value = SMTParseElement()    
-        self.spec_attribute  = SMTParseElement()
+        #self.spec_attr_value = SMTParseElement()    
+        #self.spec_attribute  = SMTParseElement()
         self.qual_ident      = SMTParseElement()
         self.var_binding     = SMTParseElement()
         self.var_bindings    = SMTParseElement()
@@ -167,7 +169,7 @@ class SMTParser:
         self.filename = filename
         sys.setrecursionlimit(7000)
         self.tokens = self.__tokenize()
-        print (self.tokens)
+        #print (self.tokens)
         self.__scan()
         return self.script.parse_action(self.__script())
                 
@@ -200,7 +202,7 @@ class SMTParser:
         return (idx, line, col)
 
     def __skip_comment (self, instring, idx, line, col):
-        if idx < len(instring) and instring[idx] == ';':
+        if idx < len(instring) and instring[idx] == SMTParser.COMMENT:
             while idx < len(instring) and instring[idx] != '\n':
                  idx += 1
         return (idx, line, col)
@@ -219,12 +221,21 @@ class SMTParser:
 
     def __tokenize (self):
         with open (self.filename, 'r') as infile:
-
-            instring = re.sub(r';[^\n]*\n', ' ', infile.read())
-            instring = re.sub(r'\((?!_)', ' ( ', instring)
-            # Note: two separate re.subs are way faster than
+            # Note: separate re.subs are way faster than e.g.
             #           re.sub(r'(?<!\\)(?P<m>["\)])', 
             #                  " {} ".format(r'\g<m>'), instring)
+            instring = re.sub (
+                    r'\|.*\|',
+                    lambda x: re.sub(
+                        SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
+                    infile.read())
+            instring = re.sub (
+                    r'".*"', 
+                    lambda x: re.sub(
+                        SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
+                    instring)
+            instring = re.sub(r';[^\n]*\n', ' ' , instring)
+            instring = re.sub(r'\((?!_)', ' ( ', instring)
             instring = re.sub(r'(?<!\\)"', ' " ', instring)
             return re.sub(r'(?<!\\)\)', ' ) ', instring).split()
 
@@ -300,33 +311,34 @@ class SMTParser:
         self.__scan()
         return tokens
 
-    def __symbol (self):
-        tokens = SMTParseResult()
-        if not re.match(
-                r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
-            raise SMTParseException (
-                    "unexpected character: {}".format(self.la[0]), self)
-        if self.la[0] == '|':
-            if self.la[-1] != '|':
-                raise SMTParseException ("missing symbol close Tag '|'", self)
-            string = self.la[1:-1]
-            if SMTParser.BSLASH in string:
-                raise SMTParseException ("unexpected character: '\\'", self)
-            elif '|' in string:
-                raise SMTParseException ("unexpected character: '|'", self)
-        else:
-            string = self.la
-            for i in range(0, len(string)):
-                c = string[i]
-                if not c.isalpha() and not c.isdigit() \
-                   and c not in self.spec_chars:
-                       raise SMTParseException (
-                               "unexpected character: '{}'".format(c), self)
-        tokens.append(self.la)
-        self.__scan()
-        return tokens
+    #def __symbol (self):
+    #    tokens = SMTParseResult()
+    #    if not re.match(
+    #            r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
+    #        raise SMTParseException (
+    #                "unexpected character: {}".format(self.la[0]), self)
+    #    if self.la[0] == '|':
+    #        if self.la[-1] != '|':
+    #            raise SMTParseException ("missing symbol close Tag '|'", self)
+    #        string = self.la[1:-1]
+    #        if SMTParser.BSLASH in string:
+    #            raise SMTParseException ("unexpected character: '\\'", self)
+    #        elif '|' in string:
+    #            raise SMTParseException ("unexpected character: '|'", self)
+    #    else:
+    #        string = self.la
+    #        for i in range(0, len(string)):
+    #            c = string[i]
+    #            if not c.isalpha() and not c.isdigit() \
+    #               and c not in self.spec_chars:
+    #                   raise SMTParseException (
+    #                           "unexpected character: '{}'".format(c), self)
+    #    tokens.append(self.la)
+    #    self.__scan()
+    #    return tokens
 
-    def __spec_symbol (self):
+    #def __spec_symbol (self):
+    def __symbol (self):
         tokens = SMTParseResult()
         if not re.match(
                 r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
@@ -477,30 +489,30 @@ class SMTParser:
             tokens.append(self.attr_value.parse_action(self.__attr_value()))
         return tokens
 
-    def __spec_attr_value (self):
-        tokens = SMTParseResult()
-        if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
-                or self.__first_of_const(self.la[0]):
-            tokens.append(
-                    self.spec_constant.parse_action(self.__spec_constant()))
-        elif self.__first_of_symbol(self.la[0]):
-            tokens.append(self.spec_symbol.parse_action(self.__spec_symbol()))
-        else:
-            self.__check_lpar("attribute value expected")
-            tokens.append(SMTParser.LPAR)  # necessary for distinction
-            tokens.append([])
-            while self.la and self.la != SMTParser.RPAR:
-                tokens[-1].append(self.s_expr.parse_action(self.__s_expr()))
-            self.__check_rpar()
-        return tokens
+    #def __spec_attr_value (self):
+    #    tokens = SMTParseResult()
+    #    if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
+    #            or self.__first_of_const(self.la[0]):
+    #        tokens.append(
+    #                self.spec_constant.parse_action(self.__spec_constant()))
+    #    elif self.__first_of_symbol(self.la[0]):
+    #        tokens.append(self.spec_symbol.parse_action(self.__spec_symbol()))
+    #    else:
+    #        self.__check_lpar("attribute value expected")
+    #        tokens.append(SMTParser.LPAR)  # necessary for distinction
+    #        tokens.append([])
+    #        while self.la and self.la != SMTParser.RPAR:
+    #            tokens[-1].append(self.s_expr.parse_action(self.__s_expr()))
+    #        self.__check_rpar()
+    #    return tokens
 
-    def __spec_attribute (self):
-        tokens = SMTParseResult()
-        tokens.append(self.keyword.parse_action(self.__keyword()))
-        if self.la[0] not in (':', SMTParser.RPAR):
-            tokens.append(
-                    self.spec_attr_value.parse_action(self.__spec_attr_value()))
-        return tokens
+    #def __spec_attribute (self):
+    #    tokens = SMTParseResult()
+    #    tokens.append(self.keyword.parse_action(self.__keyword()))
+    #    if self.la[0] not in (':', SMTParser.RPAR):
+    #        tokens.append(
+    #                self.spec_attr_value.parse_action(self.__spec_attr_value()))
+    #    return tokens
 
     def __qual_ident (self):
         tokens = SMTParseResult()
@@ -737,9 +749,10 @@ class SMTParser:
             tokens.append(self.option.parse_action(self.__option()))
         elif self.la == SMTParser.SETINFO:
             self.__scan()
-            # spec_attribute: be more lenient towards comment-style symbols
-            tokens.append(
-                    self.spec_attribute.parse_action(self.__spec_attribute()))
+            tokens.append(self.attribute.parse_action(self.__attribute()))
+            ## spec_attribute: be more lenient towards comment-style symbols
+            #tokens.append(
+            #        self.spec_attribute.parse_action(self.__spec_attribute()))
         elif self.la == SMTParser.DECLSORT:
             self.__scan()
             tokens.append(self.symbol.parse_action(self.__symbol()))

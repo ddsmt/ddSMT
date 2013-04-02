@@ -344,14 +344,14 @@ def ddsmt_main ():
         ## end debug
 
 
-        #_dump (g_args.outfile)  # TODO debug
+        _dump (g_args.outfile)  # TODO debug
        # from parser.ddsmtparser import SMTScopeNode, SMTCmdNode, SMTNode
        # print ("# scopes: " + str(SMTScopeNode.g_id))
        # print ("# cmds: " + str(SMTCmdNode.g_id))
        # print ("# nodes: " + str(SMTNode.g_id))
        # #import time
        # #time.sleep(15)
-        #sys.exit(0) # TODO debug
+        sys.exit(0) # TODO debug
 
 
         nsubst = _substitute_scopes ()
@@ -597,12 +597,14 @@ if __name__ == "__main__":
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_args.infile)
 
-            shutil.copyfile(g_args.infile, g_tmpfile)
-            g_args.cmd.append(g_tmpfile)
-            g_golden = _run()
-            
-            _log (1)
-            _log (1, "golden exit: {0:d}".format(g_golden))
+            print (">>>> parser done")
+
+            #shutil.copyfile(g_args.infile, g_tmpfile)
+            #g_args.cmd.append(g_tmpfile)
+            #g_golden = _run()
+            #
+            #_log (1)
+            #_log (1, "golden exit: {0:d}".format(g_golden))
 
             ddsmt_main ()
             

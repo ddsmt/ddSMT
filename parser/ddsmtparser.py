@@ -1647,12 +1647,12 @@ class DDSMTParser (SMTParser):
             self.attribute.set_parse_action (lambda t: 
                     " ".join([str(to) for to in t]))
 
-            self.spec_attr_value.set_parse_action (lambda t:
-                    "({})".format(" ".join([str(to) for to in t[1]])) \
-                            if t[0] == SMTParser.LPAR else t[0])
+            #self.spec_attr_value.set_parse_action (lambda t:
+            #        "({})".format(" ".join([str(to) for to in t[1]])) \
+            #                if t[0] == SMTParser.LPAR else t[0])
 
-            self.spec_attribute.set_parse_action (lambda t: 
-                    " ".join([str(to) for to in t]))
+            #self.spec_attribute.set_parse_action (lambda t: 
+            #        " ".join([str(to) for to in t]))
 
             self.qual_ident.set_parse_action (self.__qualIdent2SMTNode)
             
