@@ -1,0 +1,85 @@
+===============================================================================
+ ddSMT
+===============================================================================
+
+  This is version 0.9-beta of ddSMT [0], a delta debugger for the SMT-LiB v2
+  format (see [1] for more details on the format).
+
+  ddSMT is free software released under the GPLv3. You should have received 
+  a copy of the GNU General Public License along with ddSMT (see file 
+  COPYING). If not, see [2].
+
+
+-------------------------------------------------------------------------------
+ General:
+-------------------------------------------------------------------------------
+  
+  ddSMT serves as an input minimizer for Sat Modulo Theories (SMT) benchmarks
+  in SMT-LIB v2 format. It supports all SMT-LIB v2 logics and has been tested
+  on the SMT-LIB v2 benchmark set.
+
+  ddSMT is implemented in Python 3 and developed on a Linux OS. ddSMT requires
+  Python version 3.2 or later. Note that due to major improvements with respect
+  to the internal string representation in Python 3.3 (see [3]) it is strongly 
+  recommended to use Python version 3.3 (or later).
+
+
+-------------------------------------------------------------------------------
+ Usage:
+-------------------------------------------------------------------------------
+
+  ddSMT minimizes a failure-inducing input in SMT-LIB v2 format based on the
+  exit code of a given command when executed on that input. Note that any
+  output produced during that execution is ignored.
+
+  Note that ddSMT supports on-the-fly input minimization, i.e. as soon as an
+  input minimization was successful it is available as the output file
+  specified. Hence, it is not necessary to wait for ddSMT until completion,
+  which can be useful for hard to minimize input files with long solver 
+  execution times.
+
+  Further note that ddSMT currently enables assertions and debug code by
+  default (as it is still a beta release). Use -o to remove assertions and
+  run ddSMT with python optimization flag -O enabled.
+
+  Folder structure:
+    ./ddsmt/
+    ./ddsmt/ddsmt.py
+    ./ddsmt/parser
+    ./ddsmt/parser/__init__.py
+    ./ddsmt/parser/smtparser.py
+    ./ddsmt/parser/ddsmtparser.py
+
+  Invocation:
+    
+    ./ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]
+
+  Positional arguments:
+    infile:   the input file in SMT-LIB v2 format
+    outfile:  the outputfile
+    cmd:      the command to be executed (with optional arguments)
+
+  Optional arguments:
+    -h, --help    show a help message and exit
+    -t val        timeout for test runs (command execution) in seconds
+                  (default: none)
+    -v            increase verbosity
+    -o            remove assertions and debug code
+    --version     show program's version number and exit
+    
+-------------------------------------------------------------------------------
+ Contact:
+-------------------------------------------------------------------------------
+
+  For comments, questions and bug reports, please contact Aina Niemetz [4].
+
+-------------------------------------------------------------------------------
+ References:
+-------------------------------------------------------------------------------
+
+  [0] http://fmv.jku.at/ddsmt
+  [1] http://www.smtlib.org
+  [2] http://www.gnu.org/licenses/
+  [3] http://docs.python.org/3/whatsnew/3.3.html#pep-393
+  [4] http://www.fmv.jku.at/niemetz
+
