@@ -30,7 +30,6 @@ import random
 
 from argparse import ArgumentParser, REMAINDER
 from subprocess import Popen, PIPE
-
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 
@@ -40,6 +39,7 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 
 g_golden = 0
 g_ntests = 0
+
 g_args = None
 g_smtformula = None
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
@@ -53,7 +53,6 @@ class DDSMTException (Exception):
     
     def __str__ (self):
         return "[ddsmt] Error: {0:s}".format(self.msg)
-
 
 
 
@@ -212,7 +211,6 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
     return nsubst_total
 
 
-                    
 def _substitute_scopes ():
     global g_smtformula
     assert (g_smtformula)
@@ -277,14 +275,15 @@ def _has_child_to_subst (term):
             return True
     return False
 
-def _subst_term_with_child (term):
-    assert (term.children)
-    children = []
-    for child in term.children:
-        if child.get_subst().sort == term.sort:
-            children.append(child)
-    random.shuffle(children)
-    return term if not children else children[0]
+
+#def _subst_term_with_child (term):
+#    assert (term.children)
+#    children = []
+#    for child in term.children:
+#        if child.get_subst().sort == term.sort:
+#            children.append(child)
+#    random.shuffle(children)
+#    return term if not children else children[0]
 
 
 
