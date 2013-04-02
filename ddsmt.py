@@ -24,12 +24,10 @@
 
 import os
 import sys
-import shlex
 import shutil
 import time
 import random
 
-#from optparse import OptionParser
 from argparse import ArgumentParser, REMAINDER
 from subprocess import Popen, PIPE
 
@@ -152,10 +150,6 @@ def _filter_cmds (filter_fun = None, root = None):
 
 def _filter_terms (filter_fun = None, root = None):
     nodes = []
-    #asserts = _filter_cmds (lambda x: x.is_assert())
-    #to_visit = [root if root != None \
-    #                 else c.children[0] for c in asserts if not 
-    #                            c.children[0].get_subst().is_const()]
     to_visit = [root]
     if not root:
         asserts = _filter_cmds (lambda x: x.is_assert())
@@ -168,7 +162,7 @@ def _filter_terms (filter_fun = None, root = None):
         if cur.children:
             to_visit.extend(cur.children)
     
-    nodes.sort(key = lambda x: x.id) # TODO TODO TODO test
+    nodes.sort(key = lambda x: x.id)
     return nodes
 
 
