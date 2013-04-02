@@ -35,22 +35,16 @@ from subprocess import Popen, PIPE
 
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
-import resource  # TODO debug
 
 __version__ = "0.9-beta"
 __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 
 
-#g_infile  = ""
-#g_outfile = ""
-g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
-#g_opts = object
-g_args = None
 g_golden = 0
-
 g_ntests = 0
-
+g_args = None
 g_smtformula = None
+g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
 
 
 
@@ -318,40 +312,12 @@ def ddsmt_main ():
         nsubst = 0
         nsubst_round = 0
 
-        ## debug
-        #to_visit = [g_smtformula.scopes]
-        #while to_visit:
-        #    scope = to_visit.pop()
-        #    print ("scope ({}): ".format(scope.id) + str(scope.level) + 
-        #           "\n kind: " + str(scope.kind) + 
-        #           "\n vars: " + " ".join([str(f) for f in scope.funs]),
-        #           "\n prev_scopes: " + " ".join([str(s) for s in scope.prev_scopes]))
-                   #"\n cache: " + " ".join([str(f) for f in scope.funs_cache]))
-        #    if scope.prev:
-        #       print ("  prev: " + str(scope.prev.level) + 
-        #                " kind: " + str(scope.prev.kind))# + 
-        #                #" vars: " + " ".join([str(f) for f in scope.prev.funs]))
-        #    to_visit.extend(scope.scopes.values())
-
-        #scopes = [g_smtformula.scopes]
-        #while scopes:
-        #    scope = scopes.pop()
-        #    for sort in scope.sorts:
-        #        print ("level " + str(scope.level) + ": " + str(sort))
-        #        #if not scope.level == 0:
-        #        #    print ("    prev: " + str(scope.prev.level) + ": " + str(scope.prev)) 
-        #    scopes.extend(scope.scopes)
-        ## end debug
-
-
-        _dump (g_args.outfile)  # TODO debug
+       # _dump (g_args.outfile)  # TODO debug
        # from parser.ddsmtparser import SMTScopeNode, SMTCmdNode, SMTNode
        # print ("# scopes: " + str(SMTScopeNode.g_id))
        # print ("# cmds: " + str(SMTCmdNode.g_id))
        # print ("# nodes: " + str(SMTNode.g_id))
-       # #import time
-       # #time.sleep(15)
-        sys.exit(0) # TODO debug
+       # sys.exit(0) # TODO debug
 
 
         nsubst = _substitute_scopes ()
@@ -597,14 +563,14 @@ if __name__ == "__main__":
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_args.infile)
 
-            print (">>>> parser done")
+            _log (2, "parser done")
 
-            #shutil.copyfile(g_args.infile, g_tmpfile)
-            #g_args.cmd.append(g_tmpfile)
-            #g_golden = _run()
-            #
-            #_log (1)
-            #_log (1, "golden exit: {0:d}".format(g_golden))
+            shutil.copyfile(g_args.infile, g_tmpfile)
+            g_args.cmd.append(g_tmpfile)
+            g_golden = _run()
+            
+            _log (1)
+            _log (1, "golden exit: {0:d}".format(g_golden))
 
             ddsmt_main ()
             

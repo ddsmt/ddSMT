@@ -1266,18 +1266,6 @@ class SMTFormula:
         elif kind in (KIND_RDIV, KIND_ISI, KIND_TOI):
             for c in children:
                 if c.sort not in (sortint, sortreal):
-                    ## be more lenient in case that int const given when 
-                    ## real was expected
-                    #if c.kind == KIND_CONSTN:
-                    #    c.kind = KIND_CONSTD
-                    #    c.sort = sortreal
-                    #    c.value = float(c.value)
-                    #elif c.kind == KIND_NEG \
-                    #     and c.children[0].kind == KIND_CONSTN:
-                    #    c.children[0].kind = KIND_CONSTD
-                    #    c.children[0].sort = sortreal
-                    #    c.children[0].value = float(c.children[0].value)
-                    #else:
                     raise DDSMTParseCheckException (
                         "'{!s}' expects sort 'Real' as argument(s)" \
                         "".format(fun))
@@ -1289,54 +1277,6 @@ class SMTFormula:
                 raise DDSMTParseCheckException (
                     "'{!s}' expects sort 'Int' or 'Real' as argument(s)" \
                     "".format(fun))
-            #for c in children[1:]:
-            #    if c.sort != c0.sort:
-            #        # be more lenient in case that int const given when 
-            #        # real was expected
-            #        if c.kind == KIND_CONSTN:
-            #            c.kind = KIND_CONSTD
-            #            c.sort = c0.sort
-            #            c.value = float(c.value)
-            #        elif c.kind == KIND_NEG \
-            #             and c.children[0].kind == KIND_CONSTN:
-            #                 c.children[0].kind = KIND_CONSTD
-            #                 c.children[0].sort = c0.sort
-            #                 c.children[0].value = float(c.children[0].value)
-            #                 c.sort = c.children[0].sort
-            #        elif c0.is_const() and c0.kind == KIND_CONSTN:
-            #            c0.kind = KIND_CONSTD
-            #            c0.sort = c.sort
-            #            c0.value = float(c0.value)
-            #        elif c0.kind == KIND_NEG and \
-            #             c0.children[0].kind == KIND_CONSTN:
-            #                 c0.children[0].kind = KIND_CONSTD
-            #                 c0.children[0].sort = c.sort
-            #                 c0.children[0].value = float(c0.children[0].value)
-            #                 c0.sort = c0.children[0].sort
-            #        # be more lenient in case that ite with int consts as 
-            #        # then/else is given
-            #        elif c.kind == KIND_ITE:
-            #            if False not in [cc.kind in g_const_kinds \
-            #                    for cc in c.children[1:]]:
-            #                sortint = self.sortNode("Int")
-            #                sortreal = self.sortNode("Real")
-            #                cckind = KIND_CONSTD \
-            #                        if c0.sort == self.sortNode("Real") \
-            #                        else KIND_CONSTN
-            #                ccsort = sortreal \
-            #                        if cckind == KIND_CONSTD else sortint 
-            #                for cc in c.children[1:]:
-            #                    if cc.kind != cckind:
-            #                        cc.kind = cckind
-            #                        cc.sort = ccsort
-            #                        cc.value = float(cc.value) \
-            #                                if cckind == KIND_CONSTD \
-            #                                else int(cc.value)
-            #                c.sort = ccsort
-            #        else:
-            #            raise DDSMTParseCheckException (
-            #                "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
-            #                "".format(fun, c0.sort, c.sort)) 
         # args BV sort check
         elif kind in (KIND_CONC, KIND_EXTR, KIND_REP,   KIND_ROL,  KIND_ROR, 
                       KIND_SEXT, KIND_ZEXT, KIND_BVNEG, KIND_BVNOT):
@@ -1351,50 +1291,6 @@ class SMTFormula:
                 if c.sort != c0.sort \
                    and c0.sort not in (sortint, sortreal) \
                    and c.sort not in (sortint, sortreal):
-                    ## be more lenient in case that int const given when 
-                    ## real was expected
-                    #if c.is_const() and c.kind == KIND_CONSTN:
-                    #    c.kind = KIND_CONSTD
-                    #    c.sort = c0.sort
-                    #    c.value = float(c.value)
-                    #elif c.kind == KIND_NEG and \
-                    #     c.children[0].kind == KIND_CONSTN:
-                    #         c.children[0].kind = KIND_CONSTD
-                    #         c.children[0].sort = c0.sort
-                    #         c.children[0].value = float(c.children[0].value)
-                    #         c.sort = c.children[0].sort
-                    #elif c0.is_const() and c0.kind == KIND_CONSTN:
-                    #    c0.kind = KIND_CONSTD
-                    #    c0.sort = c.sort
-                    #    c0.value = float(c0.value)
-                    #elif c0.kind == KIND_NEG and \
-                    #     c0.children[0].kind == KIND_CONSTN:
-                    #         c0.children[0].kind = KIND_CONSTD
-                    #         c0.children[0].sort = c.sort
-                    #         c0.children[0].value = float(c0.children[0].value)
-                    #         c0.sort = c0.children[0].sort
-                    ## be more lenient in case that ite with int consts as 
-                    ## then/else is given
-                    #elif c.kind == KIND_ITE and \
-                    ##     False not in [cc.kind in g_const_kinds \
-                    #    False not in [cc.is_const()
-                    #     for cc in c.children[1:]]:
-                    #         sortint = self.sortNode("Int")
-                    #         sortreal = self.sortNode("Real")
-                    #         cckind = KIND_CONSTD \
-                    #                 if c0.sort == self.sortNode("Real") \
-                    #                 else KIND_CONSTN
-                    #         ccsort = sortreal \
-                    #                 if cckind == KIND_CONSTD else sortint 
-                    #         for cc in c.children[1:]:
-                    #             if cc.kind != cckind:
-                    #                 cc.kind = cckind
-                    #                 cc.sort = ccsort
-                    #                 cc.value = float(cc.value) \
-                    #                         if cckind == KIND_CONSTD \
-                    #                         else int(cc.value)
-                    #         c.sort = ccsort
-                    #else:
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
                         "".format(fun, c0.sort, c.sort)) 
@@ -1434,7 +1330,6 @@ class SMTFormula:
         # not predefined
         else:
             declfun = self.find_fun(fun.name, fun.indices)
-            #declfun = self.find_fun(fun.name)
             assert (declfun)
             if declfun.sort == None:  # not declared yet
                 raise DDSMTParseCheckException (
@@ -1646,13 +1541,6 @@ class DDSMTParser (SMTParser):
 
             self.attribute.set_parse_action (lambda t: 
                     " ".join([str(to) for to in t]))
-
-            #self.spec_attr_value.set_parse_action (lambda t:
-            #        "({})".format(" ".join([str(to) for to in t[1]])) \
-            #                if t[0] == SMTParser.LPAR else t[0])
-
-            #self.spec_attribute.set_parse_action (lambda t: 
-            #        " ".join([str(to) for to in t]))
 
             self.qual_ident.set_parse_action (self.__qualIdent2SMTNode)
             
