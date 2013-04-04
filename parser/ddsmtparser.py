@@ -912,7 +912,10 @@ class SMTFormula:
         self.subst_scopes = SMTScopeSubstList ()
         self.subst_cmds = SMTCmdSubstList ()
         self.subst_nodes = SMTNodeSubstList ()
-        self.funs_cache = {}
+        # currently visible scopes
+        self.scopes_cache = { self.scopes.id : self.scopes } 
+        # fun name -> declaring scopes
+        self.funs_cache = {} 
         self.__add_predefined_sorts ()
 
     def __add_predefined_sorts (self):
@@ -992,11 +995,13 @@ class SMTFormula:
                 first_scope = new_scope
             self.cur_scope.scopes.append(new_scope)
             self.cur_scope = new_scope
+            self.scopes_cache[self.cur_scope.id] = self.cur_scope
         return first_scope  # scope associated with parent push cmd
 
     def close_scope (self, nscopes = 1):
         for i in range (nscopes):
             assert (self.cur_scope.prev != None)
+            del(self.scopes_cache[self.cur_scope.id])
             self.cur_scope = self.cur_scope.prev
 
     #def constNode (self, kind, sort, value):
@@ -1122,6 +1127,35 @@ class SMTFormula:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
+    #def find_fun (self, name, indices = [], scope = None, find_nested = True):
+    #    global g_fun_kinds
+    #    # level 0 shortcut
+    #    if name in g_fun_kinds:  # default at level 0
+    #        if name in self.scopes.funs \
+    #           and self.scopes.funs[name].indices == indices:
+    #               return self.scopes.funs[name]
+    #        else:
+    #            return None
+    #    # check given / current scope first
+    #    scope = scope if scope else self.cur_scope
+    #    if name in scope.funs:
+    #        return scope.funs[name]
+    #    if find_nested and name in self.funs_cache:
+    #        scopes = self.funs_cache[name]
+    #        if len(scopes) == 1:
+    #            scope = scopes[0]
+    #            assert (name in scope.funs)
+    #            if scope.funs[name].indices == indices:
+    #                return scope.funs[name]
+    #        else:
+    #            while scope:
+    #                if scope in scopes:
+    #                    assert (name in scope.funs)
+    #                    if scope.funs[name].indices == indices:
+    #                        return scope.funs[name]
+    #                scope = scope.prev
+    #    return None
+
     def find_fun (self, name, indices = [], scope = None, find_nested = True):
         global g_fun_kinds
         # level 0 shortcut
@@ -1133,22 +1167,19 @@ class SMTFormula:
                 return None
         # check given / current scope first
         scope = scope if scope else self.cur_scope
-        if name in scope.funs:
+        assert (scope.id in self.scopes_cache)
+        if name in scope.funs and scope.funs[name].indices == indices:
             return scope.funs[name]
+        # check outer scopes
         if find_nested and name in self.funs_cache:
             scopes = self.funs_cache[name]
-            if len(scopes) == 1:
-                scope = scopes[0]
-                assert (name in scope.funs)
-                if scope.funs[name].indices == indices:
-                    return scope.funs[name]
-            else:
-                while scope:
-                    if scope in scopes:
-                        assert (name in scope.funs)
-                        if scope.funs[name].indices == indices:
-                            return scope.funs[name]
-                    scope = scope.prev
+            for s in reversed(scopes):
+                if s.id > scope.id:
+                    continue
+                if s.id in self.scopes_cache:
+                    assert (name in s.funs)
+                    if s.funs[name].indices == indices:
+                        return s.funs[name]
         return None
 
     def add_fun (self, name, sort, sorts, indices, scope = None):
@@ -1159,6 +1190,34 @@ class SMTFormula:
         else:
             self.funs_cache[name] = [scope]
         return scope.funs[name]
+
+    #def delete_fun (self, name, indices = [], scope = None):
+    #    global g_fun_kinds
+    #    # level 0 shortcut
+    #    if name in g_fun_kinds:  # default at level 0
+    #        if name in self.scopes.funs \
+    #           and self.scopes.funs[name].indices == indices:
+    #               del(self.scopes.funs[name])
+    #        return
+    #    # check given / current scope first
+    #    scope = scope if scope else self.cur_scope
+    #    if name in scope.funs:
+    #        del(scope.funs[name])
+    #    elif name in self.funs_cache:
+    #        scopes = self.funs_cache[name]
+    #        if len(scopes) == 1:
+    #            scope = scopes[0]
+    #            assert (name in scope.funs)
+    #            if scope.funs[name].indices == indices:
+    #                del(scope.funs[name])
+    #        else:
+    #            while scope:
+    #                if scope in scopes:
+    #                    assert (name in scope.funs)
+    #                    if scope.funs[name].indices == indices:
+    #                        del(scope.funs[name])
+    #                        return
+    #                scope = scope.prev
 
     def delete_fun (self, name, indices = [], scope = None):
         global g_fun_kinds
@@ -1172,21 +1231,16 @@ class SMTFormula:
         scope = scope if scope else self.cur_scope
         if name in scope.funs:
             del(scope.funs[name])
+        # check outer scopes
         elif name in self.funs_cache:
             scopes = self.funs_cache[name]
-            if len(scopes) == 1:
-                scope = scopes[0]
-                assert (name in scope.funs)
-                if scope.funs[name].indices == indices:
-                    del(scope.funs[name])
-            else:
-                while scope:
-                    if scope in scopes:
-                        assert (name in scope.funs)
-                        if scope.funs[name].indices == indices:
-                            del(scope.funs[name])
-                            return
-                    scope = scope.prev
+            for s in reversed(scopes):
+                if s.id > scope.id:
+                    continue
+                if s.id in self.scopes_cache:
+                    assert (name in s.funs)
+                    if s.funs[name].indices == indices:
+                        del(s.funs[name])
 
     def funNode (self, name, sort, sorts = [], indices = [], scope = None,
                  find_nested = True):
