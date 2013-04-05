@@ -267,13 +267,13 @@ def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None,
     return nsubst_total
 
 
-def _has_child_to_subst (term):
-    if not term.children:
-        return False
-    for child in term.children:
-        if child.get_subst().sort == term.sort:
-            return True
-    return False
+#def _has_child_to_subst (term):
+#    if not term.children:
+#        return False
+#    for child in term.children:
+#        if child.get_subst().sort == term.sort:
+#            return True
+#    return False
 
 
 #def _subst_term_with_child (term):
@@ -555,6 +555,9 @@ if __name__ == "__main__":
 
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_args.infile)
+
+            #_dump(g_args.outfile)
+            #sys.exit(0)
 
             _log (2, "parser done")
 
