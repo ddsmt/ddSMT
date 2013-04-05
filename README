@@ -29,6 +29,7 @@
 -------------------------------------------------------------------------------
 
   Since version 0.91-beta:
+    + arg parser: minor fix if cmd not given
     + parser: runtime optimizations
     + parser: minor fix in scope handling
     + parser: minor fix in get_pos() when ';' in symbol/string

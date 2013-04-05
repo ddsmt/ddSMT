@@ -535,6 +535,9 @@ if __name__ == "__main__":
                               version=__version__)
         g_args = aparser.parse_args()
 
+        if not g_args.cmd:
+            raise DDSMTException ("too few arguments")
+        
         if g_args.optimize:
             sys.argv.remove("-o")
             os.execl(sys.executable, sys.executable, '-O', *sys.argv)
