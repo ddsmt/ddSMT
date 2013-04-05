@@ -33,6 +33,7 @@
     + parser: runtime optimizations
     + parser: minor fix in scope handling
     + parser: minor fix in get_pos() when ';' in symbol/string
+    + added support for ':named' annotations
   Since version 0.9-beta:
     + parser: fix handling of ';' within symbols and strings
 

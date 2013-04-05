@@ -608,17 +608,32 @@ class SMTLetNode (SMTNode):
 
 class SMTAnnNode (SMTNode):
 
-    def __init__ (self, attribs, sort, children):
+    def __init__ (self, attributes, sort, children, name = None):
         assert (len(children) == 1)
         super().__init__(KIND_ANNOTN, sort, children)
-        self.attribs = attribs
-
+        self.attributes = attributes
+        # we need to treat annotation nodes as function nodes in case that 
+        # attribute ':named' is given
+        self.name = name
+        self.indices = []
+        self.dumped = False  # we need to distinguish full dumps and name-only
+                             # dumps for named annotation nodes
     def __str__ (self):
         return str(self.get_subst()) if self.is_subst() else \
                 "(! {!s} {})".format(
                         self.children[0], 
-                        " ".join([str(a) for a in self.attribs]))
+                        " ".join([str(a) for a in self.attributes]))
 
+    def dump (self, outfile, lead = " "):
+        if self.is_subst():
+            self.get_subst().dump(outfile, lead)
+        else:
+            outfile.write(lead)
+            if self.dumped:  # name-only
+                outfile.write(self.name)
+            else:            # full dump
+                outfile.write(str(self))
+                self.dumped = True
 
 
 class SMTCmdNode:         
@@ -912,10 +927,10 @@ class SMTFormula:
         self.subst_scopes = SMTScopeSubstList ()
         self.subst_cmds = SMTCmdSubstList ()
         self.subst_nodes = SMTNodeSubstList ()
-        # currently visible scopes
-        self.scopes_cache = { self.scopes.id : self.scopes } 
-        # fun name -> declaring scopes
-        self.funs_cache = {} 
+        self.scopes_cache = {  # currently visible scopes 
+                self.scopes.id : self.scopes } 
+        self.funs_cache = {}   # fun name -> declaring scopes
+        self.anns_cache = []   # named annotation nodes
         self.__add_predefined_sorts ()
 
     def __add_predefined_sorts (self):
@@ -927,6 +942,8 @@ class SMTFormula:
 
     def dump (self, filename = None, root = None):
         out = root if root != None else self.scopes
+        for ann in self.anns_cache:
+            ann.dumped = False  # reset 
         if not filename:
             out.dump(sys.stdout)    
             sys.stdout.write("\n")
@@ -1424,6 +1441,30 @@ class SMTFormula:
         self.close_scope()
         return SMTLetNode (ch) if kind == KIND_LET \
                                else SMTForallExistsNode (svars, kind, ch)
+    
+    def annNode (self, attributes, sort, children):
+        for attrib in attributes:
+            attrib = attrib.split()
+            if attrib[0] == ":named":
+                if len(attrib) != 2:
+                    raise DDSMTParseCheckException (
+                            "missing attribute value for ':named'")
+                name = attrib[1]
+                fun = self.find_fun (name, [], self.cur_scope, True)
+                if fun:
+                    raise DDSMTParseCheckException (
+                            "previous declaration of function {} was here" \
+                            "".format(name))
+                self.cur_scope.funs[name] = SMTAnnNode (
+                        attributes, sort, children, name)
+                if name in self.funs_cache:
+                    self.funs_cache[name].append(self.cur_scope)
+                else:
+                    self.funs_cache[name] = [self.cur_scope]
+                self.anns_cache.append(self.cur_scope.funs[name])
+                return self.cur_scope.funs[name]
+        return SMTAnnNode (attributes, sort, children)
+
 
     def cmdNode (self, kind, children = []):
         assert (self.cur_scope != None)
@@ -1703,9 +1744,10 @@ class DDSMTParser (SMTParser):
             elif t[0] in (SMTParser.FORALL, SMTParser.EXISTS):
                 assert (len(t) == 3)
                 return sf.letFeNode (t[0], [t[2]], t[1])
-            elif t[0] == '!':
+            elif t[0] == SMTParser.EXCL:
                 assert (len(t) == 3)
-                return SMTAnnNode (t[2], t[1].sort, [t[1]])
+                #return SMTAnnNode (t[2], t[1].sort, [t[1]])
+                return sf.annNode (t[2], t[1].sort, [t[1]])
             else:
                 assert (isinstance(t[0], SMTFunNode))
                 return sf.funAppNode (t[0], t[1])
