@@ -147,26 +147,44 @@ def _filter_cmds (filter_fun = None, root = None):
     return cmds
 
 
-def _filter_terms (filter_fun = None, root = None):
+#def _filter_terms (filter_fun = None, root = None):
+#    nodes = []
+#    to_visit = [root]
+#    if not root:
+#        #asserts = _filter_cmds (lambda x: x.is_assert())
+#        #to_visit = [c.children[0] for c in asserts \
+#        #        if not c.children[0].get_subst().is_const()]
+#        cmds = _filter_cmds (lambda x: x.is_assert() or x.is_definefun())
+#        to_visit = [c.children[-1] for c in cmds \
+#                if not c.children[-1].get_subst().is_const()]
+#    while to_visit:
+#        cur = to_visit.pop().get_subst()
+#        if filter_fun == None or filter_fun(cur):
+#            nodes.append(cur)
+#        if cur.children:
+#            to_visit.extend(cur.children)
+#    
+#    nodes.sort(key = lambda x: x.id)
+#    print ("### " + str(nodes))
+#    return nodes
+
+def _filter_terms (filter_fun = None, roots = []):
     nodes = []
-    to_visit = [root]
-    if not root:
-        #asserts = _filter_cmds (lambda x: x.is_assert())
-        #to_visit = [c.children[0] for c in asserts \
-        #        if not c.children[0].get_subst().is_const()]
-        cmds = _filter_cmds (lambda x: x.is_assert() or x.is_deffun())
+    to_visit = roots
+    if not to_visit:
+        cmds = _filter_cmds (lambda x: x.is_assert() or x.is_definefun())
         to_visit = [c.children[-1] for c in cmds \
-                if not c.chilren[-1].get_subst().is_const()]
+                if not c.children[-1].get_subst().is_const()]
     while to_visit:
         cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
             nodes.append(cur)
         if cur.children:
             to_visit.extend(cur.children)
-    
     nodes.sort(key = lambda x: x.id)
+    #print ("## nodes: " + str(nodes))
+    print ("## len(nodes): " + str(len(nodes)))
     return nodes
-
 
 def _substitute (subst_fun, substlist, superset, with_vars = False):
     global g_smtformula
@@ -186,7 +204,15 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
             cpy_declfun_cmds = g_smtformula.scopes.declfun_cmds.copy()
             for item in subset:
                 if not item.is_subst():
+                    #from parser.ddsmtparser import SMTFunNode
+                    #if type(item) == SMTFunNode:
+                    #    print ("#### " + str(item))
+                    #    print ("### " + str(item.sort))
+                    #    print ("## " + str(subst_fun(item).sort))
                     item.subst (subst_fun(item))
+                    from parser.ddsmtparser import SMTNode
+                    assert (not isinstance(item, SMTNode) \
+                            or item.sort == item.get_subst().sort)
                     nsubst += 1
             if nsubst == 0:
                 continue
@@ -260,13 +286,18 @@ def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None,
 
     nsubst_total = 0
     #cmds = cmds if cmds else _filter_cmds (lambda x: x.is_assert())
-    cmds = cmds if cmds \
-            else _filter_cmds (lambda x: x.is_assert() or x.is_definefun())
-    for cmd in cmds:
-        #assert (len(cmd.children) == 1)
-        nsubst_total += _substitute (subst_fun, g_smtformula.subst_nodes,
-#            _filter_terms (filter_fun, cmd.children[0]), with_vars)
-            _filter_terms (filter_fun, cmd.children[-1]), with_vars)
+#    cmds = cmds if cmds \
+#            else _filter_cmds (lambda x: x.is_assert() or x.is_definefun())
+#    for cmd in cmds:
+#        #assert (len(cmd.children) == 1)
+#        nsubst_total += _substitute (subst_fun, g_smtformula.subst_nodes,
+##            _filter_terms (filter_fun, cmd.children[0]), with_vars)
+#            _filter_terms (filter_fun, cmd.children[-1]), with_vars)
+    terms = [] if not cmds else [c.children[-1] for c in cmds]
+    #print ("\n".join([str(t) + " " + str(t.sort) + " " + str(subst_fun(t)) for t in _filter_terms (filter_fun, terms)]))
+    #sys.exit(0)
+    nsubst_total += _substitute (subst_fun, g_smtformula.subst_nodes,
+            _filter_terms (filter_fun, terms), with_vars)
 
     _log (2, "  >> {0:d} term(s) substituted in total".format(nsubst_total))
     return nsubst_total
@@ -325,6 +356,7 @@ def ddsmt_main ():
             nscopes_subst += nsubst
         elif succeeded == "scopes":
             break
+        print ("# g_ntests " + str(g_ntests))
         
         # initially, eliminate asserts only
         # -> prevent lots of likely unsuccessful testing when eliminating
@@ -339,14 +371,15 @@ def ddsmt_main ():
            ncmds_subst += nsubst
         elif succeeded == "cmds": 
            break
+        print ("# g_ntests " + str(g_ntests))
 
         cmds = _filter_cmds (lambda x: x.is_assert() or x.is_definefun())
 
         if g_smtformula.is_bv_logic():
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.bvZeroConstNode(x.sort),
-                    lambda x: 
-                       x.sort and x.sort.is_bv_sort() and not x.is_const(),
+                    lambda x: not x.is_subst() \
+                       and x.sort and x.sort.is_bv_sort() and not x.is_const(),
                     cmds, "substitute BV TERMS with '0'")
             if nsubst:
                 succeeded = "bv0"
@@ -354,11 +387,13 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "bv0":
                 break
+            print ("# g_ntests " + str(g_ntests))
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
-                    lambda x:
-                        x.sort and x.sort.is_bv_sort() and not x.is_const() \
-                        and (not x.is_fun() or not g_smtformula.is_substvar(x)),
+                    lambda x: not x.is_subst()             \
+                        and x.sort and x.sort.is_bv_sort() \
+                        and not x.is_const() and not x.is_fun(),
+                        #and (not x.is_fun() or not g_smtformula.is_substvar(x)),
                     cmds, "substitute BV TERMS with fresh variables", True)
             if nsubst:
                 succeeded = "bvvar"
@@ -366,11 +401,13 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "bvvar": 
                 break
+            print ("# g_ntests " + str(g_ntests))
 
         if g_smtformula.is_int_logic() or g_smtformula.is_real_logic():
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.zeroConstNNode(),
-                    lambda x: x.sort == g_smtformula.sortNode("Int") \
+                    lambda x: not x.is_subst() \
+                              and x.sort == g_smtformula.sortNode("Int") \
                               and not x.is_const(),
                     cmds, "substitute Int Terms with '0'")
             if nsubst:
@@ -379,9 +416,11 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "int0":
                 break
+            print ("# g_ntests " + str(g_ntests))
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
-                    lambda x: x.sort == g_smtformula.sortNode("Int") \
+                    lambda x: not x.is_subst() \
+                              and x.sort == g_smtformula.sortNode("Int") \
                               and not x.is_const(),
                     cmds, "substitute Int TERMS with fresh variables", True)
             if nsubst:
@@ -390,11 +429,13 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "intvar": 
                 break
+            print ("# g_ntests " + str(g_ntests))
 
         if g_smtformula.is_real_logic():
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.zeroConstDNode(),
-                    lambda x: x.sort == g_smtformula.sortNode("Real") \
+                    lambda x: not x.is_subst() \
+                              and x.sort == g_smtformula.sortNode("Real") \
                               and not x.is_const(),
                     cmds, "substitute Real Terms with '0'")
             if nsubst:
@@ -403,9 +444,11 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "real0":
                 break
+            print ("# g_ntests " + str(g_ntests))
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
-                    lambda x: x.sort == g_smtformula.sortNode("Real") \
+                    lambda x: not x.is_subst() \
+                              and x.sort == g_smtformula.sortNode("Real") \
                               and not x.is_const(),
                     cmds, "substitute Real TERMS with fresh variables", True)
             if nsubst:
@@ -414,6 +457,7 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "realvar":
                 break
+            print ("# g_ntests " + str(g_ntests))
 
         nsubst = _substitute_terms (
                 lambda x: x.children[-1],
@@ -425,6 +469,7 @@ def ddsmt_main ():
             nterms_subst += nsubst
         elif succeeded == "let":
             break
+        print ("# g_ntests " + str(g_ntests))
 
         nsubst = _substitute_terms (
                 lambda x: g_smtformula.boolConstNode("false"), 
@@ -437,6 +482,7 @@ def ddsmt_main ():
             nterms_subst += nsubst
         elif succeeded == "false":
             break
+        print ("# g_ntests " + str(g_ntests))
 
         nsubst = _substitute_terms (
                 lambda x: g_smtformula.boolConstNode("true"), 
@@ -449,6 +495,7 @@ def ddsmt_main ():
             nterms_subst += nsubst
         elif succeeded == "true":
             break
+        print ("# g_ntests " + str(g_ntests))
 
         if g_smtformula.is_arr_logic():
             nsubst = _substitute_terms (
@@ -461,36 +508,40 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "store":
                 break
-            nsubst = _substitute_terms (
-                    lambda x: x.children[1],  # array
-                    lambda x: x.is_read(),
-                    cmds, "substitute SELECTs with index child")
-            if nsubst:
-                succeeded = "select"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "select":
-                break
-            nsubst = _substitute_terms (
-                    lambda x: x.children[1],  # left child
-                    lambda x: x.is_ite(),
-                    cmds, "substitute ITE with left child")
-            if nsubst:
-                succeeded = "iteleft"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "iteleft":
-                break
-            nsubst = _substitute_terms (
-                    lambda x: x.children[2],  # right child
-                    lambda x: x.is_ite(),
-                    cmds, "substitute ITE with right child")
-            if nsubst:
-                succeeded = "iteright"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "iteright":
-                break
+            print ("# g_ntests " + str(g_ntests))
+            #nsubst = _substitute_terms (
+            #        lambda x: x.children[1],  # array
+            #        lambda x: x.is_read(),
+            #        cmds, "substitute SELECTs with index child")
+            #if nsubst:
+            #    succeeded = "select"
+            #    nsubst_round += nsubst
+            #    nterms_subst += nsubst
+            #elif succeeded == "select":
+            #    break
+
+        nsubst = _substitute_terms (
+                lambda x: x.children[1],  # left child
+                lambda x: x.is_ite(),
+                cmds, "substitute ITE with left child")
+        if nsubst:
+            succeeded = "iteleft"
+            nsubst_round += nsubst
+            nterms_subst += nsubst
+        elif succeeded == "iteleft":
+            break
+        print ("# g_ntests " + str(g_ntests))
+        nsubst = _substitute_terms (
+                lambda x: x.children[2],  # right child
+                lambda x: x.is_ite(),
+                cmds, "substitute ITE with right child")
+        if nsubst:
+            succeeded = "iteright"
+            nsubst_round += nsubst
+            nterms_subst += nsubst
+        elif succeeded == "iteright":
+            break
+        print ("# g_ntests " + str(g_ntests))
 
 
 
