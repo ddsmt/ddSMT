@@ -151,9 +151,12 @@ def _filter_terms (filter_fun = None, root = None):
     nodes = []
     to_visit = [root]
     if not root:
-        asserts = _filter_cmds (lambda x: x.is_assert())
-        to_visit = [c.children[0] for c in asserts \
-                if not c.children[0].get_subst().is_const()]
+        #asserts = _filter_cmds (lambda x: x.is_assert())
+        #to_visit = [c.children[0] for c in asserts \
+        #        if not c.children[0].get_subst().is_const()]
+        cmds = _filter_cmds (lambda x: x.is_assert() or x.is_deffun())
+        to_visit = [c.children[-1] for c in cmds \
+                if not c.chilren[-1].get_subst().is_const()]
     while to_visit:
         cur = to_visit.pop().get_subst()
         if filter_fun == None or filter_fun(cur):
@@ -256,12 +259,14 @@ def _substitute_terms (subst_fun, filter_fun, cmds = None, msg = None,
     _log (2, msg if msg else "substitute TERMS:")
 
     nsubst_total = 0
-    cmds = cmds if cmds else _filter_cmds (lambda x: x.is_assert())
-
+    #cmds = cmds if cmds else _filter_cmds (lambda x: x.is_assert())
+    cmds = cmds if cmds \
+            else _filter_cmds (lambda x: x.is_assert() or x.is_definefun())
     for cmd in cmds:
-        assert (len(cmd.children) == 1)
+        #assert (len(cmd.children) == 1)
         nsubst_total += _substitute (subst_fun, g_smtformula.subst_nodes,
-            _filter_terms (filter_fun, cmd.children[0]), with_vars)
+#            _filter_terms (filter_fun, cmd.children[0]), with_vars)
+            _filter_terms (filter_fun, cmd.children[-1]), with_vars)
 
     _log (2, "  >> {0:d} term(s) substituted in total".format(nsubst_total))
     return nsubst_total
@@ -327,7 +332,6 @@ def ddsmt_main ():
         if nrounds > 1:
            nsubst = _substitute_cmds ()
         else:
-           #nsubst = _substitute_cmds (lambda x: x.kind == KIND_ASSERT)
            nsubst = _substitute_cmds (lambda x: x.is_assert())
         if nsubst:
            succeeded = "cmds"
@@ -336,7 +340,7 @@ def ddsmt_main ():
         elif succeeded == "cmds": 
            break
 
-        cmds = _filter_cmds (lambda x: x.is_assert())
+        cmds = _filter_cmds (lambda x: x.is_assert() or x.is_definefun())
 
         if g_smtformula.is_bv_logic():
             nsubst = _substitute_terms (
@@ -535,7 +539,7 @@ if __name__ == "__main__":
                               version=__version__)
         g_args = aparser.parse_args()
 
-        if not g_args.cmd:
+        if not g_args.cmd:  # sepcial handling (nargs=REMAINDER)
             raise DDSMTException ("too few arguments")
         
         if g_args.optimize:
@@ -546,7 +550,7 @@ if __name__ == "__main__":
                 raise DDSMTException ("given input file does not exist")
             if os.path.isdir(g_args.infile):
                 raise DDSMTException ("given input file is a directory")
-            #if os.path.exists(g_outfile):
+            #if os.path.exists(g_args.outfile):
             #    raise DDSMTException ("given output file does already exist")
 
             _log (1, "input  file: '{}'".format(g_args.infile))

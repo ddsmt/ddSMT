@@ -616,8 +616,10 @@ class SMTAnnNode (SMTNode):
         # attribute ':named' is given
         self.name = name
         self.indices = []
-        self.dumped = False  # we need to distinguish full dumps and name-only
-                             # dumps for named annotation nodes
+        # we need to distinguish full dumps and name-only dumps for named 
+        # annotation nodes
+        self.dumped = False
+
     def __str__ (self):
         return str(self.get_subst()) if self.is_subst() else \
                 "(! {!s} {})".format(
@@ -746,11 +748,14 @@ class SMTCmdNode:
     def is_assert (self):
         return self.kind == KIND_ASSERT
     
-    def is_setlogic (self):
-        return self.kind == KIND_SETLOGIC
+    def is_definefun (self):
+        return self.kind == KIND_DEFFUN
 
     def is_exit (self):
         return self.kind == KIND_EXIT
+
+    def is_setlogic (self):
+        return self.kind == KIND_SETLOGIC
 
     def subst (self, substitution):
         SMTCmdNode.g_smtformula.subst(self, substitution)
