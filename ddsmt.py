@@ -392,7 +392,7 @@ def ddsmt_main ():
                     lambda x: g_smtformula.add_fresh_declfunCmdNode (x.sort),
                     lambda x: not x.is_subst()             \
                         and x.sort and x.sort.is_bv_sort() \
-                        and not x.is_const() and not x.is_fun(),
+                        and not x.is_const() and not x.is_var(),
                         #and (not x.is_fun() or not g_smtformula.is_substvar(x)),
                     cmds, "substitute BV TERMS with fresh variables", True)
             if nsubst:

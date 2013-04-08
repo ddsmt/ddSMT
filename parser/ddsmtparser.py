@@ -212,6 +212,9 @@ class SMTNode:
     def is_fun (self):
         return False
 
+    def is_var (self):
+        return False
+
     def is_write (self):
         return False
 
@@ -346,10 +349,10 @@ class SMTBVConstNode (SMTConstNode):
 
 class SMTFunNode (SMTNode):
 
-    def __init__ (self, name, sort, sorts = [], indices = []):
+    def __init__ (self, name, sort, sorts = [], indices = [], children = []):
         assert (isinstance (sorts, list))
         assert (isinstance (indices, list))
-        super().__init__(KIND_FUN, sort)
+        super().__init__(KIND_FUN, sort, children)
         self.name = name
         self.sorts = sorts      # signature sorts
         self.indices = [int(s.value) for s in indices]
@@ -364,6 +367,9 @@ class SMTFunNode (SMTNode):
 
     def is_fun (self):
         return True
+
+    def is_var (self):
+        return not self.sorts and not self.children
 
 
 class SMTAnFunNode (SMTNode):
@@ -1176,9 +1182,9 @@ class SMTFormula:
                         return s.funs[name]
         return None
 
-    def add_fun (self, name, sort, sorts, indices, scope = None):
+    def add_fun (self, name, sort, sorts, indices, children, scope = None):
         scope = scope if scope else self.scopes
-        scope.funs[name] = SMTFunNode (name, sort, sorts, indices)
+        scope.funs[name] = SMTFunNode (name, sort, sorts, indices, children)
         if name in self.funs_cache:
             self.funs_cache[name].append(scope)
         else:
@@ -1208,14 +1214,14 @@ class SMTFormula:
                     if s.funs[name].indices == indices:
                         del(s.funs[name])
 
-    def funNode (self, name, sort, sorts = [], indices = [], scope = None,
-                 find_nested = True):
+    def funNode (self, name, sort, sorts = [], indices = [], children = [],
+                 scope = None, find_nested = True):
         global fun_kinds
         scope = scope if scope and name not in g_fun_kinds \
                       else self.scopes  # default: level 0
         fun = self.find_fun (name, indices, scope, find_nested)
         if not fun:
-            return self.add_fun (name, sort, sorts, indices, scope)
+            return self.add_fun (name, sort, sorts, indices, children, scope)
         return fun
 
     def anFunNode (self, name, sort, indices = []):
@@ -1497,7 +1503,7 @@ class SMTFormula:
         self.scopes.declfun_id += 1
         name = "_substvar_{}_".format(self.scopes.declfun_id)
         assert (not self.find_fun (name, [], self.scopes, False))
-        fun = self.add_fun (name, sort, [], [])
+        fun = self.add_fun (name, sort, [], [], [])
         self.scopes.declfun_cmds[name] = SMTCmdNode (KIND_DECLFUN, [fun])
         print ("## substvar: " + fun.name + " " + str(fun.sort))
         return fun
@@ -1595,7 +1601,8 @@ class DDSMTParser (SMTParser):
             self.var_binding.set_parse_action(self.__varBinding2SMTNode)
 
             self.sorted_var.set_parse_action (lambda t:
-                    sf.funNode (str(t[0]), t[1], [], [], sf.cur_scope, False))
+                    sf.funNode (
+                        str(t[0]), t[1], [], [], [], sf.cur_scope, False))
 
             self.sorted_qvar.set_parse_action(self.__sortedQVar2SMTNode)
 
@@ -1697,7 +1704,7 @@ class DDSMTParser (SMTParser):
                     else:
                         assert (len(t_ident) > 1)
                         return sf.funNode (
-                                str(t_ident[1]), None, [], t_ident[2],
+                                str(t_ident[1]), None, [], t_ident[2], [],
                                 sf.cur_scope)
                 else:
                     return sf.funNode (str(t_ident), None, scope = sf.cur_scope)
@@ -1719,7 +1726,8 @@ class DDSMTParser (SMTParser):
         if cnt == 1:  # open scope at first var binding
             sf.open_scope(kind = KIND_LSCOPE)
         varb = SMTVarBindNode (
-                sf.funNode (str(t[0]), t[1].sort, [], [], sf.cur_scope, False), 
+                sf.funNode (
+                    str(t[0]), t[1].sort, [], [], [], sf.cur_scope, False), 
                 [t[1]])
         return varb
 
@@ -1728,7 +1736,7 @@ class DDSMTParser (SMTParser):
         if cnt == 1:  # open scope at first sorted var
             sf.open_scope(kind = KIND_FESCOPE)
         svar = SMTSortedQVarNode (
-                sf.funNode (str(t[0]), t[1], [], [], sf.cur_scope, False))
+                sf.funNode (str(t[0]), t[1], [], [], [], sf.cur_scope, False))
         return svar
 
     def __varBindings (self, t):
@@ -1799,14 +1807,14 @@ class DDSMTParser (SMTParser):
                          "previous declaration of function '{!s}'"\
                          "was here".format(fun),
                          self)
-            fun = sf.funNode (t[1], t[3], t[2][0:], [], sf.cur_scope)
+            fun = sf.funNode (t[1], t[3], t[2][0:], [], [], sf.cur_scope)
             return sf.cmdNode (KIND_DECLFUN, [fun])
         elif kind == KIND_DEFFUN:
             assert (len(t) == 5)
             sorts = [to.sort for to in t[2]]
             return sf.cmdNode (
                     KIND_DEFFUN,
-                    [sf.funNode (t[1], t[3], sorts, [], sf.cur_scope), 
+                    [sf.funNode (t[1], t[3], sorts, [], [t[4]], sf.cur_scope), 
                      t[2], t[4]])
         elif kind == KIND_GETVALUE:
             assert (len(t) == 2)
