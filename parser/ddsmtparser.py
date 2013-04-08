@@ -215,8 +215,8 @@ class SMTNode:
     def is_write (self):
         return False
 
-    def is_read (self):
-        return False
+    #def is_read (self):
+    #    return False
 
     def is_ite (self):
         return False
@@ -815,6 +815,7 @@ class SMTScopeNode:
         self.funs   = {}
         self.sorts  = {}
         self.declfun_cmds = {}  # used for substition with fresh variables
+        self.declfun_id   = 0
 
     def __str__ (self):
         if self.is_subst():
@@ -1492,9 +1493,13 @@ class SMTFormula:
         return cmd
 
     def add_fresh_declfunCmdNode (self, sort):
-        name = "_substvar_{}_".format(len(self.scopes.declfun_cmds))
+        #name = "_substvar_{}_".format(len(self.scopes.declfun_cmds))
+        self.scopes.declfun_id += 1
+        name = "_substvar_{}_".format(self.scopes.declfun_id)
+        assert (not self.find_fun (name, [], self.scopes, False))
         fun = self.add_fun (name, sort, [], [])
         self.scopes.declfun_cmds[name] = SMTCmdNode (KIND_DECLFUN, [fun])
+        print ("## substvar: " + fun.name + " " + str(fun.sort))
         return fun
 
     def __assert_varb (self, var_bindings):
