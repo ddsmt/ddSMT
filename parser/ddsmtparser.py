@@ -381,10 +381,10 @@ class SMTFunNode (SMTNode):
     #def is_var (self):
     #    return not self.sorts and not self.children
 
-    def is_subst (self):
-        return SMTNode.g_smtformula                      \
-                and (SMTNode.g_smtformula.is_subst(self) \
-                     or (self.children and self.children[0].is_subst()))
+    #def is_subst (self):
+    #    return SMTNode.g_smtformula                      \
+    #            and (SMTNode.g_smtformula.is_subst(self) \
+    #                 or (self.children and self.children[0].is_subst()))
 
 
 
