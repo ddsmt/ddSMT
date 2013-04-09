@@ -212,8 +212,8 @@ class SMTNode:
     def is_fun (self):
         return False
 
-    def is_var (self):
-        return False
+    #def is_var (self):
+    #    return False
 
     def is_write (self):
         return False
@@ -253,6 +253,15 @@ class SMTSortNode (SMTNode):
 
     def is_arr_sort (self):
         return False
+
+    def is_bool_sort (self):
+        return self.name == "Bool"
+
+    def is_int_sort (self):
+        return self.name == "Int"
+
+    def is_real_sort (self):
+        return self.name == "Real"
 
 
 class SMTArraySortNode (SMTSortNode):
@@ -352,6 +361,7 @@ class SMTFunNode (SMTNode):
     def __init__ (self, name, sort, sorts = [], indices = [], children = []):
         assert (isinstance (sorts, list))
         assert (isinstance (indices, list))
+        assert (not children or len(children) == 1)
         super().__init__(KIND_FUN, sort, children)
         self.name = name
         self.sorts = sorts      # signature sorts
@@ -368,8 +378,14 @@ class SMTFunNode (SMTNode):
     def is_fun (self):
         return True
 
-    def is_var (self):
-        return not self.sorts and not self.children
+    #def is_var (self):
+    #    return not self.sorts and not self.children
+
+    def is_subst (self):
+        return SMTNode.g_smtformula                      \
+                and (SMTNode.g_smtformula.is_subst(self) \
+                     or (self.children and self.children[0].is_subst()))
+
 
 
 class SMTAnFunNode (SMTNode):
@@ -902,7 +918,7 @@ class SMTSubstList:
         return node.id in self.substs
 
     def get_subst (self, node):
-        while node.is_subst():
+        while node and node.is_subst():
             node = self.substs[node.id]
         return node
 
@@ -1505,7 +1521,7 @@ class SMTFormula:
         assert (not self.find_fun (name, [], self.scopes, False))
         fun = self.add_fun (name, sort, [], [], [])
         self.scopes.declfun_cmds[name] = SMTCmdNode (KIND_DECLFUN, [fun])
-        print ("## substvar: " + fun.name + " " + str(fun.sort))
+        #print ("## substvar: " + fun.name + " " + str(fun.sort))
         return fun
 
     def __assert_varb (self, var_bindings):
