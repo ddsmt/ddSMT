@@ -218,17 +218,11 @@ class SMTNode:
     def is_fun (self):
         return False
 
-    #def is_var (self):
-    #    return False
-
     def is_and (self):
         return False
 
     def is_or (self):
         return False
-
-    #def is_read (self):
-    #    return False
 
     def is_ite (self):
         return False
@@ -396,15 +390,6 @@ class SMTFunNode (SMTNode):
     def is_fun (self):
         return True
 
-    #def is_var (self):
-    #    return not self.sorts and not self.children
-
-    #def is_subst (self):
-    #    return SMTNode.g_smtformula                      \
-    #            and (SMTNode.g_smtformula.is_subst(self) \
-    #                 or (self.children and self.children[0].is_subst()))
-
-
 
 class SMTAnFunNode (SMTNode):
 
@@ -472,9 +457,6 @@ class SMTFunAppNode (SMTNode):
                     visited[cur.id] = cur.id
                 else:
                     outfile.write(")")
-
-    #def is_read (self):
-    #    return self.kind == KIND_SELECT
 
     def is_and (self):
         return self.kind == KIND_AND
@@ -1539,7 +1521,6 @@ class SMTFormula:
         return cmd
 
     def add_fresh_declfunCmdNode (self, sort):
-        #name = "_substvar_{}_".format(len(self.scopes.declfun_cmds))
         self.scopes.declfun_id += 1
         name = "_substvar_{}_".format(self.scopes.declfun_id)
         while self.find_fun (name, [], self.scopes, False):
@@ -1547,7 +1528,6 @@ class SMTFormula:
             name = "_substvar_{}_".format(self.scopes.declfun_id)
         fun = self.add_fun (name, sort, [], [], [])
         self.scopes.declfun_cmds[name] = SMTCmdNode (KIND_DECLFUN, [fun])
-        #print ("## substvar: " + fun.name + " " + str(fun.sort))
         return fun
 
     def __assert_varb (self, var_bindings):
@@ -1806,7 +1786,6 @@ class DDSMTParser (SMTParser):
                 return sf.letFeNode (t[0], [t[2]], t[1])
             elif t[0] == SMTParser.EXCL:
                 assert (len(t) == 3)
-                #return SMTAnnNode (t[2], t[1].sort, [t[1]])
                 return sf.annNode (t[2], t[1].sort, [t[1]])
             else:
                 assert (isinstance(t[0], SMTFunNode))
