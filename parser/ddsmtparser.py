@@ -209,13 +209,22 @@ class SMTNode:
     def is_const (self):
         return False
 
+    def is_false_const (self):
+        return False
+
+    def is_true_const (self):
+        return False
+
     def is_fun (self):
         return False
 
     #def is_var (self):
     #    return False
 
-    def is_write (self):
+    def is_and (self):
+        return False
+
+    def is_or (self):
         return False
 
     #def is_read (self):
@@ -225,6 +234,9 @@ class SMTNode:
         return False
 
     def is_let (self):
+        return False
+
+    def is_write (self):
         return False
 
     def subst (self, substitution):
@@ -326,6 +338,12 @@ class SMTConstNode (SMTNode):
 
     def is_const (self):
         return True
+
+    def is_false_const (self):
+        return self.kind == KIND_CONST and self.value == "false"
+
+    def is_true_const (self):
+        return self.kind == KIND_CONST and self.value == "true"
 
 
 class SMTBVConstNode (SMTConstNode):
@@ -455,14 +473,20 @@ class SMTFunAppNode (SMTNode):
                 else:
                     outfile.write(")")
 
-    def is_write (self):
-        return self.kind == KIND_STORE
+    #def is_read (self):
+    #    return self.kind == KIND_SELECT
 
-    def is_read (self):
-        return self.kind == KIND_SELECT
+    def is_and (self):
+        return self.kind == KIND_AND
 
+    def is_or (self):
+        return self.kind == KIND_OR
+    
     def is_ite (self):
         return self.kind == KIND_ITE
+
+    def is_write (self):
+        return self.kind == KIND_STORE
 
 
 class SMTVarBindNode (SMTNode):
@@ -1518,7 +1542,9 @@ class SMTFormula:
         #name = "_substvar_{}_".format(len(self.scopes.declfun_cmds))
         self.scopes.declfun_id += 1
         name = "_substvar_{}_".format(self.scopes.declfun_id)
-        assert (not self.find_fun (name, [], self.scopes, False))
+        while self.find_fun (name, [], self.scopes, False):
+            self.scopes.declfun_id = int(name[10:-1]) + 1
+            name = "_substvar_{}_".format(self.scopes.declfun_id)
         fun = self.add_fun (name, sort, [], [], [])
         self.scopes.declfun_cmds[name] = SMTCmdNode (KIND_DECLFUN, [fun])
         #print ("## substvar: " + fun.name + " " + str(fun.sort))

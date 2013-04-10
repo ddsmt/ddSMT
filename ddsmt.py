@@ -412,7 +412,7 @@ def ddsmt_main ():
                     break
 
             nsubst = _substitute_terms (
-                    lambda x: x.children[-1],
+                    lambda x: x.children[-1].get_subst(),
                     lambda x: x.is_let(),
                     deffuns, "substitute LETs with child term")#,
                     #nested = False)
@@ -435,6 +435,22 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "false_deffun":
                 break
+
+            nsubst = _substitute_terms (
+                    lambda x: x.children[1].get_subst() \
+                              if x.children[0].get_subst().is_false_const() \
+                              else x.children[0].get_subst(),
+                    lambda x: x.is_or()                           \
+                              and (x.children[0].get_subst().is_false_const() \
+                                or x.children[1].get_subst().is_false_const()),
+                    deffuns, "substitute (or term false) with term")
+            if nsubst:
+                succeeded = "or_deffun"
+                nsubst_round += nsubst
+                nterms_subst += nsubst
+            elif succeeded == "or_deffun":
+                break
+
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.boolConstNode("true"),
                     lambda x: not x.is_const() \
@@ -446,6 +462,21 @@ def ddsmt_main ():
                 nsubst_round += nsubst
                 nterms_subst += nsubst
             elif succeeded == "true_deffun":
+                break
+
+            nsubst = _substitute_terms (
+                    lambda x: x.children[1].get_subst() \
+                              if x.children[0].get_subst().is_true_const() \
+                              else x.children[0].get_subst(),
+                    lambda x: x.is_and()                         \
+                              and (x.children[0].get_subst().is_true_const() \
+                               or x.children[1].get_subst().is_true_const()),
+                    deffuns, "substitute (and term true) with term")
+            if nsubst:
+                succeeded = "and_deffun"
+                nsubst_round += nsubst
+                nterms_subst += nsubst
+            elif succeeded == "and_deffun":
                 break
             
             if g_smtformula.is_arr_logic():
@@ -589,6 +620,21 @@ def ddsmt_main ():
                 nterms_subst += nsubst
             elif succeeded == "false_assert":
                 break
+
+            nsubst = _substitute_terms (
+                    lambda x: x.children[1] if x.children[0].is_false_const() \
+                              else x.children[0],
+                    lambda x: x.is_or()                           \
+                              and (x.children[0].is_false_const() \
+                                   or x.children[1].is_false_const()),
+                    asserts, "substitute (or term false) with term")
+            if nsubst:
+                succeeded = "or_assert"
+                nsubst_round += nsubst
+                nterms_subst += nsubst
+            elif succeeded == "or_assert":
+                break
+
             nsubst = _substitute_terms (
                     lambda x: g_smtformula.boolConstNode("true"),
                     lambda x: not x.is_const() \
@@ -599,6 +645,20 @@ def ddsmt_main ():
                 nsubst_round += nsubst
                 nterms_subst += nsubst
             elif succeeded == "true_assert":
+                break
+
+            nsubst = _substitute_terms (
+                    lambda x: x.children[1] if x.children[0].is_true_const() \
+                              else x.children[0],
+                    lambda x: x.is_and()                         \
+                              and (x.children[0].is_true_const() \
+                                   or x.children[1].is_true_const()),
+                    asserts, "substitute (and term true) with term")
+            if nsubst:
+                succeeded = "and_assert"
+                nsubst_round += nsubst
+                nterms_subst += nsubst
+            elif succeeded == "and_assert":
                 break
 
             if g_smtformula.is_arr_logic():
