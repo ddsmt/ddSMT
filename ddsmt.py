@@ -192,11 +192,11 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
             if _test():
                 _dump (g_args.outfile)
                 nsubst_total += nsubst
-                _log (2, "  granularity: {}, subsets: {}, substituted: {}" \
+                _log (2, "    granularity: {}, subsets: {}, substituted: {}" \
                          "".format(gran, len(subsets), nsubst), True)
                 del (cpy_subsets[cpy_subsets.index(subset)])
             else:
-                _log (2, "  granularity: {}, subsets: {}, substituted: 0" \
+                _log (2, "    granularity: {}, subsets: {}, substituted: 0" \
                          "".format(gran, len(subsets)), True)
                 substlist.substs = cpy_substs
                 if with_vars:
@@ -256,8 +256,8 @@ def _substitute_terms (subst_fun, filter_fun, cmds, msg = None,
             g_smtformula.subst_nodes,
             _filter_terms (filter_fun, [c.children[-1] for c in cmds]),
             with_vars)
-    _log (2, "  >> {} term(s) substituted in total".format(nsubst_total))
-    _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
+    _log (2, "    >> {} term(s) substituted in total".format(nsubst_total))
+    _log (3, "    >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
 
 
@@ -331,7 +331,7 @@ def ddsmt_main ():
                         lambda x: g_smtformula.bvZeroConstNode(x.sort),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_bv_sort(),
-                        deffuns, "substitute BV terms with '0'")
+                        deffuns, "  substitute BV terms with '0'")
                 if nsubst:
                     succeeded = "bv0_deffun"
                     nsubst_round += nsubst
@@ -343,7 +343,7 @@ def ddsmt_main ():
                         lambda x: not x.is_const()                   \
                                   and x.sort and x.sort.is_bv_sort() \
                                   and not g_smtformula.is_substvar(x),
-                        deffuns, "substitute BV terms with fresh variables",
+                        deffuns, "  substitute BV terms with fresh variables",
                         True)
                 if nsubst:
                     succeeded = "bvvar_deffun"
@@ -357,7 +357,7 @@ def ddsmt_main ():
                         lambda x: g_smtformula.zeroConstNNode(),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_int_sort(),
-                        deffuns, "substitute Int terms with '0'")
+                        deffuns, "  substitute Int terms with '0'")
                 if nsubst:
                     succeeded = "int0_deffun"
                     nsubst_round += nsubst
@@ -369,7 +369,7 @@ def ddsmt_main ():
                         lambda x: not x.is_const()                    \
                                   and x.sort and x.sort.is_int_sort() \
                                   and not g_smtformula.is_substvar(x),
-                        deffuns, "substitute Int terms with fresh variables",
+                        deffuns, "  substitute Int terms with fresh variables",
                         True)
                 if nsubst:
                     succeeded = "intvar_deffun"
@@ -383,7 +383,7 @@ def ddsmt_main ():
                         lambda x: g_smtformula.zeroConstDNode(),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_real_sort(),
-                        deffuns, "substitute Int terms with '0'")
+                        deffuns, "  substitute Int terms with '0'")
                 if nsubst:
                     succeeded = "real0_deffun"
                     nsubst_round += nsubst
@@ -395,7 +395,7 @@ def ddsmt_main ():
                         lambda x: not x.is_const()                     \
                                   and x.sort and x.sort.is_real_sort() \
                                   and not g_smtformula.is_substvar(x),
-                        deffuns, "substitute Int terms with fresh variables",
+                        deffuns, "  substitute Int terms with fresh variables",
                         True)
                 if nsubst:
                     succeeded = "realvar_deffun"
@@ -407,7 +407,7 @@ def ddsmt_main ():
             nsubst = _substitute_terms (
                     lambda x: x.children[-1].get_subst(),
                     lambda x: x.is_let(),
-                    deffuns, "substitute LETs with child term")
+                    deffuns, "  substitute LETs with child term")
             if nsubst:
                 succeeded = "let_deffun"
                 nsubst_round += nsubst
@@ -419,7 +419,7 @@ def ddsmt_main ():
                     lambda x: g_smtformula.boolConstNode("false"),
                     lambda x: not x.is_const() \
                               and x.sort and x.sort.is_bool_sort(),
-                    deffuns, "substitute Boolean terms with 'false'")
+                    deffuns, "  substitute Boolean terms with 'false'")
             if nsubst:
                 succeeded = "false_deffun"
                 nsubst_round += nsubst
@@ -434,7 +434,7 @@ def ddsmt_main ():
                     lambda x: x.is_or()                                       \
                               and (x.children[0].get_subst().is_false_const() \
                                 or x.children[1].get_subst().is_false_const()),
-                    deffuns, "substitute (or term false) with term")
+                    deffuns, "  substitute (or term false) with term")
             if nsubst:
                 succeeded = "or_deffun"
                 nsubst_round += nsubst
@@ -446,7 +446,7 @@ def ddsmt_main ():
                     lambda x: g_smtformula.boolConstNode("true"),
                     lambda x: not x.is_const() \
                               and x.sort and x.sort.is_bool_sort(),
-                    deffuns, "substitute Boolean terms with 'true'")
+                    deffuns, "  substitute Boolean terms with 'true'")
             if nsubst:
                 succeeded = "true_deffun"
                 nsubst_round += nsubst
@@ -461,7 +461,7 @@ def ddsmt_main ():
                     lambda x: x.is_and()                                     \
                               and (x.children[0].get_subst().is_true_const() \
                                or x.children[1].get_subst().is_true_const()),
-                    deffuns, "substitute (and term true) with term")
+                    deffuns, "  substitute (and term true) with term")
             if nsubst:
                 succeeded = "and_deffun"
                 nsubst_round += nsubst
@@ -473,7 +473,7 @@ def ddsmt_main ():
                 nsubst = _substitute_terms (
                         lambda x: x.children[0],  # array
                         lambda x: x.is_write(),
-                        deffuns, "substitute STOREs with array child")
+                        deffuns, "  substitute STOREs with array child")
                 if nsubst:
                     succeeded = "store_deffun"
                     nsubst_round += nsubst
@@ -484,7 +484,7 @@ def ddsmt_main ():
             nsubst = _substitute_terms (
                     lambda x: x.children[1],  # left child
                     lambda x: x.is_ite(),
-                    deffuns, "substitute ITE with left child")
+                    deffuns, "  substitute ITE with left child")
             if nsubst:
                 succeeded = "iteleft_deffun"
                 nsubst_round += nsubst
@@ -494,7 +494,7 @@ def ddsmt_main ():
             nsubst = _substitute_terms (
                     lambda x: x.children[2],  # right child
                     lambda x: x.is_ite(),
-                    deffuns, "substitute ITE with right child")
+                    deffuns, "  substitute ITE with right child")
             if nsubst:
                 succeeded = "iteright_deffun"
                 nsubst_round += nsubst
@@ -512,7 +512,7 @@ def ddsmt_main ():
                         lambda x: g_smtformula.bvZeroConstNode(x.sort),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_bv_sort(),
-                        asserts, "substitute BV terms with '0'")
+                        asserts, "  substitute BV terms with '0'")
                 if nsubst:
                     succeeded = "bv0_assert"
                     nsubst_round += nsubst
@@ -524,7 +524,7 @@ def ddsmt_main ():
                         lambda x: not x.is_const()                   \
                                   and x.sort and x.sort.is_bv_sort() \
                                   and not g_smtformula.is_substvar(x),
-                        asserts, "substitute BV terms with fresh variables",
+                        asserts, "  substitute BV terms with fresh variables",
                         True)
                 if nsubst:
                     succeeded = "bvvar_assert"
@@ -538,7 +538,7 @@ def ddsmt_main ():
                         lambda x: g_smtformula.zeroConstNNode(),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_int_sort(),
-                        asserts, "substitute Int terms with '0'")
+                        asserts, "  substitute Int terms with '0'")
                 if nsubst:
                     succeeded = "int0_assert"
                     nsubst_round += nsubst
@@ -550,7 +550,7 @@ def ddsmt_main ():
                         lambda x: not x.is_const()                    \
                                   and x.sort and x.sort.is_int_sort() \
                                   and not g_smtformula.is_substvar(x),
-                        asserts, "substitute Int terms with fresh variables",
+                        asserts, "  substitute Int terms with fresh variables",
                         True)
                 if nsubst:
                     succeeded = "intvar_assert"
@@ -564,7 +564,7 @@ def ddsmt_main ():
                         lambda x: g_smtformula.zeroConstDNode(),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_real_sort(),
-                        asserts, "substitute Int terms with '0'")
+                        asserts, "  substitute Int terms with '0'")
                 if nsubst:
                     succeeded = "real0_assert"
                     nsubst_round += nsubst
@@ -576,7 +576,7 @@ def ddsmt_main ():
                         lambda x: not x.is_const()                     \
                                   and x.sort and x.sort.is_real_sort() \
                                   and not g_smtformula.is_substvar(x),
-                        asserts, "substitute Int terms with fresh variables",
+                        asserts, "  substitute Int terms with fresh variables",
                         True)
                 if nsubst:
                     succeeded = "realvar_assert"
@@ -588,7 +588,7 @@ def ddsmt_main ():
             nsubst = _substitute_terms (
                     lambda x: x.children[-1],
                     lambda x: x.is_let(),
-                    asserts, "substitute LETs with child term")
+                    asserts, "  substitute LETs with child term")
             if nsubst:
                 succeeded = "let_assert"
                 nsubst_round += nsubst
@@ -600,7 +600,7 @@ def ddsmt_main ():
                     lambda x: g_smtformula.boolConstNode("false"),
                     lambda x: not x.is_const() \
                               and x.sort and x.sort.is_bool_sort(),
-                    asserts, "substitute Boolean terms with 'false'")
+                    asserts, "  substitute Boolean terms with 'false'")
             if nsubst:
                 succeeded = "false_assert"
                 nsubst_round += nsubst
@@ -614,7 +614,7 @@ def ddsmt_main ():
                     lambda x: x.is_or()                           \
                               and (x.children[0].is_false_const() \
                                    or x.children[1].is_false_const()),
-                    asserts, "substitute (or term false) with term")
+                    asserts, "  substitute (or term false) with term")
             if nsubst:
                 succeeded = "or_assert"
                 nsubst_round += nsubst
@@ -626,7 +626,7 @@ def ddsmt_main ():
                     lambda x: g_smtformula.boolConstNode("true"),
                     lambda x: not x.is_const() \
                               and x.sort and x.sort.is_bool_sort(),
-                    asserts, "substitute Boolean terms with 'true'")
+                    asserts, "  substitute Boolean terms with 'true'")
             if nsubst:
                 succeeded = "true_assert"
                 nsubst_round += nsubst
@@ -640,7 +640,7 @@ def ddsmt_main ():
                     lambda x: x.is_and()                         \
                               and (x.children[0].is_true_const() \
                                    or x.children[1].is_true_const()),
-                    asserts, "substitute (and term true) with term")
+                    asserts, "  substitute (and term true) with term")
             if nsubst:
                 succeeded = "and_assert"
                 nsubst_round += nsubst
@@ -652,7 +652,7 @@ def ddsmt_main ():
                 nsubst = _substitute_terms (
                         lambda x: x.children[0],  # array
                         lambda x: x.is_write(),
-                        asserts, "substitute STOREs with array child")
+                        asserts, "  substitute STOREs with array child")
                 if nsubst:
                     succeeded = "store_assert"
                     nsubst_round += nsubst
@@ -663,7 +663,7 @@ def ddsmt_main ():
             nsubst = _substitute_terms (
                     lambda x: x.children[1],  # left child
                     lambda x: x.is_ite(),
-                    asserts, "substitute ITE with left child")
+                    asserts, "  substitute ITE with left child")
             if nsubst:
                 succeeded = "iteleft_assert"
                 nsubst_round += nsubst
@@ -673,7 +673,7 @@ def ddsmt_main ():
             nsubst = _substitute_terms (
                     lambda x: x.children[2],  # right child
                     lambda x: x.is_ite(),
-                    asserts, "substitute ITE with right child")
+                    asserts, "  substitute ITE with right child")
             if nsubst:
                 succeeded = "iteright_assert"
                 nsubst_round += nsubst
