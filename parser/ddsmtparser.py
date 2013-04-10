@@ -634,25 +634,62 @@ class SMTLetNode (SMTNode):
         return True
 
 
+#class SMTAnnNode (SMTNode):
+#
+#    def __init__ (self, attributes, sort, children, name = None):
+#        assert (len(children) == 1)
+#        super().__init__(KIND_ANNOTN, sort, children)
+#        self.attributes = attributes
+#        # we need to treat annotation nodes as function nodes in case that 
+#        # attribute ':named' is given
+#        self.name = name
+#        self.indices = []
+#        # we need to distinguish full dumps and name-only dumps for named 
+#        # annotation nodes
+#        self.dumped = False
+#
+#    def __str__ (self):
+#        return str(self.get_subst()) if self.is_subst() else \
+#                "(! {!s} {})".format(
+#                        self.children[0], 
+#                        " ".join([str(a) for a in self.attributes]))
+#
+#    def dump (self, outfile, lead = " "):
+#        if self.is_subst():
+#            self.get_subst().dump(outfile, lead)
+#        else:
+#            outfile.write(lead)
+#            if self.dumped:  # name-only
+#                outfile.write(self.name)
+#            else:            # full dump
+#                outfile.write(str(self))
+#                self.dumped = True
+
+
 class SMTAnnNode (SMTNode):
 
-    def __init__ (self, attributes, sort, children, name = None):
+    def __init__ (self, attributes, sort, children):
         assert (len(children) == 1)
         super().__init__(KIND_ANNOTN, sort, children)
         self.attributes = attributes
-        # we need to treat annotation nodes as function nodes in case that 
-        # attribute ':named' is given
-        self.name = name
-        self.indices = []
-        # we need to distinguish full dumps and name-only dumps for named 
-        # annotation nodes
-        self.dumped = False
 
     def __str__ (self):
         return str(self.get_subst()) if self.is_subst() else \
                 "(! {!s} {})".format(
                         self.children[0], 
                         " ".join([str(a) for a in self.attributes]))
+    
+
+class SMTNamedAnnNode (SMTAnnNode):
+
+    def __init__ (self, attributes, sort, children, name):
+        super().__init__(attributes, sort, children)
+        # treat annotation nodes as function nodes in case that attribute
+        # ':named' is given
+        self.name = name
+        self.indices = []
+        # distinguish full and name-only dumps 
+        self.dumped = False
 
     def dump (self, outfile, lead = " "):
         if self.is_subst():
@@ -661,7 +698,7 @@ class SMTAnnNode (SMTNode):
             outfile.write(lead)
             if self.dumped:  # name-only
                 outfile.write(self.name)
-            else:            # full dump
+            else:
                 outfile.write(str(self))
                 self.dumped = True
 
@@ -1489,7 +1526,7 @@ class SMTFormula:
                     raise DDSMTParseCheckException (
                             "previous declaration of function {} was here" \
                             "".format(name))
-                self.cur_scope.funs[name] = SMTAnnNode (
+                self.cur_scope.funs[name] = SMTNamedAnnNode (
                         attributes, sort, children, name)
                 if name in self.funs_cache:
                     self.funs_cache[name].append(self.cur_scope)

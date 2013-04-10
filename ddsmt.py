@@ -354,7 +354,7 @@ def ddsmt_main ():
 
             if g_smtformula.is_int_logic() or g_smtformula.is_real_logic():
                 nsubst = _substitute_terms (
-                        lambda x: g_smtformula.zeroConstNode(),
+                        lambda x: g_smtformula.zeroConstNNode(),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_int_sort(),
                         deffuns, "substitute Int terms with '0'")
@@ -380,7 +380,7 @@ def ddsmt_main ():
 
             if g_smtformula.is_real_logic():
                 nsubst = _substitute_terms (
-                        lambda x: g_smtformula.zeroConstNode(),
+                        lambda x: g_smtformula.zeroConstDNode(),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_real_sort(),
                         deffuns, "substitute Int terms with '0'")
@@ -535,7 +535,7 @@ def ddsmt_main ():
 
             if g_smtformula.is_int_logic() or g_smtformula.is_real_logic():
                 nsubst = _substitute_terms (
-                        lambda x: g_smtformula.zeroConstNode(),
+                        lambda x: g_smtformula.zeroConstNNode(),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_int_sort(),
                         asserts, "substitute Int terms with '0'")
@@ -561,7 +561,7 @@ def ddsmt_main ():
 
             if g_smtformula.is_real_logic():
                 nsubst = _substitute_terms (
-                        lambda x: g_smtformula.zeroConstNode(),
+                        lambda x: g_smtformula.zeroConstDNode(),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_real_sort(),
                         asserts, "substitute Int terms with '0'")
