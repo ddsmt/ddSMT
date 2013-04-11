@@ -28,6 +28,14 @@
  Changelog:
 -------------------------------------------------------------------------------
 
+  Since version 0.92-beta:
+    + added support for and/or with true/false constant
+    + added support for term substitution in define-fun
+    + do not substitute terms per command, but for all commands at once
+    + disable select substitution (incorrect, redundant)
+    + fix: unique id for substvars
+    + fix: ddsmtparser: select/store array sort check
+
   Since version 0.91-beta:
     + arg parser: minor fix if cmd not given
     + parser: runtime optimizations
