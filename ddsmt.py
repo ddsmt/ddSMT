@@ -759,6 +759,7 @@ if __name__ == "__main__":
             g_golden = _run()
             
             _log (1)
+            _log (1, "starting initial run... ")
             _log (1, "golden exit: {0:d}".format(g_golden))
 
             ddsmt_main ()
