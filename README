@@ -2,7 +2,7 @@
  ddSMT
 ===============================================================================
 
-  This is version 0.92-beta of ddSMT [0], a delta debugger for the SMT-LiB v2
+  This is version 0.9-beta of ddSMT [0], a delta debugger for the SMT-LiB v2
   format (see [1] for more details on the format).
 
   ddSMT is free software released under the GPLv3. You should have received 
