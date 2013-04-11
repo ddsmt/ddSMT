@@ -1398,7 +1398,7 @@ class SMTFormula:
                         "".format(fun, c0.sort, c.sort)) 
         # first arg Array check
         elif kind in (KIND_SELECT, KIND_STORE):
-            if not children[0].sort.is_arr_sort:
+            if not children[0].sort.is_arr_sort():
                 raise DDSMTParseCheckException (
                     "'{!s}' expects Array sort as first argument".format(fun))
         # ITE arg check
