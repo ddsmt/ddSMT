@@ -15,15 +15,14 @@ rm -rf $DDSMTRELEASEDIR
 mkdir -p "$DDSMTPARSERDIR"
 
 cp -r      \
-  ddsmt.py \
-  COPYING  \
-  README   \
-"$DDSMTRELEASEDIR"
-
+  "$DDSMTROOTDIR"/ddsmt.py \
+  "$DDSMTROOTDIR"/COPYING  \
+  "$DDSMTROOTDIR"/README   \
+"$DDSMTDIR"
 cp -r                   \
-  parser/ddsmtparser.py \
-  parser/smtparser.py   \
-  parser/__init__.py    \
+  "$DDSMTROOTDIR"/parser/ddsmtparser.py \
+  "$DDSMTROOTDIR"/parser/smtparser.py   \
+  "$DDSMTROOTDIR"/parser/__init__.py    \
 "$DDSMTPARSERDIR"
 
 version=$(cat "$DDSMTROOTDIR/VERSION")
