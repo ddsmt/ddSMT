@@ -1170,7 +1170,7 @@ class SMTFormula:
 
     def sortNode (self, name, nparams = 0, scope = None, new = False):
         scope = scope if scope else self.scopes  # default: level 0
-        sort = self.find_sort (name, scope)      # concrete sort already added?
+        sort = self.find_sort (name)             # concrete sort already added?
         if not sort:
             if nparams > 0:
                 # abstract sort already declared?
@@ -1215,10 +1215,11 @@ class SMTFormula:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
-    def find_fun (self, name, indices = [], scope = None, find_nested = True):
+    def find_fun (self, name, indices = [], sort = None, scope = None, find_nested = True):
         global g_fun_kinds
         # level 0 shortcut
         if name in g_fun_kinds:  # default at level 0
+            assert (sort == None)
             if name in self.scopes.funs \
                and self.scopes.funs[name].indices == indices:
                    return self.scopes.funs[name]
@@ -1227,8 +1228,9 @@ class SMTFormula:
         # check given / current scope first
         scope = scope if scope else self.cur_scope
         assert (scope.id in self.scopes_cache)
-        if name in scope.funs and scope.funs[name].indices == indices:
-            return scope.funs[name]
+        if name in scope.funs and scope.funs[name].indices == indices \
+           and (not sort or scope.funs[name].sort == sort):
+               return scope.funs[name]
         # check outer scopes
         if find_nested and name in self.funs_cache:
             scopes = self.funs_cache[name]
@@ -1237,8 +1239,9 @@ class SMTFormula:
                     continue
                 if s.id in self.scopes_cache:
                     assert (name in s.funs)
-                    if s.funs[name].indices == indices:
-                        return s.funs[name]
+                    if s.funs[name].indices == indices \
+                       and (not sort or s.funs[name].sort == sort):
+                           return s.funs[name]
         return None
 
     def add_fun (self, name, sort, sorts, indices, children, scope = None):
@@ -1278,9 +1281,10 @@ class SMTFormula:
         global fun_kinds
         scope = scope if scope and name not in g_fun_kinds \
                       else self.scopes  # default: level 0
-        fun = self.find_fun (name, indices, scope, find_nested)
+        fun = self.find_fun (name, indices, sort, find_nested=find_nested)
         if not fun:
             return self.add_fun (name, sort, sorts, indices, children, scope)
+        assert (not sort or fun.sort == sort)
         return fun
 
     def anFunNode (self, name, sort, indices = []):
@@ -1521,7 +1525,7 @@ class SMTFormula:
                     raise DDSMTParseCheckException (
                             "missing attribute value for ':named'")
                 name = attrib[1]
-                fun = self.find_fun (name, [], self.cur_scope, True)
+                fun = self.find_fun (name, [], None, self.cur_scope, False)
                 if fun:
                     raise DDSMTParseCheckException (
                             "previous declaration of function {} was here" \
