@@ -469,6 +469,20 @@ def ddsmt_main ():
             elif succeeded == "and_deffun":
                 break
             
+            nsubst = _substitute_terms (
+                    lambda x: g_smtformula.add_fresh_declfunCmdNode(x.sort),
+                    lambda x: not x.is_const()                   \
+                              and x.sort and x.sort.is_bool_sort() \
+                              and not g_smtformula.is_substvar(x),
+                    deffuns, "  substitute Boolean terms with fresh variables",
+                    True)
+            if nsubst:
+                succeeded = "boolvar_deffun"
+                nsubst_round += nsubst
+                nterms_subst += nsubst
+            elif succeeded == "boolvar_deffun":
+                break
+
             if g_smtformula.is_arr_logic():
                 nsubst = _substitute_terms (
                         lambda x: x.children[0],  # array
@@ -648,6 +662,20 @@ def ddsmt_main ():
             elif succeeded == "and_assert":
                 break
 
+            nsubst = _substitute_terms (
+                    lambda x: g_smtformula.add_fresh_declfunCmdNode(x.sort),
+                    lambda x: not x.is_const()                   \
+                              and x.sort and x.sort.is_bool_sort() \
+                              and not g_smtformula.is_substvar(x),
+                    asserts, "  substitute Boolean terms with fresh variables",
+                    True)
+            if nsubst:
+                succeeded = "boolvar_assert"
+                nsubst_round += nsubst
+                nterms_subst += nsubst
+            elif succeeded == "boolvar_assert":
+                break
+
             if g_smtformula.is_arr_logic():
                 nsubst = _substitute_terms (
                         lambda x: x.children[0],  # array
@@ -749,6 +777,17 @@ if __name__ == "__main__":
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_args.infile)
 
+            #### debug
+            #to_visit = [g_smtformula.scopes]
+            #while to_visit:
+            #    scope = to_visit.pop()
+            #    print ("level: {}\ncommands: {}\nsorts: {}\nfuns:{}".format(
+            #        scope.level, 
+            #        " ".join([str(c) for c in scope.cmds]), 
+            #        " ".join([str(s) for s in scope.sorts]), 
+            #        " ".join([str(f) for f in scope.funs])))
+            #    to_visit.extend(scope.scopes)
+            #######
             #_dump(g_args.outfile)
             #sys.exit(0)
 
