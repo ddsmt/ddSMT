@@ -993,8 +993,8 @@ if __name__ == "__main__":
             #        " ".join([str(f) for f in scope.funs])))
             #    to_visit.extend(scope.scopes)
             #######
-            #_dump(g_args.outfile)
-            #sys.exit(0)
+            _dump(g_args.outfile)
+            sys.exit(0)
 
             _log (2, "parser done")
 

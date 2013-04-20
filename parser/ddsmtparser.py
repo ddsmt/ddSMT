@@ -375,17 +375,32 @@ class SMTFunNode (SMTNode):
         assert (isinstance (indices, list))
         assert (not children or len(children) == 1)
         super().__init__(KIND_FUN, sort, children)
+        #self.name = name if not indices \
+        #        else "(_ {} {})".format(
+        #                name, " ".join([str(i) for i in indices]))
         self.name = name
         self.sorts = sorts      # signature sorts
         self.indices = [int(s.value) for s in indices]
+    #def __init__ (self, name, sort, sorts = [], children = []):
+    #    assert (not children or len(children) == 1)
+    #    super().__init__(KIND_FUN, sort, children)
+    #    self.name = name
+    #    self.sorts = sorts  # signature sorts
+
+    #def __str__ (self):
+    #    if self.is_subst():
+    #        return str(self.get_subst())
+    #    if self.indices == []:
+    #        return self.name
+    #    return "(_ {} {})".format(
+    #            self.name, " ".join([str(s) for s in self.indices]))
 
     def __str__ (self):
         if self.is_subst():
             return str(self.get_subst())
-        if self.indices == []:
-            return self.name
-        return "(_ {} {})".format(
-                self.name, " ".join([str(s) for s in self.indices]))
+        # name of indexed function is stored as "(_ ...)" (needed for
+        # function caching), hence no need to re-generate its full name
+        return self.name
 
     def is_fun (self):
         return True
@@ -690,6 +705,13 @@ class SMTNamedAnnNode (SMTAnnNode):
         self.indices = []
         # distinguish full and name-only dumps 
         self.dumped = False
+    #def __init__ (self, attributes, sort, children, name):
+    #    super().__init__(attributes, sort, children)
+    #    # treat annotation nodes as function nodes in case that attribute
+    #    # ':named' is given
+    #    self.name = name
+    #    # distinguish full and name-only dumps 
+    #    self.dumped = False
 
     def dump (self, outfile, lead = " "):
         if self.is_subst():
@@ -998,9 +1020,9 @@ class SMTFormula:
         self.subst_scopes = SMTScopeSubstList ()
         self.subst_cmds = SMTCmdSubstList ()
         self.subst_nodes = SMTNodeSubstList ()
-        self.scopes_cache = {  # currently visible scopes 
-                self.scopes.id : self.scopes } 
-        self.funs_cache = {}   # fun name -> declaring scopes
+        #self.scopes_cache = {  # currently visible scopes 
+        #        self.scopes.id : self.scopes } 
+        self.funs_cache = {}   # fun name -> currently visible declaring scopes
         self.anns_cache = []   # named annotation nodes
         self.__add_predefined_sorts ()
 
@@ -1083,13 +1105,16 @@ class SMTFormula:
                 first_scope = new_scope
             self.cur_scope.scopes.append(new_scope)
             self.cur_scope = new_scope
-            self.scopes_cache[self.cur_scope.id] = self.cur_scope
+            #self.scopes_cache[self.cur_scope.id] = self.cur_scope
         return first_scope  # scope associated with parent push cmd
 
     def close_scope (self, nscopes = 1):
         for i in range (nscopes):
             assert (self.cur_scope.prev != None)
-            del(self.scopes_cache[self.cur_scope.id])
+            for name in self.cur_scope.funs:
+                assert (self.funs_cache[name][-1] == self.cur_scope)
+                self.funs_cache[name].pop()
+            #del(self.scopes_cache[self.cur_scope.id])
             self.cur_scope = self.cur_scope.prev
 
     #def constNode (self, kind, sort, value):
@@ -1138,16 +1163,16 @@ class SMTFormula:
         res = self.find_sort_and_scope (name, scope)
         return res[0] if res else None
     
-    def delete_sort (self, name, scope = None):
-        scope = scope if scope else self.cur_scope
-        assert (self.find_sort (name, scope))
-        while scope:
-            if name in scope.sorts:
-                assert (isinstance (scope.sorts[name], SMTSortNode))
-                del scope.sorts[name]
-                assert (not self.find_sort (name, scope))
-                return
-            scope = scope.prev
+    #def delete_sort (self, name, scope = None):
+    #    scope = scope if scope else self.cur_scope
+    #    assert (self.find_sort (name, scope))
+    #    while scope:
+    #        if name in scope.sorts:
+    #            assert (isinstance (scope.sorts[name], SMTSortNode))
+    #            del scope.sorts[name]
+    #            assert (not self.find_sort (name, scope))
+    #            return
+    #        scope = scope.prev
 
     def add_sort (self, name, nparams = 0, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
@@ -1215,83 +1240,116 @@ class SMTFormula:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
-    def find_fun (self, name, indices = [], sort = None, scope = None, find_nested = True):
-        global g_fun_kinds
-        # level 0 shortcut
-        if name in g_fun_kinds:  # default at level 0
-            assert (sort == None)
-            if name in self.scopes.funs \
-               and self.scopes.funs[name].indices == indices:
-                   return self.scopes.funs[name]
-            else:
-                return None
-        # check given / current scope first
+    #def find_fun (self, name, indices = [], sort = None, scope = None, find_nested = True):
+    #    global g_fun_kinds
+    #    # level 0 shortcut
+    #    if name in g_fun_kinds:  # default at level 0
+    #        assert (sort == None)
+    #        if name in self.scopes.funs \
+    #           and self.scopes.funs[name].indices == indices:
+    #               return self.scopes.funs[name]
+    #        else:
+    #            return None
+    #    # check given / current scope first
+    #    scope = scope if scope else self.cur_scope
+    #    assert (scope.id in self.scopes_cache)
+    #    if name in scope.funs and scope.funs[name].indices == indices \
+    #       and (not sort or scope.funs[name].sort == sort):
+    #           return scope.funs[name]
+    #    # check outer scopes
+    #    if find_nested and name in self.funs_cache:
+    #        scopes = self.funs_cache[name]
+    #        for s in reversed(scopes):
+    #            if s.id > scope.id:
+    #                continue
+    #            if s.id in self.scopes_cache:
+    #                assert (name in s.funs)
+    #                if s.funs[name].indices == indices \
+    #                   and (not sort or s.funs[name].sort == sort):
+    #                       return s.funs[name]
+    #    return None
+    def find_fun (self, name, sort = None, scope = None, find_nested = True):
         scope = scope if scope else self.cur_scope
-        assert (scope.id in self.scopes_cache)
-        if name in scope.funs and scope.funs[name].indices == indices \
-           and (not sort or scope.funs[name].sort == sort):
-               return scope.funs[name]
-        # check outer scopes
-        if find_nested and name in self.funs_cache:
-            scopes = self.funs_cache[name]
-            for s in reversed(scopes):
-                if s.id > scope.id:
-                    continue
-                if s.id in self.scopes_cache:
-                    assert (name in s.funs)
-                    if s.funs[name].indices == indices \
-                       and (not sort or s.funs[name].sort == sort):
-                           return s.funs[name]
+        if name in scope.funs:
+            return scope.funs[name]
+        if find_nested and name in self.funs_cache \
+           and (not sort \
+                or (self.funs_cache[name] \
+                    and self.funs_cache[name][-1].funs[name].sort == sort)):
+               return self.funs_cache[name][-1].funs[name]
         return None
 
     def add_fun (self, name, sort, sorts, indices, children, scope = None):
+    #def add_fun (self, name, sort, sorts, children scope = None):
         scope = scope if scope else self.scopes
         scope.funs[name] = SMTFunNode (name, sort, sorts, indices, children)
+        #scope.funs[name] = SMTFunNode (name, sort, sorts, children)
         if name in self.funs_cache:
             self.funs_cache[name].append(scope)
         else:
             self.funs_cache[name] = [scope]
         return scope.funs[name]
 
-    def delete_fun (self, name, indices = [], scope = None):
-        global g_fun_kinds
-        # level 0 shortcut
-        if name in g_fun_kinds:  # default at level 0
-            if name in self.scopes.funs \
-               and self.scopes.funs[name].indices == indices:
-                   del(self.scopes.funs[name])
-            return
-        # check given / current scope first
-        scope = scope if scope else self.cur_scope
-        if name in scope.funs:
-            del(scope.funs[name])
-        # check outer scopes
-        elif name in self.funs_cache:
-            scopes = self.funs_cache[name]
-            for s in reversed(scopes):
-                if s.id > scope.id:
-                    continue
-                if s.id in self.scopes_cache:
-                    assert (name in s.funs)
-                    if s.funs[name].indices == indices:
-                        del(s.funs[name])
+    #def delete_fun (self, name, indices = [], scope = None):
+    #    global g_fun_kinds
+    #    # level 0 shortcut
+    #    if name in g_fun_kinds:  # default at level 0
+    #        if name in self.scopes.funs \
+    #           and self.scopes.funs[name].indices == indices:
+    #               del(self.scopes.funs[name])
+    #        return
+    #    # check given / current scope first
+    #    scope = scope if scope else self.cur_scope
+    #    if name in scope.funs:
+    #        del(scope.funs[name])
+    #    # check outer scopes
+    #    elif name in self.funs_cache:
+    #        scopes = self.funs_cache[name]
+    #        for s in reversed(scopes):
+    #            if s.id > scope.id:
+    #                continue
+    #            if s.id in self.scopes_cache:
+    #                assert (name in s.funs)
+    #                if s.funs[name].indices == indices:
+    #                    del(s.funs[name])
+    def delete_fun (self, name, scope = None):
+        scope = scope if scope else self.scopes
+        while scope:
+            # Note: no sort check here as this is used for substvars only
+            if name in scope.funs:
+                del(scope.funs[name])
+            scope = scope.prev
 
-    def funNode (self, name, sort, sorts = [], indices = [], children = [],
+    #def funNode (self, name, sort, sorts = [], indices = [], children = [],
+    #             scope = None, find_nested = True):
+    #    global fun_kinds
+    #    scope = scope if scope and name not in g_fun_kinds \
+    #                  else self.scopes  # default: level 0
+    #    #fun = self.find_fun (name, indices, sort, find_nested=find_nested)
+    #    fun = self.find_fun (name, sort, find_nested=find_nested)
+    #    if not fun:
+    #        return self.add_fun (name, sort, sorts, indices, children, scope)
+    #    assert (not sort or fun.sort == sort)
+    #    return fun
+    def funNode (self, name, sort, sorts = [], indices = [], children = [], 
                  scope = None, find_nested = True):
-        global fun_kinds
+        global g_fun_kinds
         scope = scope if scope and name not in g_fun_kinds \
                       else self.scopes  # default: level 0
-        fun = self.find_fun (name, indices, sort, find_nested=find_nested)
+        fun = self.find_fun (name, sort, find_nested = find_nested)
         if not fun:
             return self.add_fun (name, sort, sorts, indices, children, scope)
         assert (not sort or fun.sort == sort)
         return fun
 
     def anFunNode (self, name, sort, indices = []):
+    #def anFunNode (self, name, sort):
         if name in g_fun_kinds:
             fun = self.funNode (name, None, [], indices)
+            #fun = self.funNode (name, None)
         else:
-            fun = self.find_fun (name, indices)
+            #fun = self.find_fun (name, indices)
+            fun = self.find_fun (name)
             if not fun:
                 raise DDSMTParseCheckException (
                         "function '{}' undeclared".format(name))
@@ -1418,7 +1476,8 @@ class SMTFormula:
                         "".format(children[1].sort, children[2].sort)) 
         # not predefined
         else:
-            declfun = self.find_fun(fun.name, fun.indices)
+            #declfun = self.find_fun(fun.name, fun.indices)
+            declfun = self.find_fun (fun.name)
             assert (declfun)
             if declfun.sort == None:  # not declared yet
                 raise DDSMTParseCheckException (
@@ -1490,11 +1549,12 @@ class SMTFormula:
     def funAppNode (self, fun, children):
         global g_fun_kinds
         kind = fun.kind
-        if fun.name in g_fun_kinds:
-            if fun.name == '-' and len(children) == 1:
+        name = fun.name if not fun.name[0] == '(' else fun.name.split()[1]
+        if name in g_fun_kinds:
+            if name == '-' and len(children) == 1:
                 kind = KIND_NEG
             else:
-                kind = fun.name
+                kind = name
         sort = self.funApp2sort(fun, kind, children)
         return SMTFunAppNode (fun, kind, sort, children)
 
@@ -1525,7 +1585,8 @@ class SMTFormula:
                     raise DDSMTParseCheckException (
                             "missing attribute value for ':named'")
                 name = attrib[1]
-                fun = self.find_fun (name, [], None, self.cur_scope, False)
+                #fun = self.find_fun (name, [], None, self.cur_scope, False)
+                fun = self.find_fun (name, None, self.cur_scope, False)
                 if fun:
                     raise DDSMTParseCheckException (
                             "previous declaration of function {} was here" \
@@ -1564,10 +1625,12 @@ class SMTFormula:
     def add_fresh_declfunCmdNode (self, sort):
         self.scopes.declfun_id += 1
         name = "_substvar_{}_".format(self.scopes.declfun_id)
-        while self.find_fun (name, [], self.scopes, False):
+        #while self.find_fun (name, [], self.scopes, False):
+        while self.find_fun (name, scope=self.scopes, find_nested=False):
             self.scopes.declfun_id = int(name[10:-1]) + 1
             name = "_substvar_{}_".format(self.scopes.declfun_id)
         fun = self.add_fun (name, sort, [], [], [])
+        #fun = self.add_fun (name, sort, [], [])
         self.scopes.declfun_cmds[name] = SMTCmdNode (KIND_DECLFUN, [fun])
         return fun
 
@@ -1575,16 +1638,18 @@ class SMTFormula:
         for varb in var_bindings:
             assert (varb.scope.kind == KIND_VSCOPE)
             assert (varb.scope == self.cur_scope)
-            assert (self.find_fun(
-                varb.var.name, varb.var.indices, self.cur_scope))
+            #assert (self.find_fun(
+            #    varb.var.name, varb.var.indices, self.cur_scope))
+            assert (self.find_fun(varb.var.name, scope=self.cur_scope))
         return True     
 
     def __assert_svar (self, sorted_vars):
         for svar in sorted_vars:
             assert (svar.scope == KIND_SCOPE)
             assert (svar.scope == self.cur_scope)
-            assert (self.find_fun(
-                svar.var.name, svar.var.indices, self.cur_scope))
+            #assert (self.find_fun(
+            #    svar.var.name, svar.var.indices, self.cur_scope))
+            assert (self.find_fun(svar.var.name, scope=self.cur_scope))
         return True
 
 
@@ -1666,6 +1731,8 @@ class DDSMTParser (SMTParser):
             self.sorted_var.set_parse_action (lambda t:
                     sf.funNode (
                         str(t[0]), t[1], [], [], [], sf.cur_scope, False))
+                    #sf.funNode (
+                    #    str(t[0]), t[1], [],[], sf.cur_scope, False))
 
             self.sorted_qvar.set_parse_action(self.__sortedQVar2SMTNode)
 
@@ -1766,21 +1833,31 @@ class DDSMTParser (SMTParser):
                                 int(t_ident[1][2:]))
                     else:
                         assert (len(t_ident) > 1)
-                        return sf.funNode (
-                                str(t_ident[1]), None, [], t_ident[2], [],
-                                sf.cur_scope)
+                        #return sf.funNode (
+                        #        str(t_ident[1]), None, [], t_ident[2], [],
+                        #        sf.cur_scope)
+                        name = "(_ {} {})".format(
+                                str(t_ident[1]),
+                                " ".join([str(s) for s in t_ident[2]]))
+                        return sf.funNode (name, None, [], t_ident[2], 
+                                           scope=sf.cur_scope)
                 else:
-                    return sf.funNode (str(t_ident), None, scope = sf.cur_scope)
+                    return sf.funNode (str(t_ident), None, scope=sf.cur_scope)
             else:
                 assert (t[0] == SMTParser.AS)
                 t_ident = t[1]
                 t_sort = t[2]
                 if t_ident[0] == SMTParser.IDXED:
-                    return sf.anFunNode (
-                            str(t_ident[1]), t_sort, t_ident[2])
+                    #return sf.anFunNode (
+                    #        str(t_ident[1]), t_sort, t_ident[2])
+                    name = "(_ {} {})".format(
+                            str(t_ident[1]),
+                            " ".join([str(s) for s in t_ident[2]]))
+                    return sf.anFunNode (name, t_sort, t_ident[2])
                 else:
                     assert (len(t_ident) == 1)
-                    return sf.anFunNode (str(t_ident), t_sort, [])
+                    #return sf.anFunNode (str(t_ident), t_sort, [])
+                    return sf.anFunNode (str(t_ident), t_sort)
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, self)
     
@@ -1791,6 +1868,7 @@ class DDSMTParser (SMTParser):
         varb = SMTVarBindNode (
                 sf.funNode (
                     str(t[0]), t[1].sort, [], [], [], sf.cur_scope, False), 
+                    #str(t[0]), t[1].sort, [], [], sf.cur_scope, False), 
                 [t[1]])
         return varb
 
@@ -1800,6 +1878,7 @@ class DDSMTParser (SMTParser):
             sf.open_scope(kind = KIND_FESCOPE)
         svar = SMTSortedQVarNode (
                 sf.funNode (str(t[0]), t[1], [], [], [], sf.cur_scope, False))
+                #sf.funNode (str(t[0]), t[1], [], [], sf.cur_scope, False))
         return svar
 
     def __varBindings (self, t):
@@ -1860,9 +1939,7 @@ class DDSMTParser (SMTParser):
                     KIND_DEFSORT, [sort, [str(to) for to in t[2]], t[3]])
         elif kind == KIND_DECLFUN:
             assert (len(t) == 4)
-            # fun has been added to scope level 0 when recursively stepping
-            # through declare-fun -> move to cur_scope
-            fun = sf.find_fun(t[1], t[3])
+            fun = sf.find_fun(t[1], t[3], find_nested=False)
             if fun:
                 (line, col) = self.get_pos()
                 raise DDSMTParseException (
@@ -1870,6 +1947,7 @@ class DDSMTParser (SMTParser):
                          "was here".format(fun),
                          self)
             fun = sf.funNode (t[1], t[3], t[2][0:], [], [], sf.cur_scope)
+            #fun = sf.funNode (t[1], t[3], t[2][0:], [], sf.cur_scope)
             return sf.cmdNode (KIND_DECLFUN, [fun])
         elif kind == KIND_DEFFUN:
             assert (len(t) == 5)
@@ -1877,6 +1955,7 @@ class DDSMTParser (SMTParser):
             return sf.cmdNode (
                     KIND_DEFFUN,
                     [sf.funNode (t[1], t[3], sorts, [], [t[4]], sf.cur_scope), 
+                    #[sf.funNode (t[1], t[3], sorts, [t[4]], sf.cur_scope), 
                      t[2], t[4]])
         elif kind == KIND_GETVALUE:
             assert (len(t) == 2)
