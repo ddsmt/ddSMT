@@ -1195,7 +1195,7 @@ class SMTFormula:
 
     def sortNode (self, name, nparams = 0, scope = None, new = False):
         scope = scope if scope else self.scopes  # default: level 0
-        sort = self.find_sort (name)             # concrete sort already added?
+        sort = self.find_sort (name, scope)      # concrete sort already added?
         if not sort:
             if nparams > 0:
                 # abstract sort already declared?
