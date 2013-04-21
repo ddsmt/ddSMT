@@ -1272,10 +1272,12 @@ class SMTFormula:
         scope = scope if scope else self.cur_scope
         if name in scope.funs:
             return scope.funs[name]
-        if find_nested and name in self.funs_cache \
-           and (not sort \
-                or (self.funs_cache[name] \
-                    and self.funs_cache[name][-1].funs[name].sort == sort)):
+        #if find_nested and name in self.funs_cache \
+        #   and (not sort \
+        #        or (self.funs_cache[name] \
+        #            and self.funs_cache[name][-1].funs[name].sort == sort)):
+        if find_nested and name in self.funs_cache and self.funs_cache[name] \
+           and (not sort or self.funs_cache[name][-1].funs[name].sort == sort):
                return self.funs_cache[name][-1].funs[name]
         return None
 
