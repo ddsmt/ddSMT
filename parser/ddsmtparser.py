@@ -1022,6 +1022,7 @@ class SMTFormula:
         self.subst_nodes = SMTNodeSubstList ()
         #self.scopes_cache = {  # currently visible scopes 
         #        self.scopes.id : self.scopes } 
+        self.sorts_cache = {}
         self.funs_cache = {}   # fun name -> currently visible declaring scopes
         self.anns_cache = []   # named annotation nodes
         self.__add_predefined_sorts ()
@@ -1063,7 +1064,7 @@ class SMTFormula:
 
     def subst (self, node, substitution):
         if isinstance (node, SMTScopeNode):
-            self.subst_scopes.subst(node, substitution)
+            self.sUBST_scopes.subst(node, substitution)
         elif isinstance (node, SMTCmdNode):
             self.subst_cmds.subst(node, substitution)
         else:
@@ -1111,6 +1112,9 @@ class SMTFormula:
     def close_scope (self, nscopes = 1):
         for i in range (nscopes):
             assert (self.cur_scope.prev != None)
+            for name in self.cur_scope.sorts:
+                assert (self.sorts_cache[name] == self.cur_scope)
+                del(self.sorts_cache[name])
             for name in self.cur_scope.funs:
                 assert (self.funs_cache[name][-1] == self.cur_scope)
                 self.funs_cache[name].pop()
@@ -1149,18 +1153,28 @@ class SMTFormula:
         assert (sort.is_bv_sort())
         return self.bvConstNode (KIND_CONSTN, sort.bw, 0)
 
-    def find_sort_and_scope (self, name, scope = None):
-        scope = scope if scope else self.cur_scope
-        while scope:
-            if name in scope.sorts:
-                assert (isinstance (scope.sorts[name], SMTSortNode))
-                return (scope.sorts[name], scope)
-            scope = scope.prev
+    #def find_sort_and_scope (self, name, scope = None):
+    #    scope = scope if scope else self.cur_scope
+    #    while scope:
+    #        if name in scope.sorts:
+    #            assert (isinstance (scope.sorts[name], SMTSortNode))
+    #            return (scope.sorts[name], scope)
+    #        scope = scope.prev
+    #    return None
+    #def find_sort_and_scope (self, name, scope = None):
+    def find_sort_and_scope (self, name):
+        #scope = scope if scope else self.cur_scope
+        #print ("** " + str(self.sorts_cache))
+        if name in self.sorts_cache:
+            return (self.sorts_cache[name].sorts[name], self.sorts_cache[name])
         return None
         
-    def find_sort (self, name, scope = None):
-        scope = scope if scope else self.cur_scope
-        res = self.find_sort_and_scope (name, scope)
+    #def find_sort (self, name, scope = None):
+    #    scope = scope if scope else self.cur_scope
+    #    res = self.find_sort_and_scope (name, scope)
+    #    return res[0] if res else None
+    def find_sort (self, name):
+        res = self.find_sort_and_scope (name)
         return res[0] if res else None
     
     #def delete_sort (self, name, scope = None):
@@ -1176,30 +1190,38 @@ class SMTFormula:
 
     def add_sort (self, name, nparams = 0, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
-        assert (not self.find_sort (name, self.cur_scope))
+        #assert (not self.find_sort (name, self.cur_scope))
+        assert (not self.find_sort (name))
         scope.sorts[name] = SMTSortNode (name, nparams)
+        self.sorts_cache[name] = scope
         return scope.sorts[name]
 
     def add_bvSort (self, bw):
         name = SMTBVSortNode.name(bw)
-        assert (not self.find_sort(name, self.scopes))
+        #assert (not self.find_sort(name, self.scopes))
+        assert (not self.find_sort (name))
         self.scopes.sorts[name] = SMTBVSortNode (bw)  # level 0
+        self.sorts_cache[name] = self.scopes
         return self.scopes.sorts[name]
 
     def add_arrSort (self, index_sort = None, elem_sort = None, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
         name = SMTArraySortNode.name(index_sort, elem_sort)
-        assert (not self.find_sort(name, scope))
+        #assert (not self.find_sort(name, scope))
+        assert (not self.find_sort (name))
         scope.sorts[name] = SMTArraySortNode (index_sort, elem_sort)
+        self.sorts_cache[name] = scope
         return scope.sorts[name]
 
     def sortNode (self, name, nparams = 0, scope = None, new = False):
         scope = scope if scope else self.scopes  # default: level 0
-        sort = self.find_sort (name, scope)      # concrete sort already added?
+        #sort = self.find_sort (name, scope)      # concrete sort already added?
+        sort = self.find_sort (name)
         if not sort:
             if nparams > 0:
                 # abstract sort already declared?
-                res = self.find_sort_and_scope (name[1:-1].split()[0], scope)
+                #res = self.find_sort_and_scope (name[1:-1].split()[0], scope)
+                res = self.find_sort_and_scope (name[1:-1].split()[0])
                 
                 if res:
                     if res[0].nparams != nparams:
@@ -1227,7 +1249,8 @@ class SMTFormula:
 
     def bvSortNode (self, bw):
         name = SMTBVSortNode.name(bw)
-        sort = self.find_sort(name, self.scopes)  # level 0
+        #sort = self.find_sort(name, self.scopes)  # level 0
+        sort = self.find_sort (name)
         if not sort:
             sort = self.add_bvSort(bw)
         return sort
@@ -1235,7 +1258,8 @@ class SMTFormula:
     def arrSortNode (self, index_sort = None, elem_sort = None, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
         name = SMTArraySortNode.name(index_sort, elem_sort)
-        sort = self.find_sort(name, scope)
+        #sort = self.find_sort(name, scope)
+        sort = self.find_sort (name)
         if not sort:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
@@ -1440,6 +1464,9 @@ class SMTFormula:
                 if c.sort != c0.sort \
                    and c0.sort not in (sortint, sortreal) \
                    and c.sort not in (sortint, sortreal):
+                    #print ("-- " + str(self.scopes.sorts))
+                    #print (">> " + str(self.find_sort_and_scope(c0.sort.name)))
+                    #print ("## " + str(self.sorts_cache[c0.sort.name]) + " " + str(self.sorts_cache[c.sort.name]))
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
                         "".format(fun, c0.sort, c.sort)) 
