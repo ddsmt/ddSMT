@@ -321,8 +321,8 @@ def ddsmt_main ():
         elif succeeded == "cmds": 
            break
 
-        cmds = [_filter_cmds (lambda x: x.is_assert()), 
-                _filter_cmds (lambda x: x.is_definefun())]
+        cmds = [_filter_cmds (lambda x: x.is_definefun()), 
+                _filter_cmds (lambda x: x.is_assert())]
 
         for i in range(0,len(cmds)):
             if cmds[i]:
