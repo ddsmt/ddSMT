@@ -292,6 +292,8 @@ def ddsmt_main ():
 
     succeeded = "none"
 
+    sf = g_smtformula
+
     while nsubst_round:
         nsubst_round = 0
         nsubst = 0
@@ -319,373 +321,214 @@ def ddsmt_main ():
         elif succeeded == "cmds": 
            break
 
-        asserts = _filter_cmds (lambda x: x.is_assert())
-        deffuns = _filter_cmds (lambda x: x.is_definefun())
+        cmds = [_filter_cmds (lambda x: x.is_definefun()), 
+                _filter_cmds (lambda x: x.is_assert())]
 
-        if deffuns:
-            _log (2)
-            _log (2, "substitute TERMs in DEFINE-FUNs:")
+        for i in range(0,len(cmds)):
+            if cmds[i]:
+                _log(2)
+                _log (2, "substitute TERMs in {} cmds:".format(
+                    "'define-fun'" if i == 0 else "'assert'"))
+                
+                if sf.is_bv_logic():
+                    nsubst = _substitute_terms (
+                            lambda x: sf.bvZeroConstNode(x.sort),
+                            lambda x: not x.is_const() \
+                                      and x.sort and x.sort.is_bv_sort(),
+                            cmds[i], "  substitute BV terms with '0'")
+                    if nsubst:
+                        succeeded = "bv0_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "bv0_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
+                            lambda x: sf.add_fresh_declfunCmdNode(x.sort),
+                            lambda x: not x.is_const()                   \
+                                      and x.sort and x.sort.is_bv_sort() \
+                                      and not sf.is_substvar(x),
+                            cmds[i], 
+                            "  substitute BV terms with fresh variables",
+                            True)
+                    if nsubst:
+                        succeeded = "bvvar_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "bvvar_{}".format(i):
+                        break
 
-            if g_smtformula.is_bv_logic():
+                if sf.is_int_logic() or sf.is_real_logic():
+                    nsubst = _substitute_terms (
+                            lambda x: sf.zeroConstNNode(),
+                            lambda x: not x.is_const() \
+                                      and x.sort and x.sort.is_int_sort(),
+                            cmds[i], "  substitute Int terms with '0'")
+                    if nsubst:
+                        succeeded = "int0_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "int0_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
+                            lambda x: sf.add_fresh_declfunCmdNode(x.sort),
+                            lambda x: not x.is_const()                    \
+                                      and x.sort and x.sort.is_int_sort() \
+                                      and not sf.is_substvar(x),
+                            cmds[i], 
+                            "  substitute Int terms with fresh variables",
+                            True)
+                    if nsubst:
+                        succeeded = "intvar_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "intvar_{}".format(i):
+                        break
+
+                if sf.is_real_logic():
+                    nsubst = _substitute_terms (
+                            lambda x: sf.zeroConstDNode(),
+                            lambda x: not x.is_const() \
+                                      and x.sort and x.sort.is_real_sort(),
+                            cmds[i], "  substitute Int terms with '0'")
+                    if nsubst:
+                        succeeded = "real0_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "real0_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
+                            lambda x: sf.add_fresh_declfunCmdNode(x.sort),
+                            lambda x: not x.is_const()                     \
+                                      and x.sort and x.sort.is_real_sort() \
+                                      and not sf.is_substvar(x),
+                            cmds[i], 
+                            "  substitute Int terms with fresh variables",
+                            True)
+                    if nsubst:
+                        succeeded = "realvar_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "realvar_{}".format(i):
+                        break
+
                 nsubst = _substitute_terms (
-                        lambda x: g_smtformula.bvZeroConstNode(x.sort),
+                        lambda x: x.children[-1].get_subst(),
+                        lambda x: x.is_let(),
+                        cmds[i], "  substitute LETs with child term")
+                if nsubst:
+                    succeeded = "let_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "let_{}".format(i):
+                    break
+
+                nsubst = _substitute_terms (
+                        lambda x: sf.boolConstNode("false"),
                         lambda x: not x.is_const() \
-                                  and x.sort and x.sort.is_bv_sort(),
-                        deffuns, "  substitute BV terms with '0'")
+                                  and x.sort and x.sort.is_bool_sort(),
+                        cmds[i], "  substitute Boolean terms with 'false'")
                 if nsubst:
-                    succeeded = "bv0_deffun"
+                    succeeded = "false_{}".format(i)
                     nsubst_round += nsubst
                     nterms_subst += nsubst
-                elif succeeded == "bv0_deffun":
-                    break
-                nsubst = _substitute_terms (
-                        lambda x: g_smtformula.add_fresh_declfunCmdNode(x.sort),
-                        lambda x: not x.is_const()                   \
-                                  and x.sort and x.sort.is_bv_sort() \
-                                  and not g_smtformula.is_substvar(x),
-                        deffuns, "  substitute BV terms with fresh variables",
-                        True)
-                if nsubst:
-                    succeeded = "bvvar_deffun"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "bvvar_deffun":
+                elif succeeded == "false_{}".format(i):
                     break
 
-            if g_smtformula.is_int_logic() or g_smtformula.is_real_logic():
                 nsubst = _substitute_terms (
-                        lambda x: g_smtformula.zeroConstNNode(),
-                        lambda x: not x.is_const() \
-                                  and x.sort and x.sort.is_int_sort(),
-                        deffuns, "  substitute Int terms with '0'")
-                if nsubst:
-                    succeeded = "int0_deffun"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "int0_deffun":
-                    break
-                nsubst = _substitute_terms (
-                        lambda x: g_smtformula.add_fresh_declfunCmdNode(x.sort),
-                        lambda x: not x.is_const()                    \
-                                  and x.sort and x.sort.is_int_sort() \
-                                  and not g_smtformula.is_substvar(x),
-                        deffuns, "  substitute Int terms with fresh variables",
-                        True)
-                if nsubst:
-                    succeeded = "intvar_deffun"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "intvar_deffun":
-                    break
-
-            if g_smtformula.is_real_logic():
-                nsubst = _substitute_terms (
-                        lambda x: g_smtformula.zeroConstDNode(),
-                        lambda x: not x.is_const() \
-                                  and x.sort and x.sort.is_real_sort(),
-                        deffuns, "  substitute Int terms with '0'")
-                if nsubst:
-                    succeeded = "real0_deffun"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "real0_deffun":
-                    break
-                nsubst = _substitute_terms (
-                        lambda x: g_smtformula.add_fresh_declfunCmdNode(x.sort),
-                        lambda x: not x.is_const()                     \
-                                  and x.sort and x.sort.is_real_sort() \
-                                  and not g_smtformula.is_substvar(x),
-                        deffuns, "  substitute Int terms with fresh variables",
-                        True)
-                if nsubst:
-                    succeeded = "realvar_deffun"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "realvar_deffun":
-                    break
-
-            nsubst = _substitute_terms (
-                    lambda x: x.children[-1].get_subst(),
-                    lambda x: x.is_let(),
-                    deffuns, "  substitute LETs with child term")
-            if nsubst:
-                succeeded = "let_deffun"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "let_deffun":
-                break
-
-            nsubst = _substitute_terms (
-                    lambda x: g_smtformula.boolConstNode("false"),
-                    lambda x: not x.is_const() \
-                              and x.sort and x.sort.is_bool_sort(),
-                    deffuns, "  substitute Boolean terms with 'false'")
-            if nsubst:
-                succeeded = "false_deffun"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "false_deffun":
-                break
-
-            nsubst = _substitute_terms (
-                    lambda x: x.children[1].get_subst()                     \
-                              if x.children[0].get_subst().is_false_const() \
-                              else x.children[0].get_subst(),
-                    lambda x: x.is_or()                                       \
-                              and (x.children[0].get_subst().is_false_const() \
+                        lambda x: x.children[1].get_subst() \
+                                if x.children[0].get_subst().is_false_const() \
+                                else x.children[0].get_subst(),
+                        lambda x: x.is_or() \
+                                and (x.children[0].get_subst().is_false_const()\
                                 or x.children[1].get_subst().is_false_const()),
-                    deffuns, "  substitute (or term false) with term")
-            if nsubst:
-                succeeded = "or_deffun"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "or_deffun":
-                break
+                        cmds[i], "  substitute (or term false) with term")
+                if nsubst:
+                    succeeded = "or_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "or_{}".format(i):
+                    break
 
-            nsubst = _substitute_terms (
-                    lambda x: g_smtformula.boolConstNode("true"),
-                    lambda x: not x.is_const() \
-                              and x.sort and x.sort.is_bool_sort(),
-                    deffuns, "  substitute Boolean terms with 'true'")
-            if nsubst:
-                succeeded = "true_deffun"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "true_deffun":
-                break
+                nsubst = _substitute_terms (
+                        lambda x: sf.boolConstNode("true"),
+                        lambda x: not x.is_const() \
+                                  and x.sort and x.sort.is_bool_sort(),
+                        cmds[i], "  substitute Boolean terms with 'true'")
+                if nsubst:
+                    succeeded = "true_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "true_{}".format(i):
+                    break
 
-            nsubst = _substitute_terms (
-                    lambda x: x.children[1].get_subst()                    \
-                              if x.children[0].get_subst().is_true_const() \
-                              else x.children[0].get_subst(),
-                    lambda x: x.is_and()                                     \
-                              and (x.children[0].get_subst().is_true_const() \
-                               or x.children[1].get_subst().is_true_const()),
-                    deffuns, "  substitute (and term true) with term")
-            if nsubst:
-                succeeded = "and_deffun"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "and_deffun":
-                break
+                nsubst = _substitute_terms (
+                        lambda x: x.children[1].get_subst() \
+                                if x.children[0].get_subst().is_true_const() \
+                                else x.children[0].get_subst(),
+                        lambda x: x.is_and() \
+                                and (x.children[0].get_subst().is_true_const() \
+                                or x.children[1].get_subst().is_true_const()),
+                        cmds[i], "  substitute (and term true) with term")
+                if nsubst:
+                    succeeded = "and_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "and_{}".format(i):
+                    break
             
-            if g_smtformula.is_arr_logic():
                 nsubst = _substitute_terms (
-                        lambda x: x.children[0],  # array
-                        lambda x: x.is_write(),
-                        deffuns, "  substitute STOREs with array child")
-                if nsubst:
-                    succeeded = "store_deffun"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "store_deffun":
-                    break
-
-            nsubst = _substitute_terms (
-                    lambda x: x.children[1],  # left child
-                    lambda x: x.is_ite(),
-                    deffuns, "  substitute ITE with left child")
-            if nsubst:
-                succeeded = "iteleft_deffun"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "iteleft_deffun":
-                break
-            nsubst = _substitute_terms (
-                    lambda x: x.children[2],  # right child
-                    lambda x: x.is_ite(),
-                    deffuns, "  substitute ITE with right child")
-            if nsubst:
-                succeeded = "iteright_deffun"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "iteright_deffun":
-                break
-
-
-        if asserts:
-            _log (2) 
-            _log (2, "substitute TERMs in ASSERTs:")
-
-            if g_smtformula.is_bv_logic():
-                nsubst = _substitute_terms (
-                        lambda x: g_smtformula.bvZeroConstNode(x.sort),
-                        lambda x: not x.is_const() \
-                                  and x.sort and x.sort.is_bv_sort(),
-                        asserts, "  substitute BV terms with '0'")
-                if nsubst:
-                    succeeded = "bv0_assert"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "bv0_assert":
-                    break
-                nsubst = _substitute_terms (
-                        lambda x: g_smtformula.add_fresh_declfunCmdNode(x.sort),
+                        lambda x: sf.add_fresh_declfunCmdNode(x.sort),
                         lambda x: not x.is_const()                   \
-                                  and x.sort and x.sort.is_bv_sort() \
-                                  and not g_smtformula.is_substvar(x),
-                        asserts, "  substitute BV terms with fresh variables",
+                                  and x.sort and x.sort.is_bool_sort() \
+                                  and not sf.is_substvar(x),
+                        cmds[i], 
+                        "  substitute Boolean terms with fresh variables",
                         True)
                 if nsubst:
-                    succeeded = "bvvar_assert"
+                    succeeded = "boolvar_{}".format(i)
                     nsubst_round += nsubst
                     nterms_subst += nsubst
-                elif succeeded == "bvvar_assert":
+                elif succeeded == "boolvar_{}".format(i):
                     break
 
-            if g_smtformula.is_int_logic() or g_smtformula.is_real_logic():
-                nsubst = _substitute_terms (
-                        lambda x: g_smtformula.zeroConstNNode(),
-                        lambda x: not x.is_const() \
-                                  and x.sort and x.sort.is_int_sort(),
-                        asserts, "  substitute Int terms with '0'")
-                if nsubst:
-                    succeeded = "int0_assert"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "int0_assert":
-                    break
-                nsubst = _substitute_terms (
-                        lambda x: g_smtformula.add_fresh_declfunCmdNode(x.sort),
-                        lambda x: not x.is_const()                    \
-                                  and x.sort and x.sort.is_int_sort() \
-                                  and not g_smtformula.is_substvar(x),
-                        asserts, "  substitute Int terms with fresh variables",
-                        True)
-                if nsubst:
-                    succeeded = "intvar_assert"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "intvar_assert":
-                    break
+                if sf.is_arr_logic():
+                    nsubst = _substitute_terms (
+                            lambda x: x.children[0],  # array
+                            lambda x: x.is_write(),
+                            cmds[i], "  substitute STOREs with array child")
+                    if nsubst:
+                        succeeded = "store_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "store_{}".format(i):
+                        break
 
-            if g_smtformula.is_real_logic():
                 nsubst = _substitute_terms (
-                        lambda x: g_smtformula.zeroConstDNode(),
-                        lambda x: not x.is_const() \
-                                  and x.sort and x.sort.is_real_sort(),
-                        asserts, "  substitute Int terms with '0'")
+                        lambda x: x.children[1],  # left child
+                        lambda x: x.is_ite(),
+                        cmds[i], "  substitute ITE with left child")
                 if nsubst:
-                    succeeded = "real0_assert"
+                    succeeded = "iteleft_{}".format(i)
                     nsubst_round += nsubst
                     nterms_subst += nsubst
-                elif succeeded == "real0_assert":
+                elif succeeded == "iteleft_{}".format(i):
                     break
                 nsubst = _substitute_terms (
-                        lambda x: g_smtformula.add_fresh_declfunCmdNode(x.sort),
-                        lambda x: not x.is_const()                     \
-                                  and x.sort and x.sort.is_real_sort() \
-                                  and not g_smtformula.is_substvar(x),
-                        asserts, "  substitute Int terms with fresh variables",
-                        True)
+                        lambda x: x.children[2],  # right child
+                        lambda x: x.is_ite(),
+                        cmds[i], "  substitute ITE with right child")
                 if nsubst:
-                    succeeded = "realvar_assert"
+                    succeeded = "iteright_{}".format(i)
                     nsubst_round += nsubst
                     nterms_subst += nsubst
-                elif succeeded == "realvar_assert":
+                elif succeeded == "iteright_{}".format(i):
                     break
 
-            nsubst = _substitute_terms (
-                    lambda x: x.children[-1],
-                    lambda x: x.is_let(),
-                    asserts, "  substitute LETs with child term")
-            if nsubst:
-                succeeded = "let_assert"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "let_assert":
-                break
+        #nsubst += _substitute_terms (
+        #        lambda x: _subst_term_with_child(x),
+        #        lambda x: _has_child_to_subst(x),
+        #        cmds, "substitute TERMS with child")
 
-            nsubst = _substitute_terms (
-                    lambda x: g_smtformula.boolConstNode("false"),
-                    lambda x: not x.is_const() \
-                              and x.sort and x.sort.is_bool_sort(),
-                    asserts, "  substitute Boolean terms with 'false'")
-            if nsubst:
-                succeeded = "false_assert"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "false_assert":
-                break
-
-            nsubst = _substitute_terms (
-                    lambda x: x.children[1] if x.children[0].is_false_const() \
-                              else x.children[0],
-                    lambda x: x.is_or()                           \
-                              and (x.children[0].is_false_const() \
-                                   or x.children[1].is_false_const()),
-                    asserts, "  substitute (or term false) with term")
-            if nsubst:
-                succeeded = "or_assert"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "or_assert":
-                break
-
-            nsubst = _substitute_terms (
-                    lambda x: g_smtformula.boolConstNode("true"),
-                    lambda x: not x.is_const() \
-                              and x.sort and x.sort.is_bool_sort(),
-                    asserts, "  substitute Boolean terms with 'true'")
-            if nsubst:
-                succeeded = "true_assert"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "true_assert":
-                break
-
-            nsubst = _substitute_terms (
-                    lambda x: x.children[1] if x.children[0].is_true_const() \
-                              else x.children[0],
-                    lambda x: x.is_and()                         \
-                              and (x.children[0].is_true_const() \
-                                   or x.children[1].is_true_const()),
-                    asserts, "  substitute (and term true) with term")
-            if nsubst:
-                succeeded = "and_assert"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "and_assert":
-                break
-
-            if g_smtformula.is_arr_logic():
-                nsubst = _substitute_terms (
-                        lambda x: x.children[0],  # array
-                        lambda x: x.is_write(),
-                        asserts, "  substitute STOREs with array child")
-                if nsubst:
-                    succeeded = "store_assert"
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "store_assert":
-                    break
-
-            nsubst = _substitute_terms (
-                    lambda x: x.children[1],  # left child
-                    lambda x: x.is_ite(),
-                    asserts, "  substitute ITE with left child")
-            if nsubst:
-                succeeded = "iteleft_assert"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "iteleft_assert":
-                break
-            nsubst = _substitute_terms (
-                    lambda x: x.children[2],  # right child
-                    lambda x: x.is_ite(),
-                    asserts, "  substitute ITE with right child")
-            if nsubst:
-                succeeded = "iteright_assert"
-                nsubst_round += nsubst
-                nterms_subst += nsubst
-            elif succeeded == "iteright_assert":
-                break
-
-#        #nsubst += _substitute_terms (
-#        #        lambda x: _subst_term_with_child(x),
-#        #        lambda x: _has_child_to_subst(x),
-#        #        cmds, "substitute TERMS with child")
-#
         nsubst_total += nsubst_round
 
     _log (1)
@@ -749,6 +592,17 @@ if __name__ == "__main__":
             parser = DDSMTParser()
             g_smtformula = parser.parse(g_args.infile)
 
+            #### debug
+            #to_visit = [g_smtformula.scopes]
+            #while to_visit:
+            #    scope = to_visit.pop()
+            #    print ("level: {}\ncommands: {}\nsorts: {}\nfuns:{}".format(
+            #        scope.level, 
+            #        " ".join([str(c) for c in scope.cmds]), 
+            #        " ".join([str(s) for s in scope.sorts]), 
+            #        " ".join([str(f) for f in scope.funs])))
+            #    to_visit.extend(scope.scopes)
+            #######
             #_dump(g_args.outfile)
             #sys.exit(0)
 
