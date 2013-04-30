@@ -966,6 +966,7 @@ class SMTFormula:
         self.subst_cmds = SMTCmdSubstList ()
         self.subst_nodes = SMTNodeSubstList ()
         self.sorts_cache = {}
+        self.consts_cache = {}
         self.funs_cache = {}   # fun name -> currently visible declaring scopes
         self.anns_cache = []   # named annotation nodes
         self.__add_predefined_sorts ()
@@ -1062,17 +1063,33 @@ class SMTFormula:
                 self.funs_cache[name].pop()
             self.cur_scope = self.cur_scope.prev
 
-    #def constNode (self, kind, sort, value):
-    def constNode (self, kind, sort, value, ostr = ""): # TODO debug
-        assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
-        #return SMTConstNode (kind, sort, value)
-        return SMTConstNode (kind, sort, value, ostr) # TODO debug
+    ##def constNode (self, kind, sort, value):
+    #def constNode (self, kind, sort, value, ostr = ""): # TODO debug
+    #    assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
+    #    #return SMTConstNode (kind, sort, value)
+    #    return SMTConstNode (kind, sort, value, ostr) # TODO debug
+    def constNode (self, kind, sort, value, ostr = None):
+        global g_const_kinds
+        assert (kind in g_const_kinds)
+        assert (ostr or kind == KIND_CONSTS)
+        if ostr in self.consts_cache:
+            return self.consts_cache[ostr]
+        # const = SMTConstNode (kind, sort, value)
+        const = SMTConstNode (kind, sort, value, ostr) # TODO debug
+        self.consts_cache[ostr] = const
+        return const
 
-    def zeroConstNode (self,  kind):
+    #def zeroConstNode (self,  kind):
+    #    assert (kind in (KIND_CONSTN, KIND_CONSTD))
+    #    return self.constNode (KIND_CONSTN, self.sortNode("Int"), 0) \
+    #            if kind == KIND_CONSTN \
+    #            else self.constNode (KIND_CONSTD, self.sortNode("Real"), 0.0)
+    def zeroConstNode (self, kind):
         assert (kind in (KIND_CONSTN, KIND_CONSTD))
-        return self.constNode (KIND_CONSTN, self.sortNode("Int"), 0) \
+        return self.constNode (KIND_CONSTN, self.sortNode ("Int"), 0, "0") \
                 if kind == KIND_CONSTN \
-                else self.constNode (KIND_CONSTD, self.sortNode("Real"), 0.0)
+                else self.constNode (
+                        KIND_CONSTD, self.sortNode ("Real"), 0.0, "0.0")
 
     def zeroConstNNode (self):
         return self.zeroConstNode (KIND_CONSTN)
@@ -1080,19 +1097,34 @@ class SMTFormula:
     def zeroConstDNode (self):
         return self.zeroConstNode (KIND_CONSTD)
 
+    #def boolConstNode (self, value):
+    #    assert (value in ("true", "false"))
+    #    return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
     def boolConstNode (self, value):
         assert (value in ("true", "false"))
-        return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
+        return self.constNode (KIND_CONST, self.sortNode("Bool"), value, value)
 
-    #def bvConstNode (self, kind, bw, value):
-    def bvConstNode (self, kind, bw, value, ostr = ""): # TODO debug
+    ##def bvConstNode (self, kind, bw, value):
+    #def bvConstNode (self, kind, bw, value, ostr = ""): # TODO debug
+    #    assert (isinstance (bw, int))
+    #    #return SMTBVConstNode (kind, self.bvSortNode(bw), value)
+    #    return SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
+    def bvConstNode (self, kind, bw, value, ostr):
         assert (isinstance (bw, int))
-        #return SMTBVConstNode (kind, self.bvSortNode(bw), value)
-        return SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
+        if ostr in self.consts_cache:
+            return self.consts_cache[ostr]
+        #const = SMTBVConstNode (kind, self.bvSortNode(bw), value)
+        const = SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
+        self.consts_cache[ostr] = const
+        return const
 
+    #def bvZeroConstNode (self, sort):
+    #    assert (sort.is_bv_sort())
+    #    return self.bvConstNode (KIND_CONSTN, sort.bw, 0)
     def bvZeroConstNode (self, sort):
         assert (sort.is_bv_sort())
-        return self.bvConstNode (KIND_CONSTN, sort.bw, 0)
+        return self.bvConstNode (
+                KIND_CONSTN, sort.bw, 0, "(_ bv0 {})".format(sort.bw))
 
     def find_sort_and_scope (self, name):
         if name in self.sorts_cache:
@@ -1171,8 +1203,25 @@ class SMTFormula:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
+    #def find_fun (self, name, sort = None, scope = None, find_nested = True):
+    #    scope = scope if scope else self.cur_scope
+    #    if name in scope.funs:
+    #        return scope.funs[name]
+    #    if find_nested and name in self.funs_cache and self.funs_cache[name] \
+    #       and (not sort or self.funs_cache[name][-1].funs[name].sort == sort):
+    #           return self.funs_cache[name][-1].funs[name]
+    #    return None
     def find_fun (self, name, sort = None, scope = None, find_nested = True):
         scope = scope if scope else self.cur_scope
+        # Note: no redeclaration if symbol occurs with and without enclosing '|'
+        if name not in self.funs_cache or not self.funs_cache[name]:
+            if name[0] == '|':
+               name = name[1:-1]
+            else:
+                name = "|{}|".format(name)
+        # Note: we check stepwise, first for the current scope, and only if 
+        #       requested for scopes outer to the current (needed to enable
+        #       overwriting of variables in let, forall, exists)
         if name in scope.funs:
             return scope.funs[name]
         if find_nested and name in self.funs_cache and self.funs_cache[name] \
@@ -1531,28 +1580,26 @@ class DDSMTParser (SMTParser):
         try:
             self.numeral.set_parse_action (lambda t:
                     sf.constNode (
-                        #KIND_CONSTN, sf.sortNode ("Int"), int(t[0])))
-                        KIND_CONSTN, sf.sortNode ("Int"), int(t[0]), t[0])) # TODO debug
+                        KIND_CONSTN, sf.sortNode ("Int"), int(t[0]), t[0]))
 
             self.decimal.set_parse_action (lambda t:
                     sf.constNode (
-                        #KIND_CONSTD, sf.sortNode ("Real"), float(t[0])))
                         KIND_CONSTD, sf.sortNode ("Real"), float(t[0]), t[0]))
 
             self.hexadecimal.set_parse_action (lambda t:
                     sf.bvConstNode (
                         KIND_CONSTH, 
                         len(t[0][2:]) * 4,   # bw
-                        #int(t[0][2:], 16)))  # value
-                        int(t[0][2:], 16),   # value TODO debug
-                        t[0]))
+                        int(t[0][2:], 16),   # value
+                        #t[0].lower()))
+                        t[0])) # TODO debug
+
 
             self.binary.set_parse_action (lambda t:
                     sf.bvConstNode (
                         KIND_CONSTB,
                         len(t[0][2:]),       # bw
-                        #int(t[0][2:], 2)))   # value
-                        int(t[0][2:], 2),    # value TODO debug
+                        int(t[0][2:], 2),    # value
                         t[0]))
 
             self.string.set_parse_action (lambda t:
@@ -1681,9 +1728,15 @@ class DDSMTParser (SMTParser):
                         assert (len(t_ident) == 3)
                         assert (len(t_ident[2]) == 1)
                         assert (isinstance(t_ident[2][0], SMTConstNode))
+                        value = t_ident[2][0].value
+                        bw = int(t_ident[1][2:])
                         return sf.bvConstNode (
-                                KIND_CONSTN, t_ident[2][0].value, 
-                                int(t_ident[1][2:]))
+                                KIND_CONSTN, 
+                                #t_ident[2][0].value, 
+                                #int(t_ident[1][2:]))
+                                value, 
+                                bw, 
+                                "(_ bv{} {})".format(value, bw))
                     else:
                         assert (len(t_ident) > 1)
                         name = "(_ {} {})".format(
