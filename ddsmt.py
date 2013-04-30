@@ -603,8 +603,15 @@ if __name__ == "__main__":
             #        " ".join([str(f) for f in scope.funs])))
             #    to_visit.extend(scope.scopes)
             #######
+            import resource
+            print ("maxrss: {} MiB".format(
+                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000))
+            _dump(g_args.outfile)
+            sys.exit(0)
+            ######
             #_dump(g_args.outfile)
             #sys.exit(0)
+            #######
 
             _log (2, "parser done")
 
