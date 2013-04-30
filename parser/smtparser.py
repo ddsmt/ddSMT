@@ -168,7 +168,7 @@ class SMTParser:
 
     def parse (self, filename):
         self.filename = filename
-        sys.setrecursionlimit(7000)
+#        sys.setrecursionlimit(7000)
         self.tokens = self.__tokenize()
         self.__scan()
         return self.script.parse_action(self.__script())
@@ -183,6 +183,7 @@ class SMTParser:
             (idx, line, col) = self.__skip_space(instring, idx, line, col)
             for token in self.tokens[:self.pos - 1]:
                 for i in range(0, len(token)):
+                    print ("## token[i]: {} instring[idx]: {}".format(token[i], instring[idx]))
                     assert (token[i] == instring[idx] \
                             or (token[i] == SMTParser.COMMA and
                                 instring[idx] == SMTParser.COMMENT))
@@ -204,9 +205,10 @@ class SMTParser:
         return (idx, line, col)
 
     def __skip_comment (self, instring, idx, line, col):
-        if idx < len(instring) and instring[idx] == SMTParser.COMMENT:
+        while idx < len(instring) and instring[idx] == SMTParser.COMMENT:
             while idx < len(instring) and instring[idx] != '\n':
                  idx += 1
+            (idx, line, col) = self.__skip_space(instring, idx, line, col)
         return (idx, line, col)
     
     def __scan (self):
@@ -228,13 +230,14 @@ class SMTParser:
             #           re.sub(r'(?<!\\)(?P<m>["\)])', 
             #                  " {} ".format(r'\g<m>'), instring)
             instring = re.sub(
-                    r'\|.*\|',
+                    r'set-info :source\s*\|.*?\|',
                     lambda x: re.sub(
                         SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
+                    #lambda x: "xx" + x.group(0) + "xx",
                     infile.read(),
                     flags=re.DOTALL)
             instring = re.sub (
-                    r'".*"', 
+                    r'".*?"', 
                     lambda x: re.sub(
                         SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
                     instring,
@@ -242,6 +245,7 @@ class SMTParser:
             instring = re.sub(r';[^\n]*\n', ' ' , instring)
             instring = re.sub(r'\((?!_)', ' ( ', instring)
             instring = re.sub(r'(?<!\\)"', ' " ', instring)
+            print (instring)
             return re.sub(r'(?<!\\)\)', ' ) ', instring).split()
 
     def __check_lpar (self, msg = "'(' expected"):
