@@ -245,7 +245,6 @@ class SMTParser:
             instring = re.sub(r';[^\n]*\n', ' ' , instring)
             instring = re.sub(r'\((?!_)', ' ( ', instring)
             instring = re.sub(r'(?<!\\)"', ' " ', instring)
-            print (instring)
             return re.sub(r'(?<!\\)\)', ' ) ', instring).split()
 
     def __check_lpar (self, msg = "'(' expected"):
