@@ -180,6 +180,7 @@ class DDSMTParseException (SMTParseException):
 
 class SMTNode:
 
+    __slots__ = ["id", "kind", "sort", "children"]
     g_id = 0
     g_smtformula = None
 
@@ -246,6 +247,8 @@ class SMTNode:
 
 class SMTSortNode (SMTNode):
 
+    __slots__ = ["name", "nparams"]
+
     def __init__ (self, name, nparams = 0, kind = KIND_SORT):
         super().__init__(kind)
         self.name = name
@@ -272,14 +275,17 @@ class SMTSortNode (SMTNode):
 
 class SMTArraySortNode (SMTSortNode):
 
+    __slots__ = ["index_sort", "elem_sort"]
+
     def __init__ (self, index_sort = None, elem_sort = None):
         super().__init__(
-                SMTArraySortNode.name(index_sort, elem_sort), 2, KIND_ARRSORT)
+                SMTArraySortNode.get_name(index_sort, elem_sort), 
+                2, KIND_ARRSORT)
         self.index_sort = index_sort
         self.elem_sort = elem_sort
 
     @staticmethod
-    def name (index_sort, elem_sort):
+    def get_name (index_sort, elem_sort):
         assert (index_sort != None or elem_sort == None)
         return "Array" if index_sort == None and elem_sort == None \
                        else "(Array {!s} {!s})".format(index_sort, elem_sort)
@@ -290,12 +296,14 @@ class SMTArraySortNode (SMTSortNode):
 
 class SMTBVSortNode (SMTSortNode):
 
+    __slots__ = ["bw"]
+
     def __init__ (self, bw):
-        super().__init__(SMTBVSortNode.name(bw), 0, KIND_BVSORT)
+        super().__init__(SMTBVSortNode.get_name(bw), 0, KIND_BVSORT)
         self.bw = bw
 
     @staticmethod
-    def name (bw):
+    def get_name (bw):
         return "(_ BitVec {})".format(bw)
 
     def is_bv_sort (self):
@@ -303,6 +311,8 @@ class SMTBVSortNode (SMTSortNode):
 
 
 class SMTSortExprNode (SMTNode):
+
+    __slots__ = ["symbols"]
 
     def __init__ (self, sort, symbols = []):
         super().__init__(KIND_SORTEXPR, sort)
@@ -318,6 +328,9 @@ class SMTSortExprNode (SMTNode):
 
 class SMTConstNode (SMTNode):
 
+    #__slots__ = ["value"]
+    __slots__ = ["value", "ostr"]  # TODO debug
+    
     def __init__ (self, kind, sort, value = 0, ostr = ""): # TODO debug
         assert (kind in g_const_kinds)
         super().__init__(kind, sort)
@@ -370,6 +383,8 @@ class SMTBVConstNode (SMTConstNode):
 
 class SMTFunNode (SMTNode):
 
+    __slots__ = ["name", "sorts", "indices"]
+
     def __init__ (self, name, sort, sorts = [], indices = [], children = []):
         assert (isinstance (sorts, list))
         assert (isinstance (indices, list))
@@ -392,6 +407,8 @@ class SMTFunNode (SMTNode):
 
 class SMTAnFunNode (SMTNode):
 
+    __slots__ = ["fun"]
+
     def __init__ (self, fun, sort):
         super().__init__(KIND_ANNFUN, sort)
         self.fun = fun
@@ -406,6 +423,8 @@ class SMTAnFunNode (SMTNode):
 
 class SMTFunAppNode (SMTNode):        
          
+    __slots__ = ["fun"]
+
     def __init__ (self, fun, kind, sort, children):
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
@@ -472,6 +491,8 @@ class SMTFunAppNode (SMTNode):
 
 class SMTVarBindNode (SMTNode):
 
+    __slots__ = ["var"]
+
     def __init__ (self, var, children):
         assert (isinstance (var, SMTFunNode))
         assert (isinstance (children, list))
@@ -496,6 +517,8 @@ class SMTVarBindNode (SMTNode):
 
 class SMTSortedQVarNode (SMTNode):
     
+    __slots__ = ["var"]
+
     def __init__ (self, var):
         assert (isinstance (var, SMTFunNode))
         assert (var.sort)
@@ -507,6 +530,8 @@ class SMTSortedQVarNode (SMTNode):
 
 
 class SMTForallExistsNode (SMTNode):
+
+    __slots__ = ["svars"]
 
     def __init__ (self, svars, kind, children):
         assert (kind in (KIND_FORALL, KIND_EXISTS))
@@ -635,6 +660,8 @@ class SMTLetNode (SMTNode):
 
 class SMTAnnNode (SMTNode):
 
+    __slots__ = ["attributes"]
+
     def __init__ (self, attributes, sort, children):
         assert (len(children) == 1)
         super().__init__(KIND_ANNOTN, sort, children)
@@ -648,6 +675,8 @@ class SMTAnnNode (SMTNode):
     
 
 class SMTNamedAnnNode (SMTAnnNode):
+
+    __slots__ = ["name", "indices", "dumped"]
 
     def __init__ (self, attributes, sort, children, name):
         super().__init__(attributes, sort, children)
@@ -672,6 +701,7 @@ class SMTNamedAnnNode (SMTAnnNode):
 
 class SMTCmdNode:         
 
+    __slots__ = ["id", "kind", "children"]
     g_id = 0
     g_smtformula = None
 
@@ -803,6 +833,8 @@ class SMTCmdNode:
 
 class SMTPushCmdNode (SMTCmdNode):
 
+    __slots__ = ["nscopes", "scope"]
+
     def __init__ (self, nscopes, scope = None):
         assert (nscopes > 0)
         super().__init__(KIND_PUSH)
@@ -819,6 +851,8 @@ class SMTPushCmdNode (SMTCmdNode):
 
 class SMTPopCmdNode (SMTCmdNode):
 
+    __slots__ = ["nscopes"]
+
     def __init__ (self, nscopes):
         assert (nscopes > 0)
         super().__init__(KIND_POP)
@@ -832,6 +866,8 @@ class SMTPopCmdNode (SMTCmdNode):
 
 class SMTScopeNode:
 
+    __slots__ = ["id", "level", "prev", "kind", "scopes", "cmds", "funs",
+                 "sorts", "declfun_cmds", "declfun_id"]
     g_id = 0
     g_smtformula = None
 
@@ -1143,7 +1179,7 @@ class SMTFormula:
         return scope.sorts[name]
 
     def add_bvSort (self, bw):
-        name = SMTBVSortNode.name(bw)
+        name = SMTBVSortNode.get_name(bw)
         assert (not self.find_sort (name))
         self.scopes.sorts[name] = SMTBVSortNode (bw)  # level 0
         self.sorts_cache[name] = self.scopes
@@ -1151,7 +1187,7 @@ class SMTFormula:
 
     def add_arrSort (self, index_sort = None, elem_sort = None, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
-        name = SMTArraySortNode.name(index_sort, elem_sort)
+        name = SMTArraySortNode.get_name(index_sort, elem_sort)
         assert (not self.find_sort (name))
         scope.sorts[name] = SMTArraySortNode (index_sort, elem_sort)
         self.sorts_cache[name] = scope
@@ -1189,7 +1225,7 @@ class SMTFormula:
         return sort
 
     def bvSortNode (self, bw):
-        name = SMTBVSortNode.name(bw)
+        name = SMTBVSortNode.get_name(bw)
         sort = self.find_sort (name)
         if not sort:
             sort = self.add_bvSort(bw)
@@ -1197,7 +1233,7 @@ class SMTFormula:
 
     def arrSortNode (self, index_sort = None, elem_sort = None, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
-        name = SMTArraySortNode.name(index_sort, elem_sort)
+        name = SMTArraySortNode.get_name(index_sort, elem_sort)
         sort = self.find_sort (name)
         if not sort:
             return self.add_arrSort (index_sort, elem_sort, scope)
