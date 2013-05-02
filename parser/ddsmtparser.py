@@ -820,6 +820,7 @@ class SMTCmdNode:
         return self.kind == KIND_SETLOGIC
 
     def subst (self, substitution):
+        assert (SMTCmdNode.g_smtformula)
         SMTCmdNode.g_smtformula.subst(self, substitution)
 
     def get_subst (self):
@@ -863,25 +864,95 @@ class SMTPopCmdNode (SMTCmdNode):
                 "({} {})".format(self.kind, self.nscopes)
 
 
-
 class SMTScopeNode:
 
-    __slots__ = ["id", "level", "prev", "kind", "scopes", "cmds", "funs",
-                 "sorts", "declfun_cmds", "declfun_id"]
+    __slots__ = ["id", "level", "prev", "kind", "scopes", "funs"]
+
     g_id = 0
     g_smtformula = None
 
-    def __init__ (self, level = 0, prev = None, kind = KIND_SCOPE):
+    def __init__ (self, level, prev, kind = KIND_SCOPE):
         assert (kind in (KIND_SCOPE, KIND_FESCOPE, KIND_LSCOPE))
         SMTScopeNode.g_id += 1
         self.id = SMTScopeNode.g_id
-        self.level  = level
-        self.prev   = prev
-        self.kind   = kind
+        self.level = level
+        self.prev = prev
+        self.kind = kind
         self.scopes = []
-        self.cmds   = []
-        self.funs   = {}
-        self.sorts  = {}
+        self.funs = {}
+
+    def is_regular (self):
+        return self.kind == KIND_SCOPE
+
+    def subst (self, substitution):
+        assert (SMTScopeNode.g_smtformula)
+        SMTScopeNode.g_smtformula.subst(self, substitution)
+
+    def get_subst (self):
+        return self if not self.is_subst() else \
+                SMTScopeNode.g_smtformula.get_subst(self)
+
+    def is_subst (self):
+        return SMTScopeNode.g_smtformula and \
+                SMTScopeNode.g_smtformula.is_subst(self)
+
+    def is_substvar (self, node):
+        return False
+
+
+class SMTCmdLevelScopeNode (SMTScopeNode):
+
+    __slots__ = ["cmds", "sorts"]
+
+    def __init__ (self, level, prev):
+        super().__init__(level, prev)
+        self.cmds = []
+        self.sorts = {}
+
+    def __str__ (self):
+        if self.is_subst():
+            return ""
+        res = []
+        for cmd in self.cmds:
+            if cmd.kind == KIND_SETLOGIC:
+                res.append(str(cmd))
+            elif cmd.kind == KIND_PUSH:
+                assert (len(self.scopes) > 0)
+                assert (cmd.scope in self.scopes)
+                assert (cmd.scope.is_regular())
+                if cmd.scope.is_subst():
+                    continue
+                res.append(str(cmd))
+                res.append(str(cmd.scope))
+            else:
+                res.append(str(cmd))
+        return "\n".join([s for s in res if s != ""])
+        
+    def dump (self, outfile, lead = ""):
+        if self.is_subst():
+            return
+        outfile.write(lead)
+        for cmd in self.cmds:
+            if cmd.kind == KIND_SETLOGIC:
+                cmd.dump(outfile)
+            elif cmd.kind == KIND_PUSH:
+                assert (len(self.scopes) > 0)
+                assert (cmd.scope in self.scopes)
+                assert (cmd.scope.is_regular())
+                if cmd.scope.is_subst():
+                    continue
+                cmd.dump(outfile)
+                cmd.scope.dump(outfile)
+            else:
+                cmd.dump(outfile)
+
+
+class SMTRootCmdLevelScopeNode (SMTCmdLevelScopeNode):
+
+    __slots__ = ["declfun_cmds", "declfun_id"]
+
+    def __init__ (self):
+        super().__init__(0, None)
         self.declfun_cmds = {}  # used for substition with fresh variables
         self.declfun_id   = 0
 
@@ -928,24 +999,94 @@ class SMTScopeNode:
             else:
                 cmd.dump(outfile)
         
-    def is_regular (self):
-        return self.kind == KIND_SCOPE
-
-    def subst (self, substitution):
-        SMTScopeNode.g_smtformula.subst(self, substitution)
-
-    def get_subst (self):
-        return self if not self.is_subst() else \
-                SMTScopeNode.g_smtformula.get_subst(self)
-
-    def is_subst (self):
-        return SMTScopeNode.g_smtformula and \
-                SMTScopeNode.g_smtformula.is_subst(self)
-
     def is_substvar (self, node):
         if not node.is_fun():
             return False
         return node.name in self.declfun_cmds
+
+
+#class SMTScopeNode:
+#
+#    __slots__ = ["id", "level", "prev", "kind", "scopes", "cmds", "funs",
+#                 "sorts", "declfun_cmds", "declfun_id"]
+#    g_id = 0
+#    g_smtformula = None
+#
+#    def __init__ (self, level = 0, prev = None, kind = KIND_SCOPE):
+#        assert (kind in (KIND_SCOPE, KIND_FESCOPE, KIND_LSCOPE))
+#        SMTScopeNode.g_id += 1
+#        self.id = SMTScopeNode.g_id
+#        self.level  = level
+#        self.prev   = prev
+#        self.kind   = kind
+#        self.scopes = []
+#        self.cmds   = []
+#        self.funs   = {}
+#        self.sorts  = {}
+#        self.declfun_cmds = {}  # used for substition with fresh variables
+#        self.declfun_id   = 0
+#
+#    def __str__ (self):
+#        if self.is_subst():
+#            return ""
+#        res = []
+#        for cmd in self.cmds:
+#            if cmd.kind == KIND_SETLOGIC:
+#                res.append(str(cmd))
+#                # dump declarations of substition variables
+#                for name in self.declfun_cmds:
+#                    res.append(str(self.declfun_cmds[name]))
+#            elif cmd.kind == KIND_PUSH:
+#                assert (len(self.scopes) > 0)
+#                assert (cmd.scope in self.scopes)
+#                assert (cmd.scope.is_regular())
+#                if cmd.scope.is_subst():
+#                    continue
+#                res.append(str(cmd))
+#                res.append(str(cmd.scope))
+#            else:
+#                res.append(str(cmd))
+#        return "\n".join([s for s in res if s != ""])
+#
+#    def dump (self, outfile, lead = ""):
+#        if self.is_subst():
+#            return
+#        outfile.write(lead)
+#        for cmd in self.cmds:
+#            if cmd.kind == KIND_SETLOGIC:
+#                cmd.dump(outfile)
+#                # dump declarations of substition variables
+#                for name in self.declfun_cmds:
+#                    self.declfun_cmds[name].dump(outfile)
+#            elif cmd.kind == KIND_PUSH:
+#                assert (len(self.scopes) > 0)
+#                assert (cmd.scope in self.scopes)
+#                assert (cmd.scope.is_regular())
+#                if cmd.scope.is_subst():
+#                    continue
+#                cmd.dump(outfile)
+#                cmd.scope.dump(outfile)
+#            else:
+#                cmd.dump(outfile)
+#        
+#    def is_regular (self):
+#        return self.kind == KIND_SCOPE
+#
+#    def subst (self, substitution):
+#        SMTScopeNode.g_smtformula.subst(self, substitution)
+#
+#    def get_subst (self):
+#        return self if not self.is_subst() else \
+#                SMTScopeNode.g_smtformula.get_subst(self)
+#
+#    def is_subst (self):
+#        return SMTScopeNode.g_smtformula and \
+#                SMTScopeNode.g_smtformula.is_subst(self)
+#
+#    def is_substvar (self, node):
+#        if not node.is_fun():
+#            return False
+#        return node.name in self.declfun_cmds
 
 
 
@@ -996,7 +1137,8 @@ class SMTFormula:
 
     def __init__ (self):
         self.logic = "none"
-        self.scopes = SMTScopeNode ()
+        #self.scopes = SMTScopeNode ()
+        self.scopes = SMTRootCmdLevelScopeNode ()
         self.cur_scope = self.scopes
         self.subst_scopes = SMTScopeSubstList ()
         self.subst_cmds = SMTCmdSubstList ()
@@ -1080,8 +1222,14 @@ class SMTFormula:
         # Note: forall, exists open exactly one scope
         first_scope = None
         for i in range (nscopes):
-            new_scope = SMTScopeNode (
+            if kind == KIND_SCOPE:
+                new_scope = SMTCmdLevelScopeNode (
+                        self.cur_scope.level + 1, self.cur_scope)
+            else:
+                new_scope = SMTScopeNode (
                     self.cur_scope.level + 1, self.cur_scope, kind)
+            #new_scope = SMTScopeNode (
+            #        self.cur_scope.level + 1, self.cur_scope, kind)
             if not first_scope:
                 first_scope = new_scope
             self.cur_scope.scopes.append(new_scope)
@@ -1091,9 +1239,10 @@ class SMTFormula:
     def close_scope (self, nscopes = 1):
         for i in range (nscopes):
             assert (self.cur_scope.prev != None)
-            for name in self.cur_scope.sorts:
-                assert (self.sorts_cache[name] == self.cur_scope)
-                del(self.sorts_cache[name])
+            if self.cur_scope.kind == KIND_SCOPE:
+                for name in self.cur_scope.sorts:
+                    assert (self.sorts_cache[name] == self.cur_scope)
+                    del(self.sorts_cache[name])
             for name in self.cur_scope.funs:
                 assert (self.funs_cache[name][-1] == self.cur_scope)
                 self.funs_cache[name].pop()
