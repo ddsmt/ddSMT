@@ -1108,7 +1108,7 @@ class SMTFormula:
         global g_const_kinds
         assert (kind in g_const_kinds)
         assert (ostr or kind == KIND_CONSTS)
-        if ostr in self.consts_cache:
+        if ostr and ostr in self.consts_cache:
             return self.consts_cache[ostr]
         # const = SMTConstNode (kind, sort, value)
         const = SMTConstNode (kind, sort, value, ostr) # TODO debug

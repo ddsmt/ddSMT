@@ -37,6 +37,8 @@ class SMTParseException (Exception):
 
 class SMTParseElement:
 
+    __slots__ = ["parse_action"]
+
     def __init__ (self):
         self.parse_action = lambda t: t
 
@@ -45,6 +47,8 @@ class SMTParseElement:
 
 
 class SMTParseResult:
+
+    __slots__ = ["tokens"]
 
     def __init__ (self):
         self.tokens = []
@@ -183,7 +187,6 @@ class SMTParser:
             (idx, line, col) = self.__skip_space(instring, idx, line, col)
             for token in self.tokens[:self.pos - 1]:
                 for i in range(0, len(token)):
-                    print ("## token[i]: {} instring[idx]: {}".format(token[i], instring[idx]))
                     assert (token[i] == instring[idx] \
                             or (token[i] == SMTParser.COMMA and
                                 instring[idx] == SMTParser.COMMENT))
