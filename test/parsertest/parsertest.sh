@@ -66,7 +66,9 @@ for file in `find $dir -name '*.smt2'`; do
     ((skippedcount += 1))
   else
     "$DDSMT" "$file" "$tmp" "$CMD" > /dev/null
-     diff -bBwi <(sed ':a;N;$!ba;s/\n/ /g' <(sed 's/;.*//g' $file)) <(sed ':a;N;$!ba;s/\n/ /g' $tmp) > /dev/null 2>&1
+     #diff -bBwi <(sed ':a;N;$!ba;s/\n/ /g' <(sed 's/;.*//g' $file)) <(sed ':a;N;$!ba;s/\n/ /g' $tmp) > /dev/null 2>&1
+     diff -bBwi <(sed ':a;N;$!ba;s/\n/ /g' <(sed 's/;.*//g' <(perl -0777 -wpE 's/(\")(.*)(\")/my $x=$1; my $z=$3; my $y=$2; $y=~s#;#,#g;"$x$y$z"/gems' <(perl -0777 -wpE 's/(\(set-info :source \|)(.*)(\|\))/my $x=$1; my $z=$3; my $y=$2; $y=~s#;#,#g;"$x$y$z"/gems' $file))))  <(sed ':a;N;$!ba;s/\n/ /g' $tmp) > /dev/null 2>&1
+
 
     res=$?
     case $res in
