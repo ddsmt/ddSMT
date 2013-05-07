@@ -45,7 +45,6 @@ g_smtformula = None
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
 
 
-
 class DDSMTException (Exception):
 
     def __init__ (self, msg):
@@ -152,7 +151,7 @@ def _filter_terms (filter_fun, roots):
     visited = {}
     while to_visit:
         cur = to_visit.pop().get_subst()
-        if cur.id in visited:
+        if not cur or cur.id in visited:
             continue
         visited[cur.id] = cur
         if cur.is_fun() and cur.children and cur.children[0].is_subst():
@@ -423,6 +422,17 @@ def ddsmt_main ():
                     break
 
                 nsubst = _substitute_terms (
+                        lambda x: None,
+                        lambda x: x.is_varb() and x.children[0].is_subst(),
+                        cmds[i], "  eliminate redundant variable bindings")
+                if nsubst:
+                    succeeded = "varb_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "varb_{}".format(i):
+                    break
+                    
+                nsubst = _substitute_terms (
                         lambda x: sf.boolConstNode("false"),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_bool_sort(),
@@ -606,8 +616,8 @@ if __name__ == "__main__":
             import resource
             print ("maxrss: {} MiB".format(
                 resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000))
-            _dump(g_args.outfile)
-            sys.exit(0)
+            #_dump(g_args.outfile)
+            #sys.exit(0)
             ######
 
             _log (2, "parser done")
