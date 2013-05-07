@@ -19,9 +19,6 @@
 # along with ddSMT.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# TODO: attributes currently handled as string only
-#       -> no manipulation of attribute values
-
 import os
 import sys
 import shutil
@@ -258,25 +255,6 @@ def _substitute_terms (subst_fun, filter_fun, cmds, msg = None,
     _log (2, "    >> {} term(s) substituted in total".format(nsubst_total))
     _log (3, "    >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
-
-
-#def _has_child_to_subst (term):
-#    if not term.children:
-#        return False
-#    for child in term.children:
-#        if child.get_subst().sort == term.sort:
-#            return True
-#    return False
-
-
-#def _subst_term_with_child (term):
-#    assert (term.children)
-#    children = []
-#    for child in term.children:
-#        if child.get_subst().sort == term.sort:
-#            children.append(child)
-#    random.shuffle(children)
-#    return term if not children else children[0]
 
 
 def ddsmt_main ():
@@ -533,11 +511,6 @@ def ddsmt_main ():
                     nterms_subst += nsubst
                 elif succeeded == "iteright_{}".format(i):
                     break
-
-        #nsubst += _substitute_terms (
-        #        lambda x: _subst_term_with_child(x),
-        #        lambda x: _has_child_to_subst(x),
-        #        cmds, "substitute TERMS with child")
 
         nsubst_total += nsubst_round
 
