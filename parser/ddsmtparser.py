@@ -231,6 +231,9 @@ class SMTNode:
     def is_let (self):
         return False
 
+    def is_varb (self):
+        return False
+
     def is_write (self):
         return False
 
@@ -439,6 +442,8 @@ class SMTFunAppNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            if not cur:
+                continue
             if type(cur) != SMTFunAppNode:
                 strings.append(str(cur))
             else:
@@ -464,6 +469,8 @@ class SMTFunAppNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            if not cur:
+                continue
             if type(cur) != SMTFunAppNode:
                 cur.dump(outfile)
             else:
@@ -505,6 +512,7 @@ class SMTVarBindNode (SMTNode):
         return str(self.get_subst()) if self.is_subst() else \
                 "({} {!s})".format(self.var.name, self.children[0])
 
+
     def dump (self, outfile, lead = " " ):
         if self.is_subst():
             self.get_subst().dump(outfile, lead)
@@ -513,6 +521,9 @@ class SMTVarBindNode (SMTNode):
             outfile.write("({}".format(self.var.name))
             self.children[0].dump(outfile)
             outfile.write(")")
+
+    def is_varb (self):
+        return True
 
 
 class SMTSortedQVarNode (SMTNode):
@@ -547,6 +558,8 @@ class SMTForallExistsNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            if not cur:
+                continue
             if type(cur) != SMTForallExistsNode:
                 strings.append(str(cur))
             else:
@@ -574,6 +587,8 @@ class SMTForallExistsNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            if not cur:
+                continue
             if type(cur) != SMTForallExistsNode:
                 cur.dump(outfile)
             else:
@@ -603,6 +618,10 @@ class SMTLetNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            cursubst = cur.get_subst()
+            if not cursubst and type(cur) == SMTVarBindNode:
+                continue
+            cur = cursubst
             if type(cur) != SMTLetNode:
                 strings.append(str(cur))
             else:
@@ -629,11 +648,17 @@ class SMTLetNode (SMTNode):
         visited = {}
         cntvb = 0
         while to_visit:
-            cur = to_visit.pop().get_subst()
+            cur = to_visit.pop()
+            cursubst = cur.get_subst()
+            if not cursubst and type(cur) == SMTVarBindNode:
+                cntvb += 1
+                continue
+            cur = cursubst
             if type(cur) != SMTLetNode:
                 if type(cur) != SMTVarBindNode:
                     outfile.write(")")
-                    cur.dump(outfile)
+                    if cur:
+                        cur.dump(outfile)
                     cntvb = 0
                 else:
                     if cntvb:
@@ -771,13 +796,15 @@ class SMTCmdNode:
             fun = self.children[0]
             svars = self.children[1]
             fterm = self.children[2]
-            outfile.write("({} {} ({}) {!s} {!s})\n".format(
+            outfile.write("({} {} ({}) {!s}".format(
                     self.kind,
                     fun.name,
                     " ".join(["({} {!s})".format(s.name, s.sort) 
                               for s in svars]) if len(svars) > 0 else "",
-                    fun.sort,
-                    fterm))
+                    fun.sort))
+            fterm.dump(outfile)
+            outfile.write(")\n")
+
         elif self.kind == KIND_DECLSORT:
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTSortNode))
@@ -788,6 +815,11 @@ class SMTCmdNode:
             outfile.write("({}".format(self.kind))
             assert (len(self.children) == 1)
             self.children[0].dump(outfile)
+            outfile.write(")\n")
+        elif self.kind == KIND_GETVALUE:
+            outfile.write("({}".format(self.kind))
+            for child in self.children:
+                child.dump(outfile)
             outfile.write(")\n")
         else:
             if self.kind == KIND_DEFSORT:
@@ -1072,7 +1104,6 @@ class SMTFormula:
                     self.subst_cmds.get_subst(node) == None)
             return self.subst_cmds.get_subst(node)
         assert (isinstance (node, SMTNode))
-        assert (self.subst_nodes.get_subst(node))
         return self.subst_nodes.get_subst(node)
 
     def open_scope (self, nscopes = 1, kind = KIND_SCOPE):
