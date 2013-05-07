@@ -216,6 +216,12 @@ class SMTNode:
     def is_true_const (self):
         return False
 
+    def is_false_bvconst (self):
+        return False
+
+    def is_true_bvconst (self):
+        return False
+
     def is_fun (self):
         return False
 
@@ -223,6 +229,12 @@ class SMTNode:
         return False
 
     def is_or (self):
+        return False
+
+    def is_bvand (self):
+        return False
+
+    def is_bvor (self):
         return False
 
     def is_ite (self):
@@ -383,6 +395,12 @@ class SMTBVConstNode (SMTConstNode):
         assert (self.kind == KIND_CONSTN)
         return "(_ bv{} {})".format(self.value, self.sort.bw)
 
+    def is_false_bvconst (self):
+        return self.sort.bw == 1 and self.value == 0
+
+    def is_true_bvconst (self):
+        return self.sort.bw == 1 and self.value == 1
+
 
 class SMTFunNode (SMTNode):
 
@@ -489,6 +507,12 @@ class SMTFunAppNode (SMTNode):
     def is_or (self):
         return self.kind == KIND_OR
     
+    def is_bvand (self):
+        return self.kind == KIND_BVAND
+
+    def is_bvor (self):
+        return self.kind == KIND_BVOR
+
     def is_ite (self):
         return self.kind == KIND_ITE
 

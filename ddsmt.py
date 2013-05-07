@@ -320,6 +320,36 @@ def ddsmt_main ():
                     elif succeeded == "bv0_{}".format(i):
                         break
                     nsubst = _substitute_terms (
+                            lambda x: x.children[1].get_subst() \
+                                if x.children[0].get_subst().is_false_bvconst()\
+                                else x.children[0].get_subst(),
+                            lambda x: x.is_bvor() and \
+                                (x.children[0].get_subst().is_false_bvconst() \
+                                 or 
+                                 x.children[1].get_subst().is_false_bvconst()),
+                            cmds[i], "  substitute (bvor term false) with term")
+                    if nsubst:
+                        succeeded = "bvor_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "bvor_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
+                            lambda x: x.children[1].get_subst() \
+                                if x.children[0].get_subst().is_true_bvconst() \
+                                else x.children[0].get_subst(),
+                            lambda x: x.is_and() and \
+                                (x.children[0].get_subst().is_true_bvconst() \
+                                 or 
+                                 x.children[1].get_subst().is_true_bvconst()),
+                            cmds[i], "  substitute (bvand term true) with term")
+                    if nsubst:
+                        succeeded = "and_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "and_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
                             lambda x: sf.add_fresh_declfunCmdNode(x.sort),
                             lambda x: not x.is_const()                   \
                                       and x.sort and x.sort.is_bv_sort() \
