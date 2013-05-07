@@ -1130,11 +1130,6 @@ class SMTFormula:
                 self.funs_cache[name].pop()
             self.cur_scope = self.cur_scope.prev
 
-    ##def constNode (self, kind, sort, value):
-    #def constNode (self, kind, sort, value, ostr = ""): # TODO debug
-    #    assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
-    #    #return SMTConstNode (kind, sort, value)
-    #    return SMTConstNode (kind, sort, value, ostr) # TODO debug
     def constNode (self, kind, sort, value, ostr = None):
         global g_const_kinds
         assert (kind in g_const_kinds)
@@ -1146,11 +1141,6 @@ class SMTFormula:
         self.consts_cache[ostr] = const
         return const
 
-    #def zeroConstNode (self,  kind):
-    #    assert (kind in (KIND_CONSTN, KIND_CONSTD))
-    #    return self.constNode (KIND_CONSTN, self.sortNode("Int"), 0) \
-    #            if kind == KIND_CONSTN \
-    #            else self.constNode (KIND_CONSTD, self.sortNode("Real"), 0.0)
     def zeroConstNode (self, kind):
         assert (kind in (KIND_CONSTN, KIND_CONSTD))
         return self.constNode (KIND_CONSTN, self.sortNode ("Int"), 0, "0") \
@@ -1164,18 +1154,10 @@ class SMTFormula:
     def zeroConstDNode (self):
         return self.zeroConstNode (KIND_CONSTD)
 
-    #def boolConstNode (self, value):
-    #    assert (value in ("true", "false"))
-    #    return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
     def boolConstNode (self, value):
         assert (value in ("true", "false"))
         return self.constNode (KIND_CONST, self.sortNode("Bool"), value, value)
 
-    ##def bvConstNode (self, kind, bw, value):
-    #def bvConstNode (self, kind, bw, value, ostr = ""): # TODO debug
-    #    assert (isinstance (bw, int))
-    #    #return SMTBVConstNode (kind, self.bvSortNode(bw), value)
-    #    return SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
     def bvConstNode (self, kind, bw, value, ostr):
         assert (isinstance (bw, int))
         if ostr in self.consts_cache:
@@ -1185,9 +1167,6 @@ class SMTFormula:
         self.consts_cache[ostr] = const
         return const
 
-    #def bvZeroConstNode (self, sort):
-    #    assert (sort.is_bv_sort())
-    #    return self.bvConstNode (KIND_CONSTN, sort.bw, 0)
     def bvZeroConstNode (self, sort):
         assert (sort.is_bv_sort())
         return self.bvConstNode (
@@ -1270,14 +1249,6 @@ class SMTFormula:
             return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
-    #def find_fun (self, name, sort = None, scope = None, find_nested = True):
-    #    scope = scope if scope else self.cur_scope
-    #    if name in scope.funs:
-    #        return scope.funs[name]
-    #    if find_nested and name in self.funs_cache and self.funs_cache[name] \
-    #       and (not sort or self.funs_cache[name][-1].funs[name].sort == sort):
-    #           return self.funs_cache[name][-1].funs[name]
-    #    return None
     def find_fun (self, name, sort = None, scope = None, find_nested = True):
         scope = scope if scope else self.cur_scope
         # Note: no redeclaration if symbol occurs with and without enclosing '|'
@@ -1799,8 +1770,6 @@ class DDSMTParser (SMTParser):
                         bw = int(t_ident[1][2:])
                         return sf.bvConstNode (
                                 KIND_CONSTN, 
-                                #t_ident[2][0].value, 
-                                #int(t_ident[1][2:]))
                                 value, 
                                 bw, 
                                 "(_ bv{} {})".format(value, bw))
