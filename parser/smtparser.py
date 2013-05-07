@@ -37,6 +37,8 @@ class SMTParseException (Exception):
 
 class SMTParseElement:
 
+    __slots__ = ["parse_action"]
+
     def __init__ (self):
         self.parse_action = lambda t: t
 
@@ -45,6 +47,8 @@ class SMTParseElement:
 
 
 class SMTParseResult:
+
+    __slots__ = ["tokens"]
 
     def __init__ (self):
         self.tokens = []
@@ -168,7 +172,7 @@ class SMTParser:
 
     def parse (self, filename):
         self.filename = filename
-        sys.setrecursionlimit(7000)
+#        sys.setrecursionlimit(7000)
         self.tokens = self.__tokenize()
         self.__scan()
         return self.script.parse_action(self.__script())
@@ -204,9 +208,10 @@ class SMTParser:
         return (idx, line, col)
 
     def __skip_comment (self, instring, idx, line, col):
-        if idx < len(instring) and instring[idx] == SMTParser.COMMENT:
+        while idx < len(instring) and instring[idx] == SMTParser.COMMENT:
             while idx < len(instring) and instring[idx] != '\n':
                  idx += 1
+            (idx, line, col) = self.__skip_space(instring, idx, line, col)
         return (idx, line, col)
     
     def __scan (self):
@@ -228,13 +233,14 @@ class SMTParser:
             #           re.sub(r'(?<!\\)(?P<m>["\)])', 
             #                  " {} ".format(r'\g<m>'), instring)
             instring = re.sub(
-                    r'\|.*\|',
+                    r'set-info :source\s*\|.*?\|',
                     lambda x: re.sub(
                         SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
+                    #lambda x: "xx" + x.group(0) + "xx",
                     infile.read(),
                     flags=re.DOTALL)
             instring = re.sub (
-                    r'".*"', 
+                    r'".*?"', 
                     lambda x: re.sub(
                         SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
                     instring,

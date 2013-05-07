@@ -19,9 +19,6 @@
 # along with ddSMT.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-# TODO: attributes currently handled as string only
-#       -> no manipulation of attribute values
-
 import os
 import sys
 import shutil
@@ -43,7 +40,6 @@ g_ntests = 0
 g_args = None
 g_smtformula = None
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
-
 
 
 class DDSMTException (Exception):
@@ -152,7 +148,7 @@ def _filter_terms (filter_fun, roots):
     visited = {}
     while to_visit:
         cur = to_visit.pop().get_subst()
-        if cur.id in visited:
+        if not cur or cur.id in visited:
             continue
         visited[cur.id] = cur
         if cur.is_fun() and cur.children and cur.children[0].is_subst():
@@ -261,25 +257,6 @@ def _substitute_terms (subst_fun, filter_fun, cmds, msg = None,
     return nsubst_total
 
 
-#def _has_child_to_subst (term):
-#    if not term.children:
-#        return False
-#    for child in term.children:
-#        if child.get_subst().sort == term.sort:
-#            return True
-#    return False
-
-
-#def _subst_term_with_child (term):
-#    assert (term.children)
-#    children = []
-#    for child in term.children:
-#        if child.get_subst().sort == term.sort:
-#            children.append(child)
-#    random.shuffle(children)
-#    return term if not children else children[0]
-
-
 def ddsmt_main ():
     global g_tmpfile, g_args, g_smtformula
 
@@ -341,6 +318,36 @@ def ddsmt_main ():
                         nsubst_round += nsubst
                         nterms_subst += nsubst
                     elif succeeded == "bv0_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
+                            lambda x: x.children[1].get_subst() \
+                                if x.children[0].get_subst().is_false_bvconst()\
+                                else x.children[0].get_subst(),
+                            lambda x: x.is_bvor() and \
+                                (x.children[0].get_subst().is_false_bvconst() \
+                                 or 
+                                 x.children[1].get_subst().is_false_bvconst()),
+                            cmds[i], "  substitute (bvor term false) with term")
+                    if nsubst:
+                        succeeded = "bvor_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "bvor_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
+                            lambda x: x.children[1].get_subst() \
+                                if x.children[0].get_subst().is_true_bvconst() \
+                                else x.children[0].get_subst(),
+                            lambda x: x.is_and() and \
+                                (x.children[0].get_subst().is_true_bvconst() \
+                                 or 
+                                 x.children[1].get_subst().is_true_bvconst()),
+                            cmds[i], "  substitute (bvand term true) with term")
+                    if nsubst:
+                        succeeded = "and_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "and_{}".format(i):
                         break
                     nsubst = _substitute_terms (
                             lambda x: sf.add_fresh_declfunCmdNode(x.sort),
@@ -422,6 +429,17 @@ def ddsmt_main ():
                 elif succeeded == "let_{}".format(i):
                     break
 
+                nsubst = _substitute_terms (
+                        lambda x: None,
+                        lambda x: x.is_varb() and x.children[0].is_subst(),
+                        cmds[i], "  eliminate redundant variable bindings")
+                if nsubst:
+                    succeeded = "varb_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "varb_{}".format(i):
+                    break
+                    
                 nsubst = _substitute_terms (
                         lambda x: sf.boolConstNode("false"),
                         lambda x: not x.is_const() \
@@ -523,11 +541,6 @@ def ddsmt_main ():
                     nterms_subst += nsubst
                 elif succeeded == "iteright_{}".format(i):
                     break
-
-        #nsubst += _substitute_terms (
-        #        lambda x: _subst_term_with_child(x),
-        #        lambda x: _has_child_to_subst(x),
-        #        cmds, "substitute TERMS with child")
 
         nsubst_total += nsubst_round
 

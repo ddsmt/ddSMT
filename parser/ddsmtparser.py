@@ -180,6 +180,7 @@ class DDSMTParseException (SMTParseException):
 
 class SMTNode:
 
+    __slots__ = ["id", "kind", "sort", "children"]
     g_id = 0
     g_smtformula = None
 
@@ -215,6 +216,12 @@ class SMTNode:
     def is_true_const (self):
         return False
 
+    def is_false_bvconst (self):
+        return False
+
+    def is_true_bvconst (self):
+        return False
+
     def is_fun (self):
         return False
 
@@ -224,10 +231,19 @@ class SMTNode:
     def is_or (self):
         return False
 
+    def is_bvand (self):
+        return False
+
+    def is_bvor (self):
+        return False
+
     def is_ite (self):
         return False
 
     def is_let (self):
+        return False
+
+    def is_varb (self):
         return False
 
     def is_write (self):
@@ -245,6 +261,8 @@ class SMTNode:
 
 
 class SMTSortNode (SMTNode):
+
+    __slots__ = ["name", "nparams"]
 
     def __init__ (self, name, nparams = 0, kind = KIND_SORT):
         super().__init__(kind)
@@ -272,14 +290,17 @@ class SMTSortNode (SMTNode):
 
 class SMTArraySortNode (SMTSortNode):
 
+    __slots__ = ["index_sort", "elem_sort"]
+
     def __init__ (self, index_sort = None, elem_sort = None):
         super().__init__(
-                SMTArraySortNode.name(index_sort, elem_sort), 2, KIND_ARRSORT)
+                SMTArraySortNode.get_name(index_sort, elem_sort), 
+                2, KIND_ARRSORT)
         self.index_sort = index_sort
         self.elem_sort = elem_sort
 
     @staticmethod
-    def name (index_sort, elem_sort):
+    def get_name (index_sort, elem_sort):
         assert (index_sort != None or elem_sort == None)
         return "Array" if index_sort == None and elem_sort == None \
                        else "(Array {!s} {!s})".format(index_sort, elem_sort)
@@ -290,12 +311,14 @@ class SMTArraySortNode (SMTSortNode):
 
 class SMTBVSortNode (SMTSortNode):
 
+    __slots__ = ["bw"]
+
     def __init__ (self, bw):
-        super().__init__(SMTBVSortNode.name(bw), 0, KIND_BVSORT)
+        super().__init__(SMTBVSortNode.get_name(bw), 0, KIND_BVSORT)
         self.bw = bw
 
     @staticmethod
-    def name (bw):
+    def get_name (bw):
         return "(_ BitVec {})".format(bw)
 
     def is_bv_sort (self):
@@ -303,6 +326,8 @@ class SMTBVSortNode (SMTSortNode):
 
 
 class SMTSortExprNode (SMTNode):
+
+    __slots__ = ["symbols"]
 
     def __init__ (self, sort, symbols = []):
         super().__init__(KIND_SORTEXPR, sort)
@@ -318,6 +343,9 @@ class SMTSortExprNode (SMTNode):
 
 class SMTConstNode (SMTNode):
 
+    #__slots__ = ["value"]
+    __slots__ = ["value", "ostr"]  # TODO debug
+    
     def __init__ (self, kind, sort, value = 0, ostr = ""): # TODO debug
         assert (kind in g_const_kinds)
         super().__init__(kind, sort)
@@ -367,8 +395,16 @@ class SMTBVConstNode (SMTConstNode):
         assert (self.kind == KIND_CONSTN)
         return "(_ bv{} {})".format(self.value, self.sort.bw)
 
+    def is_false_bvconst (self):
+        return self.sort.bw == 1 and self.value == 0
+
+    def is_true_bvconst (self):
+        return self.sort.bw == 1 and self.value == 1
+
 
 class SMTFunNode (SMTNode):
+
+    __slots__ = ["name", "sorts", "indices"]
 
     def __init__ (self, name, sort, sorts = [], indices = [], children = []):
         assert (isinstance (sorts, list))
@@ -392,6 +428,8 @@ class SMTFunNode (SMTNode):
 
 class SMTAnFunNode (SMTNode):
 
+    __slots__ = ["fun"]
+
     def __init__ (self, fun, sort):
         super().__init__(KIND_ANNFUN, sort)
         self.fun = fun
@@ -406,6 +444,8 @@ class SMTAnFunNode (SMTNode):
 
 class SMTFunAppNode (SMTNode):        
          
+    __slots__ = ["fun"]
+
     def __init__ (self, fun, kind, sort, children):
         assert (isinstance(fun, SMTFunNode))
         assert (len(children) >= 1)
@@ -420,6 +460,8 @@ class SMTFunAppNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            if not cur:
+                continue
             if type(cur) != SMTFunAppNode:
                 strings.append(str(cur))
             else:
@@ -445,6 +487,8 @@ class SMTFunAppNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            if not cur:
+                continue
             if type(cur) != SMTFunAppNode:
                 cur.dump(outfile)
             else:
@@ -463,6 +507,12 @@ class SMTFunAppNode (SMTNode):
     def is_or (self):
         return self.kind == KIND_OR
     
+    def is_bvand (self):
+        return self.kind == KIND_BVAND
+
+    def is_bvor (self):
+        return self.kind == KIND_BVOR
+
     def is_ite (self):
         return self.kind == KIND_ITE
 
@@ -471,6 +521,8 @@ class SMTFunAppNode (SMTNode):
 
 
 class SMTVarBindNode (SMTNode):
+
+    __slots__ = ["var"]
 
     def __init__ (self, var, children):
         assert (isinstance (var, SMTFunNode))
@@ -484,6 +536,7 @@ class SMTVarBindNode (SMTNode):
         return str(self.get_subst()) if self.is_subst() else \
                 "({} {!s})".format(self.var.name, self.children[0])
 
+
     def dump (self, outfile, lead = " " ):
         if self.is_subst():
             self.get_subst().dump(outfile, lead)
@@ -493,9 +546,14 @@ class SMTVarBindNode (SMTNode):
             self.children[0].dump(outfile)
             outfile.write(")")
 
+    def is_varb (self):
+        return True
+
 
 class SMTSortedQVarNode (SMTNode):
     
+    __slots__ = ["var"]
+
     def __init__ (self, var):
         assert (isinstance (var, SMTFunNode))
         assert (var.sort)
@@ -507,6 +565,8 @@ class SMTSortedQVarNode (SMTNode):
 
 
 class SMTForallExistsNode (SMTNode):
+
+    __slots__ = ["svars"]
 
     def __init__ (self, svars, kind, children):
         assert (kind in (KIND_FORALL, KIND_EXISTS))
@@ -522,6 +582,8 @@ class SMTForallExistsNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            if not cur:
+                continue
             if type(cur) != SMTForallExistsNode:
                 strings.append(str(cur))
             else:
@@ -549,6 +611,8 @@ class SMTForallExistsNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            if not cur:
+                continue
             if type(cur) != SMTForallExistsNode:
                 cur.dump(outfile)
             else:
@@ -578,6 +642,10 @@ class SMTLetNode (SMTNode):
         visited = {}
         while to_visit:
             cur = to_visit.pop().get_subst()
+            cursubst = cur.get_subst()
+            if not cursubst and type(cur) == SMTVarBindNode:
+                continue
+            cur = cursubst
             if type(cur) != SMTLetNode:
                 strings.append(str(cur))
             else:
@@ -604,11 +672,17 @@ class SMTLetNode (SMTNode):
         visited = {}
         cntvb = 0
         while to_visit:
-            cur = to_visit.pop().get_subst()
+            cur = to_visit.pop()
+            cursubst = cur.get_subst()
+            if not cursubst and type(cur) == SMTVarBindNode:
+                cntvb += 1
+                continue
+            cur = cursubst
             if type(cur) != SMTLetNode:
                 if type(cur) != SMTVarBindNode:
                     outfile.write(")")
-                    cur.dump(outfile)
+                    if cur:
+                        cur.dump(outfile)
                     cntvb = 0
                 else:
                     if cntvb:
@@ -635,6 +709,8 @@ class SMTLetNode (SMTNode):
 
 class SMTAnnNode (SMTNode):
 
+    __slots__ = ["attributes"]
+
     def __init__ (self, attributes, sort, children):
         assert (len(children) == 1)
         super().__init__(KIND_ANNOTN, sort, children)
@@ -648,6 +724,8 @@ class SMTAnnNode (SMTNode):
     
 
 class SMTNamedAnnNode (SMTAnnNode):
+
+    __slots__ = ["name", "indices", "dumped"]
 
     def __init__ (self, attributes, sort, children, name):
         super().__init__(attributes, sort, children)
@@ -672,6 +750,7 @@ class SMTNamedAnnNode (SMTAnnNode):
 
 class SMTCmdNode:         
 
+    __slots__ = ["id", "kind", "children"]
     g_id = 0
     g_smtformula = None
 
@@ -741,13 +820,15 @@ class SMTCmdNode:
             fun = self.children[0]
             svars = self.children[1]
             fterm = self.children[2]
-            outfile.write("({} {} ({}) {!s} {!s})\n".format(
+            outfile.write("({} {} ({}) {!s}".format(
                     self.kind,
                     fun.name,
                     " ".join(["({} {!s})".format(s.name, s.sort) 
                               for s in svars]) if len(svars) > 0 else "",
-                    fun.sort,
-                    fterm))
+                    fun.sort))
+            fterm.dump(outfile)
+            outfile.write(")\n")
+
         elif self.kind == KIND_DECLSORT:
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTSortNode))
@@ -758,6 +839,11 @@ class SMTCmdNode:
             outfile.write("({}".format(self.kind))
             assert (len(self.children) == 1)
             self.children[0].dump(outfile)
+            outfile.write(")\n")
+        elif self.kind == KIND_GETVALUE:
+            outfile.write("({}".format(self.kind))
+            for child in self.children:
+                child.dump(outfile)
             outfile.write(")\n")
         else:
             if self.kind == KIND_DEFSORT:
@@ -803,6 +889,8 @@ class SMTCmdNode:
 
 class SMTPushCmdNode (SMTCmdNode):
 
+    __slots__ = ["nscopes", "scope"]
+
     def __init__ (self, nscopes, scope = None):
         assert (nscopes > 0)
         super().__init__(KIND_PUSH)
@@ -819,6 +907,8 @@ class SMTPushCmdNode (SMTCmdNode):
 
 class SMTPopCmdNode (SMTCmdNode):
 
+    __slots__ = ["nscopes"]
+
     def __init__ (self, nscopes):
         assert (nscopes > 0)
         super().__init__(KIND_POP)
@@ -832,6 +922,8 @@ class SMTPopCmdNode (SMTCmdNode):
 
 class SMTScopeNode:
 
+    __slots__ = ["id", "level", "prev", "kind", "scopes", "cmds", "funs",
+                 "sorts", "declfun_cmds", "declfun_id"]
     g_id = 0
     g_smtformula = None
 
@@ -966,6 +1058,7 @@ class SMTFormula:
         self.subst_cmds = SMTCmdSubstList ()
         self.subst_nodes = SMTNodeSubstList ()
         self.sorts_cache = {}
+        self.consts_cache = {}
         self.funs_cache = {}   # fun name -> currently visible declaring scopes
         self.anns_cache = []   # named annotation nodes
         self.__add_predefined_sorts ()
@@ -1035,7 +1128,6 @@ class SMTFormula:
                     self.subst_cmds.get_subst(node) == None)
             return self.subst_cmds.get_subst(node)
         assert (isinstance (node, SMTNode))
-        assert (self.subst_nodes.get_subst(node))
         return self.subst_nodes.get_subst(node)
 
     def open_scope (self, nscopes = 1, kind = KIND_SCOPE):
@@ -1062,17 +1154,23 @@ class SMTFormula:
                 self.funs_cache[name].pop()
             self.cur_scope = self.cur_scope.prev
 
-    #def constNode (self, kind, sort, value):
-    def constNode (self, kind, sort, value, ostr = ""): # TODO debug
-        assert (kind in (KIND_CONST, KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
-        #return SMTConstNode (kind, sort, value)
-        return SMTConstNode (kind, sort, value, ostr) # TODO debug
+    def constNode (self, kind, sort, value, ostr = None):
+        global g_const_kinds
+        assert (kind in g_const_kinds)
+        assert (ostr or kind == KIND_CONSTS)
+        if ostr and ostr in self.consts_cache:
+            return self.consts_cache[ostr]
+        # const = SMTConstNode (kind, sort, value)
+        const = SMTConstNode (kind, sort, value, ostr) # TODO debug
+        self.consts_cache[ostr] = const
+        return const
 
-    def zeroConstNode (self,  kind):
+    def zeroConstNode (self, kind):
         assert (kind in (KIND_CONSTN, KIND_CONSTD))
-        return self.constNode (KIND_CONSTN, self.sortNode("Int"), 0) \
+        return self.constNode (KIND_CONSTN, self.sortNode ("Int"), 0, "0") \
                 if kind == KIND_CONSTN \
-                else self.constNode (KIND_CONSTD, self.sortNode("Real"), 0.0)
+                else self.constNode (
+                        KIND_CONSTD, self.sortNode ("Real"), 0.0, "0.0")
 
     def zeroConstNNode (self):
         return self.zeroConstNode (KIND_CONSTN)
@@ -1082,17 +1180,21 @@ class SMTFormula:
 
     def boolConstNode (self, value):
         assert (value in ("true", "false"))
-        return SMTConstNode (KIND_CONST, self.sortNode ("Bool"), value)
+        return self.constNode (KIND_CONST, self.sortNode("Bool"), value, value)
 
-    #def bvConstNode (self, kind, bw, value):
-    def bvConstNode (self, kind, bw, value, ostr = ""): # TODO debug
+    def bvConstNode (self, kind, bw, value, ostr):
         assert (isinstance (bw, int))
-        #return SMTBVConstNode (kind, self.bvSortNode(bw), value)
-        return SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
+        if ostr in self.consts_cache:
+            return self.consts_cache[ostr]
+        #const = SMTBVConstNode (kind, self.bvSortNode(bw), value)
+        const = SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
+        self.consts_cache[ostr] = const
+        return const
 
     def bvZeroConstNode (self, sort):
         assert (sort.is_bv_sort())
-        return self.bvConstNode (KIND_CONSTN, sort.bw, 0)
+        return self.bvConstNode (
+                KIND_CONSTN, sort.bw, 0, "(_ bv0 {})".format(sort.bw))
 
     def find_sort_and_scope (self, name):
         if name in self.sorts_cache:
@@ -1111,7 +1213,7 @@ class SMTFormula:
         return scope.sorts[name]
 
     def add_bvSort (self, bw):
-        name = SMTBVSortNode.name(bw)
+        name = SMTBVSortNode.get_name(bw)
         assert (not self.find_sort (name))
         self.scopes.sorts[name] = SMTBVSortNode (bw)  # level 0
         self.sorts_cache[name] = self.scopes
@@ -1119,7 +1221,7 @@ class SMTFormula:
 
     def add_arrSort (self, index_sort = None, elem_sort = None, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
-        name = SMTArraySortNode.name(index_sort, elem_sort)
+        name = SMTArraySortNode.get_name(index_sort, elem_sort)
         assert (not self.find_sort (name))
         scope.sorts[name] = SMTArraySortNode (index_sort, elem_sort)
         self.sorts_cache[name] = scope
@@ -1157,7 +1259,7 @@ class SMTFormula:
         return sort
 
     def bvSortNode (self, bw):
-        name = SMTBVSortNode.name(bw)
+        name = SMTBVSortNode.get_name(bw)
         sort = self.find_sort (name)
         if not sort:
             sort = self.add_bvSort(bw)
@@ -1165,7 +1267,7 @@ class SMTFormula:
 
     def arrSortNode (self, index_sort = None, elem_sort = None, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
-        name = SMTArraySortNode.name(index_sort, elem_sort)
+        name = SMTArraySortNode.get_name(index_sort, elem_sort)
         sort = self.find_sort (name)
         if not sort:
             return self.add_arrSort (index_sort, elem_sort, scope)
@@ -1173,6 +1275,15 @@ class SMTFormula:
 
     def find_fun (self, name, sort = None, scope = None, find_nested = True):
         scope = scope if scope else self.cur_scope
+        # Note: no redeclaration if symbol occurs with and without enclosing '|'
+        if name not in self.funs_cache or not self.funs_cache[name]:
+            if name[0] == '|':
+               name = name[1:-1]
+            else:
+                name = "|{}|".format(name)
+        # Note: we check stepwise, first for the current scope, and only if 
+        #       requested for scopes outer to the current (needed to enable
+        #       overwriting of variables in let, forall, exists)
         if name in scope.funs:
             return scope.funs[name]
         if find_nested and name in self.funs_cache and self.funs_cache[name] \
@@ -1531,28 +1642,26 @@ class DDSMTParser (SMTParser):
         try:
             self.numeral.set_parse_action (lambda t:
                     sf.constNode (
-                        #KIND_CONSTN, sf.sortNode ("Int"), int(t[0])))
-                        KIND_CONSTN, sf.sortNode ("Int"), int(t[0]), t[0])) # TODO debug
+                        KIND_CONSTN, sf.sortNode ("Int"), int(t[0]), t[0]))
 
             self.decimal.set_parse_action (lambda t:
                     sf.constNode (
-                        #KIND_CONSTD, sf.sortNode ("Real"), float(t[0])))
                         KIND_CONSTD, sf.sortNode ("Real"), float(t[0]), t[0]))
 
             self.hexadecimal.set_parse_action (lambda t:
                     sf.bvConstNode (
                         KIND_CONSTH, 
                         len(t[0][2:]) * 4,   # bw
-                        #int(t[0][2:], 16)))  # value
-                        int(t[0][2:], 16),   # value TODO debug
-                        t[0]))
+                        int(t[0][2:], 16),   # value
+                        #t[0].lower()))
+                        t[0])) # TODO debug
+
 
             self.binary.set_parse_action (lambda t:
                     sf.bvConstNode (
                         KIND_CONSTB,
                         len(t[0][2:]),       # bw
-                        #int(t[0][2:], 2)))   # value
-                        int(t[0][2:], 2),    # value TODO debug
+                        int(t[0][2:], 2),    # value
                         t[0]))
 
             self.string.set_parse_action (lambda t:
@@ -1681,9 +1790,13 @@ class DDSMTParser (SMTParser):
                         assert (len(t_ident) == 3)
                         assert (len(t_ident[2]) == 1)
                         assert (isinstance(t_ident[2][0], SMTConstNode))
+                        value = t_ident[2][0].value
+                        bw = int(t_ident[1][2:])
                         return sf.bvConstNode (
-                                KIND_CONSTN, t_ident[2][0].value, 
-                                int(t_ident[1][2:]))
+                                KIND_CONSTN, 
+                                value, 
+                                bw, 
+                                "(_ bv{} {})".format(value, bw))
                     else:
                         assert (len(t_ident) > 1)
                         name = "(_ {} {})".format(
