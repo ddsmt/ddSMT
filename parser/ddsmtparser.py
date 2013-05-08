@@ -472,6 +472,8 @@ class SMTFunAppNode (SMTNode):
                 else:
                     cs = []
                     for c in cur.children:
+                        if not strings:
+                            break
                         cs.append(strings.pop())
                     strings.append(
                             "({} {})".format(
@@ -539,7 +541,9 @@ class SMTVarBindNode (SMTNode):
 
     def dump (self, outfile, lead = " " ):
         if self.is_subst():
-            self.get_subst().dump(outfile, lead)
+            subst = self.get_subst()
+            if subst:
+                subst.dump(outfile, lead)
         else:
             outfile.write(lead)
             outfile.write("({}".format(self.var.name))
@@ -641,7 +645,7 @@ class SMTLetNode (SMTNode):
         to_visit = [self]
         visited = {}
         while to_visit:
-            cur = to_visit.pop().get_subst()
+            cur = to_visit.pop()
             cursubst = cur.get_subst()
             if not cursubst and type(cur) == SMTVarBindNode:
                 continue
@@ -656,6 +660,8 @@ class SMTLetNode (SMTNode):
                 else:
                     cs = []
                     for c in cur.children:
+                        if not strings:
+                            break
                         cs.append(strings.pop())
                     strings.append(
                             "({} ({}) {})".format(
@@ -680,7 +686,8 @@ class SMTLetNode (SMTNode):
             cur = cursubst
             if type(cur) != SMTLetNode:
                 if type(cur) != SMTVarBindNode:
-                    outfile.write(")")
+                    if cntvb:
+                        outfile.write(")")
                     if cur:
                         cur.dump(outfile)
                     cntvb = 0
