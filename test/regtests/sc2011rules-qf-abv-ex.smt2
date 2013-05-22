@@ -60,6 +60,7 @@
 (assert (concat (_ bv12 16) y))
 (assert (bvand (_ bv42 16) (_ bv24 16)))
 (assert (let ((c0 (bvnot _x)) (c1 (= ((_ sign_extend 12) z) (select _A y))) (A2 (store _A ((_ extract 15 0) _x) _x))) (let ((c2 (= _A A2))) (let ((c3 (bvslt (concat z (_ bv5 12)) (bvand (bvor (bvxor (bvnot _x) (select A2 ((_ zero_extend 12) #b1111))) (concat #xAF02 y)) (concat ((_ extract 15 0) (bvmul _x (select (store _A y _x) #x35FB))) (! (bvashr (_ bv42 16) #x0001) :bad 2 :good ((1 2 3)))))))) (and c1 (xor c2 c3))))))
+(get-value (_x y z A))
 (check-sat)
 (pop 1)
 (exit)
