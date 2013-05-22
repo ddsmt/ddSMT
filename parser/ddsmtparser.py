@@ -848,10 +848,11 @@ class SMTCmdNode:
             self.children[0].dump(outfile)
             outfile.write(")\n")
         elif self.kind == KIND_GETVALUE:
-            outfile.write("({}".format(self.kind))
-            for child in self.children:
-                child.dump(outfile)
-            outfile.write(")\n")
+            outfile.write("({} ".format(self.kind))
+            for i in range(len(self.children)):
+                child = self.children[i]
+                child.dump(outfile, "(") if i == 0 else child.dump(outfile)
+            outfile.write("))\n")
         else:
             if self.kind == KIND_DEFSORT:
                 assert (len(self.children) == 3)
@@ -875,6 +876,9 @@ class SMTCmdNode:
     
     def is_definefun (self):
         return self.kind == KIND_DEFFUN
+
+    def is_getvalue (self):
+        return self.kind == KIND_GETVALUE
 
     def is_exit (self):
         return self.kind == KIND_EXIT
@@ -1107,7 +1111,7 @@ class SMTFormula:
 
     def subst (self, node, substitution):
         if isinstance (node, SMTScopeNode):
-            self.sUBST_scopes.subst(node, substitution)
+            self.subst_scopes.subst(node, substitution)
         elif isinstance (node, SMTCmdNode):
             self.subst_cmds.subst(node, substitution)
         else:
@@ -1922,6 +1926,6 @@ class DDSMTParser (SMTParser):
                      t[2], t[4]])
         elif kind == KIND_GETVALUE:
             assert (len(t) == 2)
-            return sf.cmdNode (KIND_GETVALUE, [t[1]])
+            return sf.cmdNode (KIND_GETVALUE, t[1])
         else:
             return sf.cmdNode (kind, children = t[1:])
