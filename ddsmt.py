@@ -348,10 +348,10 @@ def ddsmt_main ():
                                  x.children[1].get_subst().is_true_bvconst()),
                             cmds[i], "  substitute (bvand term true) with term")
                     if nsubst:
-                        succeeded = "and_{}".format(i)
+                        succeeded = "bvand_{}".format(i)
                         nsubst_round += nsubst
                         nterms_subst += nsubst
-                    elif succeeded == "and_{}".format(i):
+                    elif succeeded == "bvand_{}".format(i):
                         break
                     nsubst = _substitute_terms (
                             lambda x: sf.add_fresh_declfunCmdNode(x.sort),
