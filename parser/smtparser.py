@@ -246,7 +246,7 @@ class SMTParser:
                     instring,
                     flags=re.DOTALL)
             instring = re.sub(r';[^\n]*\n', ' ' , instring)
-            instring = re.sub(r'\((?!_)', ' ( ', instring)
+            instring = re.sub(r'\((?!_ )', ' ( ', instring)
             instring = re.sub(r'(?<!\\)"', ' " ', instring)
             return re.sub(r'(?<!\\)\)', ' ) ', instring).split()
 
