@@ -248,10 +248,13 @@ def _substitute_terms (subst_fun, filter_fun, cmds, msg = None,
     _log (2, msg if msg else "substitute TERMS:")
     ntests_prev = g_ntests
     nsubst_total = _substitute (
-            subst_fun, 
+            subst_fun,
             g_smtformula.subst_nodes,
-            _filter_terms (filter_fun, [c.children[-1] for c in cmds]),
+            _filter_terms (filter_fun, [t for term_list in 
+                [c.children if c.is_getvalue() else [c.children[-1]] \
+                        for c in cmds] for t in term_list]),
             with_vars)
+
     _log (2, "    >> {} term(s) substituted in total".format(nsubst_total))
     _log (3, "    >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
@@ -299,13 +302,14 @@ def ddsmt_main ():
            break
 
         cmds = [_filter_cmds (lambda x: x.is_definefun()), 
-                _filter_cmds (lambda x: x.is_assert())]
+                _filter_cmds (lambda x: x.is_assert()),
+                _filter_cmds (lambda x: x.is_getvalue())]
+        cmds_msgs = ["'define-fun'", "'assert'", "'get-value'"]
 
         for i in range(0,len(cmds)):
             if cmds[i]:
                 _log(2)
-                _log (2, "substitute TERMs in {} cmds:".format(
-                    "'define-fun'" if i == 0 else "'assert'"))
+                _log (2, "substitute TERMs in {} cmds:".format(cmds_msgs[i]))
                 
                 if sf.is_bv_logic():
                     nsubst = _substitute_terms (
@@ -581,7 +585,7 @@ if __name__ == "__main__":
                               version=__version__)
         g_args = aparser.parse_args()
 
-        if not g_args.cmd:  # sepcial handling (nargs=REMAINDER)
+        if not g_args.cmd:  # special handling (nargs=REMAINDER)
             raise DDSMTException ("too few arguments")
         
         if g_args.optimize:
