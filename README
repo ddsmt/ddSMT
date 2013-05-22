@@ -28,6 +28,9 @@
  Changelog:
 -------------------------------------------------------------------------------
 
+  Since version 0.95-beta:
+    + added support for term substitution in get-value commands
+    + fix: parser: tokenize: '(_x' when '_x' is a legal symbol 
   Since version 0.94-beta:
     + added consts caching
     + added substitution phase: eliminate redundant variable bindings
