@@ -174,6 +174,7 @@ class SMTParser:
         self.filename = filename
 #        sys.setrecursionlimit(7000)
         self.tokens = self.__tokenize()
+        #print (self.tokens)
         self.__scan()
         return self.script.parse_action(self.__script())
                 
@@ -228,6 +229,7 @@ class SMTParser:
 
     def __tokenize (self):
         with open (self.filename, 'r') as infile:
+            tokens = []
             # Note: separate re.subs are way faster than combined subs that
             #       require more testing, e.g.
             #           re.sub(r'(?<!\\)(?P<m>["\)])', 
@@ -236,7 +238,6 @@ class SMTParser:
                     r'set-info :source\s*\|.*?\|',
                     lambda x: re.sub(
                         SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
-                    #lambda x: "xx" + x.group(0) + "xx",
                     infile.read(),
                     flags=re.DOTALL)
             instring = re.sub (
@@ -248,7 +249,20 @@ class SMTParser:
             instring = re.sub(r';[^\n]*\n', ' ' , instring)
             instring = re.sub(r'\((?!_ )', ' ( ', instring)
             instring = re.sub(r'(?<!\\)"', ' " ', instring)
-            return re.sub(r'(?<!\\)\)', ' ) ', instring).split()
+            
+            #return re.sub(r'(?<!\\)\)', ' ) ', instring).split()
+            instring = instring.partition('|')
+            while instring[0]:
+                tokens.extend(re.sub(r'(?<!\\)\)', ' ) ', instring[0]).split())
+                part = instring[2].partition('|')
+                tokens.append("{}{}{}".format(instring[1], part[0], part[1]))
+                instring = part[2].partition('|')
+            tokens.extend(re.sub(r'(?<!\\)\)', ' ) ', instring[2]).split())
+            ##
+            #print ("++ " + str(re.sub(r'(?<!\\)\)', ' ) ', instring).split()))
+            #print ()
+            ##
+            return tokens
 
     def __check_lpar (self, msg = "'(' expected"):
         if self.la != SMTParser.LPAR:
