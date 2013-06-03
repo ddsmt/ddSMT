@@ -1891,7 +1891,7 @@ class DDSMTParser (SMTParser):
         if kind == KIND_DECLSORT:
             assert (len(t) == 3)
             sort = sf.find_sort (t[1])
-            if sort and sort.params != t[2].value:
+            if sort and sort.nparams != t[2].value:
                (line, col) = self.get_pos()
                raise DDSMTParseException (
                         "previous declaration of sort '{}' with '{}' "\
