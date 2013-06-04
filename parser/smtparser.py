@@ -174,7 +174,6 @@ class SMTParser:
         self.filename = filename
 #        sys.setrecursionlimit(7000)
         self.tokens = self.__tokenize()
-        #print (self.tokens)
         self.__scan()
         return self.script.parse_action(self.__script())
                 
@@ -185,9 +184,12 @@ class SMTParser:
             instring = infile.read()
             (idx, line, col) = self.__skip_space(instring, 0, 1, 0)
             (idx, line, col) = self.__skip_comment(instring, idx, line, col)
-            (idx, line, col) = self.__skip_space(instring, idx, line, col)
             for token in self.tokens[:self.pos - 1]:
                 for i in range(0, len(token)):
+                    (idx, line, col) = \
+                            self.__skip_space(instring, idx, line, col)
+                    if token[i].isspace():
+                        continue
                     assert (token[i] == instring[idx] \
                             or (token[i] == SMTParser.COMMA and
                                 instring[idx] == SMTParser.COMMENT))
