@@ -174,7 +174,6 @@ class SMTParser:
     def parse (self, filename):
         self.filename = filename
         self.tokens = self.__tokenize()
-        print(self.tokens)
         self.__scan()
         return self.script.parse_action(self.__script())
                 
@@ -355,25 +354,6 @@ class SMTParser:
         #        r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
         #    raise SMTParseException (
         #            "unexpected character: {}".format(self.la[0]), self)
-        
-        #if self.la[0] == SMTParser.PIPE:
-        #    strings = [self.la]
-        #    if self.la == SMTParser.PIPE or self.la[-1] != SMTParser.PIPE:
-        #        self.__scan()
-        #        while self.la and self.la[-1] != SMTParser.PIPE \
-        #              and self.la != SMTParser.PIPE:
-        #                  if strings[-1] == SMTParser.LPAR \
-        #                     or self.la == SMTParser.RPAR:
-        #                      strings[-1] = "{}{}".format(strings[-1], self.la)
-        #                  else:
-        #                      strings.append(self.la)
-        #                  self.__scan()
-        #        strings.append(self.la)
-        #    tokens.append(" ".join([s for s in strings]))
-        #    if tokens[-1][-1] != SMTParser.PIPE:        
-        #        raise SMTParseException ("unclosed symbol, missing '|'", self)
-        #else:
-        #    tokens.append(self.la)
         if self.la[0] == SMTParser.PIPE and not self.la[-1] == SMTParser.PIPE:
             raise SMTParseException ("unclosed symbol, missing '|'", self)
         tokens.append(self.la)

@@ -20,13 +20,15 @@
 #
 
 import os
+import random
+import resource
 import sys
 import shutil
 import time
-import random
 
 from argparse import ArgumentParser, REMAINDER
 from subprocess import Popen, PIPE
+from threading import Thread
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 
@@ -51,13 +53,37 @@ class DDSMTException (Exception):
         return "[ddsmt] Error: {0:s}".format(self.msg)
 
 
+class DDSMTCmd (Thread):
 
-def _cleanup():
+    def __init__ (self, cmd, timeout, log):
+        Thread.__init__(self)
+        self.cmd = cmd
+        self.timeout = timeout
+        self.log = log
+
+    def run (self):
+        self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE)
+        self.out, self.err = self.process.communicate()
+        self.rcode = self.process.returncode
+
+    def run_cmd (self, is_golden = False):
+        self.start()
+        self.join (self.timeout)
+        if self.is_alive():
+            self.process.terminate()
+            self.join()
+            if is_golden:
+                raise DDSMTException ("initial run timed out")
+            self.log ("[!!] timeout: process terminated")
+        return (self.out, self.err)
+
+
+def _cleanup ():
     if os.path.exists(g_tmpfile):
         os.remove(g_tmpfile)
 
 
-def _log(verbosity, msg = "", update = False):
+def _log (verbosity, msg = "", update = False):
     global g_args
     if g_args.verbosity >= verbosity:
         sys.stdout.write(" " * 80 + "\r")
@@ -77,31 +103,13 @@ def _dump (filename = None, root = None):
         raise DDSMTException (str(e))
 
 
-def _run ():
+def _run (is_golden = False):
     global g_args
     try:
         start = time.time()
-        sproc = Popen(g_args.cmd, stdout=PIPE, stderr=PIPE)
-
-        # TODO this works from 3.3 upwards
-        # (out, err) = sproc.communicate(g_opts.timeout)  # TODO use out, err
-        
-        # TODO disable this from 3.3. upwards
-        if g_args.timeout:
-            while (sproc.poll() == None):
-                if time.time() - start > g_args.timeout:
-                    sproc.kill()
-                time.sleep(1)
-
-        (out, err) = sproc.communicate()
-        #_log (3)
-        #_log (3, "solver output: " + out.decode())
-        return sproc.returncode
-
-    # TODO this works from 3.3 upwards
-    #except TimeoutExpired as e:
-    #    sproc.kill()
-    #    (out, err) = proc.communicate()
+        cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
+        (out, err) = cmd.run_cmd(is_golden)
+        return cmd.rcode
     except OSError as e:
         raise DDSMTException ("{0:s}: {1:s}".format(str(e), g_cmd[0]))
 
@@ -573,7 +581,7 @@ if __name__ == "__main__":
                               help="the command (with optional arguments)")
 
         aparser.add_argument ("-t", dest="timeout", metavar="val",
-                              default=None, type=int, 
+                              default=None, type=float, 
                               help="timeout for test runs in seconds "\
                                    "(default: none)")
         aparser.add_argument ("-v", action="count", default=0, 
@@ -620,24 +628,24 @@ if __name__ == "__main__":
             #        " ".join([str(f) for f in scope.funs])))
             #    to_visit.extend(scope.scopes)
             #######
-            import resource
-            print ("maxrss: {} MiB".format(
+
+            _log (2)
+            _log (2, "parser: done")
+            _log (3, "parser: maxrss: {} MiB".format(
                 resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000))
-            _dump(g_args.outfile)
-            sys.exit(0)
+
+            #_dump(g_args.outfile)
+            #sys.exit(0)
             ######
             #_dump(g_args.outfile)
             #sys.exit(0)
             #######
 
-            _log (2, "parser done")
-
             shutil.copyfile(g_args.infile, g_tmpfile)
             g_args.cmd.append(g_tmpfile)
-            g_golden = _run()
-            
             _log (1)
             _log (1, "starting initial run... ")
+            g_golden = _run(True)
             _log (1, "golden exit: {0:d}".format(g_golden))
 
             ddsmt_main ()
