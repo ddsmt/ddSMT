@@ -174,6 +174,7 @@ class SMTParser:
         self.filename = filename
 #        sys.setrecursionlimit(7000)
         self.tokens = self.__tokenize()
+        #print ("-- " + str(self.tokens))
         self.__scan()
         return self.script.parse_action(self.__script())
                 
@@ -190,6 +191,9 @@ class SMTParser:
                             self.__skip_space(instring, idx, line, col)
                     if token[i].isspace():
                         continue
+                    #####
+                    #print ("## " + instring[idx] + " " + token[i])
+                    #####
                     assert (token[i] == instring[idx] \
                             or (token[i] == SMTParser.COMMA and
                                 instring[idx] == SMTParser.COMMENT))
@@ -250,16 +254,49 @@ class SMTParser:
                     flags=re.DOTALL)
             instring = re.sub(r';[^\n]*\n', ' ' , instring)
             instring = re.sub(r'\((?!_ )', ' ( ', instring)
-            instring = re.sub(r'(?<!\\)"', ' " ', instring)
+            #instring = re.sub(r'(?<!\\)"', ' " ', instring)
             
             #return re.sub(r'(?<!\\)\)', ' ) ', instring).split()
-            instring = instring.partition('|')
+            
+            # TODO use SMTParser.QUOTE and introduce SMTParser.PIPE
+
+            pidx = instring.find('|')
+            qidx = instring.find('"')
+            c = '|' if qidx == -1 or pidx < qidx else '"'
+            instring = instring.partition(c)
             while instring[0]:
-                tokens.extend(re.sub(r'(?<!\\)\)', ' ) ', instring[0]).split())
-                part = instring[2].partition('|')
-                tokens.append("{}{}{}".format(instring[1], part[0], part[1]))
-                instring = part[2].partition('|')
+                tokens.extend(
+                        re.sub(r'(?<!\\)\)', ' ) ', instring[0]).split())
+                part = instring[2].partition(c)
+                if c == '|':
+                    tokens.append("{}{}{}".format(
+                        instring[1], part[0], part[1]))
+                else:
+                    strings = []
+                    strings.append(part[0])
+                    #print ("## '" + str(part[0]) + "'")
+                    while part[0] and part[0][-1] == '\\':
+                        part = part[2].partition(c)
+                        strings.append(part[0])
+                    tokens.append("\"{}\"".format(
+                        "\"".join([s for s in strings])))
+                    #if part[0] and part[0][-1] != '\\':
+                    #    tokens.append("\"{}\"".format(
+                    #        "\"".join([s for s in strings])))
+                    #    del strings[:]
+                pidx = part[2].find('|')
+                qidx = part[2].find('"')
+                c = '|' if qidx == -1 or pidx < qidx else '"'
+                instring = part[2].partition(c)
             tokens.extend(re.sub(r'(?<!\\)\)', ' ) ', instring[2]).split())
+
+            #instring = instring.partition('|')
+            #while instring[0]:
+            #    tokens.extend(re.sub(r'(?<!\\)\)', ' ) ', instring[0]).split())
+            #    part = instring[2].partition('|')
+            #    tokens.append("{}{}{}".format(instring[1], part[0], part[1]))
+            #    instring = part[2].partition('|')
+            #tokens.extend(re.sub(r'(?<!\\)\)', ' ) ', instring[2]).split())
             ##
             #print ("++ " + str(re.sub(r'(?<!\\)\)', ' ) ', instring).split()))
             #print ()
@@ -316,17 +353,22 @@ class SMTParser:
 
     def __string (self):
         tokens = SMTParseResult()
-        if not self.la == SMTParser.QUOTE:
-            raise SMTParserException ("string expected", self)
-        strings = []
+        if not self.la[0] == SMTParser.QUOTE or \
+           not self.la[-1] == SMTParser.QUOTE:
+        #if not self.la[0] == SMTParser.QUOTE:
+            raise SMTParseException ("string expected", self)
+
+        #strings = []
+        #self.__scan()
+        #while self.la and self.la != SMTParser.QUOTE:
+        #    strings.append(self.la)
+        #    self.__scan()
+        #if self.la != SMTParser.QUOTE:
+        #    raise SMTParseException ("unclosed string, missing '\"'", self)
+        #self.__scan()
+        #tokens.append("\"{}\"".format(" ".join([s for s in strings])))
+        tokens.append(self.la)
         self.__scan()
-        while self.la and self.la != SMTParser.QUOTE:
-            strings.append(self.la)
-            self.__scan()
-        if self.la != SMTParser.QUOTE:
-            raise SMTParseException ("unclosed string, missing '\"'", self)
-        self.__scan()
-        tokens.append("\"{}\"".format(" ".join([s for s in strings])))
         return tokens   
 
 
