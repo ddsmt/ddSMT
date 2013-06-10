@@ -107,30 +107,9 @@ def _run (is_golden = False):
     global g_args
     try:
         start = time.time()
-        #sproc = Popen(g_args.cmd, stdout=PIPE, stderr=PIPE)
-
-        ## TODO this works from 3.3 upwards
-        ## (out, err) = sproc.communicate(g_opts.timeout)  # TODO use out, err
-        #
-        ## TODO disable this from 3.3. upwards
-        #if g_args.timeout:
-        #    while (sproc.poll() == None):
-        #        if time.time() - start > g_args.timeout:
-        #            sproc.kill()
-        #        time.sleep(1)
-
-        #(out, err) = sproc.communicate()
-        ##_log (3)
-        ##_log (3, "solver output: " + out.decode())
-        #return sproc.returncode
-        
         cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
         (out, err) = cmd.run_cmd(is_golden)
         return cmd.rcode
-    # TODO this works from 3.3 upwards
-    #except TimeoutExpired as e:
-    #    sproc.kill()
-    #    (out, err) = proc.communicate()
     except OSError as e:
         raise DDSMTException ("{0:s}: {1:s}".format(str(e), g_cmd[0]))
 
