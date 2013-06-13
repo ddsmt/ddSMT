@@ -597,7 +597,14 @@ if __name__ == "__main__":
             raise DDSMTException ("too few arguments")
         
         if g_args.optimize:
-            sys.argv.remove("-o")
+            for i in range(0, len(sys.argv)):
+                if sys.argv[i][0] == '-' and 'o' in sys.argv[i]:
+                    if len(sys.argv[i]) > 2:
+                        sys.argv[i] = sys.argv[i].replace("o", "")
+                        break
+                    else:
+                        sys.argv.remove("-o")
+                        break
             os.execl(sys.executable, sys.executable, '-O', *sys.argv)
         else:
             if not os.path.exists(g_args.infile):
