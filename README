@@ -31,6 +31,7 @@
   Since version 0.96-beta:
     + better timeout handling
     + parser: fixed and better handling of piped symbols and strings
+    + option parser: fix: -o can now be combined with other options, e.g. -ov
   Since version 0.95-beta:
     + added support for term substitution in get-value commands
     + fix: parser: tokenize: '(_x' when '_x' is a legal symbol 
