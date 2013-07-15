@@ -40,10 +40,13 @@ class SMTParseElement:
     __slots__ = ["parse_action"]
 
     def __init__ (self):
-        self.parse_action = lambda t: t
+        self.parse_action = self.__parse_action
 
     def set_parse_action (self, action):
         self.parse_action = action
+
+    def __parse_action (self, t, cnt = 1):
+        return t
 
 
 class SMTParseResult:
@@ -589,7 +592,6 @@ class SMTParser:
                         tokens[-1].append(self.term.parse_action(tmp.pop()))
                 elif tmp[-1] in (
                         SMTParser.LET, SMTParser.EXISTS, SMTParser.FORALL):
-                    assert (isinstance(tmp[-2], list))
                     tokens.extend(
                             [tmp.pop(),  # let, forall, exists
                              tmp.pop(),  # var bindings, sorted vars
