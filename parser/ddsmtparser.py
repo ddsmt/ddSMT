@@ -1617,7 +1617,7 @@ class SMTFormula:
 
     def __assert_varb (self, var_bindings):
         for varb in var_bindings:
-            assert (varb.scope.kind == KIND_VSCOPE)
+            assert (varb.scope.kind == KIND_LSCOPE)
             assert (varb.scope == self.cur_scope)
             assert (self.find_fun(varb.var.name, scope=self.cur_scope))
         return True     
