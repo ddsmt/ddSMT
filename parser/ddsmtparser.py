@@ -1489,10 +1489,10 @@ class SMTFormula:
                     KIND_BVSLT, KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT):
             return self.sortNode("Bool")
         # sort Int
-        elif kind in (KIND_ABS, KIND_DIV, KIND_MOD):
+        elif kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOI):
             return self.sortNode("Int")
         # sort Real
-        elif kind in (KIND_RDIV, KIND_TOI, KIND_TOR):
+        elif kind in (KIND_RDIV, KIND_TOR):
             return self.sortNode("Real")
         # sort BV sort != children sort
         elif kind == KIND_CONC:
