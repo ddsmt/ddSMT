@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 #
 # ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (c) 2013, Aina Niemetz
+# Copyright (c) 2013-2014, Aina Niemetz
 # 
 # This file is part of ddSMT.
 #
