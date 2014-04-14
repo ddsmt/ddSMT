@@ -1255,14 +1255,14 @@ class SMTFormula:
                             raise DDSMTParseCheckException (
                                     "previous declaration of '{}' with " \
                                     "{} was here".format(name, res[0].nparams))
-                        sort = res[0]
-                        scope = res[1]
-                        if sort.is_arr_sort():
-                            assert (sort.nparams == nparams)
-                            name = name[1:-1].split()
-                            assert (name[0] == "Array")
-                            assert (len(name) == 3)
-                            return self.add_arrSort (name[1], name[2], scope)
+                    sort = res[0]
+                    scope = res[1]
+                    if sort.is_arr_sort():
+                       assert (sort.nparams == nparams)
+                       name = name[1:-1].split()
+                       assert (name[0] == "Array")
+                       assert (len(name) == 3)
+                       return self.add_arrSort (name[1], name[2], scope)
             elif not new:
                 raise DDSMTParseCheckException (
                         "sort '{}' undeclared".format(name))
@@ -1617,7 +1617,7 @@ class SMTFormula:
 
     def __assert_varb (self, var_bindings):
         for varb in var_bindings:
-            assert (varb.scope.kind == KIND_VSCOPE)
+            assert (varb.scope.kind == KIND_LSCOPE)
             assert (varb.scope == self.cur_scope)
             assert (self.find_fun(varb.var.name, scope=self.cur_scope))
         return True     

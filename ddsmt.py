@@ -48,7 +48,7 @@ class DDSMTException (Exception):
 
     def __init__ (self, msg):
         self.msg = msg
-    
+   
     def __str__ (self):
         return "[ddsmt] Error: {0:s}".format(self.msg)
 
@@ -593,8 +593,13 @@ if __name__ == "__main__":
                               version=__version__)
         g_args = aparser.parse_args()
 
-        if not g_args.cmd:  # special handling (nargs=REMAINDER)
-            raise DDSMTException ("too few arguments")
+## TODO profile debug
+#        g_args.infile = "trash/testcase8.stp.smt2"
+#        g_args.infile = "trash/noregions-fullmemite.stp.smt2"
+
+# TODO profile debug
+#        if not g_args.cmd:  # special handling (nargs=REMAINDER)
+#            raise DDSMTException ("too few arguments")
         
         if g_args.optimize:
             for i in range(0, len(sys.argv)):
