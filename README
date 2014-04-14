@@ -28,6 +28,9 @@
  Changelog:
 -------------------------------------------------------------------------------
 
+  Since version 0.97-beta:
+    + fix: parser: to_int returned Real instead of Int
+    + some other minor parser fixes
   Since version 0.96-beta:
     + better timeout handling
     + parser: fixed and better handling of piped symbols and strings
