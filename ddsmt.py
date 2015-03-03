@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 #
 # ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (c) 2013-2014, Aina Niemetz
+# Copyright (c) 2013-2015, Aina Niemetz
 # 
 # This file is part of ddSMT.
 #
@@ -36,7 +36,8 @@ __version__ = "0.9-beta"
 __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 
 
-g_golden = 0
+g_golden_exit = 0
+g_golden_err = None
 g_ntests = 0
 
 g_args = None
@@ -109,16 +110,18 @@ def _run (is_golden = False):
         start = time.time()
         cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
         (out, err) = cmd.run_cmd(is_golden)
-        return cmd.rcode
+        return (cmd.rcode, err)
     except OSError as e:
         raise DDSMTException ("{0:s}: {1:s}".format(str(e), g_cmd[0]))
 
 
 def _test ():
     global g_args, g_ntests
-    # TODO compare output if option enabled?
     g_ntests += 1
-    return _run() == g_golden
+    (exitcode, err) = _run()
+    if g_args.cmpoutput:
+        return exitcode == g_golden_exit and err == g_golden_err
+    return exitcode == g_golden_exit
 
 
 def _filter_scopes (filter_fun, root = None):
@@ -586,7 +589,12 @@ if __name__ == "__main__":
                                    "(default: none)")
         aparser.add_argument ("-v", action="count", default=0, 
                               dest="verbosity", help="increase verbosity")
-        aparser.add_argument ("-o", action="store_true", dest="optimize",
+        aparser.add_argument ("-o", action="store_true", dest="cmpoutput",
+                              default = False,
+                              help = "use err exit code AND err output "\
+                                     "to identify failing input (default:"\
+                                     "err exit code only)")
+        aparser.add_argument ("-O", action="store_true", dest="optimize",
                               default=False, 
                               help="remove assertions and debug code")
         aparser.add_argument ("--version", action="version", 
@@ -657,8 +665,10 @@ if __name__ == "__main__":
             g_args.cmd.append(g_tmpfile)
             _log (1)
             _log (1, "starting initial run... ")
-            g_golden = _run(True)
-            _log (1, "golden exit: {0:d}".format(g_golden))
+            (g_golden_exit, g_golden_err) = _run(True)
+            _log (1, "golden exit: {0:d}".format(g_golden_exit))
+            if g_args.cmpoutput:
+                _log (1, "golden err: {0:s}".format(g_golden_err))
 
             ddsmt_main ()
             
