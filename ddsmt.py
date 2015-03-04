@@ -668,8 +668,8 @@ if __name__ == "__main__":
             (g_golden_exit, g_golden_err) = _run(True)
             _log (1, "golden exit: {}".format(g_golden_exit))
             if g_args.cmpoutput:
-                _log (1, "golden err: {}".format(str(g_golden_err).strip()))
-
+                _log (1, "golden err: {}".format(
+                            str(g_golden_err.decode()).strip()))
             ddsmt_main ()
             
             ofilesize = os.path.getsize(g_args.outfile)
