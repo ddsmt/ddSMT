@@ -51,7 +51,7 @@ class DDSMTException (Exception):
         self.msg = msg
    
     def __str__ (self):
-        return "[ddsmt] Error: {0:s}".format(self.msg)
+        return "[ddsmt] Error: {}".format(self.msg)
 
 
 class DDSMTCmd (Thread):
@@ -89,10 +89,10 @@ def _log (verbosity, msg = "", update = False):
     if g_args.verbosity >= verbosity:
         sys.stdout.write(" " * 80 + "\r")
         if update:
-            sys.stdout.write("[ddsmt] {0:s}\r".format(msg))
+            sys.stdout.write("[ddsmt] {}\r".format(msg))
             sys.stdout.flush()
         else:
-            sys.stdout.write("[ddsmt] {0:s}\n".format(msg))
+            sys.stdout.write("[ddsmt] {}\n".format(msg))
 
 
 def _dump (filename = None, root = None):
@@ -112,7 +112,7 @@ def _run (is_golden = False):
         (out, err) = cmd.run_cmd(is_golden)
         return (cmd.rcode, err)
     except OSError as e:
-        raise DDSMTException ("{0:s}: {1:s}".format(str(e), g_cmd[0]))
+        raise DDSMTException ("{}: {}".format(str(e), g_cmd[0]))
 
 
 def _test ():
@@ -233,7 +233,7 @@ def _substitute_scopes ():
         nsubst_total += _substitute (
                 lambda x: None, g_smtformula.subst_scopes, scopes)
         level += 1
-    _log (2, "  >> {0:d} scope(s) substituted in total".format(nsubst_total))
+    _log (2, "  >> {} scope(s) substituted in total".format(nsubst_total))
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
 
@@ -666,9 +666,9 @@ if __name__ == "__main__":
             _log (1)
             _log (1, "starting initial run... ")
             (g_golden_exit, g_golden_err) = _run(True)
-            _log (1, "golden exit: {0:d}".format(g_golden_exit))
+            _log (1, "golden exit: {}".format(g_golden_exit))
             if g_args.cmpoutput:
-                _log (1, "golden err: {0:s}".format(g_golden_err))
+                _log (1, "golden err: {}".format(str(g_golden_err).strip()))
 
             ddsmt_main ()
             
