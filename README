@@ -28,6 +28,8 @@
  Changelog:
 -------------------------------------------------------------------------------
 
+  Since version 0.98-beta:
+    + fix: parser: did not split symbols on '('
     + added option to consider error output for determining failing input
   Since version 0.97-beta:
     + fix: parser: to_int returned Real instead of Int
