@@ -1,6 +1,6 @@
 #
 # ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (c) 2013, Aina Niemetz
+# Copyright (c) 2013, 2015, Aina Niemetz
 # 
 # This file is part of ddSMT.
 #
@@ -252,7 +252,7 @@ class SMTParser:
                     instring,
                     flags=re.DOTALL)
             instring = re.sub(r';[^\n]*\n', ' ' , instring)
-            instring = re.sub(r'\((?!_ )', ' ( ', instring)
+            instring = re.sub(r'(\((?!_)|\(_)', r' \1 ', instring)
             
             pidx = instring.find(SMTParser.PIPE)
             qidx = instring.find(SMTParser.QUOTE)
