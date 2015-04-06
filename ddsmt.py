@@ -611,12 +611,12 @@ if __name__ == "__main__":
         
         if g_args.optimize:
             for i in range(0, len(sys.argv)):
-                if sys.argv[i][0] == '-' and 'o' in sys.argv[i]:
+                if sys.argv[i][0] == '-' and 'O' in sys.argv[i]:
                     if len(sys.argv[i]) > 2:
-                        sys.argv[i] = sys.argv[i].replace("o", "")
+                        sys.argv[i] = sys.argv[i].replace("O", "")
                         break
                     else:
-                        sys.argv.remove("-o")
+                        sys.argv.remove("-O")
                         break
             os.execl(sys.executable, sys.executable, '-O', *sys.argv)
         else:
@@ -626,6 +626,8 @@ if __name__ == "__main__":
                 raise DDSMTException ("given input file is a directory")
             #if os.path.exists(g_args.outfile):
             #    raise DDSMTException ("given output file does already exist")
+            if not g_args.cmd:
+                raise DDSMTException ("command missing")
 
             _log (1, "input  file: '{}'".format(g_args.infile))
             _log (1, "output file: '{}'".format(g_args.outfile))
