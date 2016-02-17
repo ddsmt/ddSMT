@@ -75,7 +75,7 @@ class DDSMTCmd (Thread):
             self.join()
             if is_golden:
                 raise DDSMTException ("initial run timed out")
-            self.log ("[!!] timeout: process terminated")
+            self.log (2, "[!!] timeout: process terminated")
         return (self.out, self.err)
 
 
