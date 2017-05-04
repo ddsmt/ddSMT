@@ -2,6 +2,7 @@
 #
 # ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
 # Copyright (c) 2013-2015, Aina Niemetz
+# Copyright (c) 2016-2017, Mathias Preiner 
 # 
 # This file is part of ddSMT.
 #
@@ -43,6 +44,7 @@ g_ntests = 0
 g_args = None
 g_smtformula = None
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
+g_tmpbin = "/tmp/ddsmt-bin-" + str(os.getpid())
 
 
 class DDSMTException (Exception):
@@ -82,6 +84,8 @@ class DDSMTCmd (Thread):
 def _cleanup ():
     if os.path.exists(g_tmpfile):
         os.remove(g_tmpfile)
+    if os.path.exists(g_tmpbin):
+        os.remove(g_tmpbin)
 
 
 def _log (verbosity, msg = "", update = False):
@@ -664,6 +668,8 @@ if __name__ == "__main__":
             #######
 
             shutil.copyfile(g_args.infile, g_tmpfile)
+            shutil.copy(g_args.cmd[0], g_tmpbin)  # make copy of binary
+            g_args.cmd[0] = g_tmpbin              # use copy for _run
             g_args.cmd.append(g_tmpfile)
             _log (1)
             _log (1, "starting initial run... ")
