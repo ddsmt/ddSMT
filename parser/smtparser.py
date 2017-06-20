@@ -252,7 +252,7 @@ class SMTParser:
                     instring,
                     flags=re.DOTALL)
             instring = re.sub(r';[^\n]*\n', ' ' , instring)
-            instring = re.sub(r'(\((?!_)|\(_)', r' \1 ', instring)
+            instring = re.sub(r'(\((?!_\s)|\(_\s)', r' \1 ', instring)
             
             pidx = instring.find(SMTParser.PIPE)
             qidx = instring.find(SMTParser.QUOTE)
