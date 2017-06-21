@@ -1,6 +1,6 @@
 #
 # ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (c) 2013, 2015, Aina Niemetz
+# Copyright (c) 2013-2017, Aina Niemetz
 # 
 # This file is part of ddSMT.
 #
@@ -139,6 +139,8 @@ class SMTParser:
     GETINFO   = "get-info"
     EXIT      = "exit"
 
+    PLACEHOLDER = "@::@"
+
     def __init__ (self):
         self.filename = ""
         self.tokens = []
@@ -242,17 +244,18 @@ class SMTParser:
             instring = re.sub(
                     r'set-info :source\s*\|.*?\|',
                     lambda x: re.sub(
-                        SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
+                        SMTParser.COMMENT, SMTParser.PLACEHOLDER, x.group(0)),
                     infile.read(),
                     flags=re.DOTALL)
             instring = re.sub (
                     r'".*?"', 
                     lambda x: re.sub(
-                        SMTParser.COMMENT, SMTParser.COMMA, x.group(0)),
+                        SMTParser.COMMENT, SMTParser.PLACEHOLDER, x.group(0)),
                     instring,
                     flags=re.DOTALL)
             instring = re.sub(r';[^\n]*\n', ' ' , instring)
             instring = re.sub(r'(\((?!_\s)|\(_\s)', r' \1 ', instring)
+            instring = re.sub(r'@::@', ';', instring)
             
             pidx = instring.find(SMTParser.PIPE)
             qidx = instring.find(SMTParser.QUOTE)
@@ -281,7 +284,6 @@ class SMTParser:
                 instring = part[2].partition(c)
             tokens.extend(re.sub(r'(?<!\\)\)', ' ) ', instring[2]).split())
             return tokens
-
     def __check_lpar (self, msg = "'(' expected"):
         if self.la != SMTParser.LPAR:
             raise SMTParseException (msg, self)
