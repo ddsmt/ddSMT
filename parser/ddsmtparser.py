@@ -342,20 +342,21 @@ class SMTSortExprNode (SMTNode):
 
 class SMTConstNode (SMTNode):
 
-    #__slots__ = ["value"]
-    __slots__ = ["value", "ostr"]  # TODO debug
+    __slots__ = ["value"]
+    #__slots__ = ["value", "ostr"]  # TODO debug
     
-    def __init__ (self, kind, sort, value = 0, ostr = ""): # TODO debug
+    def __init__ (self, kind, sort, value = 0):
+    #def __init__ (self, kind, sort, value = 0, ostr = ""): # TODO debug
         assert (kind in g_const_kinds)
         super().__init__(kind, sort)
         self.value = value
-        self.ostr = ostr # TODO debug
+        #self.ostr = ostr # TODO debug
 
     def __str__ (self):
         if self.is_subst():
             return str(self.get_subst())
-        #return str(self.value)
-        return self.ostr if self.ostr else str(self.value) # TODO debug
+        return str(self.value)
+        #return self.ostr if self.ostr else str(self.value) # TODO debug
 
     def is_const (self):
         return True
@@ -375,8 +376,8 @@ class SMTBVConstNode (SMTConstNode):
             return str(self.get_subst())
         if self.kind == KIND_CONSTH:
             ##### TODO debug
-            if self.ostr:
-                return self.ostr 
+            #if self.ostr:
+            #    return self.ostr 
             #### end debug
             shex = str(hex(self.value)[2:])
             nzeros = self.sort.bw // 4 - len(shex)
@@ -384,8 +385,8 @@ class SMTBVConstNode (SMTConstNode):
                     "".join(['0' for i in range(0, nzeros)]), shex)
         elif self.kind == KIND_CONSTB:
             ##### TODO debug
-            if self.ostr:
-                return self.ostr 
+            #if self.ostr:
+            #    return self.ostr 
             #### end debug
             sbin = str(bin(self.value)[2:])
             nzeros = self.sort.bw - len(sbin)
@@ -1170,8 +1171,8 @@ class SMTFormula:
         assert (ostr or kind == KIND_CONSTS)
         if ostr and ostr in self.consts_cache:
             return self.consts_cache[ostr]
-        # const = SMTConstNode (kind, sort, value)
-        const = SMTConstNode (kind, sort, value, ostr) # TODO debug
+        const = SMTConstNode (kind, sort, value)
+        #const = SMTConstNode (kind, sort, value, ostr) # TODO debug
         self.consts_cache[ostr] = const
         return const
 
@@ -1196,8 +1197,8 @@ class SMTFormula:
         assert (isinstance (bw, int))
         if ostr in self.consts_cache:
             return self.consts_cache[ostr]
-        #const = SMTBVConstNode (kind, self.bvSortNode(bw), value)
-        const = SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
+        const = SMTBVConstNode (kind, self.bvSortNode(bw), value)
+        #const = SMTBVConstNode (kind, self.bvSortNode(bw), value, ostr) # TODO debug
         self.consts_cache[ostr] = const
         return const
 
@@ -1663,8 +1664,8 @@ class DDSMTParser (SMTParser):
                         KIND_CONSTH, 
                         len(t[0][2:]) * 4,   # bw
                         int(t[0][2:], 16),   # value
-                        #t[0].lower()))
-                        t[0])) # TODO debug
+                        t[0].lower()))
+                        #t[0])) # TODO debug
 
 
             self.binary.set_parse_action (lambda t:
