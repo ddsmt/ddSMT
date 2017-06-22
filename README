@@ -95,7 +95,7 @@
 
   Invocation:
     
-		/path/to/ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]
+    /path/to/ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]
 
 
   Positional arguments:
