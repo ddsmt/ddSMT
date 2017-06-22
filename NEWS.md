@@ -10,8 +10,8 @@
     + added option to consider error output for determining failing input  
   
   Since version 0.97-beta:  
-    + fix: parser: ``to_int`` returned Real instead of Int  
-        (Thanks to Morgan Deters)
+    + fix: parser: ``to_int`` returned Real instead of Int
+      (Thanks to Morgan Deters)  
     + some other minor parser fixes  
   
   Since version 0.96-beta:  
