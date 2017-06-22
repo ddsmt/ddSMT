@@ -75,7 +75,7 @@ def _dump (filename = None, root = None):
     try:
         g_smtformula.dump(filename, root)
     except IOError as e:
-        raise DDSMTException (str(e))
+        raise DDSMTParserTestException (str(e))
 
 
 
