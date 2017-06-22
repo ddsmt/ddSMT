@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 #
 # ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (c) 2013-2015, Aina Niemetz
-# Copyright (c) 2016-2017, Mathias Preiner 
+# Copyright (C) 2013-2015, Aina Niemetz.
+# Copyright (C) 2016-2017, Mathias Preiner. 
 # 
 # This file is part of ddSMT.
 #
@@ -33,7 +33,7 @@ from threading import Thread
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 
-__version__ = "0.9-beta"
+__version__ = "1.0"
 __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 
 

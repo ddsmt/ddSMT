@@ -1,6 +1,5 @@
-#
 # ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (c) 2013-2017, Aina Niemetz
+# Copyright (C) 2013-2017, Aina Niemetz.
 # 
 # This file is part of ddSMT.
 #
