@@ -27,6 +27,7 @@ import sys
 import re
 
 from argparse import ArgumentParser, REMAINDER
+from subprocess import Popen, PIPE
 sys.path.insert(1, os.path.join(sys.path[0], '../../'))
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 from parser.smtparser import SMTParser
@@ -36,8 +37,8 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 
 
 g_args = None
-g_smtformula = None
-g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
+g_tmpfile = "/tmp/tmp-ddsmtparsertest-" + str(os.getpid()) + ".smt2"
+g_tmpinfile = "/tmp/tmp-ddsmtparsertest-fuzz-" + str(os.getpid()) + ".smt2"
 g_reg = None
 
 
@@ -52,8 +53,11 @@ class DDSMTParserTestException (Exception):
 
 
 def _cleanup ():
+    global g_tmpfile, g_tmpinfile
     if os.path.exists(g_tmpfile):
         os.remove(g_tmpfile)
+    if os.path.exists(g_tmpinfile):
+        os.remove(g_tmpinfile)
 
 
 
@@ -69,11 +73,9 @@ def _log (verbosity, msg = "", update = False):
 
 
 
-def _dump (filename = None, root = None):
-    global g_smtformula
-    assert (g_smtformula)
+def _dump (smtformula, filename = None, root = None):
     try:
-        g_smtformula.dump(filename, root)
+        smtformula.dump(filename, root)
     except IOError as e:
         raise DDSMTParserTestException (str(e))
 
@@ -115,6 +117,28 @@ def _cmp (file1, file2):
 
 
 
+def _runtest (infile):
+    global g_tmpfile
+    assert (g_tmpfile)
+    parser = DDSMTParser()
+    smtformula = parser.parse(infile)
+
+    _log (1, "parser: done")
+    _log (2, "parser: maxrss: {} MiB".format(
+        resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000))
+
+    _dump (smtformula, g_tmpfile)
+    _log (1, "dumper: done")
+    _log (1)
+
+    if not _cmp (infile, g_tmpfile):
+        bugfile = "bug-ddsmtparsertest-" + os.path.basename(infile)
+        shutil.copyfile(g_tmpfile, bugfile)
+        nbugs += 1
+        _log (1, "bug: " + bugfile)
+
+
+
 
 if __name__ == "__main__":
     try:
@@ -122,6 +146,10 @@ if __name__ == "__main__":
         aparser = ArgumentParser (usage=usage)
         aparser.add_argument ("-v", action="count", default=0, 
                               dest="verbosity", help="increase verbosity")
+        aparser.add_argument ("-f", dest="fuzzer", default=None,
+                              help="SMT-LIB v2 fuzzer (with CL options)")
+        aparser.add_argument ("-n", dest="nfuzzrounds", default=0,
+                              help="number of rounds to fuzz")
         aparser.add_argument (
                 "infilesdir", 
                 nargs = "?",
@@ -132,6 +160,7 @@ if __name__ == "__main__":
         g_args = aparser.parse_args()
         g_reg = re.compile(r'\s*([(]|[)])\s*')
         nbugs = 0
+        nfuzz = 0
 
         if g_args.infilesdir:
             if not os.path.exists(g_args.infilesdir):
@@ -148,22 +177,18 @@ if __name__ == "__main__":
 
             for infile in infiles:
                 _cleanup ()
-                parser = DDSMTParser()
-                g_smtformula = parser.parse(infile)
+                _runtest (infile)
 
-                _log (1, "parser: done")
-                _log (2, "parser: maxrss: {} MiB".format(
-                    resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000))
+            while g_args.fuzzer and nfuzz < g_args.nfuzzrounds:
+                nfuzz += 1
+                if os.path.exists(g_tmpinfile):
+                    os.remove(g_tmpinfile)
+                proc = Popen (g_args.fuzzer, stdout=PIPE, stderr=PIPE)
+                out, err = proc.communicate()
+                with open (g_tmpinfile, "w") as f:
+                    f.write(str(out))
+                _runtest(g_tmpinfile)
 
-                _dump (g_tmpfile)
-                _log (1, "dumper: done")
-                _log (1)
-
-                if not _cmp (infile, g_tmpfile):
-                    bugfile = "bug-ddsmtparsertest-" + os.path.basename(infile)
-                    shutil.copyfile(g_tmpfile, bugfile)
-                    nbugs += 1
-                    _log (1, "bug: " + bugfile)
             _log (0, "{} bugs found".format(nbugs)) 
             _cleanup()
             sys.exit(0)
