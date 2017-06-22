@@ -6,7 +6,7 @@
       (Thanks to Andres Nötzli)  
 
   Since version 0.98-beta:  
-    + fix: parser: did not split symbols on ``(`` 
+    + fix: parser: did not split symbols on ``(``  
     + added option to consider error output for determining failing input  
   
   Since version 0.97-beta:  
