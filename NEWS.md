@@ -1,7 +1,7 @@
  Changelog:
 -------------------------------------------------------------------------------
 
-Since version 0.99-beta:
+### Since version 0.99-beta:
   + fix: smt parser: indexed idents vs ``(`` + ident starting with ``_``
     (Thanks to Andres Nötzli)  
 
