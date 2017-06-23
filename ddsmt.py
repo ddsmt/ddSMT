@@ -596,8 +596,8 @@ if __name__ == "__main__":
         aparser.add_argument ("-o", action="store_false", dest="cmpoutput",
                               default = True,
                               help = "use err exit code only "\
-                                     "to identify failing input (default:"\
-                                     "err exit code and stderr output)")
+                                     "to identify failing input (default: "\
+                                     "error exit code and stderr output)")
         aparser.add_argument ("-O", action="store_false", dest="optimize",
                               default=True, 
                               help="enable assertions and debug code")
