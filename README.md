@@ -35,10 +35,6 @@
   which can be useful for hard to minimize input files with long solver 
   execution times.
 
-  Further note that ddSMT currently enables assertions and debug code by
-  default (as it is still a beta release). Use -O to remove assertions and
-  run ddSMT with python optimization flag -O enabled.
-
 
 #### Invocation:
     
@@ -58,7 +54,7 @@
     -v          increase verbosity  
     -o          use err exit code only to identify failing input  
                 (default:err exit code AND stderr output)  
-    -O          remove assertions and debug code  
+    -O          enable assertions and debug code  
     --version   show program's version number and exit  
 
 

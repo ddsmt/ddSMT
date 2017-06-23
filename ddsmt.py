@@ -598,9 +598,9 @@ if __name__ == "__main__":
                               help = "use err exit code only "\
                                      "to identify failing input (default:"\
                                      "err exit code and stderr output)")
-        aparser.add_argument ("-O", action="store_true", dest="optimize",
-                              default=False, 
-                              help="remove assertions and debug code")
+        aparser.add_argument ("-O", action="store_false", dest="optimize",
+                              default=True, 
+                              help="enable assertions and debug code")
         aparser.add_argument ("--version", action="version", 
                               version=__version__)
         g_args = aparser.parse_args()
