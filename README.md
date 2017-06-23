@@ -27,8 +27,7 @@
 -------------------------------------------------------------------------------
 
   ddSMT minimizes a failure-inducing input in SMT-LIB v2 format based on the
-  exit code of a given command when executed on that input. Note that any
-  output produced during that execution is ignored.
+  exit code and the error output of a given command when executed on that input.
 
   Note that ddSMT supports on-the-fly input minimization, i.e. as soon as an
   input minimization was successful it is available as the output file
@@ -41,24 +40,24 @@
   run ddSMT with python optimization flag -O enabled.
 
 
-  Invocation:
+#### Invocation:
     
     /path/to/ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]
 
 
-  Positional arguments:
+#### Positional arguments:
 
     infile:   the input file in SMT-LIB v2 format  
     outfile:  the outputfile  
     cmd:      the command to be executed (with optional arguments)  
 
-  Optional arguments:
+#### Optional arguments:
 
     -h, --help  show this help message and exit  
     -t val      timeout for test runs in seconds (default: none)  
     -v          increase verbosity  
-    -o          use err exit code AND err output to identify failing input  
-                (default:err exit code only)  
+    -o          use err exit code only to identify failing input  
+                (default:err exit code AND output)  
     -O          remove assertions and debug code  
     --version   show program's version number and exit  
 

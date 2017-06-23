@@ -593,8 +593,8 @@ if __name__ == "__main__":
                                    "(default: none)")
         aparser.add_argument ("-v", action="count", default=0, 
                               dest="verbosity", help="increase verbosity")
-        aparser.add_argument ("-o", action="store_true", dest="cmpoutput",
-                              default = False,
+        aparser.add_argument ("-o", action="store_false", dest="cmpoutput",
+                              default = True,
                               help = "use err exit code AND err output "\
                                      "to identify failing input (default:"\
                                      "err exit code only)")
