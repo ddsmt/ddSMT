@@ -595,9 +595,9 @@ if __name__ == "__main__":
                               dest="verbosity", help="increase verbosity")
         aparser.add_argument ("-o", action="store_false", dest="cmpoutput",
                               default = True,
-                              help = "use err exit code AND err output "\
+                              help = "use err exit code only "\
                                      "to identify failing input (default:"\
-                                     "err exit code only)")
+                                     "err exit code and stderr output)")
         aparser.add_argument ("-O", action="store_true", dest="optimize",
                               default=False, 
                               help="remove assertions and debug code")

@@ -57,7 +57,7 @@
     -t val      timeout for test runs in seconds (default: none)  
     -v          increase verbosity  
     -o          use err exit code only to identify failing input  
-                (default:err exit code AND output)  
+                (default:err exit code AND stderr output)  
     -O          remove assertions and debug code  
     --version   show program's version number and exit  
 
