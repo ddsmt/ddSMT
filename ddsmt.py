@@ -598,9 +598,6 @@ if __name__ == "__main__":
                               help = "use err exit code only "\
                                      "to identify failing input (default: "\
                                      "error exit code and stderr output)")
-        aparser.add_argument ("-O", action="store_false", dest="optimize",
-                              default=True, 
-                              help="enable assertions and debug code")
         aparser.add_argument ("--version", action="version", 
                               version=__version__)
         g_args = aparser.parse_args()
@@ -613,81 +610,70 @@ if __name__ == "__main__":
 #        if not g_args.cmd:  # special handling (nargs=REMAINDER)
 #            raise DDSMTException ("too few arguments")
         
-        if g_args.optimize:
-            for i in range(0, len(sys.argv)):
-                if sys.argv[i][0] == '-' and 'O' in sys.argv[i]:
-                    if len(sys.argv[i]) > 2:
-                        sys.argv[i] = sys.argv[i].replace("O", "")
-                        break
-                    else:
-                        sys.argv.remove("-O")
-                        break
-            os.execl(sys.executable, sys.executable, '-O', *sys.argv)
-        else:
-            if not os.path.exists(g_args.infile):
-                raise DDSMTException ("given input file does not exist")
-            if os.path.isdir(g_args.infile):
-                raise DDSMTException ("given input file is a directory")
-            #if os.path.exists(g_args.outfile):
-            #    raise DDSMTException ("given output file does already exist")
-            if not g_args.cmd:
-                raise DDSMTException ("command missing")
+        if not os.path.exists(g_args.infile):
+            raise DDSMTException ("given input file does not exist")
+        if os.path.isdir(g_args.infile):
+            raise DDSMTException ("given input file is a directory")
+        #if os.path.exists(g_args.outfile):
+        #    raise DDSMTException ("given output file does already exist")
+        if not g_args.cmd:
+            raise DDSMTException ("command missing")
 
-            _log (1, "input  file: '{}'".format(g_args.infile))
-            _log (1, "output file: '{}'".format(g_args.outfile))
-            _log (1, "command:     '{}'".format(
-                " ".join([str(c) for c in g_args.cmd])))
+        _log (1, "input  file: '{}'".format(g_args.infile))
+        _log (1, "output file: '{}'".format(g_args.outfile))
+        _log (1, "command:     '{}'".format(
+            " ".join([str(c) for c in g_args.cmd])))
 
-            ifilesize = os.path.getsize(g_args.infile)
+        ifilesize = os.path.getsize(g_args.infile)
 
-            parser = DDSMTParser()
-            g_smtformula = parser.parse(g_args.infile)
+        parser = DDSMTParser()
+        g_smtformula = parser.parse(g_args.infile)
 
-            #### debug
-            #to_visit = [g_smtformula.scopes]
-            #while to_visit:
-            #    scope = to_visit.pop()
-            #    print ("level: {}\ncommands: {}\nsorts: {}\nfuns:{}".format(
-            #        scope.level, 
-            #        " ".join([str(c) for c in scope.cmds]), 
-            #        " ".join([str(s) for s in scope.sorts]), 
-            #        " ".join([str(f) for f in scope.funs])))
-            #    to_visit.extend(scope.scopes)
-            #######
+        #### debug
+        #to_visit = [g_smtformula.scopes]
+        #while to_visit:
+        #    scope = to_visit.pop()
+        #    print ("level: {}\ncommands: {}\nsorts: {}\nfuns:{}".format(
+        #        scope.level, 
+        #        " ".join([str(c) for c in scope.cmds]), 
+        #        " ".join([str(s) for s in scope.sorts]), 
+        #        " ".join([str(f) for f in scope.funs])))
+        #    to_visit.extend(scope.scopes)
+        #######
 
-            _log (2)
-            _log (2, "parser: done")
-            _log (3, "parser: maxrss: {} MiB".format(
-                resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000))
+        _log (2)
+        _log (2, "parser: done")
+        _log (3, "parser: maxrss: {} MiB".format(
+            resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000))
 
-            #_dump(g_args.outfile)
-            #sys.exit(0)
-            ######
-            #_dump(g_args.outfile)
-            #sys.exit(0)
-            #######
+        #_dump(g_args.outfile)
+        #sys.exit(0)
+        ######
+        #_dump(g_args.outfile)
+        #sys.exit(0)
+        #######
 
-            shutil.copyfile(g_args.infile, g_tmpfile)
-            shutil.copy(g_args.cmd[0], g_tmpbin)  # make copy of binary
-            g_args.cmd[0] = g_tmpbin              # use copy for _run
-            g_args.cmd.append(g_tmpfile)
-            _log (1)
-            _log (1, "starting initial run... ")
-            (g_golden_exit, g_golden_err) = _run(True)
-            _log (1, "golden exit: {}".format(g_golden_exit))
-            if g_args.cmpoutput:
-                _log (1, "golden err: {}".format(
-                            str(g_golden_err.decode()).strip()))
-            ddsmt_main ()
-            
-            ofilesize = os.path.getsize(g_args.outfile)
+        shutil.copyfile(g_args.infile, g_tmpfile)
+        shutil.copy(g_args.cmd[0], g_tmpbin)  # make copy of binary
+        g_args.cmd[0] = g_tmpbin              # use copy for _run
+        g_args.cmd.append(g_tmpfile)
+        _log (1)
+        _log (1, "starting initial run... ")
+        (g_golden_exit, g_golden_err) = _run(True)
+        _log (1, "golden exit: {}".format(g_golden_exit))
+        if g_args.cmpoutput:
+            _log (1, "golden err: {}".format(
+                        str(g_golden_err.decode()).strip()))
+        ddsmt_main ()
+        
+        ofilesize = os.path.getsize(g_args.outfile)
 
-            _log (1)
-            _log (1, "input file size:  {} B (100%)".format(ifilesize))
-            _log (1, "output file size: {} B ({:3.2f}%)".format(
-                ofilesize, ofilesize / ifilesize * 100))
-            _cleanup()
-            sys.exit(0)
+        _log (1)
+        _log (1, "input file size:  {} B (100%)".format(ifilesize))
+        _log (1, "output file size: {} B ({:3.2f}%)".format(
+            ofilesize, ofilesize / ifilesize * 100))
+        _cleanup()
+        sys.exit(0)
     except (DDSMTParseException, DDSMTException) as e:
         _cleanup()
         sys.exit(str(e))

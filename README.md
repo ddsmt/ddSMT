@@ -54,7 +54,6 @@
     -v          increase verbosity  
     -o          use err exit code only to identify failing input
                 (default: error exit code AND stderr output)  
-    -O          enable assertions and debug code  
     --version   show program's version number and exit  
 
 
