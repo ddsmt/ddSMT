@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 #
-# ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (C) 2013-2015, Aina Niemetz.
-# Copyright (C) 2016-2017, Mathias Preiner. 
-# 
+# ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
+# Copyright (C) 2013-2018, Aina Niemetz.
+# Copyright (C) 2016-2017, Mathias Preiner.
+#
 # This file is part of ddSMT.
 #
 # ddSMT is free software: you can redistribute it and/or modify
@@ -51,7 +51,7 @@ class DDSMTException (Exception):
 
     def __init__ (self, msg):
         self.msg = msg
-   
+
     def __str__ (self):
         return "[ddsmt] Error: {}".format(self.msg)
 
@@ -178,7 +178,7 @@ def _filter_terms (filter_fun, roots):
 def _substitute (subst_fun, substlist, superset, with_vars = False):
     global g_smtformula
     assert (g_smtformula)
-    assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds, 
+    assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
                           g_smtformula.subst_nodes))
     nsubst_total = 0
     gran = len(superset)
@@ -197,9 +197,9 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
                     nsubst += 1
             if nsubst == 0:
                 continue
-            
+
             _dump (g_tmpfile)
-           
+
             if _test():
                 _dump (g_args.outfile)
                 nsubst_total += nsubst
@@ -241,7 +241,7 @@ def _substitute_scopes ():
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
 
-        
+
 def _substitute_cmds (filter_fun = None):
     global g_smtformula
     assert (g_smtformula)
@@ -265,7 +265,7 @@ def _substitute_terms (subst_fun, filter_fun, cmds, msg = None,
     nsubst_total = _substitute (
             subst_fun,
             g_smtformula.subst_nodes,
-            _filter_terms (filter_fun, [t for term_list in 
+            _filter_terms (filter_fun, [t for term_list in
                 [c.children if c.is_getvalue() else [c.children[-1]] \
                         for c in cmds] for t in term_list]),
             with_vars)
@@ -301,7 +301,7 @@ def ddsmt_main ():
             nscopes_subst += nsubst
         elif succeeded == "scopes":
             break
-        
+
         # initially, eliminate asserts only
         # -> prevent lots of likely unsuccessful testing when eliminating
         #    e.g. declare-funs previous to term substitution
@@ -313,10 +313,10 @@ def ddsmt_main ():
            succeeded = "cmds"
            nsubst_round += nsubst
            ncmds_subst += nsubst
-        elif succeeded == "cmds": 
+        elif succeeded == "cmds":
            break
 
-        cmds = [_filter_cmds (lambda x: x.is_definefun()), 
+        cmds = [_filter_cmds (lambda x: x.is_definefun()),
                 _filter_cmds (lambda x: x.is_assert()),
                 _filter_cmds (lambda x: x.is_getvalue())]
         cmds_msgs = ["'define-fun'", "'assert'", "'get-value'"]
@@ -325,7 +325,7 @@ def ddsmt_main ():
             if cmds[i]:
                 _log(2)
                 _log (2, "substitute TERMs in {} cmds:".format(cmds_msgs[i]))
-                
+
                 if sf.is_bv_logic():
                     nsubst = _substitute_terms (
                             lambda x: sf.bvZeroConstNode(x.sort),
@@ -344,7 +344,7 @@ def ddsmt_main ():
                                 else x.children[0].get_subst(),
                             lambda x: x.is_bvor() and \
                                 (x.children[0].get_subst().is_false_bvconst() \
-                                 or 
+                                 or
                                  x.children[1].get_subst().is_false_bvconst()),
                             cmds[i], "  substitute (bvor term false) with term")
                     if nsubst:
@@ -359,7 +359,7 @@ def ddsmt_main ():
                                 else x.children[0].get_subst(),
                             lambda x: x.is_and() and \
                                 (x.children[0].get_subst().is_true_bvconst() \
-                                 or 
+                                 or
                                  x.children[1].get_subst().is_true_bvconst()),
                             cmds[i], "  substitute (bvand term true) with term")
                     if nsubst:
@@ -373,7 +373,7 @@ def ddsmt_main ():
                             lambda x: not x.is_const()                   \
                                       and x.sort and x.sort.is_bv_sort() \
                                       and not sf.is_substvar(x),
-                            cmds[i], 
+                            cmds[i],
                             "  substitute BV terms with fresh variables",
                             True)
                     if nsubst:
@@ -400,7 +400,7 @@ def ddsmt_main ():
                             lambda x: not x.is_const()                    \
                                       and x.sort and x.sort.is_int_sort() \
                                       and not sf.is_substvar(x),
-                            cmds[i], 
+                            cmds[i],
                             "  substitute Int terms with fresh variables",
                             True)
                     if nsubst:
@@ -427,7 +427,7 @@ def ddsmt_main ():
                             lambda x: not x.is_const()                     \
                                       and x.sort and x.sort.is_real_sort() \
                                       and not sf.is_substvar(x),
-                            cmds[i], 
+                            cmds[i],
                             "  substitute Int terms with fresh variables",
                             True)
                     if nsubst:
@@ -458,7 +458,7 @@ def ddsmt_main ():
                     nterms_subst += nsubst
                 elif succeeded == "varb_{}".format(i):
                     break
-                    
+
                 nsubst = _substitute_terms (
                         lambda x: sf.boolConstNode("false"),
                         lambda x: not x.is_const() \
@@ -512,13 +512,13 @@ def ddsmt_main ():
                     nterms_subst += nsubst
                 elif succeeded == "and_{}".format(i):
                     break
-            
+
                 nsubst = _substitute_terms (
                         lambda x: sf.add_fresh_declfunCmdNode(x.sort),
                         lambda x: not x.is_const()                   \
                                   and x.sort and x.sort.is_bool_sort() \
                                   and not sf.is_substvar(x),
-                        cmds[i], 
+                        cmds[i],
                         "  substitute Boolean terms with fresh variables",
                         True)
                 if nsubst:
@@ -580,25 +580,25 @@ if __name__ == "__main__":
     try:
         usage="ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]"
         aparser = ArgumentParser (usage=usage)
-        aparser.add_argument ("infile", 
+        aparser.add_argument ("infile",
                               help="the input file (in SMT-LIB v2 format)")
         aparser.add_argument ("outfile",
                               help="the output file")
-        aparser.add_argument ("cmd", nargs=REMAINDER, 
+        aparser.add_argument ("cmd", nargs=REMAINDER,
                               help="the command (with optional arguments)")
 
         aparser.add_argument ("-t", dest="timeout", metavar="val",
-                              default=None, type=float, 
+                              default=None, type=float,
                               help="timeout for test runs in seconds "\
                                    "(default: none)")
-        aparser.add_argument ("-v", action="count", default=0, 
+        aparser.add_argument ("-v", action="count", default=0,
                               dest="verbosity", help="increase verbosity")
         aparser.add_argument ("-o", action="store_false", dest="cmpoutput",
                               default = True,
                               help = "use err exit code only "\
                                      "to identify failing input (default: "\
                                      "error exit code and stderr output)")
-        aparser.add_argument ("--version", action="version", 
+        aparser.add_argument ("--version", action="version",
                               version=__version__)
         g_args = aparser.parse_args()
 
@@ -609,7 +609,7 @@ if __name__ == "__main__":
 # TODO profile debug
 #        if not g_args.cmd:  # special handling (nargs=REMAINDER)
 #            raise DDSMTException ("too few arguments")
-        
+
         if not os.path.exists(g_args.infile):
             raise DDSMTException ("given input file does not exist")
         if os.path.isdir(g_args.infile):
@@ -634,9 +634,9 @@ if __name__ == "__main__":
         #while to_visit:
         #    scope = to_visit.pop()
         #    print ("level: {}\ncommands: {}\nsorts: {}\nfuns:{}".format(
-        #        scope.level, 
-        #        " ".join([str(c) for c in scope.cmds]), 
-        #        " ".join([str(s) for s in scope.sorts]), 
+        #        scope.level,
+        #        " ".join([str(c) for c in scope.cmds]),
+        #        " ".join([str(s) for s in scope.sorts]),
         #        " ".join([str(f) for f in scope.funs])))
         #    to_visit.extend(scope.scopes)
         #######
@@ -665,7 +665,7 @@ if __name__ == "__main__":
             _log (1, "golden err: {}".format(
                         str(g_golden_err.decode()).strip()))
         ddsmt_main ()
-        
+
         ofilesize = os.path.getsize(g_args.outfile)
 
         _log (1)

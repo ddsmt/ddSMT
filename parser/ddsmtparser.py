@@ -1,6 +1,6 @@
-# ddSMT: a delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (C) 2013-2014, Aina Niemetz.
-# 
+# ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
+# Copyright (C) 2013-2018, Aina Niemetz.
+#
 # This file is part of ddSMT.
 #
 # ddSMT is free software: you can redistribute it and/or modify
@@ -135,16 +135,16 @@ KIND_SETOPT    = "set-option"
 
 
 g_const_kinds = \
-    [ KIND_CONST, KIND_CONSTB, KIND_CONSTD, KIND_CONSTN, KIND_CONSTH, 
+    [ KIND_CONST, KIND_CONSTB, KIND_CONSTD, KIND_CONSTN, KIND_CONSTH,
       KIND_CONSTS ]
 
 g_fun_kinds   = \
     [ KIND_ABS,    KIND_ADD,    KIND_AND,    KIND_BVADD,  KIND_BVAND,
-      KIND_BVASHR, KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, 
+      KIND_BVASHR, KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND,
       KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,   KIND_BVSDIV,
-      KIND_BVSGE,  KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT, 
+      KIND_BVSGE,  KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,
       KIND_BVSMOD, KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,
-      KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR, 
+      KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR,
       KIND_BVXOR,  KIND_CONC,   KIND_DIST,   KIND_DIV,    KIND_EQ,
       KIND_EXTR,   KIND_GE,     KIND_GT,     KIND_IMPL,   KIND_ISI,
       KIND_ITE,    KIND_LE,     KIND_LT,     KIND_MOD,    KIND_MUL,
@@ -153,8 +153,8 @@ g_fun_kinds   = \
       KIND_SUB,    KIND_TOI,    KIND_TOR,    KIND_XOR,    KIND_ZEXT]
 
 g_cmd_kinds   = \
-    [ KIND_ASSERT,   KIND_CHECKSAT, KIND_DECLFUN,   KIND_DEFFUN, 
-      KIND_DECLSORT, KIND_DEFSORT,  KIND_GETASSERT, KIND_GETASSIGN, 
+    [ KIND_ASSERT,   KIND_CHECKSAT, KIND_DECLFUN,   KIND_DEFFUN,
+      KIND_DECLSORT, KIND_DEFSORT,  KIND_GETASSERT, KIND_GETASSIGN,
       KIND_GETPROOF, KIND_GETUCORE, KIND_GETVALUE,  KIND_GETOPT,
       KIND_GETINFO,  KIND_EXIT,     KIND_PUSH,      KIND_POP,
       KIND_SETLOGIC, KIND_SETINFO,  KIND_SETOPT ]
@@ -165,7 +165,7 @@ class DDSMTParseCheckException (Exception):
 
     def __init__ (self, msg):
         self.msg = msg
-    
+
     def __str__ (self):
         return "[ddsmt] Error: {}".format(self.msg)
 
@@ -267,7 +267,7 @@ class SMTSortNode (SMTNode):
         super().__init__(kind)
         self.name = name
         self.nparams = nparams
-    
+
     def __str__ (self):
         return self.name
 
@@ -293,7 +293,7 @@ class SMTArraySortNode (SMTSortNode):
 
     def __init__ (self, index_sort = None, elem_sort = None):
         super().__init__(
-                SMTArraySortNode.get_name(index_sort, elem_sort), 
+                SMTArraySortNode.get_name(index_sort, elem_sort),
                 2, KIND_ARRSORT)
         self.index_sort = index_sort
         self.elem_sort = elem_sort
@@ -331,7 +331,7 @@ class SMTSortExprNode (SMTNode):
     def __init__ (self, sort, symbols = []):
         super().__init__(KIND_SORTEXPR, sort)
         self.symbols = symbols  # arg symbols
-        
+
     def __str__ (self):
         if self.is_subst():
             return str(self.get_subst())
@@ -344,7 +344,7 @@ class SMTConstNode (SMTNode):
 
     __slots__ = ["value"]
     #__slots__ = ["value", "ostr"]  # TODO debug
-    
+
     def __init__ (self, kind, sort, value = 0):
     #def __init__ (self, kind, sort, value = 0, ostr = ""): # TODO debug
         assert (kind in g_const_kinds)
@@ -377,7 +377,7 @@ class SMTBVConstNode (SMTConstNode):
         if self.kind == KIND_CONSTH:
             ##### TODO debug
             #if self.ostr:
-            #    return self.ostr 
+            #    return self.ostr
             #### end debug
             shex = str(hex(self.value)[2:])
             nzeros = self.sort.bw // 4 - len(shex)
@@ -386,7 +386,7 @@ class SMTBVConstNode (SMTConstNode):
         elif self.kind == KIND_CONSTB:
             ##### TODO debug
             #if self.ostr:
-            #    return self.ostr 
+            #    return self.ostr
             #### end debug
             sbin = str(bin(self.value)[2:])
             nzeros = self.sort.bw - len(sbin)
@@ -442,8 +442,8 @@ class SMTAnFunNode (SMTNode):
                 "(as {!s} {!s})".format(self.fun, self.sort)
 
 
-class SMTFunAppNode (SMTNode):        
-         
+class SMTFunAppNode (SMTNode):
+
     __slots__ = ["fun"]
 
     def __init__ (self, fun, kind, sort, children):
@@ -477,7 +477,7 @@ class SMTFunAppNode (SMTNode):
                         cs.append(strings.pop())
                     strings.append(
                             "({} {})".format(
-                                cur.fun, 
+                                cur.fun,
                                 " ".join([s for s in cs])))
         assert (len(strings) == 1)
         return strings.pop()
@@ -508,7 +508,7 @@ class SMTFunAppNode (SMTNode):
 
     def is_or (self):
         return self.kind == KIND_OR
-    
+
     def is_bvand (self):
         return self.kind == KIND_BVAND
 
@@ -555,7 +555,7 @@ class SMTVarBindNode (SMTNode):
 
 
 class SMTSortedQVarNode (SMTNode):
-    
+
     __slots__ = ["var"]
 
     def __init__ (self, var):
@@ -563,7 +563,7 @@ class SMTSortedQVarNode (SMTNode):
         assert (var.sort)
         super().__init__(KIND_SVAR, var.sort)
         self.var = var
-        
+
     def __str__ (self):
         return str(self.var)
 
@@ -599,7 +599,7 @@ class SMTForallExistsNode (SMTNode):
                     assert (len(strings) == 1)
                     strings.append(
                             "({} ({}) {})".format(
-                                cur.kind, 
+                                cur.kind,
                                 " ".join(
                                     ["({} {!s})".format(s.var.name, s.var.sort)
                                     for s in cur.svars]) \
@@ -665,7 +665,7 @@ class SMTLetNode (SMTNode):
                         cs.append(strings.pop())
                     strings.append(
                             "({} ({}) {})".format(
-                                cur.kind, 
+                                cur.kind,
                                 " ".join([s for s in cs[0:-1]]),
                                 cs[-1]))
         assert (len(strings) == 1)
@@ -726,9 +726,9 @@ class SMTAnnNode (SMTNode):
     def __str__ (self):
         return str(self.get_subst()) if self.is_subst() else \
                 "(! {!s} {})".format(
-                        self.children[0], 
+                        self.children[0],
                         " ".join([str(a) for a in self.attributes]))
-    
+
 
 class SMTNamedAnnNode (SMTAnnNode):
 
@@ -740,7 +740,7 @@ class SMTNamedAnnNode (SMTAnnNode):
         # ':named' is given
         self.name = name
         self.indices = []
-        # distinguish full and name-only dumps 
+        # distinguish full and name-only dumps
         self.dumped = False
 
     def dump (self, outfile, lead = " "):
@@ -755,7 +755,7 @@ class SMTNamedAnnNode (SMTAnnNode):
                 self.dumped = True
 
 
-class SMTCmdNode:         
+class SMTCmdNode:
 
     __slots__ = ["id", "kind", "children"]
     g_id = 0
@@ -778,7 +778,7 @@ class SMTCmdNode:
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
             return "({} {} ({}) {})".format(
-                    self.kind, 
+                    self.kind,
                     fun.name,
                     " ".join([str(s) for s in fun.sorts]) \
                             if len(fun.sorts) > 0 else "",
@@ -792,7 +792,7 @@ class SMTCmdNode:
             return "({} {} ({}) {!s} {!s})".format(
                     self.kind,
                     fun.name,
-                    " ".join(["({} {!s})".format(s.name, s.sort) 
+                    " ".join(["({} {!s})".format(s.name, s.sort)
                               for s in svars]) if len(svars) > 0 else "",
                     fun.sort,
                     fterm)
@@ -816,7 +816,7 @@ class SMTCmdNode:
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
             outfile.write("({} {} ({}) {})\n".format(
-                    self.kind, 
+                    self.kind,
                     fun.name,
                     " ".join([str(s) for s in fun.sorts]) \
                             if len(fun.sorts) > 0 else "",
@@ -830,7 +830,7 @@ class SMTCmdNode:
             outfile.write("({} {} ({}) {!s}".format(
                     self.kind,
                     fun.name,
-                    " ".join(["({} {!s})".format(s.name, s.sort) 
+                    " ".join(["({} {!s})".format(s.name, s.sort)
                               for s in svars]) if len(svars) > 0 else "",
                     fun.sort))
             fterm.dump(outfile)
@@ -873,7 +873,7 @@ class SMTCmdNode:
 
     def is_assert (self):
         return self.kind == KIND_ASSERT
-    
+
     def is_definefun (self):
         return self.kind == KIND_DEFFUN
 
@@ -910,7 +910,7 @@ class SMTPushCmdNode (SMTCmdNode):
         # Note: self.scope is the scope directly associated with this push
         #       i.e. for e.g. push 2, 2 scopes are opened and the first one
         #       is the  one associated with the resp. push command
-        
+
     def __str__ (self):
         return "" if self.is_subst() else \
                 "({} {})".format(self.kind, self.nscopes)
@@ -994,7 +994,7 @@ class SMTScopeNode:
                 cmd.scope.dump(outfile)
             else:
                 cmd.dump(outfile)
-        
+
     def is_regular (self):
         return self.kind == KIND_SCOPE
 
@@ -1084,9 +1084,9 @@ class SMTFormula:
     def dump (self, filename = None, root = None):
         out = root if root != None else self.scopes
         for ann in self.anns_cache:
-            ann.dumped = False  # reset 
+            ann.dumped = False  # reset
         if not filename:
-            out.dump(sys.stdout)    
+            out.dump(sys.stdout)
             sys.stdout.write("\n")
         else:
             with open(filename, 'w') as outfile:
@@ -1104,7 +1104,7 @@ class SMTFormula:
 
     def is_arr_logic (self):
         return self.logic == "ALL" or \
-               self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV", 
+               self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV",
                               "QF_AUFBV", "QF_AUFLIA", "QF_AX")
 
     def is_substvar (self, node):
@@ -1132,18 +1132,18 @@ class SMTFormula:
 
     def get_subst (self, node):
         if isinstance (node, SMTScopeNode):
-            assert (not self.subst_scopes.is_subst(node) or 
+            assert (not self.subst_scopes.is_subst(node) or
                         self.subst_scopes.get_subst(node) == None)
             return self.subst_scopes.get_subst(node)
         elif isinstance (node, SMTCmdNode):
-            assert (not self.subst_cmds.is_subst(node) or 
+            assert (not self.subst_cmds.is_subst(node) or
                     self.subst_cmds.get_subst(node) == None)
             return self.subst_cmds.get_subst(node)
         assert (isinstance (node, SMTNode))
         return self.subst_nodes.get_subst(node)
 
     def open_scope (self, nscopes = 1, kind = KIND_SCOPE):
-        assert (kind == KIND_SCOPE or nscopes == 1) 
+        assert (kind == KIND_SCOPE or nscopes == 1)
         # Note: forall, exists open exactly one scope
         first_scope = None
         for i in range (nscopes):
@@ -1212,11 +1212,11 @@ class SMTFormula:
         if name in self.sorts_cache:
             return (self.sorts_cache[name].sorts[name], self.sorts_cache[name])
         return None
-        
+
     def find_sort (self, name):
         res = self.find_sort_and_scope (name)
         return res[0] if res else None
-    
+
     def add_sort (self, name, nparams = 0, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
         assert (not self.find_sort (name))
@@ -1293,7 +1293,7 @@ class SMTFormula:
                name = name[1:-1]
             else:
                 name = "|{}|".format(name)
-        # Note: we check stepwise, first for the current scope, and only if 
+        # Note: we check stepwise, first for the current scope, and only if
         #       requested for scopes outer to the current (needed to enable
         #       overwriting of variables in let, forall, exists)
         if name in scope.funs:
@@ -1320,7 +1320,7 @@ class SMTFormula:
                 del(scope.funs[name])
             scope = scope.prev
 
-    def funNode (self, name, sort, sorts = [], indices = [], children = [], 
+    def funNode (self, name, sort, sorts = [], indices = [], children = [],
                  scope = None, find_nested = True):
         global g_fun_kinds
         scope = scope if scope and name not in g_fun_kinds \
@@ -1352,12 +1352,12 @@ class SMTFormula:
                 raise DDSMTParseCheckException (
                         "function '{!s}' undeclared".format(c))
         # number of args check
-        if ((len(children) != 1 and 
+        if ((len(children) != 1 and
                  kind in (KIND_ABS, KIND_BVNEG, KIND_BVNOT, KIND_EXTR, KIND_ISI,
                           KIND_NOT, KIND_NEG,   KIND_TOI,   KIND_TOR,  KIND_REP,
                           KIND_ROL, KIND_ROR,   KIND_SEXT,  KIND_ZEXT)) or
             (len(children) != 2 and
-                 kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP, 
+                 kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP,
                           KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
                           KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,
                           KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD,
@@ -1365,7 +1365,7 @@ class SMTFormula:
                           KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM,
                           KIND_BVXNOR, KIND_BVXOR,  KIND_CONC,   KIND_MOD,
                           KIND_SELECT)) or
-            (len(children) != 3 and 
+            (len(children) != 3 and
                 kind in (KIND_ITE, KIND_STORE))):
             raise DDSMTParseCheckException (
                     "invalid number of arguments to '{!s}': {}" \
@@ -1403,7 +1403,7 @@ class SMTFormula:
                         "'{!s}' expects sort 'Real' as argument(s)" \
                         "".format(fun))
         # args Int or Real check
-        elif kind in (KIND_ADD, KIND_GE, KIND_GT, KIND_LE, KIND_LT, KIND_MUL, 
+        elif kind in (KIND_ADD, KIND_GE, KIND_GT, KIND_LE, KIND_LT, KIND_MUL,
                       KIND_NEG, KIND_SUB):
             c0 = children[0]
             if c0.sort not in (sortint, sortreal):
@@ -1411,7 +1411,7 @@ class SMTFormula:
                     "'{!s}' expects sort 'Int' or 'Real' as argument(s)" \
                     "".format(fun))
         # args BV sort check
-        elif kind in (KIND_CONC, KIND_EXTR, KIND_REP,   KIND_ROL,  KIND_ROR, 
+        elif kind in (KIND_CONC, KIND_EXTR, KIND_REP,   KIND_ROL,  KIND_ROR,
                       KIND_SEXT, KIND_ZEXT, KIND_BVNEG, KIND_BVNOT):
             for c in children:
                 if not c.sort.is_bv_sort:
@@ -1426,14 +1426,14 @@ class SMTFormula:
                    and c.sort not in (sortint, sortreal):
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
-                        "".format(fun, c0.sort, c.sort)) 
+                        "".format(fun, c0.sort, c.sort))
         # args equal bw check
-        elif kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP, 
+        elif kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP,
                       KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
-                      KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,  
-                      KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD, 
-                      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,  
-                      KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, 
+                      KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,
+                      KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD,
+                      KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,
+                      KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM,
                       KIND_BVXNOR, KIND_BVXOR):
             c0 = children[0]
             if not c0.sort.is_bv_sort:
@@ -1443,7 +1443,7 @@ class SMTFormula:
                 if c.sort != c0.sort:
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
-                        "".format(fun, c0.sort, c.sort)) 
+                        "".format(fun, c0.sort, c.sort))
         # first arg Array check
         elif kind in (KIND_SELECT, KIND_STORE):
             if not children[0].sort.is_arr_sort():
@@ -1459,7 +1459,7 @@ class SMTFormula:
                and children[2].sort not in (sortreal, sortint):
                     raise DDSMTParseCheckException (
                         "'ite' with mismatching sorts: '{!s}' '{!s}'"\
-                        "".format(children[1].sort, children[2].sort)) 
+                        "".format(children[1].sort, children[2].sort))
         # not predefined
         else:
             declfun = self.find_fun (fun.name)
@@ -1484,7 +1484,7 @@ class SMTFormula:
     def funApp2sort (self, fun, kind, children):
         self.check_funApp(fun, kind, children)
         # sort Bool
-        if kind in (KIND_AND,   KIND_IMPL,  KIND_NOT,   KIND_OR,    KIND_XOR, 
+        if kind in (KIND_AND,   KIND_IMPL,  KIND_NOT,   KIND_OR,    KIND_XOR,
                     KIND_EQ,    KIND_DIST,  KIND_LE,    KIND_LT,    KIND_GE,
                     KIND_GT,    KIND_ISI,   KIND_BVSGE, KIND_BVSGT, KIND_BVSLE,
                     KIND_BVSLT, KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT):
@@ -1512,16 +1512,16 @@ class SMTFormula:
             if True in [c.sort == self.sortNode("Real") for c in children]:
                 return self.sortNode("Real")
             return children[0].sort
-            
+
         elif kind in (KIND_NEG,    KIND_ROL,    KIND_ROR,    KIND_BVADD,
                       KIND_BVAND,  KIND_BVASHR, KIND_BVLSHR, KIND_BVMUL,
                       KIND_BVNAND, KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,
                       KIND_BVOR,   KIND_BVSDIV, KIND_BVSHL,  KIND_BVSMOD,
-                      KIND_BVSREM, KIND_BVSUB,  KIND_BVUDIV, KIND_BVUREM, 
+                      KIND_BVSREM, KIND_BVSUB,  KIND_BVUDIV, KIND_BVUREM,
                       KIND_BVXNOR, KIND_BVXOR):
             return children[0].sort
         # special cases
-        elif kind == KIND_ITE: 
+        elif kind == KIND_ITE:
             if True in [c.sort == self.sortNode("Real") for c in children[1:]]:
                 return self.sortNode("Real")
             return children[1].sort
@@ -1561,7 +1561,7 @@ class SMTFormula:
         self.close_scope()
         return SMTLetNode (ch) if kind == KIND_LET \
                                else SMTForallExistsNode (svars, kind, ch)
-    
+
     def annNode (self, attributes, sort, children):
         for attrib in attributes:
             attrib = attrib.split()
@@ -1621,7 +1621,7 @@ class SMTFormula:
             assert (varb.scope.kind == KIND_LSCOPE)
             assert (varb.scope == self.cur_scope)
             assert (self.find_fun(varb.var.name, scope=self.cur_scope))
-        return True     
+        return True
 
     def __assert_svar (self, sorted_vars):
         for svar in sorted_vars:
@@ -1633,7 +1633,7 @@ class SMTFormula:
 
 
 class DDSMTParser (SMTParser):
-    
+
     def __init__ (self):
         super().__init__()
         self.smtformula = SMTFormula()
@@ -1662,7 +1662,7 @@ class DDSMTParser (SMTParser):
 
             self.hexadecimal.set_parse_action (lambda t:
                     sf.bvConstNode (
-                        KIND_CONSTH, 
+                        KIND_CONSTH,
                         len(t[0][2:]) * 4,   # bw
                         int(t[0][2:], 16),   # value
                         t[0].lower()))
@@ -1683,7 +1683,7 @@ class DDSMTParser (SMTParser):
 
             self.symbol.set_parse_action (lambda t: str(t))
             self.keyword.set_parse_action (lambda t: str(t))
-            
+
             self.spec_constant.set_parse_action (lambda t: t[0])
 
             self.s_expr.set_parse_action (lambda t:
@@ -1692,16 +1692,16 @@ class DDSMTParser (SMTParser):
 
             self.sort.set_parse_action (self.__sort2SMTNode)
             self.sort_expr.set_parse_action (self.__sortExpr2SMTNode)
-            
+
             self.attr_value.set_parse_action (lambda t:
                     "({})".format(" ".join([str(to) for to in t[1]])) \
                             if t[0] == SMTParser.LPAR else t[0])
 
-            self.attribute.set_parse_action (lambda t: 
+            self.attribute.set_parse_action (lambda t:
                     " ".join([str(to) for to in t]))
 
             self.qual_ident.set_parse_action (self.__qualIdent2SMTNode)
-            
+
             self.var_binding.set_parse_action(self.__varBinding2SMTNode)
 
             self.sorted_var.set_parse_action (lambda t:
@@ -1715,7 +1715,7 @@ class DDSMTParser (SMTParser):
 
             self.term.set_parse_action (self.__term2SMTNode)
 
-            self.option.set_parse_action (lambda t: 
+            self.option.set_parse_action (lambda t:
                     " ".join([str(to) for to in t]))
 
             self.command.set_parse_action (self.__cmd2SMTCmdNode)
@@ -1779,7 +1779,7 @@ class DDSMTParser (SMTParser):
                     assert (isinstance(t_sorts[0], SMTSortNode))
                     assert (isinstance(t_sorts[1], SMTSortNode))
                     return SMTSortExprNode (
-                            sf.arrSortNode (), 
+                            sf.arrSortNode (),
                             [str(t_sorts[0]), str(t_sorts[1])])
                 sort = sf.sortNode (str(t_ident))
                 if len(t_sorts) != sort.nparams:
@@ -1790,7 +1790,7 @@ class DDSMTParser (SMTParser):
                 return SMTSortExprNode (sort, t_sorts)
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, self)
-    
+
 
     def __qualIdent2SMTNode (self, t):
         sf = self.smtformula
@@ -1805,16 +1805,16 @@ class DDSMTParser (SMTParser):
                         value = t_ident[2][0].value
                         bw = int(t_ident[1][2:])
                         return sf.bvConstNode (
-                                KIND_CONSTN, 
-                                value, 
-                                bw, 
+                                KIND_CONSTN,
+                                value,
+                                bw,
                                 "(_ bv{} {})".format(value, bw))
                     else:
                         assert (len(t_ident) > 1)
                         name = "(_ {} {})".format(
                                 str(t_ident[1]),
                                 " ".join([str(s) for s in t_ident[2]]))
-                        return sf.funNode (name, None, [], t_ident[2], 
+                        return sf.funNode (name, None, [], t_ident[2],
                                            scope=sf.cur_scope)
                 else:
                     return sf.funNode (str(t_ident), None, scope=sf.cur_scope)
@@ -1832,14 +1832,14 @@ class DDSMTParser (SMTParser):
                     return sf.anFunNode (str(t_ident), t_sort)
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, self)
-    
+
     def __varBinding2SMTNode (self, t, cnt = 1):
         sf = self.smtformula
         if cnt == 1:  # open scope at first var binding
             sf.open_scope(kind = KIND_LSCOPE)
         varb = SMTVarBindNode (
                 sf.funNode (
-                    str(t[0]), t[1].sort, [], [], [], sf.cur_scope, False), 
+                    str(t[0]), t[1].sort, [], [], [], sf.cur_scope, False),
                 [t[1]])
         return varb
 
@@ -1923,7 +1923,7 @@ class DDSMTParser (SMTParser):
             sorts = [to.sort for to in t[2]]
             return sf.cmdNode (
                     KIND_DEFFUN,
-                    [sf.funNode (t[1], t[3], sorts, [], [t[4]], sf.cur_scope), 
+                    [sf.funNode (t[1], t[3], sorts, [], [t[4]], sf.cur_scope),
                      t[2], t[4]])
         elif kind == KIND_GETVALUE:
             assert (len(t) == 2)
