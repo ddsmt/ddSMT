@@ -1094,16 +1094,17 @@ class SMTFormula:
                 outfile.write("\n")
 
     def is_bv_logic (self):
-        return self.logic.find("BV") >= 0
+        return self.logic == "ALL" or self.logic.find("BV") >= 0
 
     def is_int_logic (self):
-        return self.logic.find("I") >= 0
+        return self.logic == "ALL" or self.logic.find("I") >= 0
 
     def is_real_logic (self):
-        return self.logic.find("R") >= 0
+        return self.logic == "ALL" or self.logic.find("R") >= 0
 
     def is_arr_logic (self):
-        return self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV", 
+        return self.logic == "ALL" or
+               self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV", 
                               "QF_AUFBV", "QF_AUFLIA", "QF_AX")
 
     def is_substvar (self, node):
