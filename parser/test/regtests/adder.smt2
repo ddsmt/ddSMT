@@ -1,7 +1,7 @@
 (set-logic QF_AUFBV)
 (declare-fun a () (Array (_ BitVec 1) (_ BitVec 1)))
 (declare-fun b () (Array (_ BitVec 1) (_ BitVec 1)))
-(declare-fun X () (_ BitVec 2))
+(declare-const X (_ BitVec 2))
 (declare-fun Y () (_ BitVec 2))
 (define-fun s ((i (_ BitVec 1)) (c_in (_ BitVec 1))) (_ BitVec 1)
   (let ((x (select a i)) (y (select b i)))

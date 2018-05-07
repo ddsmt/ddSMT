@@ -123,6 +123,7 @@ class SMTParser:
     SETINFO   = "set-info"
     DECLSORT  = "declare-sort"
     DEFSORT   = "define-sort"
+    DECLCONST = "declare-const"
     DECLFUN   = "declare-fun"
     DEFFUN    = "define-fun"
     PUSH      = "push"
@@ -746,6 +747,10 @@ class SMTParser:
             self.__check_rpar()
             # sort_expr: prevent over-eager sort checking if define-sort
             tokens.append(self.sort_expr.parse_action(self.__sort_expr()))
+        elif self.la == SMTParser.DECLCONST:
+            self.__scan()
+            tokens.append(self.symbol.parse_action(self.__symbol()))
+            tokens.append(self.sort.parse_action(self.__sort()))
         elif self.la == SMTParser.DECLFUN:
             self.__scan()
             tokens.append(self.symbol.parse_action(self.__symbol()))

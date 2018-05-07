@@ -115,6 +115,7 @@ KIND_STORE     = "store"
 
 KIND_ASSERT    = "assert"
 KIND_CHECKSAT  = "check-sat"
+KIND_DECLCONST = "declare-const"
 KIND_DECLFUN   = "declare-fun"
 KIND_DEFFUN    = "define-fun"
 KIND_DECLSORT  = "declare-sort"
@@ -135,29 +136,102 @@ KIND_SETOPT    = "set-option"
 
 
 g_const_kinds = \
-    [ KIND_CONST, KIND_CONSTB, KIND_CONSTD, KIND_CONSTN, KIND_CONSTH,
-      KIND_CONSTS ]
+    [
+        KIND_CONST,
+        KIND_CONSTB,
+        KIND_CONSTD,
+        KIND_CONSTN,
+        KIND_CONSTH,
+        KIND_CONSTS
+    ]
 
 g_fun_kinds   = \
-    [ KIND_ABS,    KIND_ADD,    KIND_AND,    KIND_BVADD,  KIND_BVAND,
-      KIND_BVASHR, KIND_BVCOMP, KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND,
-      KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,  KIND_BVOR,   KIND_BVSDIV,
-      KIND_BVSGE,  KIND_BVSGT,  KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,
-      KIND_BVSMOD, KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,
-      KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM, KIND_BVXNOR,
-      KIND_BVXOR,  KIND_CONC,   KIND_DIST,   KIND_DIV,    KIND_EQ,
-      KIND_EXTR,   KIND_GE,     KIND_GT,     KIND_IMPL,   KIND_ISI,
-      KIND_ITE,    KIND_LE,     KIND_LT,     KIND_MOD,    KIND_MUL,
-      KIND_NEG,    KIND_NOT,    KIND_OR,     KIND_RDIV,   KIND_REP,
-      KIND_ROL,    KIND_ROR,    KIND_SELECT, KIND_SEXT,   KIND_STORE,
-      KIND_SUB,    KIND_TOI,    KIND_TOR,    KIND_XOR,    KIND_ZEXT]
+    [
+        KIND_ABS,
+        KIND_ADD,
+        KIND_AND,
+        KIND_BVADD,
+        KIND_BVAND,
+        KIND_BVASHR,
+        KIND_BVCOMP,
+        KIND_BVLSHR,
+        KIND_BVMUL,
+        KIND_BVNAND,
+        KIND_BVNEG,
+        KIND_BVNOR,
+        KIND_BVNOT,
+        KIND_BVOR,
+        KIND_BVSDIV,
+        KIND_BVSGE,
+        KIND_BVSGT,
+        KIND_BVSHL,
+        KIND_BVSLE,
+        KIND_BVSLT,
+        KIND_BVSMOD,
+        KIND_BVSREM,
+        KIND_BVSUB,
+        KIND_BVUGE,
+        KIND_BVUGT,
+        KIND_BVUDIV,
+        KIND_BVULE,
+        KIND_BVULT,
+        KIND_BVUREM,
+        KIND_BVXNOR,
+        KIND_BVXOR,
+        KIND_CONC,
+        KIND_DIST,
+        KIND_DIV,
+        KIND_EQ,
+        KIND_EXTR,
+        KIND_GE,
+        KIND_GT,
+        KIND_IMPL,
+        KIND_ISI,
+        KIND_ITE,
+        KIND_LE,
+        KIND_LT,
+        KIND_MOD,
+        KIND_MUL,
+        KIND_NEG,
+        KIND_NOT,
+        KIND_OR,
+        KIND_RDIV,
+        KIND_REP,
+        KIND_ROL,
+        KIND_ROR,
+        KIND_SELECT,
+        KIND_SEXT,
+        KIND_STORE,
+        KIND_SUB,
+        KIND_TOI,
+        KIND_TOR,
+        KIND_XOR,
+        KIND_ZEXT
+    ]
 
 g_cmd_kinds   = \
-    [ KIND_ASSERT,   KIND_CHECKSAT, KIND_DECLFUN,   KIND_DEFFUN,
-      KIND_DECLSORT, KIND_DEFSORT,  KIND_GETASSERT, KIND_GETASSIGN,
-      KIND_GETPROOF, KIND_GETUCORE, KIND_GETVALUE,  KIND_GETOPT,
-      KIND_GETINFO,  KIND_EXIT,     KIND_PUSH,      KIND_POP,
-      KIND_SETLOGIC, KIND_SETINFO,  KIND_SETOPT ]
+    [
+        KIND_ASSERT,
+        KIND_CHECKSAT,
+        KIND_DECLCONST,
+        KIND_DECLFUN,
+        KIND_DEFFUN,
+        KIND_DECLSORT,
+        KIND_DEFSORT,
+        KIND_GETASSERT,
+        KIND_GETASSIGN,
+        KIND_GETPROOF,
+        KIND_GETUCORE,
+        KIND_GETVALUE,
+        KIND_GETOPT,
+        KIND_GETINFO,
+        KIND_EXIT,
+        KIND_PUSH,
+        KIND_POP,
+        KIND_SETLOGIC,
+        KIND_SETINFO,
+        KIND_SETOPT
+    ]
 
 
 
@@ -773,7 +847,15 @@ class SMTCmdNode:
     def __str__ (self):
         if self.is_subst():
             return ""
-        if self.kind == KIND_DECLFUN:
+        if self.kind == KIND_DECLCONST:
+            assert (len(self.children) == 1)
+            assert (isinstance(self.children[0], SMTFunNode))
+            fun = self.children[0]
+            return "({} {} {})".format(
+                    self.kind,
+                    fun.name,
+                    str(fun.sort))
+        elif self.kind == KIND_DECLFUN:
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
@@ -811,7 +893,15 @@ class SMTCmdNode:
         if self.is_subst():
             return
         outfile.write(lead)
-        if self.kind == KIND_DECLFUN:
+        if self.kind == KIND_DECLCONST:
+            assert (len(self.children) == 1)
+            assert (isinstance(self.children[0], SMTFunNode))
+            fun = self.children[0]
+            outfile.write("({} {} {})\n".format(
+                    self.kind,
+                    fun.name,
+                    str(fun.sort)))
+        elif self.kind == KIND_DECLFUN:
             assert (len(self.children) == 1)
             assert (isinstance(self.children[0], SMTFunNode))
             fun = self.children[0]
@@ -1907,6 +1997,17 @@ class DDSMTParser (SMTParser):
             sort = sf.sortNode (t[1], t[3].sort.nparams, sf.cur_scope, True)
             return sf.cmdNode (
                     KIND_DEFSORT, [sort, [str(to) for to in t[2]], t[3]])
+        elif kind == KIND_DECLCONST:
+            assert (len(t) == 3)
+            fun = sf.find_fun(t[1], t[2], find_nested=False)
+            if fun:
+                (line, col) = self.get_pos()
+                raise DDSMTParseException (
+                         "previous declaration of constant/function '{!s}'"\
+                         "was here".format(fun),
+                         self)
+            fun = sf.funNode (t[1], t[2], [], [], [], sf.cur_scope)
+            return sf.cmdNode (KIND_DECLCONST, [fun])
         elif kind == KIND_DECLFUN:
             assert (len(t) == 4)
             fun = sf.find_fun(t[1], t[3], find_nested=False)
