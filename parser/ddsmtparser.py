@@ -1103,7 +1103,7 @@ class SMTFormula:
         return self.logic == "ALL" or self.logic.find("R") >= 0
 
     def is_arr_logic (self):
-        return self.logic == "ALL" or
+        return self.logic == "ALL" or \
                self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV", 
                               "QF_AUFBV", "QF_AUFLIA", "QF_AX")
 
