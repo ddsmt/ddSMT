@@ -1,4 +1,4 @@
-(set-logic QF_LIA
+(set-logic QF_LIA)
 (declare-fun x () Int)
 (assert (! (>= x 0) :named bug))
 (assert (! (>= x 0) :named bug2))
