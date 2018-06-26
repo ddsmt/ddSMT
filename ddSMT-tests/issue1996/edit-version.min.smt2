@@ -1,0 +1,2 @@
+(set-logic NRA)
+(exit)
