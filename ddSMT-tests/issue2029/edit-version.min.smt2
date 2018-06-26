@@ -1,2 +1,0 @@
-(set-logic AUFNIRA)
-(exit)
