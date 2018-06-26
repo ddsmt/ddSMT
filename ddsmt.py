@@ -179,6 +179,26 @@ def _filter_terms (filter_fun, roots):
     nodes.sort(key = lambda x: x.id)
     return nodes
 
+#same as filter_terms but collects terms in breadth-first order
+def _filter_terms_bfs (filter_fun, roots):
+    nodes = []
+    to_visit = roots
+    visited = {} #the visited list is a map
+    while to_visit:
+        cur = to_visit.pop(0).get_subst()
+        if not cur or cur.id in visited:
+            continue
+        visited[cur.id] = cur
+        if cur.is_fun() and cur.children and cur.children[0].is_subst():
+	    #cur node is a function node whose first child has already been substituted?
+            continue
+        if filter_fun(cur):
+            nodes.append(cur)
+        if cur.children: #add children to end of list -- they will be visited last
+            to_visit.extend(cur.children)
+    nodes.sort(key = lambda x: x.id)
+    return nodes
+
 #performs substitutions on contiguous subsets of size "gran". reducing size upon failed test
 #a substitution replaces node with subst_fun(node) and adds it to substlist, which is a map.
 def _substitute (subst_fun, substlist, superset, with_vars = False):
