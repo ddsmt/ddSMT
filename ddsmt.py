@@ -406,6 +406,7 @@ def ddsmt_main ():
                         nterms_subst += nsubst
                     elif succeeded == "int0_{}".format(i):
                         break
+
                     nsubst = _substitute_terms (
                             lambda x: sf.add_fresh_declfunCmdNode(x.sort),
                             lambda x: not x.is_const()                    \
@@ -457,6 +458,17 @@ def ddsmt_main ():
                     nsubst_round += nsubst
                     nterms_subst += nsubst
                 elif succeeded == "let_{}".format(i):
+                    break
+
+                nsubst = _substitute_terms ( #substitution routine for LET nodes
+                        lambda x: x.children[-1].get_subst(),
+                        lambda x: x.children,
+                        cmds[i], "  substitute internal nodes with child term")
+                if nsubst:
+                    succeeded = "child_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "child_{}".format(i):
                     break
 
                 nsubst = _substitute_terms (

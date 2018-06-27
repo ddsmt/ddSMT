@@ -1,0 +1,11 @@
+(set-logic ALL)
+(declare-fun _substvar_13_ () Bool)
+(declare-fun _substvar_17_ () Bool)
+(declare-fun _substvar_14_ () Bool)
+(assert (= _substvar_13_ _substvar_14_))
+(check-sat)
+(assert false)
+(push 1)
+(assert _substvar_17_)
+(check-sat)
+
