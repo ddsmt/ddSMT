@@ -202,6 +202,8 @@ def _filter_terms_bfs (filter_fun, roots):
 
 #performs substitutions on contiguous subsets of size "gran". reducing size upon failed test
 #a substitution replaces node with subst_fun(node) and adds it to substlist, which is a map.
+
+#nos takes random samples. sometimes hangs.
 def _substitute (subst_fun, substlist, superset, with_vars = False):
     global g_smtformula
     assert (g_smtformula)
@@ -211,12 +213,12 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
     gran = len(superset)
 
     while gran > 0:
-        subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
-	#samples = [sample(superset, gran) for s in range(0, len(superset), gran)]
+        #samples = [superset[s:s+gran] for s in range (0, len(superset), gran)]
+        samples = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
 	#replaces subsets with randomly-chosen samples of size gran
-        cpy_subsets = subsets[0:]
+        cpy_subsets = samples[0:]
 
-        for subset in subsets:
+        for subset in samples:
             nsubst = 0
             cpy_substs = substlist.substs.copy()
             cpy_declfun_cmds = g_smtformula.scopes.declfun_cmds.copy()
@@ -233,11 +235,11 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
                 _dump (g_args.outfile)
                 nsubst_total += nsubst
                 _log (2, "    granularity: {}, subsets: {}, substituted: {}" \
-                         "".format(gran, len(subsets), nsubst), True)
+                         "".format(gran, len(samples), nsubst), True)
                 del (cpy_subsets[cpy_subsets.index(subset)])
             else: #substitution did not produce desired error, reduce gran
                 _log (2, "    granularity: {}, subsets: {}, substituted: 0" \
-                         "".format(gran, len(subsets)), True)
+                         "".format(gran, len(samples)), True)
                 substlist.substs = cpy_substs
                 if with_vars:
                     for name in g_smtformula.scopes.declfun_cmds:
@@ -328,6 +330,31 @@ def ddsmt_main ():
         nsubst = 0
         nrounds += 1
 
+        cmds = _filter_cmds (lambda x: x.is_getvalue() or x.is_definefun() or x.is_assert())
+        nsubst = _substitute_terms ( #substitution routine for Bool nodes. moved to beginning for testing...
+            lambda x: sf.boolConstNode("false"),
+            lambda x: not x.is_const() \
+        	  and x.sort and x.sort.is_bool_sort(),
+            cmds, "  substitute Boolean terms with 'false'")
+        if nsubst:
+            succeeded = "false_{}".format(-1)
+            nsubst_round += nsubst
+            nterms_subst += nsubst
+        elif succeeded == "false_{}".format(-1):
+            break
+        
+        nsubst = _substitute_terms (
+            lambda x: sf.boolConstNode("true"),
+            lambda x: not x.is_const() \
+        	and x.sort and x.sort.is_bool_sort(),
+            cmds, "  substitute Boolean terms with 'true'")
+        if nsubst:
+            succeeded = "true_{}".format(-1)
+            nsubst_round += nsubst
+            nterms_subst += nsubst
+        elif succeeded == "true_{}".format(-1):
+            break
+
         nsubst = _substitute_scopes ()
         if nsubst:
             succeeded = "scopes"
@@ -335,6 +362,7 @@ def ddsmt_main ():
             nscopes_subst += nsubst
         elif succeeded == "scopes":
             break
+
 
         # initially, eliminate asserts only
         # -> prevent lots of likely unsuccessful testing when eliminating
@@ -359,7 +387,89 @@ def ddsmt_main ():
             if cmds[i]:
                 _log(2)
                 _log (2, "substitute TERMs in {} cmds:".format(cmds_msgs[i]))
+                   
+                nsubst = _substitute_terms ( #substitution routine for Bool nodes. moved to beginning for testing...
+                    lambda x: sf.boolConstNode("false"),
+                    lambda x: not x.is_const() \
+                	  and x.sort and x.sort.is_bool_sort(),
+                    cmds[i], "  substitute Boolean terms with 'false'")
+                if nsubst:
+                    succeeded = "false_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "false_{}".format(i):
+                    break
+                
+                nsubst = _substitute_terms (
+                    lambda x: sf.boolConstNode("true"),
+                    lambda x: not x.is_const() \
+                        and x.sort and x.sort.is_bool_sort(),
+                    cmds[i], "  substitute Boolean terms with 'true'")
+                if nsubst:
+                    succeeded = "true_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "true_{}".format(i):
+                    break
 
+                
+                nsubst = _substitute_terms ( #substitution routine for boolean nodes
+                        lambda x: x.children[-1].get_subst(),
+                        lambda x: x.children and x.sort and x.sort.is_bool_sort(),
+                        cmds[i], "  substitute Boolean nodes with child term")
+                if nsubst:
+                    succeeded = "boolsub_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "boolsub_{}".format(i):
+                    break
+
+                #nsubst = _substitute_terms (
+                #	lambda x: x.children[1].get_subst() \
+                #		if x.children[0].get_subst().is_false_const() \
+                #		else x.children[0].get_subst(),
+                #	lambda x: x.is_or() \
+                #		and (x.children[0].get_subst().is_false_const()\
+                #		or x.children[1].get_subst().is_false_const()),
+                #	cmds[i], "  substitute (or term false) with term")
+                #if nsubst:
+                #    succeeded = "or_{}".format(i)
+                #    nsubst_round += nsubst
+                #    nterms_subst += nsubst
+                #elif succeeded == "or_{}".format(i):
+                #    break
+                
+                
+                
+                #nsubst = _substitute_terms (
+                #	lambda x: x.children[1].get_subst() \
+                #		if x.children[0].get_subst().is_true_const() \
+                #		else x.children[0].get_subst(),
+                #	lambda x: x.is_and() \
+                #		and (x.children[0].get_subst().is_true_const() \
+                #		or x.children[1].get_subst().is_true_const()),
+                #	cmds[i], "  substitute (and term true) with term")
+                #if nsubst:
+                #    succeeded = "and_{}".format(i)
+                #    nsubst_round += nsubst
+                #    nterms_subst += nsubst
+                #elif succeeded == "and_{}".format(i):
+                #    break
+                
+                nsubst = _substitute_terms (
+                	lambda x: sf.add_fresh_declfunCmdNode(x.sort),
+                	lambda x: not x.is_const()                   \
+                		  and x.sort and x.sort.is_bool_sort() \
+                		  and not sf.is_substvar(x),
+                	cmds[i],
+                	"  substitute Boolean terms with fresh variables",
+                	True)
+                if nsubst:
+                    succeeded = "boolvar_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "boolvar_{}".format(i):
+                    break
 
                 if sf.is_bv_logic(): #term-substitution routine for bitvector formulas
                     nsubst = _substitute_terms (
@@ -493,7 +603,6 @@ def ddsmt_main ():
                     nterms_subst += nsubst
                 elif succeeded == "varb_{}".format(i):
                     break
-
                 nsubst = _substitute_terms ( #substitution routine for Bool nodes. moved to beginning for testing...
                         lambda x: sf.boolConstNode("false"),
                         lambda x: not x.is_const() \
@@ -564,6 +673,7 @@ def ddsmt_main ():
                     nterms_subst += nsubst
                 elif succeeded == "boolvar_{}".format(i):
                     break
+
                 if sf.is_arr_logic(): #substitution routine for array nodes
                     nsubst = _substitute_terms (
                             lambda x: x.children[0],  # array

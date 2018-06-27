@@ -1,4 +1,5 @@
 (set-logic BV)
-(assert (forall ((?y3 (_ BitVec 32))) (forall ((?y5 (_ BitVec 32))) (forall ((?y6 (_ BitVec 32))) (not (= (bvadd (bvadd (bvadd (bvmul (bvneg (_ bv27 32)) ?y6) (_ bv0 32)) (bvmul (bvneg (_ bv61 32)) ?y3)) (_ bv0 32)) (_ bv0 32)))))))
+(declare-fun _substvar_117_ () (_ BitVec 32))
+(assert (exists ((?y5 (_ BitVec 32))) (exists ((?y6 (_ BitVec 32))) (= (bvadd (bvadd (bvadd (bvmul (bvneg (_ bv99 32)) ?y6) (bvmul (bvneg (_ bv27 32)) ?y5)) (_ bv0 32)) _substvar_117_) (_ bv42 32)))))
 (check-sat)
 (exit)

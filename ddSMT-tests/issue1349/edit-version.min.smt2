@@ -1,0 +1,12 @@
+(set-logic ALL)
+(declare-fun _substvar_11_ () Bool)
+(declare-fun _substvar_38_ () Bool)
+(declare-fun _substvar_10_ () Bool)
+(define-fun __node_init_Sofar_0 ((Sofar.usr.X@0 Bool) (Sofar.usr.Sofar@0 Bool) (Sofar.res.init_flag@0 Bool)) Bool (= _substvar_11_ _substvar_10_))
+(assert (and true true true (__node_init_Sofar_0 false true true) true true true))
+(check-sat)
+(assert false)
+(push 1)
+(assert _substvar_38_)
+(check-sat)
+
