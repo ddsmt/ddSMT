@@ -128,13 +128,16 @@ def _test ():
     return exitcode == g_golden_exit
 
 
-def _filter_scopes (filter_fun, root = None):
+def _filter_scopes (filter_fun, root = None, bfs = False):
     global g_smtformula
     assert (g_smtformula)
     scopes = []
     to_visit = [root if root else g_smtformula.scopes]
     while to_visit:
-        cur = to_visit.pop()
+        if bfs or g_args.bfs:
+            cur = to_visit.pop(0)
+        else:
+            cur = to_visit.pop()
         if cur.is_subst():
             continue
         if filter_fun(cur):

@@ -1,5 +1,5 @@
 (set-logic NRA)
-(declare-fun _substvar_100_ () Real)
-(assert (not (exists ((ts6uscore0 Real)) (=> (=> true (>= (+ (* _substvar_100_ ts6uscore0) 0.0) 0)) false))))
+(declare-fun _substvar_75_ () Real)
+(assert (not (exists ((ts6uscore0 Real)) (=> (=> true (>= (+ (* _substvar_75_ ts6uscore0) 0.0) 0)) false))))
 (check-sat)
 (exit)
