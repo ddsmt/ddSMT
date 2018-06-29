@@ -66,6 +66,7 @@ class DDSMTCmd (Thread):
 
     def run (self):
         self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE) #figure out what this does 
+        #pass timeout as an argument to communicate()
         self.out, self.err = self.process.communicate()
         self.rcode = self.process.returncode
 
