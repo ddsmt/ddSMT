@@ -65,14 +65,15 @@ class DDSMTCmd (Thread):
         self.log = log
 
     def run (self):
-        self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE)
+        self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE) #figure out what this does 
         self.out, self.err = self.process.communicate()
         self.rcode = self.process.returncode
 
     def run_cmd (self, is_golden = False):
         self.start()
         self.join (self.timeout)
-        if self.is_alive():
+        if self.is_alive(): #thread must terminate itseelf if event flag is set? 
+            print ("timeout, terminating thread")
             self.process.terminate()
             self.join()
             if is_golden:
