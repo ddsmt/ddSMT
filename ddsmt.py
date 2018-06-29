@@ -157,12 +157,16 @@ def _filter_cmds (filter_fun):
             cmds.append(cur)
     return cmds
 
-def _filter_terms (filter_fun, roots):
+#returns a list of terms descending from roots in dfs order, unless bfs flag is set
+def _filter_terms (filter_fun, roots, bfs = False):
     nodes = []
     to_visit = roots
     visited = {}
     while to_visit:
-        cur = to_visit.pop().get_subst()
+        if bfs or g_args.bfs:
+            cur = to_visit.pop(0).get_subst()
+        else:
+            cur = to_visit.pop().get_subst()
         if not cur or cur.id in visited:
             continue
         visited[cur.id] = cur
@@ -172,10 +176,11 @@ def _filter_terms (filter_fun, roots):
             nodes.append(cur)
         if cur.children:
             to_visit.extend(cur.children)
-    nodes.sort(key = lambda x: x.id)
     return nodes
 
-def _substitute (subst_fun, substlist, superset, with_vars = False):
+#attempts to substitute contiguous subsets of size "gran", reducing size upon failed test
+#samples subsets randomly if flag is set or parameter is passed
+def _substitute (subst_fun, substlist, superset, randomized = False,  with_vars = False):
     global g_smtformula
     assert (g_smtformula)
     assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
@@ -184,10 +189,14 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
     gran = len(superset)
 
     while gran > 0:
-        subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
+        if randomized or g_args.randomized:
+            subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
+        else:
+            subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
         cpy_subsets = subsets[0:]
-
+        tests_performed = 0
         for subset in subsets:
+            tests_performed += 1
             nsubst = 0
             cpy_substs = substlist.substs.copy()
             cpy_declfun_cmds = g_smtformula.scopes.declfun_cmds.copy()
@@ -203,12 +212,12 @@ def _substitute (subst_fun, substlist, superset, with_vars = False):
             if _test():
                 _dump (g_args.outfile)
                 nsubst_total += nsubst
-                _log (2, "    granularity: {}, subsets: {}, substituted: {}" \
-                         "".format(gran, len(subsets), nsubst), True)
+                _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
+                         "".format(gran, tests_performed, len(subsets), nsubst), True)
                 del (cpy_subsets[cpy_subsets.index(subset)])
             else:
-                _log (2, "    granularity: {}, subsets: {}, substituted: 0" \
-                         "".format(gran, len(subsets)), True)
+                _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
+                         "".format(gran, tests_performed, len(subsets)), True)
                 substlist.substs = cpy_substs
                 if with_vars:
                     for name in g_smtformula.scopes.declfun_cmds:
@@ -415,7 +424,7 @@ def ddsmt_main ():
                             lambda x: sf.zeroConstDNode(),
                             lambda x: not x.is_const() \
                                       and x.sort and x.sort.is_real_sort(),
-                            cmds[i], "  substitute Int terms with '0'")
+                            cmds[i], "  substitute Real terms with '0'")
                     if nsubst:
                         succeeded = "real0_{}".format(i)
                         nsubst_round += nsubst
@@ -428,7 +437,7 @@ def ddsmt_main ():
                                       and x.sort and x.sort.is_real_sort() \
                                       and not sf.is_substvar(x),
                             cmds[i],
-                            "  substitute Int terms with fresh variables",
+                            "  substitute Real terms with fresh variables",
                             True)
                     if nsubst:
                         succeeded = "realvar_{}".format(i)
@@ -587,6 +596,10 @@ if __name__ == "__main__":
         aparser.add_argument ("cmd", nargs=REMAINDER,
                               help="the command (with optional arguments)")
 
+        aparser.add_argument ("-r", action="store_true", dest="randomized",\
+                              default=False, help="randomize substitution subsets ")
+        aparser.add_argument ("-b", action="store_true", dest="bfs",\
+                              default=False, help="search for terms in breadth-first order ")
         aparser.add_argument ("-t", dest="timeout", metavar="val",
                               default=None, type=float,
                               help="timeout for test runs in seconds "\
