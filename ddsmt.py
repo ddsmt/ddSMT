@@ -143,7 +143,7 @@ def _filter_scopes (filter_fun, root = None, bfs = False):
        :filter_fun: Boolean function that returns True if a node should be added.
        :roots: List of nodes from which to begin searching.
        :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of nodes that fit the filtering condition.
+       :return: List of scope nodes that fit the filtering condition.
 
     """
     global g_smtformula
@@ -191,7 +191,7 @@ def _filter_terms (filter_fun, roots, bfs = False):
        :filter_fun: Boolean function that returns True if a node should be added.
        :roots: List of nodes from which to begin searching.
        :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of nodes that fit the filtering condition.
+       :return: List of term nodes that fit the filtering condition.
        """
 
     nodes = []
