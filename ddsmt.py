@@ -28,7 +28,7 @@ import shutil
 import time
 
 from argparse import ArgumentParser, REMAINDER
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired
 from threading import Thread
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
@@ -65,26 +65,32 @@ class DDSMTCmd (Thread):
         self.log = log
 
     def run (self):
-        self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE) #figure out what this does 
-        #pass timeout as an argument to communicate()
+        self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE) 
         try: 
             self.out, self.err = self.process.communicate(timeout=self.timeout)
         except TimeoutExpired:
             self.process.terminate()
             self.out, self.err = self.process.communicate()
-            
+            self.log (2, "[!!] timeout: process terminated")
+
         self.rcode = self.process.returncode
 
     def run_cmd (self, is_golden = False):
-        self.start()
-        self.join (self.timeout)
+        if is_golden:
+            self.timeout = 60
+        else:
+            self.timeout = g_args.timeout
+        self.start() 
+        if is_golden:
+            self.join (60) #initial run gets to run for a minute 
+        else:
+            self.join (self.timeout)
         if self.is_alive(): #thread must terminate itseelf if event flag is set? 
-            print ("timeout, terminating thread")
             self.process.terminate()
             self.join()
+            self.log (2, "[!!] timeout: process was still alive?")
             if is_golden:
                 raise DDSMTException ("initial run timed out")
-            self.log (2, "[!!] timeout: process terminated")
         return (self.out, self.err)
 
 
