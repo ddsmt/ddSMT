@@ -177,7 +177,6 @@ def _filter_cmds (filter_fun):
             cmds.append(cur)
     return cmds
 
-#returns a list of terms descending from roots in dfs order, unless bfs flag is set
 def _filter_terms (filter_fun, roots, bfs = False):
     """_filter_terms(filter_fun, roots, bfs) 
        
