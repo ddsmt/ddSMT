@@ -29,7 +29,7 @@ import time
 
 from argparse import ArgumentParser, REMAINDER
 from subprocess import Popen, PIPE, TimeoutExpired
-from threading import Thread
+from multiprocessing import Process
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 
@@ -56,43 +56,28 @@ class DDSMTException (Exception):
         return "[ddsmt] Error: {}".format(self.msg)
 
 
-class DDSMTCmd (Thread):
-
-    def __init__ (self, cmd, timeout, log):
-        Thread.__init__(self)
+class DDSMTCmd ():
+    def __init__(self, cmd, timeout, log):
         self.cmd = cmd
         self.timeout = timeout
         self.log = log
 
-    def run (self):
-        self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE) 
-        try: 
-            self.out, self.err = self.process.communicate(timeout=self.timeout)
+    def run_cmd(self, is_golden = False):
+        self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE)
+        try:
+            if is_golden:
+                self.out, self.err = self.process.communicate(timeout=60)
+            else:
+                self.out, self.err = self.process.communicate(timeout=self.timeout)
         except TimeoutExpired:
-            self.process.terminate()
-            self.out, self.err = self.process.communicate()
+            self.process.kill()
+            self.out, self.err = None, None
             self.log (2, "[!!] timeout: process terminated")
-
-        self.rcode = self.process.returncode
-
-    def run_cmd (self, is_golden = False):
-        if is_golden:
-            self.timeout = 60
-        else:
-            self.timeout = g_args.timeout
-        self.start() 
-        if is_golden:
-            self.join (60) #initial run gets to run for a minute 
-        else:
-            self.join (self.timeout)
-        if self.is_alive(): #thread must terminate itseelf if event flag is set? 
-            self.process.terminate()
-            self.join()
-            self.log (2, "[!!] timeout: process was still alive?")
             if is_golden:
                 raise DDSMTException ("initial run timed out")
-        return (self.out, self.err)
 
+        self.rcode = self.process.returncode
+        return (self.out, self.err)
 
 def _cleanup ():
     if os.path.exists(g_tmpfile):
