@@ -129,6 +129,23 @@ def _test ():
 
 
 def _filter_scopes (filter_fun, root = None, bfs = False):
+    """_filter_scopes(filter_fun, root, bfs)
+   
+       Collect a list of scope nodes that fit a condition defined by given filtering 
+       function filter_fun. Nodes are added to the list in the order that they 
+       are visited in a depth-first search descending from a given root.
+
+       If no root is specified, search will begin from the root of the entire formula.
+
+       If g_args.bfs or bfs are True, nodes are visited in a breadth-first search
+       instead.
+
+       :filter_fun: Boolean function that returns True if a node should be added.
+       :roots: List of nodes from which to begin searching.
+       :bfs: Bool indicating whether to use breadth-first search.
+       :return: List of nodes that fit the filtering condition.
+
+    """
     global g_smtformula
     assert (g_smtformula)
     scopes = []
@@ -162,6 +179,21 @@ def _filter_cmds (filter_fun):
 
 #returns a list of terms descending from roots in dfs order, unless bfs flag is set
 def _filter_terms (filter_fun, roots, bfs = False):
+    """_filter_terms(filter_fun, roots, bfs) 
+       
+       Collect a list of term nodes that fit a condition defined by given filtering 
+       function filter_fun. Nodes are added to the list in the order that they 
+       are visited in a depth-first search descending from a given list of roots.
+
+       If g_args.bfs or bfs are True, nodes are visited in a breadth-first search
+       instead.
+
+       :filter_fun: Boolean function that returns True if a node should be added.
+       :roots: List of nodes from which to begin searching.
+       :bfs: Bool indicating whether to use breadth-first search.
+       :return: List of nodes that fit the filtering condition.
+       """
+
     nodes = []
     to_visit = roots
     visited = {}
@@ -181,9 +213,24 @@ def _filter_terms (filter_fun, roots, bfs = False):
             to_visit.extend(cur.children)
     return nodes
 
-#attempts to substitute contiguous subsets of size "gran", reducing size upon failed test
-#samples subsets randomly if flag is set or parameter is passed
 def _substitute (subst_fun, substlist, superset, randomized = False,  with_vars = False):
+    """_substitute(subst_fun, substlist, superset, randomized, with_vars)
+
+       Attempt to substitute nodes in contiguous subsets as defined by given 
+       substitution function subst_fun. Remove substituted nodes from superset 
+       when substitution was successful. 
+
+       If g_args.randomized or randomized are True, sample subsets randomly 
+       rather than splitting into contiguous subsets.
+
+       :subst_fun:  Function used to determine node substitutions.
+       :substlist:  Map from nodes in the input formula to their corresponding 
+                    nodes in the reduced formula.
+       :superset:   List of nodes to attempt to substitute.
+       :randomized: Bool indicating whether to randomize subset selection.
+       :with_vars:  Bool indicating whether the substitution creates new variables. 
+       """
+
     global g_smtformula
     assert (g_smtformula)
     assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
