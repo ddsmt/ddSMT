@@ -239,16 +239,21 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
     gran = len(superset)
     
     while gran > 0:
-        max_subsets = int(60 // g_weighted_test_time)
-        print(max_subsets)
+        start_time = time.time()
         if randomized:
             subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
         else:
             subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
         cpy_subsets = subsets[0:]
-        subsets = subsets[0:max_subsets]
+         
+
         tests_performed = 0
         for subset in subsets:
+            if g_args.roundtime:
+                if time.time() - start_time > g_args.roundtime:
+                    _log (2, "[!!] test round timeout: skipping to next granularity")
+                    break
+
             tests_performed += 1
             nsubst = 0
             cpy_substs = substlist.substs.copy()
@@ -656,8 +661,8 @@ if __name__ == "__main__":
                               default=None, type=float,
                               help="timeout for test runs in seconds " \
                                    "(default: none)")
-        aparser.add_argument ("-f", action="count", default=0,
-                              dest="fast", help="optimize testing rounds for time")
+        aparser.add_argument ("--round", dest="roundtime", metavar = "va", default=None,
+                              type=float, help="approximate time limit for testing round in seconds")
         aparser.add_argument ("-v", action="count", default=0,
                               dest="verbosity", help="increase verbosity")
         aparser.add_argument ("-o", action="store_false", dest="cmpoutput",
