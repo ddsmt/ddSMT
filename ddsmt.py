@@ -128,7 +128,7 @@ def _test ():
     return exitcode == g_golden_exit
 
 
-def _filter_scopes (filter_fun, root = None, bfs = False):
+def _filter_scopes (filter_fun, root = None, bfs = g_args.bfs):
     """_filter_scopes(filter_fun, root, bfs)
    
        Collect a list of scope nodes that fit a condition defined by given filtering 
@@ -137,8 +137,7 @@ def _filter_scopes (filter_fun, root = None, bfs = False):
 
        If no root is specified, search will begin from the root of the entire formula.
 
-       If g_args.bfs or bfs are True, nodes are visited in a breadth-first search
-       instead.
+       If bfs is True, nodes are visited in a breadth-first search instead.
 
        :filter_fun: Boolean function that returns True if a node should be added.
        :roots: List of nodes from which to begin searching.
@@ -151,7 +150,7 @@ def _filter_scopes (filter_fun, root = None, bfs = False):
     scopes = []
     to_visit = [root if root else g_smtformula.scopes]
     while to_visit:
-        if bfs or g_args.bfs:
+        if bfs:
             cur = to_visit.pop(0)
         else:
             cur = to_visit.pop()
@@ -177,15 +176,14 @@ def _filter_cmds (filter_fun):
             cmds.append(cur)
     return cmds
 
-def _filter_terms (filter_fun, roots, bfs = False):
+def _filter_terms (filter_fun, roots, bfs = g_args.bfs):
     """_filter_terms(filter_fun, roots, bfs) 
        
        Collect a list of term nodes that fit a condition defined by given filtering 
        function filter_fun. Nodes are added to the list in the order that they 
        are visited in a depth-first search descending from a given list of roots.
 
-       If g_args.bfs or bfs are True, nodes are visited in a breadth-first search
-       instead.
+       If bfs is True, nodes are visited in a breadth-first search instead.
 
        :filter_fun: Boolean function that returns True if a node should be added.
        :roots: List of nodes from which to begin searching.
@@ -197,7 +195,7 @@ def _filter_terms (filter_fun, roots, bfs = False):
     to_visit = roots
     visited = {}
     while to_visit:
-        if bfs or g_args.bfs:
+        if bfs:
             cur = to_visit.pop(0).get_subst()
         else:
             cur = to_visit.pop().get_subst()
@@ -212,15 +210,15 @@ def _filter_terms (filter_fun, roots, bfs = False):
             to_visit.extend(cur.children)
     return nodes
 
-def _substitute (subst_fun, substlist, superset, randomized = False,  with_vars = False):
+def _substitute (subst_fun, substlist, superset, randomized = g_args.randomized,  with_vars = False):
     """_substitute(subst_fun, substlist, superset, randomized, with_vars)
 
        Attempt to substitute nodes in contiguous subsets as defined by given 
        substitution function subst_fun. Remove substituted nodes from superset 
        when substitution was successful. 
 
-       If g_args.randomized or randomized are True, sample subsets randomly 
-       rather than splitting into contiguous subsets.
+       If randomized is True, sample subsets randomly rather than splitting 
+       into contiguous subsets.
 
        :subst_fun:  Function used to determine node substitutions.
        :substlist:  Map from nodes in the input formula to their corresponding 
@@ -238,7 +236,7 @@ def _substitute (subst_fun, substlist, superset, randomized = False,  with_vars 
     gran = len(superset)
 
     while gran > 0:
-        if randomized or g_args.randomized:
+        if randomized:
             subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
         else:
             subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
