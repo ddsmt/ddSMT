@@ -126,8 +126,8 @@ def _test ():
     return exitcode == g_golden_exit
 
 
-def _filter_scopes (filter_fun, root = None, bfs):
-    """_filter_scopes(filter_fun, root, bfs)
+def _filter_scopes (filter_fun, bfs, root = None):
+    """_filter_scopes(filter_fun, bfs, root)
    
        Collect a list of scope nodes that fit a condition defined by given filtering 
        function filter_fun. Nodes are added to the list in the order that they 
@@ -174,8 +174,8 @@ def _filter_cmds (filter_fun):
             cmds.append(cur)
     return cmds
 
-def _filter_terms (filter_fun, roots, bfs):
-    """_filter_terms(filter_fun, roots, bfs) 
+def _filter_terms (filter_fun, bfs, roots):
+    """_filter_terms(filter_fun, bfs, roots) 
        
        Collect a list of term nodes that fit a condition defined by given filtering 
        function filter_fun. Nodes are added to the list in the order that they 
@@ -316,9 +316,9 @@ def _substitute_terms (subst_fun, filter_fun, cmds, msg = None,
     _log (2)
     _log (2, msg if msg else "substitute TERMS:")
     ntests_prev = g_ntests
-    terms = _filter_terms (filter_fun,  [t for term_list in
+    terms = _filter_terms (filter_fun, g_args.bfs,  [t for term_list in
                 [c.children if c.is_getvalue() else [c.children[-1]] \
-                        for c in cmds] for t in term_list], g_args.bfs)
+                        for c in cmds] for t in term_list])
 
     nsubst_total = _substitute (subst_fun, g_smtformula.subst_nodes, terms, \
                     g_args.randomized, with_vars)
