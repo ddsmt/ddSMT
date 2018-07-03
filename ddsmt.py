@@ -29,7 +29,6 @@ import time
 
 from argparse import ArgumentParser, REMAINDER
 from subprocess import Popen, PIPE, TimeoutExpired
-from multiprocessing import Process
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 
