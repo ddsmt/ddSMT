@@ -40,7 +40,6 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 g_golden_exit = 0
 g_golden_err = None
 g_ntests = 0
-g_weighted_test_time = 0
 
 g_args = None
 g_smtformula = None
@@ -64,13 +63,10 @@ class DDSMTCmd ():
         self.log = log
 
     def run_cmd(self, is_golden = False):
-        global g_weighted_test_time
         self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE)
-        start = time.time()
         try:
             if is_golden:
                 self.out, self.err = self.process.communicate(timeout=60)
-                g_weighted_test_time = time.time() - start
             else:
                 self.out, self.err = self.process.communicate(timeout=self.timeout)
         except TimeoutExpired:
@@ -80,7 +76,6 @@ class DDSMTCmd ():
             if is_golden:
                 raise DDSMTException ("initial run timed out")
 
-        g_weighted_test_time = (g_weighted_test_time + time.time() - start) / 2
         self.rcode = self.process.returncode
         return (self.out, self.err)
 
@@ -237,16 +232,13 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                           g_smtformula.subst_nodes))
     nsubst_total = 0
     gran = len(superset)
-    
+
     while gran > 0:
-        max_subsets = int(60 // g_weighted_test_time)
-        print(max_subsets)
         if randomized:
             subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
         else:
             subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
         cpy_subsets = subsets[0:]
-        subsets = subsets[0:max_subsets]
         tests_performed = 0
         for subset in subsets:
             tests_performed += 1
@@ -652,12 +644,10 @@ if __name__ == "__main__":
                               default=False, help="randomize substitution subsets ")
         aparser.add_argument ("-b", action="store_true", dest="bfs",\
                               default=False, help="search for terms in breadth-first order ")
-        aparser.add_argument ("-t", dest="timeout", metavar="val",\
+        aparser.add_argument ("-t", dest="timeout", metavar="val",
                               default=None, type=float,
-                              help="timeout for test runs in seconds " \
+                              help="timeout for test runs in seconds "\
                                    "(default: none)")
-        aparser.add_argument ("-f", action="count", default=0,
-                              dest="fast", help="optimize testing rounds for time")
         aparser.add_argument ("-v", action="count", default=0,
                               dest="verbosity", help="increase verbosity")
         aparser.add_argument ("-o", action="store_false", dest="cmpoutput",
