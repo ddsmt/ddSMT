@@ -165,7 +165,7 @@ def _filter_cmds (filter_fun):
     global g_smtformula
     assert (g_smtformula)
     cmds = []
-    scopes = _filter_scopes (lambda x: x.is_regular())
+    scopes = _filter_scopes (lambda x: x.is_regular(), g_args.bfs)
     to_visit = [c for cmd_list in [s.cmds for s in scopes] for c in cmd_list]
     to_visit.extend(g_smtformula.scopes.declfun_cmds.values())
     while to_visit:
