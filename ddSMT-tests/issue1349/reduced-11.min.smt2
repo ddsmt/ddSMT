@@ -1,0 +1,12 @@
+(set-logic ALL)
+(declare-fun _substvar_74_ () Bool)
+(declare-fun _substvar_91_ () Bool)
+(declare-fun _substvar_72_ () Bool)
+(declare-fun f115 () Int)
+(assert (= false (and _substvar_72_ _substvar_91_)))
+(check-sat)
+(assert false)
+(push 1)
+(assert _substvar_74_)
+(check-sat)
+

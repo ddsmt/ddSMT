@@ -1,0 +1,18 @@
+Some notes about the test cases:
+
+- issue1349 includes three incremental tests that each fail with a different
+  error. They take a bit of time to minimize but not too much.
+
+- issue1996 is fast.
+
+- issue1998 takes a long time to minimize.
+
+- issue2031 is fast.
+
+- issue2029 gets stuck in the COMMANDS pass as well. It seems like the timeout
+  does not work correctly. Note: This is a difficult test case because the
+  error takes about 30s to trigger on the original input (it does get faster
+  afterwards).
+
+- ddSMT manages to minimize issue2033 significantly but gets stuck at some
+  point in the substitute COMMANDS pass.
