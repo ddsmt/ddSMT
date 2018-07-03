@@ -128,7 +128,7 @@ def _test ():
     return exitcode == g_golden_exit
 
 
-def _filter_scopes (filter_fun, root = None, bfs = g_args.bfs):
+def _filter_scopes (filter_fun, root = None, bfs):
     """_filter_scopes(filter_fun, root, bfs)
    
        Collect a list of scope nodes that fit a condition defined by given filtering 
@@ -176,7 +176,7 @@ def _filter_cmds (filter_fun):
             cmds.append(cur)
     return cmds
 
-def _filter_terms (filter_fun, roots, bfs = g_args.bfs):
+def _filter_terms (filter_fun, roots, bfs):
     """_filter_terms(filter_fun, roots, bfs) 
        
        Collect a list of term nodes that fit a condition defined by given filtering 
@@ -210,7 +210,7 @@ def _filter_terms (filter_fun, roots, bfs = g_args.bfs):
             to_visit.extend(cur.children)
     return nodes
 
-def _substitute (subst_fun, substlist, superset, randomized = g_args.randomized,  with_vars = False):
+def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False):
     """_substitute(subst_fun, substlist, superset, randomized, with_vars)
 
        Attempt to substitute nodes in contiguous subsets as defined by given 
@@ -287,11 +287,11 @@ def _substitute_scopes ():
     nsubst_total = 0
     level = 1
     while True:
-        scopes = _filter_scopes (lambda x: x.level == level and x.is_regular())
+        scopes = _filter_scopes (lambda x: x.level == level and x.is_regular(), g_args.bfs)
         if not scopes:
             break
         nsubst_total += _substitute (
-                lambda x: None, g_smtformula.subst_scopes, scopes)
+                lambda x: None, g_smtformula.subst_scopes, scopes, g_args.randomized)
         level += 1
     _log (2, "  >> {} scope(s) substituted in total".format(nsubst_total))
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
@@ -307,7 +307,7 @@ def _substitute_cmds (filter_fun = None):
     filter_fun = filter_fun if filter_fun else \
             lambda x: not x.is_setlogic() and not x.is_exit()
     nsubst_total = _substitute (lambda x: None, g_smtformula.subst_cmds,
-            _filter_cmds(filter_fun))
+            _filter_cmds(filter_fun), g_args.randomized)
     _log (2, "  >> {} command(s) substituted in total".format(nsubst_total))
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
@@ -318,13 +318,12 @@ def _substitute_terms (subst_fun, filter_fun, cmds, msg = None,
     _log (2)
     _log (2, msg if msg else "substitute TERMS:")
     ntests_prev = g_ntests
-    nsubst_total = _substitute (
-            subst_fun,
-            g_smtformula.subst_nodes,
-            _filter_terms (filter_fun, [t for term_list in
+    terms = _filter_terms (filter_fun,  [t for term_list in
                 [c.children if c.is_getvalue() else [c.children[-1]] \
-                        for c in cmds] for t in term_list]),
-            with_vars)
+                        for c in cmds] for t in term_list], g_args.bfs)
+
+    nsubst_total = _substitute (subst_fun, g_smtformula.subst_nodes, terms, \
+                    g_args.randomized, with_vars)
 
     _log (2, "    >> {} term(s) substituted in total".format(nsubst_total))
     _log (3, "    >> {} test(s)".format(g_ntests - ntests_prev))
