@@ -1,0 +1,7 @@
+(set-logic AUFNIRA)
+(declare-fun _substvar_2066_ () Real)
+(declare-fun _substvar_2138_ () Real)
+(assert (forall ((?v0 Real) (?v1 Real) (?v2 Real)) (= (* ?v0 _substvar_2066_) _substvar_2138_)))
+(assert (forall ((?v0 Int) (?v1 Int) (?v2 Int) (?v3 Int) (?v4 Int)) (=> (not (= ?v0 0)) (=> (not (= ?v3 ?v4)) (not (= (+ 0 (* ?v0 ?v3)) (+ 0 (* ?v0 ?v4))))))))
+(check-sat)
+(exit)
