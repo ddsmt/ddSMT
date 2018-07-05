@@ -29,7 +29,6 @@ import time
 
 from argparse import ArgumentParser, REMAINDER
 from subprocess import Popen, PIPE, TimeoutExpired
-from multiprocessing import Process
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 
@@ -40,7 +39,6 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 g_golden_exit = 0
 g_golden_err = None
 g_ntests = 0
-g_weighted_test_time = 0
 
 g_args = None
 g_smtformula = None
@@ -64,13 +62,11 @@ class DDSMTCmd ():
         self.log = log
 
     def run_cmd(self, is_golden = False):
-        global g_weighted_test_time
         self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE)
         start = time.time()
         try:
             if is_golden:
                 self.out, self.err = self.process.communicate(timeout=60)
-                g_weighted_test_time = time.time() - start
             else:
                 self.out, self.err = self.process.communicate(timeout=self.timeout)
         except TimeoutExpired:
@@ -80,7 +76,6 @@ class DDSMTCmd ():
             if is_golden:
                 raise DDSMTException ("initial run timed out")
 
-        g_weighted_test_time = (g_weighted_test_time + time.time() - start) / 2
         self.rcode = self.process.returncode
         return (self.out, self.err)
 
