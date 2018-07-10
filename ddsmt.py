@@ -244,17 +244,21 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
     assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
                           g_smtformula.subst_nodes))
     nsubst_total = 0
+
     gran = len(superset)
-    
+
     while gran > 0:
+
         start_time = time.time()
         if randomized:
-            subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
+            subsets = [random.sample(superset, gran) for s in range(0, len(superset), min(len(superset)-gran, gran))]
         else:
-            subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
-        cpy_subsets = subsets[0:]
+            if gran <= len(superset) // 2:
+                subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
+            else:
+                subsets = [(superset[:s] + superset[s+len(superset) - gran:]) for s in range (0, len(superset), len(superset)-gran)]
+        cpy_subsets = subsets[0:] #when randomized, this doesn't contain every element!
          
-
         tests_performed = 0
         for subset in subsets:
             if g_args.roundtime:
@@ -280,7 +284,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                 nsubst_total += nsubst
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
                          "".format(gran, tests_performed, len(subsets), nsubst), True)
-                del (cpy_subsets[cpy_subsets.index(subset)])
+                del (cpy_subsets[cpy_subsets.index(subset)])i
             else:
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
                          "".format(gran, tests_performed, len(subsets)), True)
@@ -293,7 +297,9 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
         superset = [s for subset in cpy_subsets for s in subset]
+
         gran = gran // 2
+
     return nsubst_total
 
 
