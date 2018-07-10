@@ -257,8 +257,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                 subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
             else:
                 subsets = [(superset[:s] + superset[s+len(superset) - gran:]) for s in range (0, len(superset), len(superset)-gran)]
-        cpy_subsets = subsets[0:] #when randomized, this doesn't contain every element!
-         
+        
         tests_performed = 0
         for subset in subsets:
             if g_args.roundtime:
@@ -284,7 +283,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                 nsubst_total += nsubst
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
                          "".format(gran, tests_performed, len(subsets), nsubst), True)
-                del (cpy_subsets[cpy_subsets.index(subset)])i
+                superset = list(set(superset) - set(subset))
             else:
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
                          "".format(gran, tests_performed, len(subsets)), True)
@@ -296,8 +295,6 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                         if name not in cpy_declfun_cmds:
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
-        superset = [s for subset in cpy_subsets for s in subset]
-
         gran = gran // 2
 
     return nsubst_total
