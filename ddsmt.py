@@ -245,9 +245,9 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                           g_smtformula.subst_nodes))
     nsubst_total = 0
 
-    gran = len(superset)
+    gran = len(superset) // 2
 
-    while gran > 0:
+    while gran > 0 and gran < len(superset):
 
         start_time = time.time()
         if randomized:
@@ -295,7 +295,10 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                         if name not in cpy_declfun_cmds:
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
-        gran = gran // 2
+        if gran <= len(superset) // 2:
+            gran = gran // 2
+        else: 
+            gran = len(superset) - gran
 
     return nsubst_total
 
