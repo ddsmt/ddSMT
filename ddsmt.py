@@ -238,6 +238,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
        :return:     Total number of nodes substituted.
        """
 
+    superset = set(superset)
     global g_smtformula
     assert (g_smtformula)
     assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
@@ -250,9 +251,9 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
 
         start_time = time.time()
         if randomized:
-            subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
+            subsets = [set(random.sample(superset, gran)) for s in range(0, len(superset), gran)]
         else:
-            subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
+            subsets = [set(list(superset)[s:s+gran]) for s in range (0, len(superset), gran)]
         
         tests_performed = 0
         for subset in subsets:
@@ -280,7 +281,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                 nsubst_total += nsubst
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
                          "".format(gran, tests_performed, len(subsets), nsubst), True)
-                superset = list(subset)
+                superset = subset
             else:
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
                          "".format(gran, tests_performed, len(subsets)), True)
@@ -310,7 +311,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                 nsubst_total += nsubst
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
                          "".format(gran, tests_performed, len(subsets), nsubst), True)
-                superset = list(set(superset) - set(subset))
+                superset = superset - subset
             else:
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
                          "".format(gran, tests_performed, len(subsets)), True)
@@ -323,7 +324,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
 
-        gran = gran // 2
+        gran = min(len(superset), gran // 2)
     return nsubst_total
 
 
