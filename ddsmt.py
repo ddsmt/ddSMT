@@ -40,7 +40,7 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 g_golden_exit = 0
 g_golden_err = None
 g_ntests = 0
-
+g_testtime = 0
 g_args = None
 g_smtformula = None
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
@@ -120,9 +120,11 @@ def _run (is_golden = False):
 
 
 def _test ():
-    global g_args, g_ntests
+    global g_args, g_ntests, g_testtime
     g_ntests += 1
+    start = time.time()
     (exitcode, err) = _run()
+    g_testtime += time.time() - start
     if g_args.cmpoutput:
         return exitcode == g_golden_exit and err == g_golden_err
     return exitcode == g_golden_exit
@@ -679,6 +681,7 @@ def ddsmt_main ():
         nsubst_total += nsubst_round
 
     _log (1)
+    _log (2, "total testing time: {0: .2f}".format(g_testtime))
     _log (1, "rounds total: {}".format(nrounds))
     _log (1, "tests  total: {}".format(g_ntests))
     _log (1, "substs total: {}".format(nsubst_total))
