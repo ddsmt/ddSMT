@@ -38,6 +38,7 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 
 g_golden_exit = 0
 g_golden_err = None
+g_golden_runtime = 0
 g_ntests = 0
 g_testtime = 0
 g_args = None
@@ -62,11 +63,13 @@ class DDSMTCmd ():
         self.log = log
 
     def run_cmd(self, is_golden = False):
+        global g_golden_runtime
         self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE)
         start = time.time()
         try:
             if is_golden:
-                self.out, self.err = self.process.communicate(timeout=60)
+                self.out, self.err = self.process.communicate()
+                g_golden_runtime = time.time() - start
             else:
                 self.out, self.err = self.process.communicate(timeout=self.timeout)
         except TimeoutExpired:
@@ -107,10 +110,12 @@ def _dump (filename = None, root = None):
 
 
 def _run (is_golden = False):
-    global g_args
+    global g_args, g_golden_runtime
     try:
-        start = time.time()
-        cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
+        if g_args.timeout_relative:
+            cmd = DDSMTCmd (g_args.cmd, g_args.timeout + g_golden_runtime, _log)
+        else:
+            cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
         (out, err) = cmd.run_cmd(is_golden)
         return (cmd.rcode, err)
     except OSError as e:
@@ -713,10 +718,13 @@ if __name__ == "__main__":
         aparser.add_argument ("-b", action="store_true", dest="bfs",\
                               default=False, help="search for terms in breadth-first order ")
         aparser.add_argument ("-t", dest="timeout", metavar="val",\
-                              default=None, type=float,
-                              help="timeout for test runs in seconds " \
+                              default=None, type=float, \
+                              help="absolute: timeout for test runs in seconds " \
+                                   "relative: timeout is [val] seconds longer than golden runtime" \
                                    "(default: none)")
-        aparser.add_argument ("--round", dest="roundtime", metavar = "va", default=None,
+        aparser.add_argument ("--rel", action="store_true", dest="timeout_relative",\
+                              default=False, help="timeouts are relative to test time of input file")
+        aparser.add_argument ("--round", dest="roundtime", metavar = "val", default=None,
                               type=float, help="approximate time limit for testing round in seconds")
         aparser.add_argument ("-v", action="count", default=0,
                               dest="verbosity", help="increase verbosity")
@@ -791,6 +799,8 @@ if __name__ == "__main__":
         if g_args.cmpoutput:
             _log (1, "golden err: {}".format(
                         str(g_golden_err.decode()).strip()))
+        if g_args.timeout_relative:
+            _log (1, "golden runtime: {0: .2f} seconds".format(g_golden_runtime))
         ddsmt_main ()
 
         ofilesize = os.path.getsize(g_args.outfile)
