@@ -141,10 +141,10 @@ def _filter_scopes (filter_fun, bfs, root = None):
 
        If bfs is True, nodes are visited in a breadth-first search instead.
 
-       :filter_fun: Boolean function that returns True if a node should be added.
-       :roots: List of nodes from which to begin searching.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of scope nodes that fit the filtering condition.
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :roots:       List of nodes from which to begin searching.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of scope nodes that fit the filtering condition.
 
     """
     global g_smtformula
@@ -164,7 +164,7 @@ def _filter_scopes (filter_fun, bfs, root = None):
     return scopes
 
 def _filter_cmds (filter_fun, bfs):
-    """ _filter_cmds(filter_fun, bfs)
+    """_filter_cmds(filter_fun, bfs)
 
        Collect a list of command nodes that fit a condition defined by given filtering 
        function filter_fun.
@@ -172,9 +172,9 @@ def _filter_cmds (filter_fun, bfs):
        If bfs is True, scopes will be collected by breadth-first search instead of 
        depth-first.
 
-       :filter_fun: Boolean function that returns True if a node should be added.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of command nodes that fit the filtering condition.
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of command nodes that fit the filtering condition.
     """
     global g_smtformula
     assert (g_smtformula)
@@ -199,10 +199,10 @@ def _filter_terms (filter_fun, bfs, roots):
 
        If bfs is True, nodes are visited in a breadth-first search instead.
 
-       :filter_fun: Boolean function that returns True if a node should be added.
-       :roots: List of nodes from which to begin searching.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of term nodes that fit the filtering condition.
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :roots:       List of nodes from which to begin searching.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of term nodes that fit the filtering condition.
        """
 
     nodes = []
@@ -354,14 +354,14 @@ def _substitute_terms (subst_fun, filter_fun, cmds, bfs, randomized, msg = None,
        subst_fun and filtering condition filter_fun. Terms descend from a given 
        command list cmds and are collected in the order indicated by the bfs parameter.
 
-       :subst_fun:  Function used to determine node substitutions.
-       :filter_fun: Function used to select terms to substitute.
-       :cmds:       List of commands to substitute terms from.
-       :bfs:        Bool indicating whether to collect nodes in breadth-first order.
-       :randomized: Bool indicating whether to randomize subset selection.
-       :msg:        String to write to the log.
-       :with_vars:  Bool indicating whether the substitution creates new variables. 
-       :return:     Total number of nodes substituted. 
+       :subst_fun:   Function used to determine node substitutions.
+       :filter_fun:  Function used to select terms to substitute.
+       :cmds:        List of commands to substitute terms from.
+       :bfs:         Bool indicating whether to collect nodes in breadth-first order.
+       :randomized:  Bool indicating whether to randomize subset selection.
+       :msg:         String to write to the log.
+       :with_vars:   Bool indicating whether the substitution creates new variables. 
+       :return:      Total number of nodes substituted. 
     """
     _log (2)
     _log (2, msg if msg else "substitute TERMS:")
