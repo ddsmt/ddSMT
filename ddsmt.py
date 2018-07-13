@@ -39,7 +39,7 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 g_golden_exit = 0
 g_golden_err = None
 g_ntests = 0
-
+g_testtime = 0
 g_args = None
 g_smtformula = None
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
@@ -118,7 +118,7 @@ def _run (is_golden = False):
 
 
 def _test ():
-    global g_args, g_ntests
+    global g_args, g_ntests, g_testtime
     g_ntests += 1
     (exitcode, out, err) = _run()
     return exitcode == g_golden_exit and \
@@ -136,10 +136,10 @@ def _filter_scopes (filter_fun, bfs, root = None):
 
        If bfs is True, nodes are visited in a breadth-first search instead.
 
-       :filter_fun: Boolean function that returns True if a node should be added.
-       :roots: List of nodes from which to begin searching.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of scope nodes that fit the filtering condition.
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :roots:       List of nodes from which to begin searching.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of scope nodes that fit the filtering condition.
 
     """
     global g_smtformula
@@ -159,7 +159,7 @@ def _filter_scopes (filter_fun, bfs, root = None):
     return scopes
 
 def _filter_cmds (filter_fun, bfs):
-    """ _filter_cmds(filter_fun, bfs)
+    """_filter_cmds(filter_fun, bfs)
 
        Collect a list of command nodes that fit a condition defined by given filtering 
        function filter_fun.
@@ -167,9 +167,9 @@ def _filter_cmds (filter_fun, bfs):
        If bfs is True, scopes will be collected by breadth-first search instead of 
        depth-first.
 
-       :filter_fun: Boolean function that returns True if a node should be added.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of command nodes that fit the filtering condition.
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of command nodes that fit the filtering condition.
     """
     global g_smtformula
     assert (g_smtformula)
@@ -194,10 +194,10 @@ def _filter_terms (filter_fun, bfs, roots):
 
        If bfs is True, nodes are visited in a breadth-first search instead.
 
-       :filter_fun: Boolean function that returns True if a node should be added.
-       :roots: List of nodes from which to begin searching.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of term nodes that fit the filtering condition.
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :roots:       List of nodes from which to begin searching.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of term nodes that fit the filtering condition.
        """
 
     nodes = []
@@ -251,8 +251,6 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
             subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
         else:
             subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
-        cpy_subsets = subsets[0:]
-         
 
         tests_performed = 0
         for subset in subsets:
@@ -279,7 +277,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                 nsubst_total += nsubst
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
                          "".format(gran, tests_performed, len(subsets), nsubst), True)
-                del (cpy_subsets[cpy_subsets.index(subset)])
+                superset = list(set(superset) - set(subset))
             else:
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
                          "".format(gran, tests_performed, len(subsets)), True)
@@ -291,7 +289,6 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                         if name not in cpy_declfun_cmds:
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
-        superset = [s for subset in cpy_subsets for s in subset]
         gran = gran // 2
     return nsubst_total
 
@@ -358,14 +355,14 @@ def _substitute_terms (subst_fun, filter_fun, cmds, bfs, randomized, msg = None,
        subst_fun and filtering condition filter_fun. Terms descend from a given 
        command list cmds and are collected in the order indicated by the bfs parameter.
 
-       :subst_fun:  Function used to determine node substitutions.
-       :filter_fun: Function used to select terms to substitute.
-       :cmds:       List of commands to substitute terms from.
-       :bfs:        Bool indicating whether to collect nodes in breadth-first order.
-       :randomized: Bool indicating whether to randomize subset selection.
-       :msg:        String to write to the log.
-       :with_vars:  Bool indicating whether the substitution creates new variables. 
-       :return:     Total number of nodes substituted. 
+       :subst_fun:   Function used to determine node substitutions.
+       :filter_fun:  Function used to select terms to substitute.
+       :cmds:        List of commands to substitute terms from.
+       :bfs:         Bool indicating whether to collect nodes in breadth-first order.
+       :randomized:  Bool indicating whether to randomize subset selection.
+       :msg:         String to write to the log.
+       :with_vars:   Bool indicating whether the substitution creates new variables. 
+       :return:      Total number of nodes substituted. 
     """
     _log (2)
     _log (2, msg if msg else "substitute TERMS:")
@@ -685,6 +682,7 @@ def ddsmt_main ():
         nsubst_total += nsubst_round
 
     _log (1)
+    _log (2, "total testing time: {0: .2f}".format(g_testtime))
     _log (1, "rounds total: {}".format(nrounds))
     _log (1, "tests  total: {}".format(g_ntests))
     _log (1, "substs total: {}".format(nsubst_total))
