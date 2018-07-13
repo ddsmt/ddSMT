@@ -39,7 +39,7 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 g_golden_exit = 0
 g_golden_err = None
 g_ntests = 0
-
+g_testtime = 0
 g_args = None
 g_smtformula = None
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
@@ -118,9 +118,11 @@ def _run (is_golden = False):
 
 
 def _test ():
-    global g_args, g_ntests
+    global g_args, g_ntests, g_testtime
     g_ntests += 1
+    start = time.time()
     (exitcode, err) = _run()
+    g_testtime += time.time() - start
     if g_args.cmpoutput:
         return exitcode == g_golden_exit and err == g_golden_err
     return exitcode == g_golden_exit
@@ -137,10 +139,10 @@ def _filter_scopes (filter_fun, bfs, root = None):
 
        If bfs is True, nodes are visited in a breadth-first search instead.
 
-       :filter_fun: Boolean function that returns True if a node should be added.
-       :roots: List of nodes from which to begin searching.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of scope nodes that fit the filtering condition.
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :roots:       List of nodes from which to begin searching.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of scope nodes that fit the filtering condition.
 
     """
     global g_smtformula
@@ -159,11 +161,23 @@ def _filter_scopes (filter_fun, bfs, root = None):
         to_visit.extend(cur.scopes)
     return scopes
 
-def _filter_cmds (filter_fun):
+def _filter_cmds (filter_fun, bfs):
+    """_filter_cmds(filter_fun, bfs)
+
+       Collect a list of command nodes that fit a condition defined by given filtering 
+       function filter_fun.
+
+       If bfs is True, scopes will be collected by breadth-first search instead of 
+       depth-first.
+
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of command nodes that fit the filtering condition.
+    """
     global g_smtformula
     assert (g_smtformula)
     cmds = []
-    scopes = _filter_scopes (lambda x: x.is_regular(), g_args.bfs)
+    scopes = _filter_scopes (lambda x: x.is_regular(), bfs)
     to_visit = [c for cmd_list in [s.cmds for s in scopes] for c in cmd_list]
     to_visit.extend(g_smtformula.scopes.declfun_cmds.values())
     while to_visit:
@@ -183,10 +197,10 @@ def _filter_terms (filter_fun, bfs, roots):
 
        If bfs is True, nodes are visited in a breadth-first search instead.
 
-       :filter_fun: Boolean function that returns True if a node should be added.
-       :roots: List of nodes from which to begin searching.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of term nodes that fit the filtering condition.
+       :filter_fun:  Boolean function that returns True if a node should be added.
+       :roots:       List of nodes from which to begin searching.
+       :bfs:         Bool indicating whether to use breadth-first search.
+       :return:      List of term nodes that fit the filtering condition.
        """
 
     nodes = []
@@ -224,6 +238,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
        :superset:   List of nodes to attempt to substitute.
        :randomized: Bool indicating whether to randomize subset selection.
        :with_vars:  Bool indicating whether the substitution creates new variables. 
+       :return:     Total number of nodes substituted.
        """
 
     global g_smtformula
@@ -239,8 +254,6 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
             subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
         else:
             subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
-        cpy_subsets = subsets[0:]
-         
 
         tests_performed = 0
         for subset in subsets:
@@ -267,7 +280,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                 nsubst_total += nsubst
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
                          "".format(gran, tests_performed, len(subsets), nsubst), True)
-                del (cpy_subsets[cpy_subsets.index(subset)])
+                superset = list(set(superset) - set(subset))
             else:
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
                          "".format(gran, tests_performed, len(subsets)), True)
@@ -279,12 +292,21 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                         if name not in cpy_declfun_cmds:
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
-        superset = [s for subset in cpy_subsets for s in subset]
         gran = gran // 2
     return nsubst_total
 
 
-def _substitute_scopes ():
+def _substitute_scopes (bfs, randomized):
+    """_substitute_scopes(bfs, randomized)
+
+       Attempt to remove scope nodes at each level of the formula by substituting 
+       them with None. 
+
+       :bfs:        Bool indicating whether to collect nodes in breadth-first order.
+       :randomized: Bool indicating whether to randomize subset selection for
+                    substitution.
+       :return:     Total number of nodes substituted. 
+    """
     global g_smtformula
     assert (g_smtformula)
     _log (2)
@@ -293,18 +315,27 @@ def _substitute_scopes ():
     nsubst_total = 0
     level = 1
     while True:
-        scopes = _filter_scopes (lambda x: x.level == level and x.is_regular(), g_args.bfs)
+        scopes = _filter_scopes (lambda x: x.level == level and x.is_regular(), bfs)
         if not scopes:
             break
         nsubst_total += _substitute (
-                lambda x: None, g_smtformula.subst_scopes, scopes, g_args.randomized)
+                lambda x: None, g_smtformula.subst_scopes, scopes, randomized)
         level += 1
     _log (2, "  >> {} scope(s) substituted in total".format(nsubst_total))
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
 
+def _substitute_cmds (bfs, randomized, filter_fun = None):
+    """_substitute_cmds(filter_fun, bfs, randomized)
 
-def _substitute_cmds (filter_fun = None):
+       Attempt to remove command nodes as defined by a given filtering function 
+       filter_fun by substituting them with None. 
+
+       :bfs:        Bool indicating whether to collect nodes in breadth-first order.
+       :randomized: Bool indicating whether to randomize subset selection for
+                    substitution.
+       :return:     Total number of nodes substituted. 
+    """
     global g_smtformula
     assert (g_smtformula)
     _log (2)
@@ -313,23 +344,38 @@ def _substitute_cmds (filter_fun = None):
     filter_fun = filter_fun if filter_fun else \
             lambda x: not x.is_setlogic() and not x.is_exit()
     nsubst_total = _substitute (lambda x: None, g_smtformula.subst_cmds,
-            _filter_cmds(filter_fun), g_args.randomized)
+            _filter_cmds(filter_fun, bfs), randomized)
     _log (2, "  >> {} command(s) substituted in total".format(nsubst_total))
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
 
 
-def _substitute_terms (subst_fun, filter_fun, cmds, msg = None,
+def _substitute_terms (subst_fun, filter_fun, cmds, bfs, randomized, msg = None,
                        with_vars = False):
+    """_substitute_terms(subst_fun, filter_fun, cmds, bfs, randomized, msg, with_vars)
+
+       Attempt to substitute term nodes as defined by given substitution function
+       subst_fun and filtering condition filter_fun. Terms descend from a given 
+       command list cmds and are collected in the order indicated by the bfs parameter.
+
+       :subst_fun:   Function used to determine node substitutions.
+       :filter_fun:  Function used to select terms to substitute.
+       :cmds:        List of commands to substitute terms from.
+       :bfs:         Bool indicating whether to collect nodes in breadth-first order.
+       :randomized:  Bool indicating whether to randomize subset selection.
+       :msg:         String to write to the log.
+       :with_vars:   Bool indicating whether the substitution creates new variables. 
+       :return:      Total number of nodes substituted. 
+    """
     _log (2)
     _log (2, msg if msg else "substitute TERMS:")
     ntests_prev = g_ntests
-    terms = _filter_terms (filter_fun, g_args.bfs,  [t for term_list in
+    terms = _filter_terms (filter_fun, bfs, [t for term_list in
                 [c.children if c.is_getvalue() else [c.children[-1]] \
                         for c in cmds] for t in term_list])
 
     nsubst_total = _substitute (subst_fun, g_smtformula.subst_nodes, terms, \
-                    g_args.randomized, with_vars)
+                    randomized, with_vars)
 
     _log (2, "    >> {} term(s) substituted in total".format(nsubst_total))
     _log (3, "    >> {} test(s)".format(g_ntests - ntests_prev))
@@ -355,7 +401,7 @@ def ddsmt_main ():
         nsubst = 0
         nrounds += 1
 
-        nsubst = _substitute_scopes ()
+        nsubst = _substitute_scopes (g_args.bfs, g_args.randomized)
         if nsubst:
             succeeded = "scopes"
             nsubst_round += nsubst
@@ -367,9 +413,9 @@ def ddsmt_main ():
         # -> prevent lots of likely unsuccessful testing when eliminating
         #    e.g. declare-funs previous to term substitution
         if nrounds > 1:
-           nsubst = _substitute_cmds ()
+           nsubst = _substitute_cmds (g_args.bfs, g_args.randomized)
         else:
-           nsubst = _substitute_cmds (lambda x: x.is_assert())
+           nsubst = _substitute_cmds (g_args.bfs, g_args.randomized, lambda x: x.is_assert())
         if nsubst:
            succeeded = "cmds"
            nsubst_round += nsubst
@@ -377,9 +423,9 @@ def ddsmt_main ():
         elif succeeded == "cmds":
            break
 
-        cmds = [_filter_cmds (lambda x: x.is_definefun()),
-                _filter_cmds (lambda x: x.is_assert()),
-                _filter_cmds (lambda x: x.is_getvalue())]
+        cmds = [_filter_cmds (lambda x: x.is_definefun(), g_args.bfs),
+                _filter_cmds (lambda x: x.is_assert(), g_args.bfs),
+                _filter_cmds (lambda x: x.is_getvalue(), g_args.bfs)]
         cmds_msgs = ["'define-fun'", "'assert'", "'get-value'"]
 
         for i in range(0,len(cmds)):
@@ -392,7 +438,8 @@ def ddsmt_main ():
                             lambda x: sf.bvZeroConstNode(x.sort),
                             lambda x: not x.is_const() \
                                       and x.sort and x.sort.is_bv_sort(),
-                            cmds[i], "  substitute BV terms with '0'")
+                            cmds[i], g_args.bfs, g_args.randomized, 
+                            "  substitute BV terms with '0'")
                     if nsubst:
                         succeeded = "bv0_{}".format(i)
                         nsubst_round += nsubst
@@ -407,7 +454,8 @@ def ddsmt_main ():
                                 (x.children[0].get_subst().is_false_bvconst() \
                                  or
                                  x.children[1].get_subst().is_false_bvconst()),
-                            cmds[i], "  substitute (bvor term false) with term")
+                            cmds[i], g_args.bfs, g_args.randomized, 
+                            "  substitute (bvor term false) with term")
                     if nsubst:
                         succeeded = "bvor_{}".format(i)
                         nsubst_round += nsubst
@@ -422,7 +470,8 @@ def ddsmt_main ():
                                 (x.children[0].get_subst().is_true_bvconst() \
                                  or
                                  x.children[1].get_subst().is_true_bvconst()),
-                            cmds[i], "  substitute (bvand term true) with term")
+                            cmds[i], g_args.bfs, g_args.randomized, 
+                            "  substitute (bvand term true) with term")
                     if nsubst:
                         succeeded = "bvand_{}".format(i)
                         nsubst_round += nsubst
@@ -434,7 +483,7 @@ def ddsmt_main ():
                             lambda x: not x.is_const()                   \
                                       and x.sort and x.sort.is_bv_sort() \
                                       and not sf.is_substvar(x),
-                            cmds[i],
+                            cmds[i], g_args.bfs, g_args.randomized,
                             "  substitute BV terms with fresh variables",
                             True)
                     if nsubst:
@@ -449,7 +498,8 @@ def ddsmt_main ():
                             lambda x: sf.zeroConstNNode(),
                             lambda x: not x.is_const() \
                                       and x.sort and x.sort.is_int_sort(),
-                            cmds[i], "  substitute Int terms with '0'")
+                            cmds[i], g_args.bfs, g_args.randomized, 
+                            "  substitute Int terms with '0'")
                     if nsubst:
                         succeeded = "int0_{}".format(i)
                         nsubst_round += nsubst
@@ -461,7 +511,7 @@ def ddsmt_main ():
                             lambda x: not x.is_const()                    \
                                       and x.sort and x.sort.is_int_sort() \
                                       and not sf.is_substvar(x),
-                            cmds[i],
+                            cmds[i], g_args.bfs, g_args.randomized,
                             "  substitute Int terms with fresh variables",
                             True)
                     if nsubst:
@@ -476,7 +526,8 @@ def ddsmt_main ():
                             lambda x: sf.zeroConstDNode(),
                             lambda x: not x.is_const() \
                                       and x.sort and x.sort.is_real_sort(),
-                            cmds[i], "  substitute Real terms with '0'")
+                            cmds[i], g_args.bfs, g_args.randomized, 
+                            "  substitute Real terms with '0'")
                     if nsubst:
                         succeeded = "real0_{}".format(i)
                         nsubst_round += nsubst
@@ -488,7 +539,7 @@ def ddsmt_main ():
                             lambda x: not x.is_const()                     \
                                       and x.sort and x.sort.is_real_sort() \
                                       and not sf.is_substvar(x),
-                            cmds[i],
+                            cmds[i], g_args.bfs, g_args.randomized,
                             "  substitute Real terms with fresh variables",
                             True)
                     if nsubst:
@@ -501,7 +552,8 @@ def ddsmt_main ():
                 nsubst = _substitute_terms (
                         lambda x: x.children[-1].get_subst(),
                         lambda x: x.is_let(),
-                        cmds[i], "  substitute LETs with child term")
+                        cmds[i], g_args.bfs, g_args.randomized, 
+                        "  substitute LETs with child term")
                 if nsubst:
                     succeeded = "let_{}".format(i)
                     nsubst_round += nsubst
@@ -512,7 +564,8 @@ def ddsmt_main ():
                 nsubst = _substitute_terms (
                         lambda x: None,
                         lambda x: x.is_varb() and x.children[0].is_subst(),
-                        cmds[i], "  eliminate redundant variable bindings")
+                        cmds[i], g_args.bfs, g_args.randomized,
+                        "  eliminate redundant variable bindings")
                 if nsubst:
                     succeeded = "varb_{}".format(i)
                     nsubst_round += nsubst
@@ -524,7 +577,8 @@ def ddsmt_main ():
                         lambda x: sf.boolConstNode("false"),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_bool_sort(),
-                        cmds[i], "  substitute Boolean terms with 'false'")
+                        cmds[i], g_args.bfs, g_args.randomized, 
+                        "  substitute Boolean terms with 'false'")
                 if nsubst:
                     succeeded = "false_{}".format(i)
                     nsubst_round += nsubst
@@ -539,7 +593,8 @@ def ddsmt_main ():
                         lambda x: x.is_or() \
                                 and (x.children[0].get_subst().is_false_const()\
                                 or x.children[1].get_subst().is_false_const()),
-                        cmds[i], "  substitute (or term false) with term")
+                        cmds[i], g_args.bfs, g_args.randomized, 
+                        "  substitute (or term false) with term")
                 if nsubst:
                     succeeded = "or_{}".format(i)
                     nsubst_round += nsubst
@@ -551,7 +606,8 @@ def ddsmt_main ():
                         lambda x: sf.boolConstNode("true"),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_bool_sort(),
-                        cmds[i], "  substitute Boolean terms with 'true'")
+                        cmds[i], g_args.bfs, g_args.randomized, 
+                        "  substitute Boolean terms with 'true'")
                 if nsubst:
                     succeeded = "true_{}".format(i)
                     nsubst_round += nsubst
@@ -566,7 +622,8 @@ def ddsmt_main ():
                         lambda x: x.is_and() \
                                 and (x.children[0].get_subst().is_true_const() \
                                 or x.children[1].get_subst().is_true_const()),
-                        cmds[i], "  substitute (and term true) with term")
+                        cmds[i], g_args.bfs, g_args.randomized,
+                        "  substitute (and term true) with term")
                 if nsubst:
                     succeeded = "and_{}".format(i)
                     nsubst_round += nsubst
@@ -579,7 +636,7 @@ def ddsmt_main ():
                         lambda x: not x.is_const()                   \
                                   and x.sort and x.sort.is_bool_sort() \
                                   and not sf.is_substvar(x),
-                        cmds[i],
+                        cmds[i], g_args.bfs, g_args.randomized,
                         "  substitute Boolean terms with fresh variables",
                         True)
                 if nsubst:
@@ -593,7 +650,8 @@ def ddsmt_main ():
                     nsubst = _substitute_terms (
                             lambda x: x.children[0],  # array
                             lambda x: x.is_write(),
-                            cmds[i], "  substitute STOREs with array child")
+                            cmds[i], g_args.bfs, g_args.randomized,
+                            "  substitute STOREs with array child")
                     if nsubst:
                         succeeded = "store_{}".format(i)
                         nsubst_round += nsubst
@@ -604,7 +662,8 @@ def ddsmt_main ():
                 nsubst = _substitute_terms (
                         lambda x: x.children[1],  # left child
                         lambda x: x.is_ite(),
-                        cmds[i], "  substitute ITE with left child")
+                        cmds[i], g_args.bfs, g_args.randomized,
+                        "  substitute ITE with left child")
                 if nsubst:
                     succeeded = "iteleft_{}".format(i)
                     nsubst_round += nsubst
@@ -614,7 +673,8 @@ def ddsmt_main ():
                 nsubst = _substitute_terms (
                         lambda x: x.children[2],  # right child
                         lambda x: x.is_ite(),
-                        cmds[i], "  substitute ITE with right child")
+                        cmds[i], g_args.bfs, g_args.randomized,
+                        "  substitute ITE with right child")
                 if nsubst:
                     succeeded = "iteright_{}".format(i)
                     nsubst_round += nsubst
@@ -625,6 +685,7 @@ def ddsmt_main ():
         nsubst_total += nsubst_round
 
     _log (1)
+    _log (2, "total testing time: {0: .2f}".format(g_testtime))
     _log (1, "rounds total: {}".format(nrounds))
     _log (1, "tests  total: {}".format(g_ntests))
     _log (1, "substs total: {}".format(nsubst_total))
@@ -635,7 +696,6 @@ def ddsmt_main ():
 
     if nsubst_total == 0:
         sys.exit ("[ddsmt] unable to reduce input file")
-
 
 if __name__ == "__main__":
     try:
