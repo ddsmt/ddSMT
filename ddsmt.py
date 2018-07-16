@@ -38,6 +38,8 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 
 g_golden_exit = 0
 g_golden_err = None
+g_golden_runtime = 0
+g_current_runtime = 0
 g_ntests = 0
 g_testtime = 0
 g_args = None
@@ -62,11 +64,14 @@ class DDSMTCmd ():
         self.log = log
 
     def run_cmd(self, is_golden = False):
+        global g_golden_runtime
         self.process = Popen (self.cmd, stdout=PIPE, stderr=PIPE)
         start = time.time()
         try:
             if is_golden:
-                self.out, self.err = self.process.communicate(timeout=60)
+                self.out, self.err = self.process.communicate()
+                g_golden_runtime = time.time() - start
+                g_current_runtime = g_golden_runtime
             else:
                 self.out, self.err = self.process.communicate(timeout=self.timeout)
         except TimeoutExpired:
@@ -107,10 +112,14 @@ def _dump (filename = None, root = None):
 
 
 def _run (is_golden = False):
-    global g_args
+    global g_args, g_golden_runtime, g_current_runtime
     try:
-        start = time.time()
-        cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
+        if g_args.timeout_absolute:
+            cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
+        elif g_args.timeout_dynamic:
+            cmd = DDSMTCmd (g_args.cmd, g_args.timeout + g_current_runtime, _log)
+        else:
+            cmd = DDSMTCmd (g_args.cmd, g_args.timeout + g_golden_runtime, _log)
         (out, err) = cmd.run_cmd(is_golden)
         return (cmd.rcode, out, err)
     except OSError as e:
@@ -239,7 +248,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
        """
 
     superset = set(superset)
-    global g_smtformula
+    global g_smtformula, g_current_runtime
     assert (g_smtformula)
     assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
                           g_smtformula.subst_nodes))
@@ -305,8 +314,9 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                 continue
 
             _dump (g_tmpfile)
-
+            start = time.time()
             if _test():
+                g_current_runtime = time.time() - start
                 _dump (g_args.outfile)
                 nsubst_total += nsubst
                 _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
@@ -745,10 +755,19 @@ if __name__ == "__main__":
         aparser.add_argument ("-b", action="store_true", dest="bfs",\
                               default=False, help="search for terms in breadth-first order ")
         aparser.add_argument ("-t", dest="timeout", metavar="val",\
-                              default=None, type=float,
-                              help="timeout for test runs in seconds " \
-                                   "(default: none)")
-        aparser.add_argument ("--round", dest="roundtime", metavar = "va", default=None,
+                              default=0, type=float, \
+                              help="absolute: timeout for test runs in seconds " \
+                                   "relative: timeout is [val] seconds longer than golden runtime" \
+                                   "dynamic: timeout is [val] seconds longer than most recent successful test"
+                                   "(default: 0, relative)")
+        timeout_group = aparser.add_mutually_exclusive_group()
+        timeout_group.add_argument ("--abs", action="store_true", dest="timeout_absolute",\
+                              default=False, help="timeouts are absolute rather than "\
+                                   "relative to test time of input file")
+        timeout_group.add_argument ("--dyn", action="store_true", dest="timeout_dynamic",\
+                              default=False, help="timeouts are relative to the runtime of the "\
+                                   "most recent successful test")
+        aparser.add_argument ("--round", dest="roundtime", metavar = "val", default=None,
                               type=float, help="approximate time limit for testing round in seconds")
         aparser.add_argument ("-v", action="count", default=0,
                               dest="verbosity", help="increase verbosity")
@@ -825,6 +844,7 @@ if __name__ == "__main__":
             _log (1, "golden err: {}".format(
                         g_args.cmpoutput))
 
+        _log (1, "golden runtime: {0: .2f} seconds".format(g_golden_runtime))
         ddsmt_main ()
 
         ofilesize = os.path.getsize(g_args.outfile)
