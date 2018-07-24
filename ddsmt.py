@@ -114,12 +114,14 @@ def _dump (filename = None, root = None):
 def _run (is_golden = False):
     global g_args, g_golden_runtime, g_current_runtime
     try:
-        if g_args.timeout_absolute:
-            cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
+        if not g_args.timeout:
+            cmd = DDSMTCmd (g_args.cmd, g_golden_runtime, _log)
+        elif g_args.timeout_relative:
+            cmd = DDSMTCmd (g_args.cmd, g_args.timeout + g_golden_runtime, _log)
         elif g_args.timeout_dynamic:
             cmd = DDSMTCmd (g_args.cmd, g_args.timeout + g_current_runtime, _log)
         else:
-            cmd = DDSMTCmd (g_args.cmd, g_args.timeout + g_golden_runtime, _log)
+            cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
         (out, err) = cmd.run_cmd(is_golden)
         return (cmd.rcode, err)
     except OSError as e:
@@ -723,20 +725,19 @@ if __name__ == "__main__":
         aparser.add_argument ("-b", action="store_true", dest="bfs",\
                               default=False, help="search for terms in breadth-first order ")
         aparser.add_argument ("-t", dest="timeout", metavar="val",\
-                              default=0, type=float, \
+                              default=None, type=float, \
                               help="absolute: timeout for test runs in seconds " \
                                    "relative: timeout is [val] seconds longer than golden runtime" \
-                                   "dynamic: timeout is [val] seconds longer than most recent successful test"
-                                   "(default: 0, relative)")
+                                   "dynamic: timeout is [val] seconds longer than most recent successful test"\
+                                   "(default: absolute. When timeout is unspecified, default is golden runtime.)")
         timeout_group = aparser.add_mutually_exclusive_group()
-        timeout_group.add_argument ("--abs", action="store_true", dest="timeout_absolute",\
-                              default=False, help="timeouts are absolute rather than "\
-                                   "relative to test time of input file")
+        timeout_group.add_argument ("--rel", action="store_true", dest="timeout_relative",\
+                              default=False, help="timeouts are relative to test time of input file")
         timeout_group.add_argument ("--dyn", action="store_true", dest="timeout_dynamic",\
                               default=False, help="timeouts are relative to the runtime of the "\
                                    "most recent successful test")
         aparser.add_argument ("--round", dest="roundtime", metavar = "val", default=None,
-                              type=float, help="approximate time limit for testing round in seconds")
+                              type=float, help="approximate time limit for testing rounds in seconds")
         aparser.add_argument ("-v", action="count", default=0,
                               dest="verbosity", help="increase verbosity")
         aparser.add_argument ("-o", action="store_false", dest="cmpoutput",
