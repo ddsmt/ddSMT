@@ -124,7 +124,7 @@ def _run (is_golden = False):
         else:
             cmd = DDSMTCmd (g_args.cmd, g_args.timeout, _log)
         (out, err) = cmd.run_cmd(is_golden)
-        return (cmd.rcode, err)
+        return (cmd.rcode, out, err)
     except OSError as e:
         raise DDSMTException ("{}: {}".format(str(e), g_cmd[0]))
 
@@ -135,10 +135,8 @@ def _test ():
     start = time.time()
     (exitcode, err) = _run()
     g_testtime += time.time() - start
-    if g_args.cmpoutput:
-        return exitcode == g_golden_exit and err == g_golden_err
-    return exitcode == g_golden_exit
-
+    return exitcode == g_golden_exit and \
+        (g_args.cmpoutput in err.decode() or g_args.cmpoutput in out.decode())
 
 def _filter_scopes (filter_fun, bfs, root = None):
     """_filter_scopes(filter_fun, bfs, root)
@@ -251,6 +249,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
        :return:     Total number of nodes substituted.
     """
     global g_smtformula, g_current_runtime
+
     assert (g_smtformula)
     assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
                           g_smtformula.subst_nodes))
@@ -263,7 +262,6 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
             subsets = [random.sample(superset, gran) for s in range(0, len(superset), gran)]
         else:
             subsets = [superset[s:s+gran] for s in range (0, len(superset), gran)]
-
         tests_performed = 0
         for subset in subsets:
             if g_args.roundtime:
@@ -737,11 +735,10 @@ if __name__ == "__main__":
                               type=float, help="approximate time limit for testing rounds in seconds")
         aparser.add_argument ("-v", action="count", default=0,
                               dest="verbosity", help="increase verbosity")
-        aparser.add_argument ("-o", action="store_false", dest="cmpoutput",
-                              default = True,
-                              help = "use err exit code only "\
+        aparser.add_argument ("-o", dest="cmpoutput",
+                              help = "use exit code and search pattern string "\
                                      "to identify failing input (default: "\
-                                     "error exit code and stderr output)")
+                                     "error exit code and stderr output)") 
         aparser.add_argument ("--version", action="version",
                               version=__version__)
         g_args = aparser.parse_args()
@@ -803,12 +800,14 @@ if __name__ == "__main__":
         g_args.cmd.append(g_tmpfile)
         _log (1)
         _log (1, "starting initial run... ")
-        (g_golden_exit, g_golden_err) = _run(True)
+        (g_golden_exit, out, g_golden_err) = _run(True)
+        if g_args.cmpoutput == None:
+            g_args.cmpoutput = g_golden_err.decode()
         _log (1, "golden exit: {}".format(g_golden_exit))
         if g_args.cmpoutput:
-            _log (1, "golden err: {}".format(
-                        str(g_golden_err.decode()).strip()))
+            _log (1, "golden err: {}".format(g_args.cmpoutput))
         _log (1, "golden runtime: {0: .2f} seconds".format(g_golden_runtime))
+
         ddsmt_main ()
 
         ofilesize = os.path.getsize(g_args.outfile)
