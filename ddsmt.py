@@ -133,7 +133,7 @@ def _test ():
     global g_args, g_ntests, g_testtime
     g_ntests += 1
     start = time.time()
-    (exitcode, err) = _run()
+    (exitcode, out, err) = _run()
     g_testtime += time.time() - start
     return exitcode == g_golden_exit and \
         (g_args.cmpoutput in err.decode() or g_args.cmpoutput in out.decode())
