@@ -296,12 +296,12 @@ def _substitute (subst_fun, substlist, superset, randomized,
                 g_current_runtime = time.time() - start
                 _dump (g_args.outfile)
                 nsubst_total += nsubst
-                _log (2, "    granularity: {}, subset {} of {}:, " \
+                _log (2, "    granularity: {}, subset {} of {}, " \
                          "substituted: {}".format(gran, tests_performed, 
                       len(subsets), nsubst), True)
                 superset = list(set(superset) - set(subset))
             else:
-                _log (2, "    granularity: {}, subset {} of {}:, "\
+                _log (2, "    granularity: {}, subset {} of {}, "\
                          "substituted: 0".format(gran, tests_performed, 
                       len(subsets)), True)
                 substlist.substs = cpy_substs
