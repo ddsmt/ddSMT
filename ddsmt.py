@@ -238,21 +238,23 @@ def _filter_terms (filter_fun, bfs, roots):
             to_visit.extend(cur.children)
     return nodes
 
-def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False):
+def _substitute (subst_fun, substlist, superset, randomized,  \
+                 with_vars = False):
     """_substitute(subst_fun, substlist, superset, randomized, with_vars)
 
        Attempt to substitute nodes in contiguous subsets as defined by given 
        substitution function subst_fun. Remove substituted nodes from superset 
        when substitution was successful. 
 
-       If randomized is True, shuffle superset before sampling each subset..
+       If randomized is True, shuffle superset before sampling each subset.
 
        :subst_fun:  Function used to determine node substitutions.
        :substlist:  Map from nodes in the input formula to their corresponding 
                     nodes in the reduced formula.
        :superset:   List of nodes to attempt to substitute.
        :randomized: Bool indicating whether to randomize subset selection.
-       :with_vars:  Bool indicating whether the substitution creates new variables. 
+       :with_vars:  Bool indicating whether the substitution creates new 
+                    variables. 
        :return:     Total number of nodes substituted.
     """
     global g_smtformula, g_current_runtime
@@ -293,15 +295,18 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
             if _test():
                 g_current_runtime = time.time() - start
                 nsubst_total += nsubst
-                _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
-            	     "".format(gran, i, (len(superset)+gran-1)//gran, nsubst), True)
+                _log (2, "    granularity: {}, subset {} of {}, " \
+                         "substituted: {}".format(gran, i, 
+                     (len(superset)+gran-1)//gran, nsubst), True)
             else:
-                _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
-            	     "".format(gran, i, (len(superset)+gran-1)//gran), True)
+                _log (2, "    granularity: {}, subset {} of {}:, " \
+                         "substituted: 0".format(gran, i, 
+                     (len(superset)+gran-1)//gran), True)
                 substlist.substs = cpy_substs
                 if with_vars:
                     for name in g_smtformula.scopes.declfun_cmds:
-                        assert (g_smtformula.find_fun(name, scope = g_smtformula.scopes))
+                        assert (g_smtformula.find_fun(
+                            name, scope = g_smtformula.scopes))
                         if name not in cpy_declfun_cmds:
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
