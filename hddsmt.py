@@ -141,6 +141,15 @@ def _test ():
         (g_args.cmpoutput in err.decode() or g_args.cmpoutput in out.decode())
 
 def _filter_scopes_hdd (filter_fun, scopes):
+    """_filter_scopes_hdd (filter_fun, scopes)
+   
+       Collect a sublist from a given list of scope nodes that fit a condition
+       defined by given filtering function filter_fun.
+
+       :filter_fun: Boolean function that returns True if a node should be added.
+       :scopes:     List of scope nodes to filter from.
+       :return:     List of scope nodes that fit the filtering condition.
+    """
     nodes = []
     for s in scopes:
         if s.get_subst() and filter_fun(s):
@@ -148,7 +157,7 @@ def _filter_scopes_hdd (filter_fun, scopes):
     return nodes
 
 def _filter_scopes (filter_fun, bfs, root = None):
-    """_filter_scopes(filter_fun, bfs, root)
+    """_filter_scopes (filter_fun, bfs, root)
    
        Collect a list of scope nodes that fit a condition defined by given filtering 
        function filter_fun. Nodes are added to the list in the order that they 
@@ -180,7 +189,15 @@ def _filter_scopes (filter_fun, bfs, root = None):
     return scopes
 
 def _filter_cmds_hdd (filter_fun, cmds):
+    """_filter_cmds_hdd (filter_fun, cmds)
+   
+       Collect a sublist from a given list of commands that fit a condition
+       defined by given filtering function filter_fun.
 
+       :filter_fun: Boolean function that returns True if a node should be added.
+       :scopes:     List of command nodes to filter from.
+       :return:     List of command nodes that fit the filtering condition.
+    """
     nodes = []
     for c in cmds:
         if not c.is_subst() and filter_fun(c):
@@ -216,19 +233,15 @@ def _filter_cmds (filter_fun, bfs):
     return cmds
 
 def _filter_terms_hdd (filter_fun, terms):
-    """_filter_terms(filter_fun, bfs, roots) 
-       
-       Collect a list of term nodes that fit a condition defined by given filtering 
-       function filter_fun. Nodes are added to the list in the order that they 
-       are visited in a depth-first search descending from a given list of roots.
-
-       If bfs is True, nodes are visited in a breadth-first search instead.
+    """_filter_terms_hdd(filter_fun, bfs)
+   
+       Collect a sublist from a given list of term nodes that fit a condition
+       defined by given filtering function filter_fun.
 
        :filter_fun: Boolean function that returns True if a node should be added.
-       :roots: List of nodes from which to begin searching.
-       :bfs: Bool indicating whether to use breadth-first search.
-       :return: List of term nodes that fit the filtering condition.
-       """
+       :scopes:     List of term nodes to filter from.
+       :return:     List of term nodes that fit the filtering condition.
+    """
 
     nodes = []
     for t in terms:
