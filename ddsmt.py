@@ -31,7 +31,8 @@ import time
 from argparse import ArgumentParser, REMAINDER
 from subprocess import Popen, PIPE, TimeoutExpired
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
-
+from collections import deque
+from math import sqrt 
 
 __version__ = "1.0"
 __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
@@ -237,24 +238,21 @@ def _filter_terms (filter_fun, bfs, roots):
             to_visit.extend(cur.children)
     return nodes
 
-def _substitute (subst_fun, substlist, superset, randomized,  
-                 with_vars = False):
+def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False):
     """_substitute(subst_fun, substlist, superset, randomized, with_vars)
 
        Attempt to substitute nodes in contiguous subsets as defined by given 
        substitution function subst_fun. Remove substituted nodes from superset 
        when substitution was successful. 
 
-       If randomized is True, sample subsets randomly rather than splitting 
-       into contiguous subsets.
+       If randomized is True, shuffle superset before sampling each subset..
 
        :subst_fun:  Function used to determine node substitutions.
        :substlist:  Map from nodes in the input formula to their corresponding 
                     nodes in the reduced formula.
        :superset:   List of nodes to attempt to substitute.
        :randomized: Bool indicating whether to randomize subset selection.
-       :with_vars:  Bool indicating whether the substitution creates new 
-                    variables. 
+       :with_vars:  Bool indicating whether the substitution creates new variables. 
        :return:     Total number of nodes substituted.
     """
     global g_smtformula, g_current_runtime
@@ -262,59 +260,54 @@ def _substitute (subst_fun, substlist, superset, randomized,
     assert (g_smtformula)
     assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
                           g_smtformula.subst_nodes))
+    min_gran = 0.1 * sqrt(len(superset))
     nsubst_total = 0
-    gran = len(superset)
+    s = deque(superset) 
+    gran = (len(s) + 1) // 2
     
-    while gran > 0:
-        start_time = time.time()
-        if randomized:
-            subsets = [random.sample(superset, gran) for s in range(
-                       0, len(superset), gran)]
-        else:
-            subsets = [superset[s:s+gran] for s in range (
-                       0, len(superset), gran)]
-        tests_performed = 0
-        for subset in subsets:
-            if g_args.roundtime:
-                if time.time() - start_time > g_args.roundtime:
-                    _log (2, "[!!] test round timeout: reducing granularity")
-                    break
-            tests_performed += 1
+    while gran > min_gran:
+        for i in range ((len(s) + gran - 1) // gran):
+            if randomized:
+                random.shuffle(s)
             nsubst = 0
             cpy_substs = substlist.substs.copy()
             cpy_declfun_cmds = g_smtformula.scopes.declfun_cmds.copy()
-            for item in subset:
+            subset = []
+            if len(s) == 0:
+                return nsubst_total
+            for j in range (gran):
+                if len(s) == 0:
+                    break
+                item = s.popleft()
                 if not item.is_subst():
                     item.subst (subst_fun(item))
+                    subset.append(item)
                     nsubst += 1
+                else: 
+                    s.append(item)
             if nsubst == 0:
                 continue
-
+                
             _dump (g_tmpfile)
             start = time.time()
             if _test():
                 g_current_runtime = time.time() - start
-                _dump (g_args.outfile)
                 nsubst_total += nsubst
-                _log (2, "    granularity: {}, subset {} of {}, " \
-                         "substituted: {}".format(gran, tests_performed, 
-                      len(subsets), nsubst), True)
-                superset = list(set(superset) - set(subset))
+                _log (2, "    granularity: {}, subset {} of {}:, substituted: {}" \
+            	     "".format(gran, i, (len(superset)+gran-1)//gran, nsubst), True)
             else:
-                _log (2, "    granularity: {}, subset {} of {}, "\
-                         "substituted: 0".format(gran, tests_performed, 
-                      len(subsets)), True)
+                _log (2, "    granularity: {}, subset {} of {}:, substituted: 0" \
+            	     "".format(gran, i, (len(superset)+gran-1)//gran), True)
                 substlist.substs = cpy_substs
                 if with_vars:
                     for name in g_smtformula.scopes.declfun_cmds:
-                        assert (g_smtformula.find_fun(
-                            name, scope = g_smtformula.scopes))
+                        assert (g_smtformula.find_fun(name, scope = g_smtformula.scopes))
                         if name not in cpy_declfun_cmds:
                             g_smtformula.delete_fun(name)
                 g_smtformula.scopes.declfun_cmds = cpy_declfun_cmds
+                s.extend(subset)
         gran = gran // 2
     return nsubst_total
-
 
 def _substitute_scopes (bfs, randomized):
     """_substitute_scopes(bfs, randomized)
@@ -724,6 +717,7 @@ def ddsmt_main ():
 
     if nsubst_total == 0:
         sys.exit ("[ddsmt] unable to reduce input file")
+
 
 if __name__ == "__main__":
     try:
