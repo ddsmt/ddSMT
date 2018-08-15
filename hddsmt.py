@@ -328,8 +328,6 @@ def _substitute (subst_fun, substlist, superset, randomized,  with_vars = False)
                     item.subst (subst_fun(item))
                     subset.append(item)
                     nsubst += 1
-                else: 
-                    s.append(item)
             if nsubst == 0:
                 continue
                 
