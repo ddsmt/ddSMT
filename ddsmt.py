@@ -260,8 +260,7 @@ def _substitute (subst_fun, substlist, superset, randomized,
     global g_smtformula, g_current_runtime
 
     assert (g_smtformula)
-    assert (substlist in (g_smtformula.subst_scopes, g_smtformula.subst_cmds,
-                          g_smtformula.subst_nodes))
+    assert (substlist is g_smtformula.substs)
     nsubst_total = 0
     gran = len(superset)
     
@@ -366,7 +365,7 @@ def _substitute_cmds (bfs, randomized, filter_fun = None):
     ntests_prev = g_ntests
     filter_fun = filter_fun if filter_fun else \
             lambda x: not x.is_setlogic() and not x.is_exit()
-    nsubst_total = _substitute (lambda x: None, g_smtformula.subst_cmds,
+    nsubst_total = _substitute (lambda x: None, g_smtformula.substs,
             _filter_cmds(filter_fun, bfs), randomized)
     _log (2, "  >> {} command(s) substituted in total".format(nsubst_total))
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
@@ -401,7 +400,7 @@ def _substitute_terms (subst_fun, filter_fun, cmds, bfs, randomized, msg = None,
                 [c.children if c.is_getvalue() else [c.children[-1]] \
                         for c in cmds] for t in term_list])
 
-    nsubst_total = _substitute (subst_fun, g_smtformula.subst_nodes, terms, \
+    nsubst_total = _substitute (subst_fun, g_smtformula.substs, terms, \
                     randomized, with_vars)
 
     _log (2, "    >> {} term(s) substituted in total".format(nsubst_total))
