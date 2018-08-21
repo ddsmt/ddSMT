@@ -246,7 +246,9 @@ def _substitute (subst_fun, substlist, superset, randomized,  \
        substitution function subst_fun. Remove substituted nodes from superset 
        when substitution was successful. 
 
-       If randomized is True, shuffle superset before sampling each subset.
+       If randomized is True, shuffle superset before sampling each subset. If
+       --thorough flag is set, ignore minimum granularity and test subsets of
+       size one in the worst case.
 
        :subst_fun:  Function used to determine node substitutions.
        :substlist:  Map from nodes in the input formula to their corresponding 
@@ -265,7 +267,7 @@ def _substitute (subst_fun, substlist, superset, randomized,  \
     if g_args.thorough:
         min_gran = 1
     else:
-        min_gran = max(1, 0.1 * len(superset))
+        min_gran = max(1, len(superset) // 16)
     nsubst_total = 0
     s = deque(superset) 
     gran = (len(s) + 1) // 2
