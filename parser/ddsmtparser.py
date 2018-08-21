@@ -1123,7 +1123,8 @@ class SMTSubstList:
         return node
 
 class SMTFormula:
-    g_node_id = 0 #id for all three kinds of nodes
+    g_node_id = 0 # unique id for nodes of type SMTNode, SMTCmdNode, 
+                  # and SMTScopeNode
 
     def __init__ (self):
         self.logic = "none"
@@ -1174,15 +1175,18 @@ class SMTFormula:
 
     def subst (self, node, substitution):
         self.substs.subst(node, substitution)
-        if isinstance (node, SMTNode):
-            if node.is_fun() and self.is_substvar(node):
-                del (self.scopes.declfun_cmds[node.name])
+        if isinstance (node, SMTNode) and node.is_fun() and \
+            self.is_substvar(node):
+            del (self.scopes.declfun_cmds[node.name])
 
 
     def is_subst (self, node):
         return self.substs.is_subst(node)
 
     def get_subst (self, node):
+        if isinstance(node, SMTCmdNode) or isinstance(node, SMTScopeNode):
+            assert (not self.substs.is_subst(node) or 
+                        self.substs.get_subst(node) == None)
         return self.substs.get_subst(node)
 
     def open_scope (self, nscopes = 1, kind = KIND_SCOPE):
