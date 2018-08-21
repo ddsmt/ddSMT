@@ -341,7 +341,7 @@ def _substitute_scopes (bfs, randomized):
         if not scopes:
             break
         nsubst_total += _substitute (
-                lambda x: None, g_smtformula.subst_scopes, scopes, randomized)
+                lambda x: None, g_smtformula.substs, scopes, randomized)
         level += 1
     _log (2, "  >> {} scope(s) substituted in total".format(nsubst_total))
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))

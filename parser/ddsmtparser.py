@@ -254,13 +254,12 @@ class DDSMTParseException (SMTParseException):
 class SMTNode:
 
     __slots__ = ["id", "kind", "sort", "children"]
-    g_id = 0
     g_smtformula = None
 
     def __init__ (self, kind = "none", sort = None, children = []):
         assert (isinstance (children, list))
-        SMTNode.g_id += 1
-        self.id = SMTNode.g_id
+        SMTFormula.g_node_id += 1
+        self.id = SMTFormula.g_node_id
         self.kind = kind
         self.sort = sort
         self.children = children
@@ -832,15 +831,14 @@ class SMTNamedAnnNode (SMTAnnNode):
 class SMTCmdNode:
 
     __slots__ = ["id", "kind", "children"]
-    g_id = 0
     g_smtformula = None
 
     def __init__ (self, kind, children = []):
         global g_cmd_kinds
         assert (isinstance (children, list))
         assert (kind in g_cmd_kinds)
-        SMTCmdNode.g_id += 1
-        self.id = SMTCmdNode.g_id
+        SMTFormula.g_node_id += 1
+        self.id = SMTFormula.g_node_id
         self.kind = kind
         self.children = children
 
@@ -1025,13 +1023,12 @@ class SMTScopeNode:
 
     __slots__ = ["id", "level", "prev", "kind", "scopes", "cmds", "funs",
                  "sorts", "declfun_cmds", "declfun_id"]
-    g_id = 0
     g_smtformula = None
 
     def __init__ (self, level = 0, prev = None, kind = KIND_SCOPE):
         assert (kind in (KIND_SCOPE, KIND_FESCOPE, KIND_LSCOPE))
-        SMTScopeNode.g_id += 1
-        self.id = SMTScopeNode.g_id
+        SMTFormula.g_node_id += 1
+        self.id = SMTFormula.g_node_id
         self.level  = level
         self.prev   = prev
         self.kind   = kind
@@ -1150,6 +1147,7 @@ class SMTCmdSubstList (SMTSubstList):
 
 
 class SMTFormula:
+    g_node_id = 0 #id for all three kinds of nodes
 
     def __init__ (self):
         self.logic = "none"
