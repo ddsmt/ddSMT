@@ -254,13 +254,12 @@ class DDSMTParseException (SMTParseException):
 class SMTNode:
 
     __slots__ = ["id", "kind", "sort", "children"]
-    g_id = 0
     g_smtformula = None
 
     def __init__ (self, kind = "none", sort = None, children = []):
         assert (isinstance (children, list))
-        SMTNode.g_id += 1
-        self.id = SMTNode.g_id
+        SMTFormula.g_node_id += 1
+        self.id = SMTFormula.g_node_id
         self.kind = kind
         self.sort = sort
         self.children = children
@@ -832,15 +831,14 @@ class SMTNamedAnnNode (SMTAnnNode):
 class SMTCmdNode:
 
     __slots__ = ["id", "kind", "children"]
-    g_id = 0
     g_smtformula = None
 
     def __init__ (self, kind, children = []):
         global g_cmd_kinds
         assert (isinstance (children, list))
         assert (kind in g_cmd_kinds)
-        SMTCmdNode.g_id += 1
-        self.id = SMTCmdNode.g_id
+        SMTFormula.g_node_id += 1
+        self.id = SMTFormula.g_node_id
         self.kind = kind
         self.children = children
 
@@ -1025,13 +1023,12 @@ class SMTScopeNode:
 
     __slots__ = ["id", "level", "prev", "kind", "scopes", "cmds", "funs",
                  "sorts", "declfun_cmds", "declfun_id"]
-    g_id = 0
     g_smtformula = None
 
     def __init__ (self, level = 0, prev = None, kind = KIND_SCOPE):
         assert (kind in (KIND_SCOPE, KIND_FESCOPE, KIND_LSCOPE))
-        SMTScopeNode.g_id += 1
-        self.id = SMTScopeNode.g_id
+        SMTFormula.g_node_id += 1
+        self.id = SMTFormula.g_node_id
         self.level  = level
         self.prev   = prev
         self.kind   = kind
@@ -1125,39 +1122,15 @@ class SMTSubstList:
             node = self.substs[node.id]
         return node
 
-
-class SMTNodeSubstList (SMTSubstList):
-
-    def subst (self, node, substitution):
-        assert (isinstance (node, SMTNode))
-        super().subst(node, substitution)
-
-
-class SMTScopeSubstList (SMTSubstList):
-
-    def subst (self, node, substitution):
-        assert (isinstance (node, SMTScopeNode))
-        assert (not self.is_subst(node))
-        super().subst(node, substitution)
-
-
-class SMTCmdSubstList (SMTSubstList):
-
-    def subst (self, node, substitution):
-        assert (isinstance (node, SMTCmdNode))
-        assert (not self.is_subst(node))
-        super().subst(node, substitution)
-
-
 class SMTFormula:
+    g_node_id = 0 # unique id for nodes of type SMTNode, SMTCmdNode, 
+                  # and SMTScopeNode
 
     def __init__ (self):
         self.logic = "none"
         self.scopes = SMTScopeNode ()
         self.cur_scope = self.scopes
-        self.subst_scopes = SMTScopeSubstList ()
-        self.subst_cmds = SMTCmdSubstList ()
-        self.subst_nodes = SMTNodeSubstList ()
+        self.substs = SMTSubstList ()
         self.sorts_cache = {}
         self.consts_cache = {}
         self.funs_cache = {}   # fun name -> currently visible declaring scopes
@@ -1201,36 +1174,20 @@ class SMTFormula:
         return self.scopes.is_substvar(node)
 
     def subst (self, node, substitution):
-        if isinstance (node, SMTScopeNode):
-            self.subst_scopes.subst(node, substitution)
-        elif isinstance (node, SMTCmdNode):
-            self.subst_cmds.subst(node, substitution)
-        else:
-            assert (isinstance (node, SMTNode))
-            self.subst_nodes.subst(node, substitution)
-            if node.is_fun() and self.is_substvar(node):
-                del (self.scopes.declfun_cmds[node.name])
+        self.substs.subst(node, substitution)
+        if isinstance (node, SMTNode) and node.is_fun() and \
+            self.is_substvar(node):
+            del (self.scopes.declfun_cmds[node.name])
 
 
     def is_subst (self, node):
-        if isinstance (node, SMTScopeNode):
-            return self.subst_scopes.is_subst(node)
-        elif isinstance (node, SMTCmdNode):
-            return self.subst_cmds.is_subst(node)
-        assert (isinstance (node, SMTNode))
-        return self.subst_nodes.is_subst(node)
+        return self.substs.is_subst(node)
 
     def get_subst (self, node):
-        if isinstance (node, SMTScopeNode):
-            assert (not self.subst_scopes.is_subst(node) or
-                        self.subst_scopes.get_subst(node) == None)
-            return self.subst_scopes.get_subst(node)
-        elif isinstance (node, SMTCmdNode):
-            assert (not self.subst_cmds.is_subst(node) or
-                    self.subst_cmds.get_subst(node) == None)
-            return self.subst_cmds.get_subst(node)
-        assert (isinstance (node, SMTNode))
-        return self.subst_nodes.get_subst(node)
+        if isinstance(node, SMTCmdNode) or isinstance(node, SMTScopeNode):
+            assert (not self.substs.is_subst(node) or 
+                        self.substs.get_subst(node) == None)
+        return self.substs.get_subst(node)
 
     def open_scope (self, nscopes = 1, kind = KIND_SCOPE):
         assert (kind == KIND_SCOPE or nscopes == 1)
