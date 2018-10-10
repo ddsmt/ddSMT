@@ -460,6 +460,7 @@ def ddsmt_main ():
                 _log(2)
                 _log (2, "substitute TERMs in {} cmds:".format(cmds_msgs[i]))
 
+                ### BV substitutions
                 if sf.is_bv_logic():
                     nsubst = _substitute_terms (
                             lambda x: sf.bvZeroConstNode(x.sort),
@@ -493,7 +494,7 @@ def ddsmt_main ():
                             lambda x: x.children[1].get_subst() \
                                 if x.children[0].get_subst().is_true_bvconst() \
                                 else x.children[0].get_subst(),
-                            lambda x: x.is_and() and \
+                            lambda x: x.is_bvand() and \
                                 (x.children[0].get_subst().is_true_bvconst() \
                                  or
                                  x.children[1].get_subst().is_true_bvconst()),
@@ -520,6 +521,7 @@ def ddsmt_main ():
                     elif succeeded == "bvvar_{}".format(i):
                         break
 
+                ### Int substitutions
                 if sf.is_int_logic() or sf.is_real_logic():
                     nsubst = _substitute_terms (
                             lambda x: sf.zeroConstNNode(),
@@ -548,6 +550,7 @@ def ddsmt_main ():
                     elif succeeded == "intvar_{}".format(i):
                         break
 
+                ### Real substitutions
                 if sf.is_real_logic():
                     nsubst = _substitute_terms (
                             lambda x: sf.zeroConstDNode(),
@@ -576,6 +579,7 @@ def ddsmt_main ():
                     elif succeeded == "realvar_{}".format(i):
                         break
 
+                ### Core substitutions
                 nsubst = _substitute_terms (
                         lambda x: x.children[-1].get_subst(),
                         lambda x: x.is_let(),
