@@ -309,6 +309,9 @@ class SMTNode:
     def is_bvor (self):
         return False
 
+    def is_bvshift (self):
+        return False
+
     def is_ite (self):
         return False
 
@@ -587,6 +590,11 @@ class SMTFunAppNode (SMTNode):
 
     def is_bvor (self):
         return self.kind == KIND_BVOR
+
+    def is_bvshift (self):
+        return self.kind == KIND_BVLSHR \
+               or self.kind == KIND_BVASHR \
+               or self.kind == KIND_BVSHL
 
     def is_ite (self):
         return self.kind == KIND_ITE

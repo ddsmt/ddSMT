@@ -330,7 +330,9 @@ def _substitute_scopes (bfs, randomized):
     global g_smtformula
     assert (g_smtformula)
     _log (2)
+    _log (2, "----------------------------------------------------------------")
     _log (2, "substitute SCOPES:")
+    _log (2, "----------------------------------------------------------------")
     ntests_prev = g_ntests
     nsubst_total = 0
     level = 1
@@ -361,7 +363,9 @@ def _substitute_cmds (bfs, randomized, filter_fun = None):
     global g_smtformula
     assert (g_smtformula)
     _log (2)
+    _log (2, "----------------------------------------------------------------")
     _log (2, "substitute COMMANDS:")
+    _log (2, "----------------------------------------------------------------")
     ntests_prev = g_ntests
     filter_fun = filter_fun if filter_fun else \
             lambda x: not x.is_setlogic() and not x.is_exit()
@@ -458,7 +462,11 @@ def ddsmt_main ():
         for i in range(0,len(cmds)):
             if cmds[i]:
                 _log(2)
+                _log (2, "---------------------------------------------------"\
+                         "-------------")
                 _log (2, "substitute TERMs in {} cmds:".format(cmds_msgs[i]))
+                _log (2, "---------------------------------------------------"\
+                         "-------------")
 
                 ### BV substitutions
                 if sf.is_bv_logic():
@@ -519,6 +527,18 @@ def ddsmt_main ():
                         nsubst_round += nsubst
                         nterms_subst += nsubst
                     elif succeeded == "bvvar_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
+                            lambda x: x.children[0].get_subst(),
+                            lambda x: x.is_bvshift(),
+                            cmds[i], g_args.bfs, g_args.randomized,
+                            "  substitute (bv(shl|lshr|ashr) term shift) "\
+                            "with term")
+                    if nsubst:
+                        succeeded = "bvshift_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "bvshift_{}".format(i):
                         break
 
                 ### Int substitutions
