@@ -1,0 +1,7 @@
+(set-logic SLIA)
+(declare-const x String)
+(declare-const n Int)
+(declare-const z String)
+(assert (= (str.indexof (str.substr x n (str.len x)) "a" 5) 10))
+(assert (str.prefixof (str.++ x "A") "AB"))
+(assert (and (str.suffixof x "AB") (str.contains "A" (str.replace x "B" "C"))))

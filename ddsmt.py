@@ -599,6 +599,35 @@ def ddsmt_main ():
                     elif succeeded == "realvar_{}".format(i):
                         break
 
+                ### String substitutions
+                if sf.is_str_logic():
+                    nsubst = _substitute_terms (
+                            lambda x: sf.zeroConstSNode(),
+                            lambda x: not x.is_const() \
+                                      and x.sort and x.sort.is_str_sort(),
+                            cmds[i], g_args.bfs, g_args.randomized,
+                            "  substitute String terms with '\"\"'")
+                    if nsubst:
+                        succeeded = "stremp_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "stremp_{}".format(i):
+                        break
+                    nsubst = _substitute_terms (
+                            lambda x: sf.add_fresh_declfunCmdNode(x.sort),
+                            lambda x: not x.is_const()                    \
+                                      and x.sort and x.sort.is_str_sort() \
+                                      and not sf.is_substvar(x),
+                            cmds[i], g_args.bfs, g_args.randomized,
+                            "  substitute String terms with fresh variables",
+                            True)
+                    if nsubst:
+                        succeeded = "strvar_{}".format(i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "strvar_{}".format(i):
+                        break
+
                 ### Core substitutions
                 nsubst = _substitute_terms (
                         lambda x: x.children[-1].get_subst(),
