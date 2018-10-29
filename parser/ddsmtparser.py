@@ -110,6 +110,15 @@ KIND_BVUREM    = "bvurem"
 KIND_BVXNOR    = "bvxnor"
 KIND_BVXOR     = "bvxor"
 
+KIND_STR_LEN      = "str.len"
+KIND_STR_CONCAT   = "str.++"
+KIND_STR_CONTAINS = "str.contains"
+KIND_STR_SUBSTR   = "str.substr"
+KIND_STR_REPLACE  = "str.replace"
+KIND_STR_INDEXOF  = "str.indexof"
+KIND_STR_PREFIXOF = "str.prefixof"
+KIND_STR_SUFFIXOF = "str.suffixof"
+
 KIND_SELECT    = "select"
 KIND_STORE     = "store"
 
@@ -178,6 +187,14 @@ g_fun_kinds   = \
         KIND_BVUREM,
         KIND_BVXNOR,
         KIND_BVXOR,
+        KIND_STR_LEN,
+        KIND_STR_CONCAT,
+        KIND_STR_CONTAINS,
+        KIND_STR_SUBSTR,
+        KIND_STR_REPLACE,
+        KIND_STR_INDEXOF,
+        KIND_STR_PREFIXOF,
+        KIND_STR_SUFFIXOF,
         KIND_CONC,
         KIND_DIST,
         KIND_DIV,
@@ -361,6 +378,9 @@ class SMTSortNode (SMTNode):
 
     def is_real_sort (self):
         return self.name == "Real"
+
+    def is_str_sort (self):
+        return self.name == "String"
 
 
 class SMTArraySortNode (SMTSortNode):
@@ -1173,6 +1193,9 @@ class SMTFormula:
     def is_real_logic (self):
         return self.logic == "ALL" or self.logic.find("R") >= 0
 
+    def is_str_logic (self):
+        return self.logic == "ALL" or self.logic.find("S") >= 0
+
     def is_arr_logic (self):
         return self.logic == "ALL" or \
                self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV",
@@ -1233,17 +1256,22 @@ class SMTFormula:
         return const
 
     def zeroConstNode (self, kind):
-        assert (kind in (KIND_CONSTN, KIND_CONSTD))
-        return self.constNode (KIND_CONSTN, self.sortNode ("Int"), 0, "0") \
-                if kind == KIND_CONSTN \
-                else self.constNode (
-                        KIND_CONSTD, self.sortNode ("Real"), 0.0, "0.0")
+        assert (kind in (KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
+        if kind == KIND_CONSTN:
+            return self.constNode(KIND_CONSTN, self.sortNode("Int"), 0, "0")
+        elif kind == KIND_CONSTD:
+            return self.constNode(KIND_CONSTD, self.sortNode("Real"), 0.0, "0.0")
+        else:
+            return self.constNode(KIND_CONSTS, self.sortNode("String"), "\"\"", "\"\"")
 
     def zeroConstNNode (self):
         return self.zeroConstNode (KIND_CONSTN)
 
     def zeroConstDNode (self):
         return self.zeroConstNode (KIND_CONSTD)
+
+    def zeroConstSNode (self):
+        return self.zeroConstNode (KIND_CONSTS)
 
     def boolConstNode (self, value):
         assert (value in ("true", "false"))
@@ -1400,6 +1428,7 @@ class SMTFormula:
         sortbool = self.sortNode("Bool")
         sortint = self.sortNode("Int")
         sortreal = self.sortNode("Real")
+        sortstr = self.sortNode("String")
         # args declaration check
         for c in children:
             if not c.sort:
@@ -1410,7 +1439,8 @@ class SMTFormula:
         if ((len(children) != 1 and
                  kind in (KIND_ABS, KIND_BVNEG, KIND_BVNOT, KIND_EXTR, KIND_ISI,
                           KIND_NOT, KIND_NEG,   KIND_TOI,   KIND_TOR,  KIND_REP,
-                          KIND_ROL, KIND_ROR,   KIND_SEXT,  KIND_ZEXT)) or
+                          KIND_ROL, KIND_ROR,   KIND_SEXT,  KIND_ZEXT,
+                          KIND_STR_LEN)) or
             (len(children) != 2 and
                  kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP,
                           KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
@@ -1419,9 +1449,10 @@ class SMTFormula:
                           KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,
                           KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM,
                           KIND_BVXNOR, KIND_BVXOR,  KIND_CONC,   KIND_MOD,
-                          KIND_SELECT)) or
+                          KIND_SELECT, KIND_STR_SUFFIXOF, KIND_STR_PREFIXOF)) or
             (len(children) != 3 and
-                kind in (KIND_ITE, KIND_STORE))):
+                kind in (KIND_ITE, KIND_STR_SUBSTR, KIND_STR_REPLACE,
+                         KIND_STR_INDEXOF, KIND_STORE))):
             raise DDSMTParseCheckException (
                     "invalid number of arguments to '{!s}': {}" \
                     "".format(fun, len(children)))
@@ -1515,6 +1546,29 @@ class SMTFormula:
                     raise DDSMTParseCheckException (
                         "'ite' with mismatching sorts: '{!s}' '{!s}'"\
                         "".format(children[1].sort, children[2].sort))
+        # args String sort check
+        elif kind in (KIND_STR_LEN, KIND_STR_CONCAT, KIND_STR_CONTAINS,
+                      KIND_STR_REPLACE, KIND_STR_PREFIXOF, KIND_STR_SUFFIXOF):
+            for c in children:
+                if c.sort != sortstr:
+                    raise DDSMTParseCheckException (
+                        "'{!s}' expects String sort as argument(s)".format(fun))
+        # str.substr arg check
+        elif kind == KIND_STR_SUBSTR:
+            if not children[0].sort == sortstr:
+                raise DDSMTParseCheckException (
+                    "'{!s}' expects sort 'String' as first argument".format(fun))
+            if not children[1].sort == sortint or not children[2].sort == sortint:
+                raise DDSMTParseCheckException (
+                    "'{!s}' expects sort 'Int' as second and third argument".format(fun))
+        # str.indexof arg check
+        elif kind == KIND_STR_INDEXOF:
+            if not children[0].sort == sortstr or not children[1].sort == sortstr:
+                raise DDSMTParseCheckException (
+                    "'{!s}' expects sort 'String' as first and second argument".format(fun))
+            if not children[2].sort == sortint:
+                raise DDSMTParseCheckException (
+                    "'{!s}' expects sort 'Int' as third argument".format(fun))
         # not predefined
         else:
             declfun = self.find_fun (fun.name)
@@ -1542,14 +1596,19 @@ class SMTFormula:
         if kind in (KIND_AND,   KIND_IMPL,  KIND_NOT,   KIND_OR,    KIND_XOR,
                     KIND_EQ,    KIND_DIST,  KIND_LE,    KIND_LT,    KIND_GE,
                     KIND_GT,    KIND_ISI,   KIND_BVSGE, KIND_BVSGT, KIND_BVSLE,
-                    KIND_BVSLT, KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT):
+                    KIND_BVSLT, KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT,
+                    KIND_STR_CONTAINS, KIND_STR_PREFIXOF, KIND_STR_SUFFIXOF):
             return self.sortNode("Bool")
         # sort Int
-        elif kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOI):
+        elif kind in (KIND_ABS, KIND_DIV, KIND_MOD, KIND_TOI, KIND_STR_LEN,
+                      KIND_STR_INDEXOF):
             return self.sortNode("Int")
         # sort Real
         elif kind in (KIND_RDIV, KIND_TOR):
             return self.sortNode("Real")
+        # sort String
+        elif kind in (KIND_STR_CONCAT, KIND_STR_SUBSTR, KIND_STR_REPLACE):
+            return self.sortNode("String")
         # sort BV sort != children sort
         elif kind == KIND_CONC:
             return self.bvSortNode(
