@@ -1155,7 +1155,7 @@ class SMTFormula:
                   # and SMTScopeNode
 
     def __init__ (self):
-        self.logic = "none"
+        self.logic = "ALL"
         self.scopes = SMTScopeNode ()
         self.cur_scope = self.scopes
         self.substs = SMTSubstList ()
