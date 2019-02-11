@@ -788,6 +788,9 @@ if __name__ == "__main__":
         aparser.add_argument ("cmd", nargs=REMAINDER,
                               help="the command (with optional arguments)")
 
+        aparser.add_argument ("-c", action="store_true", dest="randomized",
+                              default=False,
+                              help="randomize substitution subsets")
         aparser.add_argument ("-r", action="store_true", dest="randomized",
                               default=False,
                               help="randomize substitution subsets")
@@ -887,8 +890,7 @@ if __name__ == "__main__":
         if g_args.cmpoutput == None:
             g_args.cmpoutput = g_golden_err.decode()
         _log (1, "golden exit: {}".format(g_golden_exit))
-        if g_args.cmpoutput:
-            _log (1, "golden err: {}".format(g_args.cmpoutput))
+        _log (1, "golden err: '{}'".format(g_args.cmpoutput))
         _log (1, "golden runtime: {0: .2f} seconds".format(g_golden_runtime))
 
         ddsmt_main ()
