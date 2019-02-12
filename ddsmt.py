@@ -845,12 +845,12 @@ if __name__ == "__main__":
         aparser.add_argument ("--output", dest="cmp_output",
                               default=None,
                               help = "search pattern string to identify "\
-                                     "failing input (default: stderr output")
+                                     "failing input (default: stderr output)")
         aparser.add_argument ("--output-cc", dest="cmp_output_cc",
                               default=None,
                               help = "search pattern string to identify "\
                                      "failing input for cross check command "\
-                                     "(default: stderr output")
+                                     "(default: stderr output)")
         aparser.add_argument ("--version", action="version",
                               version=__version__)
         g_args = aparser.parse_args()
