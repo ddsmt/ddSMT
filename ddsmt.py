@@ -38,8 +38,11 @@ __author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
 
 
 g_golden_exit = 0
+g_golden_exit_cc = 0
 g_golden_err = None
+g_golden_err_cc = None
 g_golden_runtime = 0
+g_golden_runtime_cc = 0
 g_current_runtime = 0
 g_ntests = 0
 g_testtime = 0
@@ -47,6 +50,7 @@ g_args = None
 g_smtformula = None
 g_tmpfile = "/tmp/tmp-" + str(os.getpid()) + ".smt2"
 g_tmpbin = "/tmp/ddsmt-bin-" + str(os.getpid())
+g_tmpbin_cc = "/tmp/ddsmt-bin-cc-" + str(os.getpid())
 
 
 class DDSMTException (Exception):
@@ -71,7 +75,7 @@ class DDSMTCmd ():
         try:
             if is_golden:
                 self.out, self.err = self.process.communicate()
-                g_golden_runtime = time.time() - start
+                g_golden_runtime += time.time() - start
                 g_current_runtime = g_golden_runtime
             else:
                 self.out, self.err = self.process.communicate(
@@ -91,6 +95,8 @@ def _cleanup ():
         os.remove(g_tmpfile)
     if os.path.exists(g_tmpbin):
         os.remove(g_tmpbin)
+    if os.path.exists(g_tmpbin_cc):
+        os.remove(g_tmpbin_cc)
 
 
 def _log (verbosity, msg = "", update = False):
@@ -113,31 +119,44 @@ def _dump (filename = None, root = None):
         raise DDSMTException (str(e))
 
 
-def _run (is_golden = False):
+def _run (cmd, is_golden = False):
     global g_args, g_golden_runtime, g_current_runtime
     try:
         if not g_args.timeout:
-            cmd = DDSMTCmd(g_args.cmd, 1.5 * g_golden_runtime, _log)
+            _cmd = DDSMTCmd (cmd, 1.5 * g_golden_runtime, _log)
         elif g_args.timeout_relative:
-            cmd = DDSMTCmd(g_args.cmd, g_args.timeout + g_golden_runtime, _log)
+            _cmd = DDSMTCmd (cmd, g_args.timeout + g_golden_runtime, _log)
         elif g_args.timeout_dynamic:
-            cmd = DDSMTCmd(g_args.cmd, g_args.timeout + g_current_runtime, _log)
+            _cmd = DDSMTCmd (cmd, g_args.timeout + g_current_runtime, _log)
         else:
-            cmd = DDSMTCmd(g_args.cmd, g_args.timeout, _log)
-        (out, err) = cmd.run_cmd(is_golden)
-        return (cmd.rcode, out, err)
+            _cmd = DDSMTCmd (cmd, g_args.timeout, _log)
+        (out, err) = _cmd.run_cmd(is_golden)
+        return (_cmd.rcode, out, err)
     except OSError as e:
-        raise DDSMTException("{}: {}".format(str(e), g_cmd[0]))
+        raise DDSMTException("{}: {}".format(str(e), _cmd[0]))
 
 
 def _test ():
     global g_args, g_ntests, g_testtime
     g_ntests += 1
     start = time.time()
-    (exitcode, out, err) = _run()
+    res_cmp_cc = True
+    (exit_code, out, err) = _run(g_args.cmd)
+    res_cmp = exit_code == g_golden_exit and \
+            (g_args.cmp_output in err.decode()
+             or g_args.cmp_output in out.decode())
+
+    if not res_cmp: return False
+
+    if g_args.cmd_cc:
+        (exit_code_cc, out_cc, err_cc) = _run(g_args.cmd_cc)
+        res_cmp_cc = exit_code_cc == g_golden_exit_cc and \
+                (g_args.cmp_output_cc in err_cc.decode()     \
+                 or g_args.cmp_output_cc in out_cc.decode())
     g_testtime += time.time() - start
-    return exitcode == g_golden_exit and \
-        (g_args.cmpoutput in err.decode() or g_args.cmpoutput in out.decode())
+
+    return res_cmp and res_cmp_cc
+
 
 def _filter_scopes (filter_fun, bfs, root = None):
     """_filter_scopes(filter_fun, bfs, root)
@@ -775,7 +794,7 @@ def ddsmt_main ():
     _log (1, "terms  substituted: {}".format(nterms_subst))
 
     if nsubst_total == 0:
-        sys.exit ("[ddsmt] unable to reduce input file")
+        sys.exit ("[ddsmt] unable to minimize input file")
 
 if __name__ == "__main__":
     try:
@@ -788,9 +807,10 @@ if __name__ == "__main__":
         aparser.add_argument ("cmd", nargs=REMAINDER,
                               help="the command (with optional arguments)")
 
-        aparser.add_argument ("-c", action="store_true", dest="randomized",
-                              default=False,
-                              help="randomize substitution subsets")
+        aparser.add_argument ("-c", dest="cmd_cc",
+                              default=None,
+                              help="optional second command (for cross "\
+                                   "checking)")
         aparser.add_argument ("-r", action="store_true", dest="randomized",
                               default=False,
                               help="randomize substitution subsets")
@@ -801,7 +821,7 @@ if __name__ == "__main__":
                               default=None, type=float, \
                               help="absolute: timeout for test runs in "\
                                    "seconds. relative: timeout is [val] "\
-                                   " seconds longer than golden runtime. " \
+                                   "seconds longer than golden runtime. " \
                                    "dynamic: timeout is [val] seconds longer "\
                                    "than most recent successful test. "\
                                    "(default: absolute. When timeout is "\
@@ -817,14 +837,20 @@ if __name__ == "__main__":
                               help="timeouts are relative to the runtime of"\
                                    "the most recent successful test")
         aparser.add_argument ("--round", dest="roundtime", metavar = "val",
-                              default=None, type=float, help="approximate time"\
-                                   " limit for testing rounds in seconds")
-        aparser.add_argument ("-v", action="count", default=0,
-                              dest="verbosity", help="increase verbosity")
-        aparser.add_argument ("-o", dest="cmpoutput",
-                              help = "use exit code and search pattern string "\
-                                     "to identify failing input (default: "\
-                                     "error exit code and stderr output)")
+                              default=None, type=float,
+                              help="approximate time limit for testing "\
+                                   "rounds in seconds")
+        aparser.add_argument ("-v", action="count", dest="verbosity", default=0,
+                              help="increase verbosity")
+        aparser.add_argument ("--output", dest="cmp_output",
+                              default=None,
+                              help = "search pattern string to identify "\
+                                     "failing input (default: stderr output")
+        aparser.add_argument ("--output-cc", dest="cmp_output_cc",
+                              default=None,
+                              help = "search pattern string to identify "\
+                                     "failing input for cross check command "\
+                                     "(default: stderr output")
         aparser.add_argument ("--version", action="version",
                               version=__version__)
         g_args = aparser.parse_args()
@@ -846,10 +872,17 @@ if __name__ == "__main__":
         if not g_args.cmd:
             raise DDSMTException ("command missing")
 
-        _log (1, "input  file: '{}'".format(g_args.infile))
-        _log (1, "output file: '{}'".format(g_args.outfile))
-        _log (1, "command:     '{}'".format(
-            " ".join([str(c) for c in g_args.cmd])))
+        if g_args.cmd_cc:
+            _log (1, "input  file:           '{}'".format(g_args.infile))
+            _log (1, "output file:           '{}'".format(g_args.outfile))
+            _log (1, "command:               '{}'".format(
+                " ".join([str(c) for c in g_args.cmd])))
+            _log (1, "command (cross check): '{}'".format(g_args.cmd_cc))
+        else:
+            _log (1, "input  file: '{}'".format(g_args.infile))
+            _log (1, "output file: '{}'".format(g_args.outfile))
+            _log (1, "command:     '{}'".format(
+                " ".join([str(c) for c in g_args.cmd])))
 
         ifilesize = os.path.getsize(g_args.infile)
 
@@ -880,18 +913,40 @@ if __name__ == "__main__":
         #sys.exit(0)
         #######
 
-        shutil.copyfile(g_args.infile, g_tmpfile)
-        shutil.copy(g_args.cmd[0], g_tmpbin)  # make copy of binary
-        g_args.cmd[0] = g_tmpbin              # use copy for _run
+        shutil.copyfile(g_args.infile, g_tmpfile)  # copy input file
+
+        shutil.copy(g_args.cmd[0], g_tmpbin)       # copy binary
+        g_args.cmd[0] = g_tmpbin                   # use copy
         g_args.cmd.append(g_tmpfile)
+
         _log (1)
-        _log (1, "starting initial run... ")
-        (g_golden_exit, out, g_golden_err) = _run(True)
-        if g_args.cmpoutput == None:
-            g_args.cmpoutput = g_golden_err.decode()
+        _log (1, "starting initial run{}... ".format(
+            "" if not g_args.cmd_cc else ", cross checking"))
+        _log (1)
+
+        (g_golden_exit, out, g_golden_err) = _run(g_args.cmd, True)
+        if g_args.cmp_output == None:
+            g_args.cmp_output = g_golden_err.decode()
         _log (1, "golden exit: {}".format(g_golden_exit))
-        _log (1, "golden err: '{}'".format(g_args.cmpoutput))
+        _log (1, "golden err: '{}'".format(g_args.cmp_output))
         _log (1, "golden runtime: {0: .2f} seconds".format(g_golden_runtime))
+
+        if g_args.cmd_cc:
+            g_args.cmd_cc = g_args.cmd_cc.split()
+            shutil.copy(g_args.cmd_cc[0], g_tmpbin_cc) # copy cross check binary
+            g_args.cmd_cc[0] = g_tmpbin_cc             # use copy
+            g_args.cmd_cc.append(g_tmpfile)
+            (g_golden_exit_cc, out_cc, g_golden_err_cc) = \
+                    _run(g_args.cmd_cc, True)
+            if g_args.cmp_output_cc == None:
+                g_args.cmp_output_cc = g_golden_err_cc.decode()
+            _log (1)
+            _log (1, "golden exit (cross check): {}".format(
+                g_golden_exit_cc))
+            _log (1, "golden err (cross check): '{}'".format(
+                g_args.cmp_output_cc))
+            _log (1, "golden runtime (cross check): {0: .2f} seconds".format(
+                g_golden_runtime_cc))
 
         ddsmt_main ()
 
