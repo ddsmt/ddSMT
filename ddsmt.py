@@ -877,6 +877,11 @@ if __name__ == "__main__":
                               default=None,
                               help = "match string in stderr to identify "\
                                      "failing input (default: stderr output)")
+        aparser.add_argument ("--match-err-cc", dest="match_err_cc",
+                              default=None,
+                              help = "match string to identify failing input "
+                                     "for cross check command (default: "\
+                                     "stderr output)")
         aparser.add_argument ("--match-out", dest="match_out",
                               default=None,
                               help = "match string in stdout to identify "\
@@ -886,11 +891,6 @@ if __name__ == "__main__":
                               help = "match string to identify failing input "
                                      "for cross check command (default: "\
                                      "stdout output)")
-        aparser.add_argument ("--match-err-cc", dest="match_err_cc",
-                              default=None,
-                              help = "match string to identify failing input "
-                                     "for cross check command (default: "\
-                                     "stderr output)")
         aparser.add_argument ("--version", action="version",
                               version=__version__)
         g_args = aparser.parse_args()
