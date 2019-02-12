@@ -41,6 +41,8 @@ g_golden_exit = 0
 g_golden_exit_cc = 0
 g_golden_err = None
 g_golden_err_cc = None
+g_golden_out = None
+g_golden_out_cc = None
 g_golden_runtime = 0
 g_golden_runtime_cc = 0
 g_current_runtime = 0
@@ -142,17 +144,46 @@ def _test ():
     start = time.time()
     res_cmp_cc = True
     (exit_code, out, err) = _run(g_args.cmd)
-    res_cmp = exit_code == g_golden_exit and \
-            (g_args.cmp_output in err.decode()
-             or g_args.cmp_output in out.decode())
+    res_cmp = exit_code == g_golden_exit
+    if g_args.match_out:
+        if g_args.match_err:
+            res_cmp = res_cmp and \
+                (g_args.match_err in err.decode()
+                 and g_args.match_out in out.decode())
+        else:
+            res_cmp = res_cmp and \
+                (g_golden_err == err.decode()
+                 and g_args.match_out in out.decode())
+    elif g_args.match_err:
+        res_cmp = res_cmp and \
+            (g_args.match_err in err.decode()
+             and g_golden_out == out.decode())
+    else:
+        res_cmp = res_cmp and \
+            (g_golden_err == err.decode()
+             and g_golden_out == out.decode())
 
-    if not res_cmp: return False
-
-    if g_args.cmd_cc:
+    if res_cmp and g_args.cmd_cc:
         (exit_code_cc, out_cc, err_cc) = _run(g_args.cmd_cc)
-        res_cmp_cc = exit_code_cc == g_golden_exit_cc and \
-                (g_args.cmp_output_cc in err_cc.decode()     \
-                 or g_args.cmp_output_cc in out_cc.decode())
+        res_cmp_cc = exit_code_cc == g_golden_exit_cc
+        if g_args.match_out_cc:
+            if g_args.match_err_cc:
+                res_cmp_cc = res_cmp_cc and \
+                    (g_args.match_err_cc in err_cc.decode()
+                     and g_args.match_out_cc in out_cc.decode())
+            else:
+                res_cmp_cc = res_cmp_cc and \
+                    (g_golden_err_cc == err_cc.decode()
+                     and g_args.match_out_cc in out_cc.decode())
+        elif g_args.match_err_cc:
+            res_cmp_cc = res_cmp_cc and \
+                (g_args.match_err_cc in err_cc.decode()
+                 and g_golden_out_cc == out_cc.decode())
+        else:
+            res_cmp_cc = res_cmp_cc and \
+                (g_golden_err_cc == err_cc.decode()
+                 and g_golden_out_cc == out_cc.decode())
+
     g_testtime += time.time() - start
 
     return res_cmp and res_cmp_cc
@@ -842,15 +873,24 @@ if __name__ == "__main__":
                                    "rounds in seconds")
         aparser.add_argument ("-v", action="count", dest="verbosity", default=0,
                               help="increase verbosity")
-        aparser.add_argument ("--output", dest="cmp_output",
+        aparser.add_argument ("--match-err", dest="match_err",
                               default=None,
-                              help = "search pattern string to identify "\
+                              help = "match string in stderr to identify "\
                                      "failing input (default: stderr output)")
-        aparser.add_argument ("--output-cc", dest="cmp_output_cc",
+        aparser.add_argument ("--match-out", dest="match_out",
                               default=None,
-                              help = "search pattern string to identify "\
-                                     "failing input for cross check command "\
-                                     "(default: stderr output)")
+                              help = "match string in stdout to identify "\
+                                     "failing input (default: stdout output)")
+        aparser.add_argument ("--match-out-cc", dest="match_out_cc",
+                              default=None,
+                              help = "match string to identify failing input "
+                                     "for cross check command (default: "\
+                                     "stdout output)")
+        aparser.add_argument ("--match-err-cc", dest="match_err_cc",
+                              default=None,
+                              help = "match string to identify failing input "
+                                     "for cross check command (default: "\
+                                     "stderr output)")
         aparser.add_argument ("--version", action="version",
                               version=__version__)
         g_args = aparser.parse_args()
@@ -924,29 +964,42 @@ if __name__ == "__main__":
             "" if not g_args.cmd_cc else ", cross checking"))
         _log (1)
 
-        (g_golden_exit, out, g_golden_err) = _run(g_args.cmd, True)
-        if g_args.cmp_output == None:
-            g_args.cmp_output = g_golden_err.decode()
+        (g_golden_exit, g_golden_out, g_golden_err) = _run(g_args.cmd, True)
+        g_golden_out = g_golden_out.decode()
+        g_golden_err = g_golden_err.decode()
         _log (1, "golden exit: {}".format(g_golden_exit))
-        _log (1, "golden err: '{}'".format(g_args.cmp_output))
+        _log (1, "golden err: '{}'".format(g_golden_err))
+        _log (1, "golden out: '{}'".format(g_golden_out))
         _log (1, "golden runtime: {0: .2f} seconds".format(g_golden_runtime))
+        if g_args.match_out:
+            _log (1, "match string (stdout): '{}'".format(g_args.match_out))
+        if g_args.match_err:
+            _log (1, "match string (stderr): '{}'".format(g_args.match_err))
 
         if g_args.cmd_cc:
             g_args.cmd_cc = g_args.cmd_cc.split()
             shutil.copy(g_args.cmd_cc[0], g_tmpbin_cc) # copy cross check binary
             g_args.cmd_cc[0] = g_tmpbin_cc             # use copy
             g_args.cmd_cc.append(g_tmpfile)
-            (g_golden_exit_cc, out_cc, g_golden_err_cc) = \
+            (g_golden_exit_cc, g_golden_out_cc, g_golden_err_cc) = \
                     _run(g_args.cmd_cc, True)
-            if g_args.cmp_output_cc == None:
-                g_args.cmp_output_cc = g_golden_err_cc.decode()
+            g_golden_out_cc = g_golden_out_cc.decode()
+            g_golden_err_cc = g_golden_err_cc.decode()
             _log (1)
             _log (1, "golden exit (cross check): {}".format(
                 g_golden_exit_cc))
             _log (1, "golden err (cross check): '{}'".format(
-                g_args.cmp_output_cc))
+                g_golden_err_cc))
+            _log (1, "golden out (cross check): '{}'".format(
+                g_golden_out_cc))
             _log (1, "golden runtime (cross check): {0: .2f} seconds".format(
                 g_golden_runtime_cc))
+            if g_args.match_out_cc:
+                _log (1, "match string (cross check) (stdout): "\
+                         "'{}'".format(g_args.match_out_cc))
+            if g_args.match_err_cc:
+                _log (1, "match string (cross check) (stderr): "\
+                         "'{}'".format(g_args.match_err_cc))
 
         ddsmt_main ()
 
