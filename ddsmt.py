@@ -279,7 +279,7 @@ def _filter_terms (filter_fun, bfs, roots):
         if not cur or cur.id in visited:
             continue
         visited[cur.id] = cur
-        if cur.is_fun() and cur.children and cur.children[0].is_subst():
+        if cur.is_fun() and cur.children and cur.is_subst():
             continue
         if filter_fun(cur):
             nodes.append(cur)
@@ -460,6 +460,23 @@ def _substitute_terms (subst_fun, filter_fun, cmds, bfs, randomized, msg = None,
     _log (2, "    >> {} term(s) substituted in total".format(nsubst_total))
     _log (3, "    >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
+
+
+# Inline 0-arity define-fun
+def _inline_def_fun(cmd):
+    deffuns = _filter_cmds (lambda x: x.is_definefun(), g_args.bfs)
+    def_fun_map = dict()
+    for f in deffuns:
+        fun = f.children[0]
+        body = f.children[-1]
+        if not f.children[1]:
+            def_fun_map[fun.name] = body
+
+    return _substitute_terms (
+            lambda x: def_fun_map[x.name],
+            lambda x: x.is_fun() and x.name in def_fun_map,
+            cmd, g_args.bfs, g_args.randomized,
+            "  inline 0-arity define-funs")
 
 
 def ddsmt_main ():
@@ -811,6 +828,15 @@ def ddsmt_main ():
                     nterms_subst += nsubst
                 elif succeeded == "iteright_{}".format(i):
                     break
+
+                nsubst = _inline_def_fun(cmds[i])
+                if nsubst:
+                    succeeded = "inlinedeffun_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "inlinedeffun_{}".format(i):
+                    break
+
 
         nsubst_total += nsubst_round
 
