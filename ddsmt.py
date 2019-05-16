@@ -563,38 +563,7 @@ def ddsmt_main ():
                         nterms_subst += nsubst
                     elif succeeded == "bv0_{}".format(i):
                         break
-                    nsubst = _substitute_terms (
-                            lambda x: x.children[1].get_subst() \
-                                if x.children[0].get_subst().is_false_bvconst()\
-                                else x.children[0].get_subst(),
-                            lambda x: x.is_bvor() and \
-                                (x.children[0].get_subst().is_false_bvconst() \
-                                 or
-                                 x.children[1].get_subst().is_false_bvconst()),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute (bvor term false) with term")
-                    if nsubst:
-                        succeeded = "bvor_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "bvor_{}".format(i):
-                        break
-                    nsubst = _substitute_terms (
-                            lambda x: x.children[1].get_subst() \
-                                if x.children[0].get_subst().is_true_bvconst() \
-                                else x.children[0].get_subst(),
-                            lambda x: x.is_bvand() and \
-                                (x.children[0].get_subst().is_true_bvconst() \
-                                 or
-                                 x.children[1].get_subst().is_true_bvconst()),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute (bvand term true) with term")
-                    if nsubst:
-                        succeeded = "bvand_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "bvand_{}".format(i):
-                        break
+
                     nsubst = _substitute_terms (
                             lambda x: sf.add_fresh_declfunCmdNode(x.sort),
                             lambda x: not x.is_const()                   \
