@@ -479,6 +479,20 @@ def _inline_def_fun(cmd):
             "  inline 0-arity define-funs")
 
 
+def has_const_children(x):
+    for c in x.children:
+        if c.is_true_const() or c.is_false_const():
+            return True
+    return False
+
+def non_const_children(x):
+    non_const = [c for c in x.children \
+                    if not c.is_true_const() and not c.is_false_const()]
+    if len(non_const) > 1:
+        return type(x)(x.fun, x.kind, x.sort, non_const)
+    return non_const[0]
+
+
 def ddsmt_main ():
     global g_tmpfile, g_args, g_smtformula
 
@@ -841,6 +855,20 @@ def ddsmt_main ():
                     nsubst_round += nsubst
                     nterms_subst += nsubst
                 elif succeeded == "inlinedeffun_{}".format(i):
+                    break
+
+                # Eliminate true/false from and/or nodes.
+                nsubst = _substitute_terms (
+                        lambda x: non_const_children(x),
+                        lambda x: (x.is_and() or x.is_or) and \
+                                    has_const_children(x),
+                        cmds[i], g_args.bfs, g_args.randomized,
+                        "  eliminate Boolean constants in and/or")
+                if nsubst:
+                    succeeded = "elimboolconsts_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "elimboolconsts_{}".format(i):
                     break
 
 
