@@ -793,40 +793,46 @@ def ddsmt_main ():
                 elif succeeded == "boolvar_{}".format(i):
                     break
 
-                if sf.is_arr_logic():
-                    nsubst = _substitute_terms (
-                            lambda x: x.children[0],  # array
-                            lambda x: x.is_write(),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute STOREs with array child")
-                    if nsubst:
-                        succeeded = "store_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "store_{}".format(i):
-                        break
-
+                # Pull up children[0]
                 nsubst = _substitute_terms (
-                        lambda x: x.children[1],  # left child
-                        lambda x: x.is_ite(),
+                        lambda x: x.children[0],
+                        lambda x: x.is_fun_app() and x.children \
+                                    and x.sort == x.children[0].sort,
                         cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute ITE with left child")
+                        "  substitute with first child")
                 if nsubst:
-                    succeeded = "iteleft_{}".format(i)
+                    succeeded = "pullchild0_{}".format(i)
                     nsubst_round += nsubst
                     nterms_subst += nsubst
-                elif succeeded == "iteleft_{}".format(i):
+                elif succeeded == "pullchild0_{}".format(i):
                     break
+
+                # Pull up children[1]
                 nsubst = _substitute_terms (
-                        lambda x: x.children[2],  # right child
-                        lambda x: x.is_ite(),
+                        lambda x: x.children[1],
+                        lambda x: x.is_fun_app() and len(x.children) >= 2 \
+                                    and x.sort == x.children[1].sort,
                         cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute ITE with right child")
+                        "  substitute with second child")
                 if nsubst:
-                    succeeded = "iteright_{}".format(i)
+                    succeeded = "pullchild1_{}".format(i)
                     nsubst_round += nsubst
                     nterms_subst += nsubst
-                elif succeeded == "iteright_{}".format(i):
+                elif succeeded == "pullchild1_{}".format(i):
+                    break
+
+                # Pull up children[2]
+                nsubst = _substitute_terms (
+                        lambda x: x.children[2],
+                        lambda x: x.is_fun_app() and len(x.children) >= 3 \
+                                    and x.sort == x.children[2].sort,
+                        cmds[i], g_args.bfs, g_args.randomized,
+                        "  substitute with third child")
+                if nsubst:
+                    succeeded = "pullchild2_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "pullchild2_{}".format(i):
                     break
 
                 nsubst = _inline_def_fun(cmds[i])

@@ -341,6 +341,9 @@ class SMTNode:
     def is_write (self):
         return False
 
+    def is_fun_app(self):
+        return False
+
     def subst (self, substitution):
         SMTNode.g_smtformula.subst(self, substitution)
 
@@ -621,6 +624,9 @@ class SMTFunAppNode (SMTNode):
 
     def is_write (self):
         return self.kind == KIND_STORE
+
+    def is_fun_app(self):
+        return True
 
 
 class SMTVarBindNode (SMTNode):
