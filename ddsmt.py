@@ -481,16 +481,21 @@ def _inline_def_fun(cmd):
 
 def has_const_children(x):
     for c in x.children:
-        if c.is_true_const() or c.is_false_const():
+        if c.get_subst().is_true_const() or c.get_subst().is_false_const():
             return True
     return False
 
 def non_const_children(x):
-    non_const = [c for c in x.children \
-                    if not c.is_true_const() and not c.is_false_const()]
+    non_const = [c.get_subst() for c in x.children \
+                    if not c.get_subst().is_true_const() and \
+                       not c.get_subst().is_false_const()]
     if len(non_const) > 1:
         return type(x)(x.fun, x.kind, x.sort, non_const)
     return non_const[0]
+
+def can_pull_up_child(x, arity):
+    return x.is_fun_app() and len(x.children) >= arity and \
+           x.sort == x.children[arity - 1].get_subst().sort
 
 
 def ddsmt_main ():
@@ -776,46 +781,22 @@ def ddsmt_main ():
                 elif succeeded == "boolvar_{}".format(i):
                     break
 
-                # Pull up children[0]
-                nsubst = _substitute_terms (
-                        lambda x: x.children[0],
-                        lambda x: x.is_fun_app() and x.children \
-                                    and x.sort == x.children[0].sort,
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute with first child")
-                if nsubst:
-                    succeeded = "pullchild0_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "pullchild0_{}".format(i):
-                    break
-
-                # Pull up children[1]
-                nsubst = _substitute_terms (
-                        lambda x: x.children[1],
-                        lambda x: x.is_fun_app() and len(x.children) >= 2 \
-                                    and x.sort == x.children[1].sort,
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute with second child")
-                if nsubst:
-                    succeeded = "pullchild1_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "pullchild1_{}".format(i):
-                    break
-
-                # Pull up children[2]
-                nsubst = _substitute_terms (
-                        lambda x: x.children[2],
-                        lambda x: x.is_fun_app() and len(x.children) >= 3 \
-                                    and x.sort == x.children[2].sort,
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute with third child")
-                if nsubst:
-                    succeeded = "pullchild2_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "pullchild2_{}".format(i):
+                # Pull up children[j] for j in {1..3}
+                do_break = False
+                for arity in range(1, 4):
+                    nsubst = _substitute_terms (
+                            lambda x: x.children[arity - 1],
+                            lambda x: can_pull_up_child(x, arity),
+                            cmds[i], g_args.bfs, g_args.randomized,
+                            "  substitute with children[{}]".format(arity - 1))
+                    if nsubst:
+                        succeeded = "pullchild{}_{}".format(arity, i)
+                        nsubst_round += nsubst
+                        nterms_subst += nsubst
+                    elif succeeded == "pullchild{}_{}".format(arity, i):
+                        do_break = True
+                        break
+                if do_break:
                     break
 
                 nsubst = _inline_def_fun(cmds[i])
@@ -829,8 +810,8 @@ def ddsmt_main ():
                 # Eliminate true/false from and/or nodes.
                 nsubst = _substitute_terms (
                         lambda x: non_const_children(x),
-                        lambda x: (x.is_and() or x.is_or) and \
-                                    has_const_children(x),
+                        lambda x: (x.is_and() or x.is_or()) and \
+                                  has_const_children(x),
                         cmds[i], g_args.bfs, g_args.randomized,
                         "  eliminate Boolean constants in and/or")
                 if nsubst:
