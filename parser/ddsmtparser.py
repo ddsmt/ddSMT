@@ -1,5 +1,8 @@
 # ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
 # Copyright (C) 2013-2018, Aina Niemetz.
+# Copyright (C) 2018, Jane Lange.
+# Copyright (C) 2018, Andres Noetzli.
+# Copyright (C) 2019, Mathias Preiner.
 #
 # This file is part of ddSMT.
 #
@@ -1261,24 +1264,6 @@ class SMTFormula:
         self.consts_cache[ostr] = const
         return const
 
-    def zeroConstNode (self, kind):
-        assert (kind in (KIND_CONSTN, KIND_CONSTD, KIND_CONSTS))
-        if kind == KIND_CONSTN:
-            return self.constNode(KIND_CONSTN, self.sortNode("Int"), 0, "0")
-        elif kind == KIND_CONSTD:
-            return self.constNode(KIND_CONSTD, self.sortNode("Real"), 0.0, "0.0")
-        else:
-            return self.constNode(KIND_CONSTS, self.sortNode("String"), "\"\"", "\"\"")
-
-    def zeroConstNNode (self):
-        return self.zeroConstNode (KIND_CONSTN)
-
-    def zeroConstDNode (self):
-        return self.zeroConstNode (KIND_CONSTD)
-
-    def zeroConstSNode (self):
-        return self.zeroConstNode (KIND_CONSTS)
-
     def boolConstNode (self, value):
         assert (value in ("true", "false"))
         return self.constNode (KIND_CONST, self.sortNode("Bool"), value, value)
@@ -1292,10 +1277,21 @@ class SMTFormula:
         self.consts_cache[ostr] = const
         return const
 
-    def bvZeroConstNode (self, sort):
-        assert (sort.is_bv_sort())
-        return self.bvConstNode (
+    def zeroConstNodeOfSort (self, sort):
+        if sort.is_bv_sort():
+            return self.bvConstNode(
                 KIND_CONSTN, sort.bw, 0, "(_ bv0 {})".format(sort.bw))
+        elif sort.is_int_sort():
+            return self.constNode(
+                KIND_CONSTN, self.sortNode("Int"), 0, "0")
+        elif sort.is_real_sort():
+            return self.constNode(
+                KIND_CONSTD, self.sortNode("Real"), 0.0, "0.0")
+        elif sort.is_str_sort():
+            return self.constNode(
+                KIND_CONSTS, self.sortNode("String"), "\"\"", "\"\"")
+        else:
+            raise DDSMTParseCheckException("Unhandled sort '{}'".format(sort))
 
     def find_sort_and_scope (self, name):
         if name in self.sorts_cache:

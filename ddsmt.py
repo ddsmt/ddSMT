@@ -2,8 +2,9 @@
 #
 # ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
 # Copyright (C) 2013-2019, Aina Niemetz.
-# Copyright (C) 2016-2017, Mathias Preiner.
+# Copyright (C) 2016-2019, Mathias Preiner.
 # Copyright (C) 2018, Jane Lange.
+# Copyright (C) 2018, Andres Noetzli.
 #
 # This file is part of ddSMT.
 #
@@ -488,7 +489,9 @@ def has_const_children(x):
 def non_const_children(x):
     non_const = [c.get_subst() for c in x.children \
                     if not c.get_subst().is_true_const() and \
-                       not c.get_subst().is_false_const()]
+                       not c.get_subst().is_false_const() and \
+                       not c.get_subst().is_true_bvconst() and \
+                       not c.get_subst().is_false_bvconst()]
     if len(non_const) > 1:
         return type(x)(x.fun, x.kind, x.sort, non_const)
     return non_const[0]
@@ -554,136 +557,40 @@ def ddsmt_main ():
                 _log (2, "---------------------------------------------------"\
                          "-------------")
 
-                ### BV substitutions
-                if sf.is_bv_logic():
-                    nsubst = _substitute_terms (
-                            lambda x: sf.bvZeroConstNode(x.sort),
-                            lambda x: not x.is_const() \
-                                      and x.sort and x.sort.is_bv_sort(),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute BV terms with '0'")
-                    if nsubst:
-                        succeeded = "bv0_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "bv0_{}".format(i):
-                        break
-
-                    nsubst = _substitute_terms (
-                            lambda x: sf.add_fresh_declfunCmdNode(x.sort),
-                            lambda x: not x.is_const()                   \
-                                      and x.sort and x.sort.is_bv_sort() \
-                                      and not sf.is_substvar(x),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute BV terms with fresh variables",
-                            True)
-                    if nsubst:
-                        succeeded = "bvvar_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "bvvar_{}".format(i):
-                        break
-                    nsubst = _substitute_terms (
-                            lambda x: x.children[0].get_subst(),
-                            lambda x: x.is_bvshift(),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute (bv(shl|lshr|ashr) term shift) "\
-                            "with term")
-                    if nsubst:
-                        succeeded = "bvshift_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "bvshift_{}".format(i):
-                        break
-
-                ### Int substitutions
-                if sf.is_int_logic() or sf.is_real_logic():
-                    nsubst = _substitute_terms (
-                            lambda x: sf.zeroConstNNode(),
-                            lambda x: not x.is_const() \
-                                      and x.sort and x.sort.is_int_sort(),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute Int terms with '0'")
-                    if nsubst:
-                        succeeded = "int0_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "int0_{}".format(i):
-                        break
-                    nsubst = _substitute_terms (
-                            lambda x: sf.add_fresh_declfunCmdNode(x.sort),
-                            lambda x: not x.is_const()                    \
-                                      and x.sort and x.sort.is_int_sort() \
-                                      and not sf.is_substvar(x),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute Int terms with fresh variables",
-                            True)
-                    if nsubst:
-                        succeeded = "intvar_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "intvar_{}".format(i):
-                        break
-
-                ### Real substitutions
-                if sf.is_real_logic():
-                    nsubst = _substitute_terms (
-                            lambda x: sf.zeroConstDNode(),
-                            lambda x: not x.is_const() \
-                                      and x.sort and x.sort.is_real_sort(),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute Real terms with '0'")
-                    if nsubst:
-                        succeeded = "real0_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "real0_{}".format(i):
-                        break
-                    nsubst = _substitute_terms (
-                            lambda x: sf.add_fresh_declfunCmdNode(x.sort),
-                            lambda x: not x.is_const()                     \
-                                      and x.sort and x.sort.is_real_sort() \
-                                      and not sf.is_substvar(x),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute Real terms with fresh variables",
-                            True)
-                    if nsubst:
-                        succeeded = "realvar_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "realvar_{}".format(i):
-                        break
-
-                ### String substitutions
-                if sf.is_str_logic():
-                    nsubst = _substitute_terms (
-                            lambda x: sf.zeroConstSNode(),
-                            lambda x: not x.is_const() \
-                                      and x.sort and x.sort.is_str_sort(),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute String terms with '\"\"'")
-                    if nsubst:
-                        succeeded = "stremp_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "stremp_{}".format(i):
-                        break
-                    nsubst = _substitute_terms (
-                            lambda x: sf.add_fresh_declfunCmdNode(x.sort),
-                            lambda x: not x.is_const()                    \
-                                      and x.sort and x.sort.is_str_sort() \
-                                      and not sf.is_substvar(x),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute String terms with fresh variables",
-                            True)
-                    if nsubst:
-                        succeeded = "strvar_{}".format(i)
-                        nsubst_round += nsubst
-                        nterms_subst += nsubst
-                    elif succeeded == "strvar_{}".format(i):
-                        break
-
                 ### Core substitutions
+                nsubst = _substitute_terms (
+                        lambda x: sf.zeroConstNodeOfSort(x.sort),
+                        lambda x: not x.is_const() \
+                                  and x.sort \
+                                  and (x.sort.is_bv_sort() \
+                                       or x.sort.is_int_sort() \
+                                       or x.sort.is_real_sort() \
+                                       or x.sort.is_str_sort()),
+                        cmds[i], g_args.bfs, g_args.randomized,
+                        "  substitute terms with constant value '0'")
+                if nsubst:
+                    succeeded = "term0_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "term0_{}".format(i):
+                    break
+
+                nsubst = _substitute_terms (
+                        lambda x: sf.add_fresh_declfunCmdNode(x.sort),
+                        lambda x: not x.is_const() \
+                                  and x.children \
+                                  and x.sort \
+                                  and not sf.is_substvar(x),
+                        cmds[i], g_args.bfs, g_args.randomized,
+                        "  substitute terms with fresh variables",
+                        True)
+                if nsubst:
+                    succeeded = "freshvar_{}".format(i)
+                    nsubst_round += nsubst
+                    nterms_subst += nsubst
+                elif succeeded == "freshvar_{}".format(i):
+                    break
+
                 nsubst = _substitute_terms (
                         lambda x: x.children[-1].get_subst(),
                         lambda x: x.is_let(),
@@ -722,22 +629,6 @@ def ddsmt_main ():
                     break
 
                 nsubst = _substitute_terms (
-                        lambda x: x.children[1].get_subst() \
-                                if x.children[0].get_subst().is_false_const() \
-                                else x.children[0].get_subst(),
-                        lambda x: x.is_or() \
-                                and (x.children[0].get_subst().is_false_const()\
-                                or x.children[1].get_subst().is_false_const()),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute (or term false) with term")
-                if nsubst:
-                    succeeded = "or_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "or_{}".format(i):
-                    break
-
-                nsubst = _substitute_terms (
                         lambda x: sf.boolConstNode("true"),
                         lambda x: not x.is_const() \
                                   and x.sort and x.sort.is_bool_sort(),
@@ -748,37 +639,6 @@ def ddsmt_main ():
                     nsubst_round += nsubst
                     nterms_subst += nsubst
                 elif succeeded == "true_{}".format(i):
-                    break
-
-                nsubst = _substitute_terms (
-                        lambda x: x.children[1].get_subst() \
-                                if x.children[0].get_subst().is_true_const() \
-                                else x.children[0].get_subst(),
-                        lambda x: x.is_and() \
-                                and (x.children[0].get_subst().is_true_const() \
-                                or x.children[1].get_subst().is_true_const()),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute (and term true) with term")
-                if nsubst:
-                    succeeded = "and_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "and_{}".format(i):
-                    break
-
-                nsubst = _substitute_terms (
-                        lambda x: sf.add_fresh_declfunCmdNode(x.sort),
-                        lambda x: not x.is_const()                   \
-                                  and x.sort and x.sort.is_bool_sort() \
-                                  and not sf.is_substvar(x),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute Boolean terms with fresh variables",
-                        True)
-                if nsubst:
-                    succeeded = "boolvar_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "boolvar_{}".format(i):
                     break
 
                 # Pull up children[j] for j in {1..3}
@@ -809,8 +669,9 @@ def ddsmt_main ():
 
                 # Eliminate true/false from and/or nodes.
                 nsubst = _substitute_terms (
-                        lambda x: non_const_children(x),
-                        lambda x: (x.is_and() or x.is_or()) and \
+                        non_const_children,
+                        lambda x: (x.is_and() or x.is_or() \
+                                   or x.is_bvand() or x.is_bvor()) and \
                                   has_const_children(x),
                         cmds[i], g_args.bfs, g_args.randomized,
                         "  eliminate Boolean constants in and/or")
