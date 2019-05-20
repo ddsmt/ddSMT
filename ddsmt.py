@@ -253,6 +253,19 @@ def _filter_cmds (filter_fun, bfs):
             cmds.append(cur)
     return cmds
 
+def _get_roots_from_commands(cmds):
+    """_get_roots_from_commands(cmds):
+
+        Collect all root term nodes from a list of commands.
+
+        :cmds:   List of commands from which to search the roots.
+        :return: List of root term nodes.
+
+    """
+    return [t for term_list in
+                [c.children if c.is_getvalue() else [c.children[-1]] \
+                    for c in cmds] for t in term_list]
+
 def _filter_terms (filter_fun, bfs, roots):
     """_filter_terms(filter_fun, bfs, roots)
 
@@ -451,9 +464,7 @@ def _substitute_terms (subst_fun, filter_fun, cmds, bfs, randomized, msg = None,
     _log (2)
     _log (2, msg if msg else "substitute TERMS:")
     ntests_prev = g_ntests
-    terms = _filter_terms (filter_fun, bfs, [t for term_list in
-                [c.children if c.is_getvalue() else [c.children[-1]] \
-                        for c in cmds] for t in term_list])
+    terms = _filter_terms (filter_fun, bfs, _get_roots_from_commands(cmds))
 
     nsubst_total = _substitute (subst_fun, g_smtformula.substs, terms, \
                     randomized, with_vars)
@@ -499,17 +510,24 @@ class PassLetPullBody:
         return x.is_let()
 
     def subst(self, x):
-        return x.children[-1].get_subst()
+        return x.children[-1]
 
     def msg(self):
         return "substitute LETs with body"
 
 class PassElimVarBind:
+    def __init__(self, cmds):
+        varbinds = _filter_terms(lambda x: x.is_varb(), g_args.bfs,
+                                 _get_roots_from_commands(cmds))
+        self.varb_vars_map = \
+                dict((vb.var.name, vb.children[0]) for vb in varbinds)
+
     def filter(self, x):
+        return x.is_fun() and x.name in self.varb_vars_map
         return x.is_varb() and x.children[0].is_subst()
 
     def subst(self, x):
-        return None
+        return self.varb_vars_map[x.name]
 
     def msg(self):
         return "eliminate redundant variable bindings"
@@ -649,7 +667,7 @@ def ddsmt_main ():
                 # Create passes in each iteration, since a pass may initialize
                 # data structures based on the current formula
                 passes = [PassConstZero(), PassFreshVar(), PassLetPullBody(),
-                          PassElimVarBind(),
+                          PassElimVarBind(cmds[i]),
                           PassConstBool('true'), PassConstBool('false'),
                           PassPullChild(0), PassPullChild(1), PassPullChild(2),
                           PassInlineDefFun(), PassCompactAndOr()]
