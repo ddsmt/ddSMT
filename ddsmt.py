@@ -463,42 +463,131 @@ def _substitute_terms (subst_fun, filter_fun, cmds, bfs, randomized, msg = None,
     return nsubst_total
 
 
-# Inline 0-arity define-fun
-def _inline_def_fun(cmd):
-    deffuns = _filter_cmds (lambda x: x.is_definefun(), g_args.bfs)
-    def_fun_map = dict()
-    for f in deffuns:
-        fun = f.children[0]
-        body = f.children[-1]
-        if not f.children[1]:
-            def_fun_map[fun.name] = body
+# Simplification passes
 
-    return _substitute_terms (
-            lambda x: def_fun_map[x.name],
-            lambda x: x.is_fun() and x.name in def_fun_map,
-            cmd, g_args.bfs, g_args.randomized,
-            "  inline 0-arity define-funs")
+class PassConstZero:
+    def filter(self, x):
+        return not x.is_const() \
+               and x.sort \
+               and (x.sort.is_bv_sort() \
+                    or x.sort.is_int_sort() \
+                    or x.sort.is_real_sort() \
+                    or x.sort.is_str_sort())
+
+    def subst(self, x):
+        return g_smtformula.zeroConstNodeOfSort(x.sort)
+
+    def msg(self):
+        return "substitute terms with constant value '0'"
 
 
-def has_const_children(x):
-    for c in x.children:
-        if c.get_subst().is_true_const() or c.get_subst().is_false_const():
-            return True
-    return False
+class PassFreshVar:
+    def filter(self, x):
+        return not x.is_const() \
+               and x.children \
+               and x.sort \
+               and not g_smtformula.is_substvar(x)
 
-def non_const_children(x):
-    non_const = [c.get_subst() for c in x.children \
-                    if not c.get_subst().is_true_const() and \
-                       not c.get_subst().is_false_const() and \
-                       not c.get_subst().is_true_bvconst() and \
-                       not c.get_subst().is_false_bvconst()]
-    if len(non_const) > 1:
-        return type(x)(x.fun, x.kind, x.sort, non_const)
-    return non_const[0]
+    def subst(self, x):
+        return g_smtformula.add_fresh_declfunCmdNode(x.sort)
 
-def can_pull_up_child(x, arity):
-    return x.is_fun_app() and len(x.children) >= arity and \
-           x.sort == x.children[arity - 1].get_subst().sort
+    def msg(self):
+        return "substitute terms with fresh variables"
+
+class PassLetPullBody:
+    def filter(self, x):
+        return x.is_let()
+
+    def subst(self, x):
+        return x.children[-1].get_subst()
+
+    def msg(self):
+        return "substitute LETs with body"
+
+class PassElimVarBind:
+    def filter(self, x):
+        return x.is_varb() and x.children[0].is_subst()
+
+    def subst(self, x):
+        return None
+
+    def msg(self):
+        return "eliminate redundant variable bindings"
+
+class PassConstBool:
+    def __init__(self, value):
+        assert value in ("true", "false")
+        self.value = value
+
+    def filter(self, x):
+        return not x.is_const() and x.sort and x.sort.is_bool_sort()
+
+    def subst(self, x):
+        return g_smtformula.boolConstNode(self.value)
+
+    def msg(self):
+        return "substitute Boolean terms with '{}'".format(self.value)
+
+class PassPullChild:
+    def __init__(self, position):
+        assert position >= 0
+        self.position = position
+
+    def filter(self, x):
+        return x.is_fun_app() and self.position < len(x.children) and \
+               x.sort == x.children[self.position].get_subst().sort
+
+    def subst(self, x):
+        return x.children[self.position]
+
+    def msg(self):
+        return "substitute with children[{}]".format(self.position)
+
+class PassInlineDefFun:
+
+    def __init__(self):
+        deffuns = _filter_cmds(lambda x: x.is_definefun(), g_args.bfs)
+        self.def_fun_map = dict()
+        for df in deffuns:
+            fun = df.children[0]
+            body = df.children[-1]
+            if not df.children[1]:
+                self.def_fun_map[fun.name] = body
+
+    def filter(self, x):
+        return x.is_fun() and x.name in self.def_fun_map
+
+    def subst(self, x):
+        return self.def_fun_map[x.name]
+
+    def msg(self):
+        return "inline 0-arity define-funs"
+
+class PassCompactAndOr:
+    def filter(self, x):
+        if x.is_and() or x.is_or() or x.is_bvand() or x.is_bvor():
+            for c in x.children:
+                c = c.get_subst()
+                if c.is_true_const() \
+                   or c.is_false_const() \
+                   or c.is_true_bvconst() \
+                   or c.is_false_bvconst():
+                    return True
+        return False
+
+    def subst(self, x):
+        non_const = [c.get_subst() for c in x.children \
+                        if not c.get_subst().is_true_const() and \
+                           not c.get_subst().is_false_const() and \
+                           not c.get_subst().is_true_bvconst() and \
+                           not c.get_subst().is_false_bvconst()]
+        if len(non_const) > 1:
+            return type(x)(x.fun, x.kind, x.sort, non_const)
+        return non_const[0]
+
+    def msg(self):
+        return "eliminate true/false/#b1/#b0 in and/or/bvand/bvor"
+
 
 
 def ddsmt_main ():
@@ -548,7 +637,7 @@ def ddsmt_main ():
                 _filter_cmds (lambda x: x.is_getvalue(), g_args.bfs)]
         cmds_msgs = ["'define-fun'", "'assert'", "'get-value'"]
 
-        for i in range(0,len(cmds)):
+        for i in range(0, len(cmds)):
             if cmds[i]:
                 _log(2)
                 _log (2, "---------------------------------------------------"\
@@ -557,131 +646,40 @@ def ddsmt_main ():
                 _log (2, "---------------------------------------------------"\
                          "-------------")
 
-                ### Core substitutions
-                nsubst = _substitute_terms (
-                        lambda x: sf.zeroConstNodeOfSort(x.sort),
-                        lambda x: not x.is_const() \
-                                  and x.sort \
-                                  and (x.sort.is_bv_sort() \
-                                       or x.sort.is_int_sort() \
-                                       or x.sort.is_real_sort() \
-                                       or x.sort.is_str_sort()),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute terms with constant value '0'")
-                if nsubst:
-                    succeeded = "term0_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "term0_{}".format(i):
-                    break
+                # Create passes in each iteration, since a pass may initialize
+                # data structures based on the current formula
+                passes = [PassConstZero(), PassFreshVar(), PassLetPullBody(),
+                          PassElimVarBind(),
+                          PassConstBool('true'), PassConstBool('false'),
+                          PassPullChild(0), PassPullChild(1), PassPullChild(2),
+                          PassInlineDefFun(), PassCompactAndOr()]
 
-                nsubst = _substitute_terms (
-                        lambda x: sf.add_fresh_declfunCmdNode(x.sort),
-                        lambda x: not x.is_const() \
-                                  and x.children \
-                                  and x.sort \
-                                  and not sf.is_substvar(x),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute terms with fresh variables",
-                        True)
-                if nsubst:
-                    succeeded = "freshvar_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "freshvar_{}".format(i):
-                    break
 
-                nsubst = _substitute_terms (
-                        lambda x: x.children[-1].get_subst(),
-                        lambda x: x.is_let(),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute LETs with child term")
-                if nsubst:
-                    succeeded = "let_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "let_{}".format(i):
-                    break
-
-                nsubst = _substitute_terms (
-                        lambda x: None,
-                        lambda x: x.is_varb() and x.children[0].is_subst(),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  eliminate redundant variable bindings")
-                if nsubst:
-                    succeeded = "varb_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "varb_{}".format(i):
-                    break
-
-                nsubst = _substitute_terms (
-                        lambda x: sf.boolConstNode("false"),
-                        lambda x: not x.is_const() \
-                                  and x.sort and x.sort.is_bool_sort(),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute Boolean terms with 'false'")
-                if nsubst:
-                    succeeded = "false_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "false_{}".format(i):
-                    break
-
-                nsubst = _substitute_terms (
-                        lambda x: sf.boolConstNode("true"),
-                        lambda x: not x.is_const() \
-                                  and x.sort and x.sort.is_bool_sort(),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  substitute Boolean terms with 'true'")
-                if nsubst:
-                    succeeded = "true_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "true_{}".format(i):
-                    break
-
-                # Pull up children[j] for j in {1..3}
+                pass_num = 0
                 do_break = False
-                for arity in range(1, 4):
-                    nsubst = _substitute_terms (
-                            lambda x: x.children[arity - 1],
-                            lambda x: can_pull_up_child(x, arity),
-                            cmds[i], g_args.bfs, g_args.randomized,
-                            "  substitute with children[{}]".format(arity - 1))
+                for p in passes:
+                    pass_ident = "pass{}_{}".format(pass_num, i)
+                    pass_num += 1
+
+                    # PassFreshVar is the only pass for now that introduces
+                    # fresh variables
+                    pass_creates_new_vars = isinstance(p, PassFreshVar)
+
+                    nsubst = _substitute_terms(
+                                p.subst, p.filter,
+                                cmds[i], g_args.bfs, g_args.randomized,
+                                '  {}'.format(p.msg()),
+                                pass_creates_new_vars)
                     if nsubst:
-                        succeeded = "pullchild{}_{}".format(arity, i)
+                        succeeded = pass_ident
                         nsubst_round += nsubst
                         nterms_subst += nsubst
-                    elif succeeded == "pullchild{}_{}".format(arity, i):
+                    elif succeeded == pass_ident:
                         do_break = True
                         break
+
                 if do_break:
                     break
-
-                nsubst = _inline_def_fun(cmds[i])
-                if nsubst:
-                    succeeded = "inlinedeffun_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "inlinedeffun_{}".format(i):
-                    break
-
-                # Eliminate true/false from and/or nodes.
-                nsubst = _substitute_terms (
-                        non_const_children,
-                        lambda x: (x.is_and() or x.is_or() \
-                                   or x.is_bvand() or x.is_bvor()) and \
-                                  has_const_children(x),
-                        cmds[i], g_args.bfs, g_args.randomized,
-                        "  eliminate Boolean constants in and/or")
-                if nsubst:
-                    succeeded = "elimboolconsts_{}".format(i)
-                    nsubst_round += nsubst
-                    nterms_subst += nsubst
-                elif succeeded == "elimboolconsts_{}".format(i):
-                    break
-
 
         nsubst_total += nsubst_round
 
