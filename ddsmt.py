@@ -752,7 +752,7 @@ if __name__ == "__main__":
                                     test time of input file")
         timeout_group.add_argument ("--dyn", action="store_true",
                               dest="timeout_dynamic", default=False,
-                              help="timeouts are relative to the runtime of"\
+                              help="timeouts are relative to the runtime of "\
                                    "the most recent successful test")
         aparser.add_argument ("--round", dest="roundtime", metavar = "val",
                               default=None, type=float,
