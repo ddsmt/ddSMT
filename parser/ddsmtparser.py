@@ -1918,12 +1918,12 @@ class DDSMTParser (SMTParser):
                         assert (len(t_ident) == 3)
                         assert (len(t_ident[2]) == 1)
                         assert (isinstance(t_ident[2][0], SMTConstNode))
-                        value = t_ident[2][0].value
-                        bw = int(t_ident[1][2:])
+                        bw = t_ident[2][0].value
+                        value = int(t_ident[1][2:])
                         return sf.bvConstNode (
                                 KIND_CONSTN,
-                                value,
                                 bw,
+                                value,
                                 "(_ bv{} {})".format(value, bw))
                     else:
                         assert (len(t_ident) > 1)
