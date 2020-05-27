@@ -33,6 +33,7 @@ KIND_FESCOPE   = "<forall/exists scope>"
 KIND_LSCOPE    = "<let scope>"
 
 KIND_SORT      = "<sort>"
+KIND_DSORT     = "<defined sort>"
 KIND_ARRSORT   = "<array sort>"
 KIND_BVSORT    = "<bv sort>"
 KIND_SORTEXPR  = "<sort expression>"
@@ -360,15 +361,32 @@ class SMTNode:
 
 class SMTSortNode (SMTNode):
 
-    __slots__ = ["name", "nparams"]
+    __slots__ = ["name", "nparams", "defsort"]
 
-    def __init__ (self, name, nparams = 0, kind = KIND_SORT):
+    def __init__ (self, name, nparams = 0, kind = KIND_SORT, defsort = None):
         super().__init__(kind)
         self.name = name
         self.nparams = nparams
+        self.defsort = defsort
 
     def __str__ (self):
         return self.name
+
+    def __eq__ (self, other):
+        if not other:
+            return False
+        sort0 = self.name
+        sort1 = other.name
+        if self.defsort:
+            params = self.name.lstrip('(').rstrip(')').split()[1:]
+            sort0 = self.defsort.instantiate (params)
+        if other.defsort:
+            params = other.name.lstrip('(').rstrip(')').split()[1:]
+            sort1 = other.defsort.instantiate (params)
+        return sort0 == sort1
+
+    def __ne__ (self, other):
+        return not self.__eq__(other)
 
     def is_bv_sort (self):
         return False
@@ -388,6 +406,26 @@ class SMTSortNode (SMTNode):
     def is_str_sort (self):
         return self.name == "String"
 
+
+class SMTDummySortNode (SMTSortNode):
+
+    def __init__(self):
+        super().__init__("dummy", 0, KIND_SORT)
+    def __str__ (self):
+        return "{}"
+
+
+class SMTDefinedSortNode (SMTSortNode):
+
+    __slots__ = ["params", "sort"]
+
+    def __init__ (self, name, params, sort):
+        super().__init__(name, len(params), KIND_DSORT)
+        self.sort = sort  # string with placeholders
+        self.params = params
+
+    def instantiate (self, params):
+        return self.sort.format(*params)
 
 class SMTArraySortNode (SMTSortNode):
 
@@ -921,7 +959,9 @@ class SMTCmdNode:
                     self.kind, sort.name, sort.nparams)
         elif self.kind == KIND_DEFSORT:
             assert (len(self.children) == 3)
-            assert (isinstance(self.children[0], SMTSortNode))
+            assert (isinstance(self.children[0], SMTDefinedSortNode))
+            return "({}{})".format(self.kind, self.defChildren2str())
+
         return "({}{})".format(self.kind, self.children2str())
 
     def dump (self, outfile, lead = ""):
@@ -985,6 +1025,12 @@ class SMTCmdNode:
             outfile.write("{!s}".format(self))
             if self.kind != KIND_EXIT:
                 outfile.write("\n")
+
+    def defChildren2str (self):
+        res = ["", self.children[0].name]
+        res.append("({})".format(" ".join([str(c) for c in self.children[1]])))
+        res.append(self.children[0].instantiate(self.children[0].params))
+        return " ".join([s for s in res]) if self.children else ""
 
     def children2str (self):
         res = [""]
@@ -1302,10 +1348,21 @@ class SMTFormula:
         res = self.find_sort_and_scope (name)
         return res[0] if res else None
 
+    def add_dummySort(self, name):
+        self.scopes.sorts[name] = SMTDummySortNode()
+        return self.scopes.sorts[name]
+
     def add_sort (self, name, nparams = 0, scope = None):
         scope = scope if scope else self.scopes  # default: level 0
         assert (not self.find_sort (name))
         scope.sorts[name] = SMTSortNode (name, nparams)
+        self.sorts_cache[name] = scope
+        return scope.sorts[name]
+
+    def add_definedSort (self, name, params, sort, scope = None):
+        assert (not self.find_sort (name))
+        scope = scope if scope else self.scopes  # default: level 0
+        scope.sorts[name] = SMTDefinedSortNode (name, params, sort)
         self.sorts_cache[name] = scope
         return scope.sorts[name]
 
@@ -1324,13 +1381,21 @@ class SMTFormula:
         self.sorts_cache[name] = scope
         return scope.sorts[name]
 
-    def sortNode (self, name, nparams = 0, scope = None, new = False):
-        scope = scope if scope else self.scopes  # default: level 0
-        sort = self.find_sort (name)  # conrete sort already declared?
+    def dummySortNode (self, name):
+        sort = self.find_sort(name)
         if not sort:
-            if nparams > 0:
+            return self.add_dummySort(name)
+        return sort
+
+    def sortNode (self, name, nparams = 0, scope = None, new = False, \
+                        use_placeholders = False):
+        scope = scope if scope else self.scopes  # default: level 0
+        sort = self.find_sort (name)  # concrete sort already declared?
+        if not sort:
+            sorts = name[1:-1].split()
+            if nparams > 0 and len(sorts) > 0:
                 # abstract sort already declared?
-                res = self.find_sort_and_scope (name[1:-1].split()[0])
+                res = self.find_sort_and_scope (sorts[0])
                 if res:
                     if res[0].nparams != nparams:
                         if not new:
@@ -1348,11 +1413,21 @@ class SMTFormula:
                        name = name[1:-1].split()
                        assert (name[0] == "Array")
                        assert (len(name) == 3)
-                       return self.add_arrSort (name[1], name[2], scope)
+                       return self.add_arrSort (
+                               name[1], name[2], scope, use_placeholders)
             elif not new:
+                if use_placeholders:
+                    return self.add_dummySort(sort)
                 raise DDSMTParseCheckException (
                         "sort '{}' undeclared".format(name))
             return self.add_sort (name, nparams, scope)
+        return sort
+
+    def definedSortNode (self, name, params, sortstr, scope = None):
+        scope = scope if scope else self.scopes  # default: level 0
+        sort = self.find_sort (name)
+        if not sort:
+            return self.add_definedSort (name, params, sortstr, scope)
         return sort
 
     def bvSortNode (self, bw):
@@ -1362,12 +1437,14 @@ class SMTFormula:
             sort = self.add_bvSort(bw)
         return sort
 
-    def arrSortNode (self, index_sort = None, elem_sort = None, scope = None):
+    def arrSortNode (self, index_sort = None, elem_sort = None, scope = None,
+                           use_placeholders = False):
         scope = scope if scope else self.scopes  # default: level 0
         name = SMTArraySortNode.get_name(index_sort, elem_sort)
         sort = self.find_sort (name)
         if not sort:
-            return self.add_arrSort (index_sort, elem_sort, scope)
+            return self.add_arrSort (
+                    index_sort, elem_sort, scope)#, use_placeholders)
         return sort
 
     def find_fun (self, name, sort = None, scope = None, find_nested = True):
@@ -1807,6 +1884,7 @@ class DDSMTParser (SMTParser):
                             if t[0] == SMTParser.LPAR else t[0])
 
             self.sort.set_parse_action (self.__sort2SMTNode)
+            self.defined_sort.set_parse_action (self.__definedSort2SMTNode)
             self.sort_expr.set_parse_action (self.__sortExpr2SMTNode)
 
             self.attr_value.set_parse_action (lambda t:
@@ -1839,7 +1917,7 @@ class DDSMTParser (SMTParser):
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, e.parser)
 
-    def __sort2SMTNode (self, t):
+    def __sort2SMTNode (self, t, use_placeholders = False):
         sf = self.smtformula
         try:
             if len(t) == 1:
@@ -1852,7 +1930,8 @@ class DDSMTParser (SMTParser):
                 else:
                     assert (len(t_ident) == 1)
                     assert (type(t_ident[0]) == str)
-                    return sf.sortNode (t_ident[0])
+                    return sf.sortNode (
+                            t_ident[0], use_placeholders=use_placeholders)
             else:
                 assert (t[0] == SMTParser.LPAR)
                 assert (len(t[1]) == 1)  # none but bv sorts are indexed
@@ -1862,13 +1941,27 @@ class DDSMTParser (SMTParser):
                     assert (len(t_sorts) == 2)
                     assert (isinstance(t_sorts[0], SMTSortNode))
                     assert (isinstance(t_sorts[1], SMTSortNode))
-                    return sf.arrSortNode (t_sorts[0], t_sorts[1])
-                return sf.sortNode (
+                    return sf.arrSortNode (
+                            t_sorts[0], t_sorts[1], use_placeholders)
+                assert(sf.find_sort_and_scope (str(t_ident)))
+                res = sf.sortNode (
                         "({} {})".format(
                             str(t_ident), " ".join([str(s) for s in t_sorts])),
                         len(t_sorts))
+                res.defsort = sf.find_sort_and_scope (str(t_ident))[0]
+                return res
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, self)
+
+
+    def __definedSort2SMTNode (self, t):
+        """
+        Parse action for sorts that occur in the definition of a defined sort.
+        Sorts that are not recognized are interpreted as place holders instead
+        of throwing an exception, e.g.,
+        'X' in (define-sort S (X) (Array X Bool)).
+        """
+        return self.__sort2SMTNode (t, True)
 
 
     def __sortExpr2SMTNode (self, t):
@@ -2020,7 +2113,8 @@ class DDSMTParser (SMTParser):
         elif kind == KIND_DEFSORT:
             assert (len(t) == 4)
             assert (isinstance (t[3], SMTSortExprNode))
-            sort = sf.sortNode (t[1], t[3].sort.nparams, sf.cur_scope, True)
+            sort = sf.definedSortNode (
+                    t[1], [str(to) for to in t[2]], str(t[3]), sf.cur_scope)
             return sf.cmdNode (
                     KIND_DEFSORT, [sort, [str(to) for to in t[2]], t[3]])
         elif kind == KIND_DECLCONST:

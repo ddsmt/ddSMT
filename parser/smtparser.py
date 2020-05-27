@@ -161,6 +161,7 @@ class SMTParser:
         self.s_expr          = SMTParseElement()
         self.ident           = SMTParseElement()
         self.sort            = SMTParseElement()
+        self.defined_sort    = SMTParseElement()
         self.sort_expr       = SMTParseElement()
         self.attr_value      = SMTParseElement()
         self.attribute       = SMTParseElement()
@@ -451,6 +452,24 @@ class SMTParser:
             self.__check_rpar()
         return tokens
 
+    def __defined_sort (self):
+        tokens = SMTParseResult()
+        if self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
+            tokens.append(self.ident.parse_action(self.__ident()))
+        else:
+            self.__check_lpar("sort expected")
+            tokens.extend(
+                    [SMTParser.LPAR,  # needed for distinction
+                     self.ident.parse_action(self.__ident()),
+                     []])
+            while self.la and self.la != SMTParser.RPAR:
+                tokens[-1].append(
+                        self.defined_sort.parse_action(self.__defined_sort()))
+            if not tokens[-1]:
+                raise SMTParseException ("sort expected", self)
+            self.__check_rpar()
+        return tokens
+
     def __sort_expr (self):
         tokens = SMTParseResult()
         if self.__first_of_symbol(self.la[0]) or self.la == SMTParser.IDXED:
@@ -462,7 +481,8 @@ class SMTParser:
                      self.ident.parse_action(self.__ident()),
                      []])
             while self.la and self.la != SMTParser.RPAR:
-                tokens[-1].append(self.symbol.parse_action(self.__symbol()))
+                tokens[-1].append(
+                        self.defined_sort.parse_action(self.__defined_sort()))
             if not tokens[-1]:
                 raise SMTParseException ("symbol expected", self)
             self.__check_rpar()
