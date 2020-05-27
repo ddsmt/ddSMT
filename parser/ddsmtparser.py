@@ -1926,12 +1926,14 @@ class DDSMTParser (SMTParser):
                     assert (len(t_ident) == 3)
                     assert (len(t_ident[2]) == 1)
                     assert (isinstance(t_ident[2][0], SMTConstNode))
-                    return sf.bvSortNode (t_ident[2][0].value)
+                    res = sf.bvSortNode (t_ident[2][0].value)
                 else:
                     assert (len(t_ident) == 1)
                     assert (type(t_ident[0]) == str)
-                    return sf.sortNode (
+                    res = sf.sortNode (
                             t_ident[0], use_placeholders=use_placeholders)
+                    res.defsort = sf.find_sort_and_scope (str(t_ident))
+                    if res.defsort: res.defsort = res.defsort[0]
             else:
                 assert (t[0] == SMTParser.LPAR)
                 assert (len(t[1]) == 1)  # none but bv sorts are indexed
@@ -1949,7 +1951,7 @@ class DDSMTParser (SMTParser):
                             str(t_ident), " ".join([str(s) for s in t_sorts])),
                         len(t_sorts))
                 res.defsort = sf.find_sort_and_scope (str(t_ident))[0]
-                return res
+            return res
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, self)
 

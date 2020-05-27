@@ -1,0 +1,6 @@
+(set-logic QF_BV)
+(define-sort FPN () (_ BitVec 11))
+(declare-fun x () FPN)
+(assert (= x (_ bv2 11)))
+(check-sat)
+(exit)
