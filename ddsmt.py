@@ -778,6 +778,11 @@ if __name__ == "__main__":
                               help = "match string to identify failing input "
                                      "for cross check command (default: "\
                                      "stdout output)")
+        aparser.add_argument ("--parser-test", action="store_true",
+                              dest="parser_test", default=False,
+                              help="run ddSMT in parser test mode "\
+                                   "(parse only, does not require command "\
+                                   "argument)")
         aparser.add_argument ("--version", action="version",
                               version=__version__)
         g_args = aparser.parse_args()
@@ -796,7 +801,8 @@ if __name__ == "__main__":
             raise DDSMTException ("given input file is a directory")
         #if os.path.exists(g_args.outfile):
         #    raise DDSMTException ("given output file does already exist")
-        if not g_args.cmd:
+
+        if not g_args.parser_test and not g_args.cmd:
             raise DDSMTException ("command missing")
 
         if g_args.cmd_cc:
@@ -833,12 +839,9 @@ if __name__ == "__main__":
         _log (3, "parser: maxrss: {} MiB".format(
             resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000))
 
-        #_dump(g_args.outfile)
-        #sys.exit(0)
-        ######
-        #_dump(g_args.outfile)
-        #sys.exit(0)
-        #######
+        if g_args.parser_test:
+            _dump(g_args.outfile)
+            sys.exit(0)
 
         shutil.copyfile(g_args.infile, g_tmpfile)  # copy input file
 
