@@ -378,9 +378,11 @@ class SMTSortNode (SMTNode):
         sort0 = self.name
         sort1 = other.name
         if self.defsort:
+            assert (isinstance(self.defsort, SMTDefinedSortNode))
             params = self.name.lstrip('(').rstrip(')').split()[1:]
             sort0 = self.defsort.instantiate (params)
         if other.defsort:
+            assert (isinstance(other.defsort, SMTDefinedSortNode))
             params = other.name.lstrip('(').rstrip(')').split()[1:]
             sort1 = other.defsort.instantiate (params)
         return sort0 == sort1
@@ -1932,8 +1934,9 @@ class DDSMTParser (SMTParser):
                     assert (type(t_ident[0]) == str)
                     res = sf.sortNode (
                             t_ident[0], use_placeholders=use_placeholders)
-                    res.defsort = sf.find_sort_and_scope (str(t_ident))
-                    if res.defsort: res.defsort = res.defsort[0]
+                    s = sf.find_sort_and_scope (str(t_ident))
+                    if s and isinstance(s[0], SMTDefinedSortNode):
+                        res.defsort = s[0]
             else:
                 assert (t[0] == SMTParser.LPAR)
                 assert (len(t[1]) == 1)  # none but bv sorts are indexed
@@ -1951,6 +1954,7 @@ class DDSMTParser (SMTParser):
                             str(t_ident), " ".join([str(s) for s in t_sorts])),
                         len(t_sorts))
                 res.defsort = sf.find_sort_and_scope (str(t_ident))[0]
+                assert (isinstance (res.defsort, SMTDefinedSortNode))
             return res
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, self)
@@ -1980,7 +1984,8 @@ class DDSMTParser (SMTParser):
                 else:
                     assert (len(t_ident) == 1)
                     assert (type(t_ident[0]) == str)
-                    return SMTSortExprNode (sf.sortNode (str(t_ident)))
+                    return SMTSortExprNode (sf.sortNode (
+                        str(t_ident), use_placeholders=True))
             else:
                 assert (len(t[1]) == 1)  # none but bv sorts are indexed
                 t_ident = t[1]
@@ -1992,7 +1997,7 @@ class DDSMTParser (SMTParser):
                     return SMTSortExprNode (
                             sf.arrSortNode (),
                             [str(t_sorts[0]), str(t_sorts[1])])
-                sort = sf.sortNode (str(t_ident))
+                sort = sf.sortNode (str(t_ident), use_placeholders=True)
                 if len(t_sorts) != sort.nparams:
                     raise DDSMTParseException (
                             "sort '{!s}' expects {} argument(s), {} given"\

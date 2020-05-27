@@ -765,7 +765,6 @@ class SMTParser:
             while self.la and self.la != SMTParser.RPAR:
                 tokens[-1].append(self.symbol.parse_action(self.__symbol()))
             self.__check_rpar()
-            # sort_expr: prevent over-eager sort checking if define-sort
             tokens.append(self.sort_expr.parse_action(self.__sort_expr()))
         elif self.la == SMTParser.DECLCONST:
             self.__scan()
