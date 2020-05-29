@@ -1,5 +1,5 @@
 # ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (C) 2013-2018, Aina Niemetz.
+# Copyright (C) 2013-2020, Aina Niemetz.
 #
 # This file is part of ddSMT.
 #
@@ -254,7 +254,8 @@ class SMTParser:
                         SMTParser.COMMENT, SMTParser.PLACEHOLDER, x.group(0)),
                     instring,
                     flags=re.DOTALL)
-            instring = re.sub(r';[^\n]*\n', ' ' , instring)
+            instring = re.sub(r'^;[^\n]*\n', ' ' , instring, flags=re.MULTILINE)
+            instring = re.sub(r'\)\s*;[^\n]*\n', ') ' , instring)
             instring = re.sub(r'(\((?!_\s)|\(_\s)', r' \1 ', instring)
             instring = re.sub(r'@::@', ';', instring)
 
@@ -285,6 +286,7 @@ class SMTParser:
                 instring = part[2].partition(c)
             tokens.extend(re.sub(r'(?<!\\)\)', ' ) ', instring[2]).split())
             return tokens
+
     def __check_lpar (self, msg = "'(' expected"):
         if self.la != SMTParser.LPAR:
             raise SMTParseException (msg, self)
@@ -342,7 +344,6 @@ class SMTParser:
         tokens.append(self.la)
         self.__scan()
         return tokens
-
 
     def __b_value (self):
         tokens = SMTParseResult()

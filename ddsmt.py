@@ -412,6 +412,7 @@ def _substitute_scopes (bfs, randomized):
     _log (3, "  >> {} test(s)".format(g_ntests - ntests_prev))
     return nsubst_total
 
+
 def _substitute_cmds (bfs, randomized, filter_fun = None):
     """_substitute_cmds(filter_fun, bfs, randomized)
 
@@ -446,9 +447,9 @@ def _substitute_terms (subst_fun, filter_fun, cmds, bfs, randomized, msg = None,
                          with_vars)
 
        Attempt to substitute term nodes as defined by given substitution
-       function subst_fun and filtering condition filter_fun. Terms descend from
-       a given command list cmds and are collected in the order indicated by the
-       bfs parameter.
+       function subst_fun and filtering condition filter_fun. Terms descend
+       from a given command list cmds and are collected in the order indicated
+       by the bfs parameter.
 
        :subst_fun:  Function used to determine node substitutions.
        :filter_fun: Function used to select terms to substitute.
