@@ -1,5 +1,5 @@
 # ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
-# Copyright (C) 2013-2018, Aina Niemetz.
+# Copyright (C) 2013-2020, Aina Niemetz.
 # Copyright (C) 2018, Jane Lange.
 # Copyright (C) 2018, Andres Noetzli.
 # Copyright (C) 2019, Mathias Preiner.
@@ -36,14 +36,25 @@ KIND_SORT      = "<sort>"
 KIND_DSORT     = "<defined sort>"
 KIND_ARRSORT   = "<array sort>"
 KIND_BVSORT    = "<bv sort>"
+KIND_FPSORT    = "<fp sort>"
 KIND_SORTEXPR  = "<sort expression>"
 
-KIND_CONST     = "<const bool>"
-KIND_CONSTB    = "<const bin>"
-KIND_CONSTD    = "<const dec>"
-KIND_CONSTN    = "<const num>"
-KIND_CONSTH    = "<const hex>"
-KIND_CONSTS    = "<const string>"
+KIND_CONST      = "<const bool>"
+KIND_CONSTB     = "<const bin>"
+KIND_CONSTD     = "<const dec>"
+KIND_CONSTN     = "<const num>"
+KIND_CONSTH     = "<const hex>"
+KIND_CONSTFPN   = "<const fp nan>"
+KIND_CONSTFPPI  = "<const fp pos inf>"
+KIND_CONSTFPNI  = "<const fp neg inf>"
+KIND_CONSTFPPZ  = "<const fp pos zero>"
+KIND_CONSTFPNZ  = "<const fp neg zero>"
+KIND_CONSTRMRNE = "<const rm rne>"
+KIND_CONSTRMRNA = "<const rm rna>"
+KIND_CONSTRMRTZ = "<const rm rtz>"
+KIND_CONSTRMRTP = "<const rm rtp>"
+KIND_CONSTRMRTN = "<const rm rtn>"
+KIND_CONSTS     = "<const string>"
 
 KIND_ANNOTN    = "!"
 KIND_EXISTS    = "exists"
@@ -114,6 +125,41 @@ KIND_BVUREM    = "bvurem"
 KIND_BVXNOR    = "bvxnor"
 KIND_BVXOR     = "bvxor"
 
+KIND_FPFP      = "fp"
+KIND_FPPOSZERO = "+zero"
+KIND_FPNEGZERO = "-zero"
+KIND_FPPOSINF  = "+oo"
+KIND_FPNEGINF  = "-oo"
+KIND_FPNAN     = "NaN"
+KIND_FPABS     = "fp.abs"
+KIND_FPNEG     = "fp.neg"
+KIND_FPADD     = "fp.add"
+KIND_FPSUB     = "fp.sub"
+KIND_FPMUL     = "fp.mul"
+KIND_FPDIV     = "fp.div"
+KIND_FPFMA     = "fp.fma"
+KIND_FPSQRT    = "fp.sqrt"
+KIND_FPREM     = "fp.rem"
+KIND_FPRTI     = "fp.roundToIntegral"
+KIND_FPMIN     = "fp.min"
+KIND_FPMAX     = "fp.max"
+KIND_FPLEQ     = "fp.leq"
+KIND_FPLT      = "fp.lt"
+KIND_FPGEQ     = "fp.geq"
+KIND_FPGT      = "fp.gt"
+KIND_FPEQ      = "fp.eq"
+KIND_FPISNORM  = "fp.isNormal"
+KIND_FPISSUB   = "fp.isSubnormal"
+KIND_FPISZERO  = "fp.isZero"
+KIND_FPISINF   = "fp.isInfinite"
+KIND_FPISNAN   = "fp.isNaN"
+KIND_FPISNEG   = "fp.isNegative"
+KIND_FPISPOS   = "fp.isPositive"
+KIND_FPTOUBV   = "fp.to_ubv"
+KIND_FPTOSBV   = "fp.to_sbv"
+KIND_FPTOFP    = "to_fp"
+KIND_FPTOFPUNS = "to_fp_unsigned"
+
 KIND_STR_LEN      = "str.len"
 KIND_STR_CONCAT   = "str.++"
 KIND_STR_CONTAINS = "str.contains"
@@ -155,80 +201,119 @@ g_const_kinds = \
         KIND_CONSTD,
         KIND_CONSTN,
         KIND_CONSTH,
+        KIND_CONSTFPN,
+        KIND_CONSTFPPI,
+        KIND_CONSTFPNI,
+        KIND_CONSTFPPZ,
+        KIND_CONSTFPNZ,
+        KIND_CONSTRMRNE,
+        KIND_CONSTRMRNA,
+        KIND_CONSTRMRTZ,
+        KIND_CONSTRMRTP,
+        KIND_CONSTRMRTN,
         KIND_CONSTS
     ]
 
 g_fun_kinds   = \
-    [
-        KIND_ABS,
-        KIND_ADD,
-        KIND_AND,
-        KIND_BVADD,
-        KIND_BVAND,
-        KIND_BVASHR,
-        KIND_BVCOMP,
-        KIND_BVLSHR,
-        KIND_BVMUL,
-        KIND_BVNAND,
-        KIND_BVNEG,
-        KIND_BVNOR,
-        KIND_BVNOT,
-        KIND_BVOR,
-        KIND_BVSDIV,
-        KIND_BVSGE,
-        KIND_BVSGT,
-        KIND_BVSHL,
-        KIND_BVSLE,
-        KIND_BVSLT,
-        KIND_BVSMOD,
-        KIND_BVSREM,
-        KIND_BVSUB,
-        KIND_BVUGE,
-        KIND_BVUGT,
-        KIND_BVUDIV,
-        KIND_BVULE,
-        KIND_BVULT,
-        KIND_BVUREM,
-        KIND_BVXNOR,
-        KIND_BVXOR,
-        KIND_STR_LEN,
-        KIND_STR_CONCAT,
-        KIND_STR_CONTAINS,
-        KIND_STR_SUBSTR,
-        KIND_STR_REPLACE,
-        KIND_STR_INDEXOF,
-        KIND_STR_PREFIXOF,
-        KIND_STR_SUFFIXOF,
-        KIND_CONC,
-        KIND_DIST,
-        KIND_DIV,
-        KIND_EQ,
-        KIND_EXTR,
-        KIND_GE,
-        KIND_GT,
-        KIND_IMPL,
-        KIND_ISI,
-        KIND_ITE,
-        KIND_LE,
-        KIND_LT,
-        KIND_MOD,
-        KIND_MUL,
-        KIND_NEG,
-        KIND_NOT,
-        KIND_OR,
-        KIND_RDIV,
-        KIND_REP,
-        KIND_ROL,
-        KIND_ROR,
-        KIND_SELECT,
-        KIND_SEXT,
-        KIND_STORE,
-        KIND_SUB,
-        KIND_TOI,
-        KIND_TOR,
-        KIND_XOR,
-        KIND_ZEXT
-    ]
+    {
+        KIND_ABS: 1,
+        KIND_ADD: -1,
+        KIND_AND: -1,
+        KIND_BVADD: 2,
+        KIND_BVAND: 2,
+        KIND_BVASHR: 2,
+        KIND_BVCOMP: 2,
+        KIND_BVLSHR: 2,
+        KIND_BVMUL: 2,
+        KIND_BVNAND: 2,
+        KIND_BVNEG: 1,
+        KIND_BVNOR: 2,
+        KIND_BVNOT: 1,
+        KIND_BVOR: 2,
+        KIND_BVSDIV: 2,
+        KIND_BVSGE: 2,
+        KIND_BVSGT: 2,
+        KIND_BVSHL: 2,
+        KIND_BVSLE: 2,
+        KIND_BVSLT: 2,
+        KIND_BVSMOD: 2,
+        KIND_BVSREM: 2,
+        KIND_BVSUB: 2,
+        KIND_BVUGE: 2,
+        KIND_BVUGT: 2,
+        KIND_BVUDIV: 2,
+        KIND_BVULE: 2,
+        KIND_BVULT: 2,
+        KIND_BVUREM: 2,
+        KIND_BVXNOR: 2,
+        KIND_BVXOR: 2,
+        KIND_FPFP: 3,
+        KIND_FPABS: 1,
+        KIND_FPNEG: 1,
+        KIND_FPADD: 3,
+        KIND_FPSUB: 3,
+        KIND_FPMUL: 3,
+        KIND_FPDIV: 3,
+        KIND_FPFMA: 4,
+        KIND_FPSQRT: 2,
+        KIND_FPREM: 2,
+        KIND_FPRTI: 2,
+        KIND_FPMIN: 2,
+        KIND_FPMAX: 2,
+        KIND_FPLEQ: -1,
+        KIND_FPLT: -1,
+        KIND_FPGEQ: -1,
+        KIND_FPGT: -1,
+        KIND_FPEQ: -1,
+        KIND_FPISNORM: 1,
+        KIND_FPISSUB: 1,
+        KIND_FPISZERO: 1,
+        KIND_FPISINF: 1,
+        KIND_FPISNAN: 1,
+        KIND_FPISNEG: 1,
+        KIND_FPISPOS: 1,
+        KIND_FPTOUBV: 2,
+        KIND_FPTOSBV: 2,
+        KIND_FPTOFP: -1,
+        KIND_FPTOFPUNS: 2,
+        KIND_STR_LEN: 1,
+        KIND_STR_CONCAT: -1,
+        KIND_STR_CONTAINS: 2,
+        KIND_STR_SUBSTR: 3,
+        KIND_STR_REPLACE: 3,
+        KIND_STR_INDEXOF: 3,
+        KIND_STR_PREFIXOF: 2,
+        KIND_STR_SUFFIXOF: 2,
+        KIND_CONC: -1,
+        KIND_DIST: -1,
+        KIND_DIV: -1,
+        KIND_EQ: -1,
+        KIND_EXTR: 1,
+        KIND_GE: -1,
+        KIND_GT: -1,
+        KIND_IMPL: -1,
+        KIND_ISI: 1,
+        KIND_ITE: 3,
+        KIND_LE: -1,
+        KIND_LT: -1,
+        KIND_MOD: 2,
+        KIND_MUL: 2,
+        KIND_NEG: 1,
+        KIND_NOT: 1,
+        KIND_OR: -1,
+        KIND_RDIV: -1,
+        KIND_REP: 1,
+        KIND_ROL: 1,
+        KIND_ROR: 1,
+        KIND_SELECT: 2,
+        KIND_SEXT: 1,
+        KIND_STORE: 3,
+        KIND_SUB: -1,
+        KIND_TOI: 1,
+        KIND_TOR: 1,
+        KIND_XOR: -1,
+        KIND_ZEXT: 1
+    }
 
 g_cmd_kinds   = \
     [
@@ -393,6 +478,9 @@ class SMTSortNode (SMTNode):
     def is_bv_sort (self):
         return False
 
+    def is_fp_sort (self):
+        return False
+
     def is_arr_sort (self):
         return False
 
@@ -408,6 +496,9 @@ class SMTSortNode (SMTNode):
     def is_str_sort (self):
         return self.name == "String"
 
+    def is_rm_sort (self):
+        return self.name == "RoundingMode"
+
 
 class SMTDummySortNode (SMTSortNode):
 
@@ -419,15 +510,129 @@ class SMTDummySortNode (SMTSortNode):
 
 class SMTDefinedSortNode (SMTSortNode):
 
-    __slots__ = ["params", "sort"]
+    __slots__ = ["sf", "params", "sort"]
 
-    def __init__ (self, name, params, sort):
+    def __init__ (self, smtformula, name, params, sort):
         super().__init__(name, len(params), KIND_DSORT)
         self.sort = sort  # string with placeholders
         self.params = params
+        self.sf = smtformula
 
-    def instantiate (self, params):
+    def instantiate (self, params = []):
         return self.sort.format(*params)
+
+    def is_bv_sort (self):
+        """
+        Return true if (the instnatiated) sort is a bit-vector sort.
+
+        This will only be called directly on an SMTDefinedSortNode if it
+        doesn't have parameters -- that's the only case when a
+        SMTDefinedSortNode can be assigned to a term, else the instantiated
+        sort will be assigned.
+        """
+        if len(self.params) > 0: return False
+        name = self.instantiate()
+        sort = self.sf.find_sort_and_scope(name)
+        return sort[0].is_bv_sort() if sort else False
+
+    def is_fp_sort (self):
+        """
+        Return true if (the instnatiated) sort is a floating-point sort.
+
+        This will only be called directly on an SMTDefinedSortNode if it
+        doesn't have parameters -- that's the only case when a
+        SMTDefinedSortNode can be assigned to a term, else the instantiated
+        sort will be assigned.
+        """
+        if len(self.params) > 0: return False
+        name = self.instantiate()
+        sort = self.sf.find_sort_and_scope(name)
+        return sort[0].is_fp_sort() if sort else False
+
+    def is_arr_sort (self):
+        """
+        Return true if (the instnatiated) sort is an array sort.
+
+        This will only be called directly on an SMTDefinedSortNode if it
+        doesn't have parameters -- that's the only case when a
+        SMTDefinedSortNode can be assigned to a term, else the instantiated
+        sort will be assigned.
+        """
+        if len(self.params) > 0: return False
+        name = self.instantiate()
+        sort = self.sf.find_sort_and_scope(name)
+        return sort[0].is_arr_sort() if sort else False
+
+    def is_bool_sort (self):
+        """
+        Return true if (the instnatiated) sort is a Boolean sort.
+
+        This will only be called directly on an SMTDefinedSortNode if it
+        doesn't have parameters -- that's the only case when a
+        SMTDefinedSortNode can be assigned to a term, else the instantiated
+        sort will be assigned.
+        """
+        if len(self.params) > 0: return False
+        name = self.instantiate()
+        sort = self.sf.find_sort_and_scope(name)
+        return sort[0].is_bool_sort() if sort else False
+
+    def is_int_sort (self):
+        """
+        Return true if (the instnatiated) sort is an Integer sort.
+
+        This will only be called directly on an SMTDefinedSortNode if it
+        doesn't have parameters -- that's the only case when a
+        SMTDefinedSortNode can be assigned to a term, else the instantiated
+        sort will be assigned.
+        """
+        if len(self.params) > 0: return False
+        name = self.instantiate()
+        sort = self.sf.find_sort_and_scope(name)
+        return sort[0].is_int_sort() if sort else False
+
+    def is_real_sort (self):
+        """
+        Return true if (the instnatiated) sort is a Real sort.
+
+        This will only be called directly on an SMTDefinedSortNode if it
+        doesn't have parameters -- that's the only case when a
+        SMTDefinedSortNode can be assigned to a term, else the instantiated
+        sort will be assigned.
+        """
+        if len(self.params) > 0: return False
+        name = self.instantiate()
+        sort = self.sf.find_sort_and_scope(name)
+        return sort[0].is_real_sort() if sort else False
+
+    def is_str_sort (self):
+        """
+        Return true if (the instnatiated) sort is a String sort.
+
+        This will only be called directly on an SMTDefinedSortNode if it
+        doesn't have parameters -- that's the only case when a
+        SMTDefinedSortNode can be assigned to a term, else the instantiated
+        sort will be assigned.
+        """
+        if len(self.params) > 0: return False
+        name = self.instantiate()
+        sort = self.sf.find_sort_and_scope(name)
+        return sort[0].is_str_sort() if sort else False
+
+    def is_rm_sort (self):
+        """
+        Return true if (the instnatiated) sort is a RoundingMode sort.
+
+        This will only be called directly on an SMTDefinedSortNode if it
+        doesn't have parameters -- that's the only case when a
+        SMTDefinedSortNode can be assigned to a term, else the instantiated
+        sort will be assigned.
+        """
+        if len(self.params) > 0: return False
+        name = self.instantiate()
+        sort = self.sf.find_sort_and_scope(name)
+        return sort[0].is_real_sort() if sort else False
+
 
 class SMTArraySortNode (SMTSortNode):
 
@@ -463,6 +668,42 @@ class SMTBVSortNode (SMTSortNode):
         return "(_ BitVec {})".format(bw)
 
     def is_bv_sort (self):
+        return True
+
+
+class SMTFPSortNode (SMTSortNode):
+
+    __slots__ = ["ew", "sw"]
+
+    def __init__ (self, ew, sw, is_special = False):
+        super().__init__(
+                SMTFPSortNode.get_name(ew, sw, is_special), 0, KIND_FPSORT)
+        self.ew = ew
+        self.sw = sw
+
+    def __eq__ (self, other):
+        if not isinstance (other, SMTFPSortNode):
+            return False
+        return super().__eq__(other) or (self.ew == other.ew and self.sw == other.sw)
+
+    def __ne__ (self, other):
+        return not self.__eq__(other)
+
+    @staticmethod
+    def get_name (ew, sw, is_special = False):
+        if is_special:
+            if ew == 5 and sw == 11:
+                return "Float16"
+            elif ew == 8 and sw == 24:
+                return "Float32"
+            elif ew == 11 and sw == 53:
+                return "Float64"
+            else:
+                assert (ew == 15 and sw == 113)
+                return "Float128"
+        return "(_ FloatingPoint {} {})".format(ew, sw)
+
+    def is_fp_sort (self):
         return True
 
 
@@ -542,6 +783,48 @@ class SMTBVConstNode (SMTConstNode):
 
     def is_true_bvconst (self):
         return self.sort.bw == 1 and self.value == 1
+
+
+class SMTFPConstNode (SMTConstNode):
+
+    def __str__ (self):
+        assert (self.kind != KIND_CONST)
+        if self.is_subst():
+            return str(self.get_subst())
+        if self.kind == KIND_CONSTFPPI:
+            return "(_ +oo {} {})".format(self.sort.ew, self.sort.sw)
+        elif self.kind == KIND_CONSTFPNI:
+            return "(_ -oo {} {})".format(self.sort.ew, self.sort.sw)
+        elif self.kind == KIND_CONSTFPPZ:
+            return "(_ +zero {} {})".format(self.sort.ew, self.sort.sw)
+        elif self.kind == KIND_CONSTFPNZ:
+            return "(_ -zero {} {})".format(self.sort.ew, self.sort.sw)
+        assert (self.kind == KIND_CONSTFPN)
+        return "(_ NaN {} {})".format(self.sort.ew, self.sort.sw)
+
+
+class SMTRMConstNode (SMTConstNode):
+
+    __slots__ = ["is_special"]
+
+    def __init__ (self, kind, sort, is_special = False):
+        super().__init__(kind, sort)
+        self.is_special = is_special
+
+    def __str__ (self):
+        assert (self.kind != KIND_CONST)
+        if self.is_subst():
+            return str(self.get_subst())
+        if self.kind == KIND_CONSTRMRNE:
+            return "roundNearestTiesToEven" if self.is_special else "RNE"
+        elif self.kind == KIND_CONSTRMRNA:
+            return "roundNearestTiesToAway" if self.is_special else "RNA"
+        elif self.kind == KIND_CONSTRMRTZ:
+            return "roundTowardZero" if self.is_special else "RTZ"
+        elif self.kind == KIND_CONSTRMRTN:
+            return "roundTowardNegative" if self.is_special else "RTN"
+        assert (self.kind == KIND_CONSTRMRTP)
+        return "roundTowardPositive" if self.is_special else "RTP"
 
 
 class SMTFunNode (SMTNode):
@@ -1227,6 +1510,11 @@ class SMTFormula:
         self.add_sort ("Int")
         self.add_sort ("Real")
         self.add_sort ("String")
+        self.add_sort ("RoundingMode")
+        self.add_fpSort (5, 11, True)    # Float16
+        self.add_fpSort (8, 24, True)    # Float32
+        self.add_fpSort (11, 53, True)   # Float64
+        self.add_fpSort (15, 113, True)  # Float128
         self.add_arrSort ()      # abstract array base sort
 
     def dump (self, filename = None, root = None):
@@ -1244,6 +1532,9 @@ class SMTFormula:
     def is_bv_logic (self):
         return self.logic == "ALL" or self.logic.find("BV") >= 0
 
+    def is_fp_logic (self):
+        return self.logic == "ALL" or self.logic.find("FP") >= 0
+
     def is_int_logic (self):
         return self.logic == "ALL" or self.logic.find("I") >= 0
 
@@ -1253,6 +1544,7 @@ class SMTFormula:
     def is_str_logic (self):
         return self.logic == "ALL" or self.logic.find("S") >= 0
 
+    # FIXME: incomplete, is there a better way to do this?
     def is_arr_logic (self):
         return self.logic == "ALL" or \
                self.logic in ("AUFLIA", "AUFLIRA", "AUFNIRA", "QF_ABV",
@@ -1325,10 +1617,98 @@ class SMTFormula:
         self.consts_cache[ostr] = const
         return const
 
-    def zeroConstNodeOfSort (self, sort):
+    def fpConstNode (self, kind, ew, sw, ostr):
+        """
+        Create a FP constant node of given kind.
+        Note: We only represent constants with fixed values as FP constants,
+              i.e., +zero, -zero, +oo, -oo, NaN.
+
+        :kind: The kind of the constant, one of
+                 - KIND_CONSTFPPZ
+                 - KIND_CONSTFPNZ
+                 - KIND_CONSTFPPI
+                 - KIND_CONSTFPNI
+                 - KIND_CONSTFPN
+        :ew:   Exponent bit-width.
+        :sw:   Significand bit-width.
+        :ostr: SMT-LIB string represntation.
+        """
+        assert (isinstance (ew, int))
+        assert (isinstance (sw, int))
+        if ostr in self.consts_cache:
+            return self.consts_cache[ostr]
+        const = SMTFPConstNode (kind, self.fpSortNode(ew, sw))
+        #const = SMTFPConstNode (kind, self.fpSortNode(ew, sw), ostr) # TODO debug
+        self.consts_cache[ostr] = const
+        return const
+
+    def rmConstNode (self, value):
+        """
+        Create a RM constant node of given kind.
+
+        :value: The value of the constant, one of
+                 - RNE or roundNearestTiesToEven
+                 - RNA or roundNearestTiesToAway
+                 - RTZ or roundTowardZero
+                 - RTN or roundTowardNegative
+                 - RTP or roundTowardPositive
+        :ostr: SMT-LIB string represntation.
+        """
+        if value in self.consts_cache:
+            return self.consts_cache[value]
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRNE, self.sortNode("RoundingMode"))
+        elif value == "RNE":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRNE, self.sortNode("RoundingMode"))
+        elif value == "RNA":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRNA, self.sortNode("RoundingMode"))
+        elif value == "RTZ":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRTZ, self.sortNode("RoundingMode"))
+        elif value == "RTN":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRTN, self.sortNode("RoundingMode"))
+        elif value == "RTP":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRTP, self.sortNode("RoundingMode"))
+        elif value == "roundNearestTiesToEven":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRNE, self.sortNode("RoundingMode"), True)
+        elif value == "roundNearestTiesToAway":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRNA, self.sortNode("RoundingMode"), True)
+        elif value == "roundTowardZero":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRTZ, self.sortNode("RoundingMode"), True)
+        elif value == "roundTowardNegative":
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRTN, self.sortNode("RoundingMode"), True)
+        else:
+            assert (value == "roundTowardPositive")
+            const = SMTRMConstNode (
+                    KIND_CONSTRMRTN, self.sortNode("RoundingMode"), True)
+        self.consts_cache[value] = const
+        return const
+
+    def zeroConstNodeOfSort (self, sort, pos = True):
+        """
+        Create const node representing zero of given sort.
+        Note: Argument 'pos' is only used for FP const nodes.
+
+        :pos: True to create +zero, else -zero.
+        """
         if sort.is_bv_sort():
             return self.bvConstNode(
                 KIND_CONSTN, sort.bw, 0, "(_ bv0 {})".format(sort.bw))
+        elif sort.is_fp_sort():
+            return self.fpConstNode(
+                KIND_CONSTFPPZ if pos else KIND_CONSTFPNZ,
+                sort.ew,
+                sort.sw,
+                "(_ {}zero {} {})".format(
+                    "+" if pos else "-", sort.ew, sort.sw))
         elif sort.is_int_sort():
             return self.constNode(
                 KIND_CONSTN, self.sortNode("Int"), 0, "0")
@@ -1364,18 +1744,51 @@ class SMTFormula:
     def add_definedSort (self, name, params, sort, scope = None):
         assert (not self.find_sort (name))
         scope = scope if scope else self.scopes  # default: level 0
-        scope.sorts[name] = SMTDefinedSortNode (name, params, sort)
+        scope.sorts[name] = SMTDefinedSortNode (self, name, params, sort)
         self.sorts_cache[name] = scope
         return scope.sorts[name]
 
     def add_bvSort (self, bw):
+        """
+        Create and add BV sort to the sorts cache.
+        Note: We do not consider scopes for non-parameterized sorts but always
+              create them at context level 0.
+
+        :bw:     The bit-width of the sort to create.
+        :return: The created sort.
+        """
         name = SMTBVSortNode.get_name(bw)
         assert (not self.find_sort (name))
         self.scopes.sorts[name] = SMTBVSortNode (bw)  # level 0
         self.sorts_cache[name] = self.scopes
         return self.scopes.sorts[name]
 
+    def add_fpSort (self, ew, sw, is_special = False):
+        """
+        Create and add FP sort to the sorts cache.
+        Note: We do not consider scopes for non-parameterized sorts but always
+              create them at context level 0.
+
+        :ew:         The exponent bit-width of the sort to create.
+        :sw:         The significand bit-width of the sort to create.
+        :is_special: True if sort is any of the Float* sorts.
+        :return:     The created sort.
+        """
+        name = SMTFPSortNode.get_name(ew, sw, is_special)
+        assert (not self.find_sort (name))
+        self.scopes.sorts[name] = SMTFPSortNode (ew, sw, is_special)  # level 0
+        self.sorts_cache[name] = self.scopes
+        return self.scopes.sorts[name]
+
     def add_arrSort (self, index_sort = None, elem_sort = None, scope = None):
+        """
+        Create and add array sort to the sorts cache.
+
+        :index_sort: The index sort of the sort to create.
+        :elem_sort:  The element sort of the sort to create.
+        :scope:      The scope (context level) of the sort to create.
+        :return:     The created sort.
+        """
         scope = scope if scope else self.scopes  # default: level 0
         name = SMTArraySortNode.get_name(index_sort, elem_sort)
         assert (not self.find_sort (name))
@@ -1433,20 +1846,53 @@ class SMTFormula:
         return sort
 
     def bvSortNode (self, bw):
+        """
+        Create or get cached BV sort node.
+        Note: We do not consider scopes for non-parameterized sorts but always
+              create them at context level 0.
+
+        :bw:     The bit-width of the sort to create.
+        :return: The created/cached sort.
+        """
         name = SMTBVSortNode.get_name(bw)
         sort = self.find_sort (name)
         if not sort:
             sort = self.add_bvSort(bw)
         return sort
 
+    def fpSortNode (self, ew, sw, is_special = False):
+        """
+        Create or get cached FP sort node.
+        Note: We do not consider scopes for non-parameterized sorts but always
+              create them at context level 0.
+
+        :ew:     The exponent bit-width of the sort to create.
+        :sw:     The significand bit-width of the sort to create.
+        :return: The created/cached sort.
+        """
+        name = SMTFPSortNode.get_name(ew, sw, is_special)
+        sort = self.find_sort (name)
+        if not sort:
+            sort = self.add_fpSort(ew, sw)
+        return sort
+
     def arrSortNode (self, index_sort = None, elem_sort = None, scope = None,
                            use_placeholders = False):
+        """
+        Create or get cached array sort node.
+
+        :index_sort:       The index sort of the sort to create.
+        :elem_sort:        The element sort of the sort to create.
+        :scope:            The scope (context level) of the sort to create.
+        :use_placeholders: True if undeclared sorts are to be interpreted
+                           as place holders.
+        :return:           The created/cached sort.
+        """
         scope = scope if scope else self.scopes  # default: level 0
         name = SMTArraySortNode.get_name(index_sort, elem_sort)
         sort = self.find_sort (name)
         if not sort:
-            return self.add_arrSort (
-                    index_sort, elem_sort, scope)#, use_placeholders)
+            return self.add_arrSort (index_sort, elem_sort, scope)
         return sort
 
     def find_fun (self, name, sort = None, scope = None, find_nested = True):
@@ -1505,49 +1951,25 @@ class SMTFormula:
                         "function '{}' undeclared".format(name))
         return SMTAnFunNode (fun, sort)
 
-    def check_funApp (self, fun, kind, children):
+
+    def debug_sort_check(self, fun, kind, children):
+        """
+        Argument sort checks for debugging.
+
+        Note: Sort inference is not supported if sort is a defined sort without
+              arguments (i.e., a SMTDefinedSortNode) -- we can't derive the
+              instantiated sort without access to the sorts in SMTFormula,
+              and the sort nodes don't have access to it.
+
+        :fun:      The function to apply.
+        :kind:     The kind of the function.
+        :children: The arguments to the function.
+        """
         sortbool = self.sortNode("Bool")
         sortint = self.sortNode("Int")
         sortreal = self.sortNode("Real")
         sortstr = self.sortNode("String")
-        # args declaration check
-        for c in children:
-            if not c.sort:
-                assert (c.kind == KIND_FUN)
-                raise DDSMTParseCheckException (
-                        "function '{!s}' undeclared".format(c))
-        # number of args check
-        if ((len(children) != 1 and
-                 kind in (KIND_ABS, KIND_BVNEG, KIND_BVNOT, KIND_EXTR, KIND_ISI,
-                          KIND_NOT, KIND_NEG,   KIND_TOI,   KIND_TOR,  KIND_REP,
-                          KIND_ROL, KIND_ROR,   KIND_SEXT,  KIND_ZEXT,
-                          KIND_STR_LEN)) or
-            (len(children) != 2 and
-                 kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP,
-                          KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
-                          KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,
-                          KIND_BVSHL,  KIND_BVSLE,  KIND_BVSLT,  KIND_BVSMOD,
-                          KIND_BVSREM, KIND_BVSUB,  KIND_BVUGE,  KIND_BVUGT,
-                          KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM,
-                          KIND_BVXNOR, KIND_BVXOR,  KIND_CONC,   KIND_MOD,
-                          KIND_SELECT, KIND_STR_SUFFIXOF, KIND_STR_PREFIXOF)) or
-            (len(children) != 3 and
-                kind in (KIND_ITE, KIND_STR_SUBSTR, KIND_STR_REPLACE,
-                         KIND_STR_INDEXOF, KIND_STORE))):
-            raise DDSMTParseCheckException (
-                    "invalid number of arguments to '{!s}': {}" \
-                    "".format(fun, len(children)))
-        # number of indices check
-        if self.is_bv_logic:
-            if kind == KIND_EXTR and len(fun.indices) != 2:
-                raise DDSMTParseCheckException (
-                    "'{!s}' expects exactly two indices, {} given" \
-                    "".format(fun.name, len(fun.indices)))
-            elif kind in (KIND_REP, KIND_ROL, KIND_ROR, KIND_SEXT, KIND_ZEXT) \
-                 and len(fun.indices) != 1:
-                raise DDSMTParseCheckException (
-                    "'{!s}' expects exactly one index, {} given" \
-                    "".format(fun.name, len(fun.indices)))
+
         # args sort Bool check
         if kind in (KIND_AND, KIND_IMPL, KIND_NOT, KIND_OR, KIND_XOR):
             for c in children:
@@ -1581,20 +2003,71 @@ class SMTFormula:
         elif kind in (KIND_CONC, KIND_EXTR, KIND_REP,   KIND_ROL,  KIND_ROR,
                       KIND_SEXT, KIND_ZEXT, KIND_BVNEG, KIND_BVNOT):
             for c in children:
-                if not c.sort.is_bv_sort:
+                if not c.sort.is_bv_sort():
                     raise DDSMTParseCheckException (
                         "'{!s}' expects BV sort as argument(s)".format(fun))
+        # args FP sort check
+        elif kind == KIND_FPFP:
+            if children[0].sort.bw != 1:
+                raise DDSMTParseCheckException (
+                    "'{!s}' expects BV of size 1 as first argument".format(fun))
+            for c in children:
+                if not c.sort.is_bv_sort():
+                    raise DDSMTParseCheckException (
+                        "'{!s}' expects BV sort as argument(s)".format(fun))
+        elif kind in (KIND_FPISNORM, KIND_FPISSUB, KIND_FPISZERO, KIND_FPISINF,
+                      KIND_FPISNAN,  KIND_FPISNEG, KIND_FPISPOS,  KIND_FPABS,
+                      KIND_FPNEG):
+            for c in children:
+                if not c.sort.is_fp_sort():
+                    raise DDSMTParseCheckException (
+                        "'{!s}' expects FP sort as argument(s)".format(fun))
+        elif kind in (KIND_FPSQRT, KIND_FPRTI):
+            if not children[0].sort.is_rm_sort():
+                   raise DDSMTParseCheckException (
+                       "'{!s}' expects RM expression "\
+                       "as first argument".format(fun))
+            if not children[1].sort.is_fp_sort():
+                   raise DDSMTParseCheckException (
+                       "'{!s}' expects FP expression "\
+                       "as second argument".format(fun))
+        elif kind == KIND_FPTOFP:
+            if len(children) == 1:
+                if not children[0].sort.is_bv_sort():
+                       raise DDSMTParseCheckException (
+                        "'{!s}' expects BV sort as argument(s)".format(fun))
+            else:
+                if not children[0].sort.is_rm_sort():
+                       raise DDSMTParseCheckException (
+                           "'{!s}' expects RM expression "\
+                           "as first argument".format(fun))
+                if not children[1].sort.is_fp_sort() \
+                   and not children[1].sort.is_bv_sort():
+                       raise DDSMTParseCheckException (
+                               "'{!s}' expects FP or BV expression "\
+                               "as second argument".format(fun))
+        elif kind == KIND_FPTOFPUNS:
+            if not children[0].sort.is_rm_sort():
+                   raise DDSMTParseCheckException (
+                       "'{!s}' expects RM expression "\
+                       "as first argument".format(fun))
+            if not children[1].sort.is_bv_sort():
+                   raise DDSMTParseCheckException (
+                       "'{!s}' expects BV expression "\
+                       "as second argument".format(fun))
         # args equal sort check
         elif kind in (KIND_DIST, KIND_EQ):
             c0 = children[0]
             for c in children[1:]:
                 if c.sort != c0.sort \
+                   and not isinstance(c.sort, SMTDefinedSortNode) \
+                   and not isinstance(c0.sort, SMTDefinedSortNode) \
                    and c0.sort not in (sortint, sortreal) \
                    and c.sort not in (sortint, sortreal):
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
                         "".format(fun, c0.sort, c.sort))
-        # args equal bw check
+        # args BV bw check
         elif kind in (KIND_BVADD,  KIND_BVAND,  KIND_BVASHR, KIND_BVCOMP,
                       KIND_BVLSHR, KIND_BVMUL,  KIND_BVNAND, KIND_BVNOR,
                       KIND_BVOR,   KIND_BVSDIV, KIND_BVSGE,  KIND_BVSGT,
@@ -1603,19 +2076,47 @@ class SMTFormula:
                       KIND_BVUDIV, KIND_BVULE,  KIND_BVULT,  KIND_BVUREM,
                       KIND_BVXNOR, KIND_BVXOR):
             c0 = children[0]
-            if not c0.sort.is_bv_sort:
+            if not c0.sort.is_bv_sort():
                 raise DDSMTParseCheckException (
                     "'{!s}' expects BV sort as argument(s)".format(fun))
             for c in children[1:]:
-                if c.sort != c0.sort:
+                if c.sort != c0.sort \
+                   and not isinstance(c.sort, SMTDefinedSortNode) \
+                   and not isinstance(c0.sort, SMTDefinedSortNode):
                     raise DDSMTParseCheckException (
                         "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
                         "".format(fun, c0.sort, c.sort))
+        # args FP ew sw check
+        elif kind in (KIND_FPREM, KIND_FPMIN, KIND_FPMAX, KIND_FPLEQ,
+                      KIND_FPLT,  KIND_FPGEQ, KIND_FPGT,  KIND_FPEQ):
+            c0 = children[0]
+            if not c0.sort.is_fp_sort():
+                raise DDSMTParseCheckException (
+                    "'{!s}' expects FP sort as argument(s)".format(fun))
+            for c in children[1:]:
+                if c.sort != c0.sort \
+                   and not isinstance(c.sort, SMTDefinedSortNode) \
+                   and not isinstance(c0.sort, SMTDefinedSortNode):
+                    raise DDSMTParseCheckException (
+                        "'{!s}' with mismatching sorts: '{!s}' '{!s}'" \
+                        "".format(fun, c0.sort, c.sort))
+        # args RM FP
+        elif kind in (KIND_FPADD, KIND_FPSUB,   KIND_FPMUL, KIND_FPDIV,
+                      KIND_FPFMA, KIND_FPTOUBV, KIND_FPTOSBV):
+            c0 = children[0]
+            if not c0.sort.is_rm_sort():
+                raise DDSMTParseCheckException (
+                    "'{!s}' expects RM sort as argument(s)".format(fun))
+            for c in children[1:]:
+                if not c.sort.is_fp_sort():
+                    raise DDSMTParseCheckException (
+                        "'{!s}' expects FP sort as argument(s)".format(fun))
         # first arg Array check
         elif kind in (KIND_SELECT, KIND_STORE):
             if not children[0].sort.is_arr_sort():
-                raise DDSMTParseCheckException (
-                    "'{!s}' expects Array sort as first argument".format(fun))
+                   raise DDSMTParseCheckException (
+                       "'{!s}' expects Array sort as "\
+                       "first argument".format(fun))
         # ITE arg check
         elif kind == KIND_ITE:
             if not children[0].sort == sortbool:
@@ -1650,7 +2151,61 @@ class SMTFormula:
             if not children[2].sort == sortint:
                 raise DDSMTParseCheckException (
                     "'{!s}' expects sort 'Int' as third argument".format(fun))
-        # not predefined
+
+
+    def check_funApp (self, fun, kind, children):
+        """
+        Check if application of function of given kind with the given
+        arguments is valid.
+
+        :fun:      The function to apply.
+        :kind:     The kind of the function.
+        :children: The arguments to the function.
+        """
+        sortbool = self.sortNode("Bool")
+        sortint = self.sortNode("Int")
+        sortreal = self.sortNode("Real")
+        sortrm = self.sortNode("RoundingMode")
+        sortstr = self.sortNode("String")
+
+        # args declaration check
+        for c in children:
+            if not c.sort:
+                assert (c.kind == KIND_FUN)
+                raise DDSMTParseCheckException (
+                        "function argument '{!s}' undeclared".format(c))
+
+        # fun declaration check
+        if kind in g_fun_kinds:
+            arity = g_fun_kinds[kind]
+            n = len(children)
+            # number of args for defined functions
+            if (kind == KIND_FPTOFP and (n < 1 or n > 2)) or\
+               (kind != KIND_FPTOFP and
+               (arity == -1 and n <= 1) or(arity > 0 and arity != n)):
+                   raise DDSMTParseCheckException (
+                           "function '{!s}' expects (at least) {} argument(s), "\
+                            "{} given".format(fun, g_fun_kinds[kind], n))
+            # indices check
+            if self.is_bv_logic:
+                if kind == KIND_EXTR and len(fun.indices) != 2:
+                    raise DDSMTParseCheckException (
+                        "'{!s}' expects exactly two indices, {} given" \
+                        "".format(fun.name, len(fun.indices)))
+                elif kind in (KIND_REP, KIND_ROL, KIND_ROR, KIND_SEXT,
+                              KIND_ZEXT) \
+                     and len(fun.indices) != 1:
+                         raise DDSMTParseCheckException (
+                                 "'{!s}' expects exactly one index, {} given" \
+                                 "".format(fun.name, len(fun.indices)))
+            if self.is_fp_logic:
+                if (kind == KIND_FPTOUBV or kind == KIND_FPTOSBV) \
+                    and len(fun.indices) != 1:
+                        raise DDSMTParseCheckException (
+                            "'{!s}' expects exactly one index, {} given" \
+                            "".format(fun.name, len(fun.indices)))
+            # debug sort checks
+            self.debug_sort_check(fun, kind, children)
         else:
             declfun = self.find_fun (fun.name)
             assert (declfun)
@@ -1662,14 +2217,7 @@ class SMTFormula:
                     raise DDSMTParseCheckException (
                             "'{!s}' expects {} argument(s), {} given".format(
                                 declfun, len(declfun.sorts), len(children)))
-                for i in range(len(children)):
-                    if children[i].sort != declfun.sorts[i] \
-                       and (declfun.sorts[i] != sortreal \
-                            or children[i].sort != sortint):
-                        raise DDSMTParseCheckException (
-                            "'{!s}' with incompatible sort " \
-                            "(expects '{!s}'): '{!s}'".format(
-                                declfun, declfun.sorts[i], children[i].sort))
+
 
     def funApp2sort (self, fun, kind, children):
         self.check_funApp(fun, kind, children)
@@ -1678,6 +2226,10 @@ class SMTFormula:
                     KIND_EQ,    KIND_DIST,  KIND_LE,    KIND_LT,    KIND_GE,
                     KIND_GT,    KIND_ISI,   KIND_BVSGE, KIND_BVSGT, KIND_BVSLE,
                     KIND_BVSLT, KIND_BVUGE, KIND_BVUGT, KIND_BVULE, KIND_BVULT,
+                    KIND_FPISNORM, KIND_FPISSUB, KIND_FPISZERO, KIND_FPISINF,
+                    KIND_FPISNAN,  KIND_FPISNEG, KIND_FPISPOS, 
+                    KIND_FPMIN,    KIND_FPMAX,   KIND_FPLEQ,    KIND_FPLT,
+                    KIND_FPGEQ,    KIND_FPGT,    KIND_FPEQ,
                     KIND_STR_CONTAINS, KIND_STR_PREFIXOF, KIND_STR_SUFFIXOF):
             return self.sortNode("Bool")
         # sort Int
@@ -1702,6 +2254,11 @@ class SMTFormula:
             return self.bvSortNode(fun.indices[0] + children[0].sort.bw)
         elif kind == KIND_BVCOMP:
             return self.bvSortNode(1)
+        elif kind == KIND_FPFP:
+            return self.fpSortNode(
+                    children[1].sort.bw, 1 + children[2].sort.bw)
+        elif kind == KIND_FPTOUBV or kind == KIND_FPTOSBV:
+            return self.bvSortNode(fun.indices[0])
         # sort defined by children
         elif kind in (KIND_ADD, KIND_MUL, KIND_NEG, KIND_SUB):
             if True in [c.sort == self.sortNode("Real") for c in children]:
@@ -1713,8 +2270,13 @@ class SMTFormula:
                       KIND_BVNAND, KIND_BVNEG,  KIND_BVNOR,  KIND_BVNOT,
                       KIND_BVOR,   KIND_BVSDIV, KIND_BVSHL,  KIND_BVSMOD,
                       KIND_BVSREM, KIND_BVSUB,  KIND_BVUDIV, KIND_BVUREM,
-                      KIND_BVXNOR, KIND_BVXOR):
+                      KIND_BVXNOR, KIND_BVXOR,  KIND_FPABS,  KIND_FPNEG,
+                      KIND_FPMIN,  KIND_FPMAX,  KIND_FPREM):
             return children[0].sort
+
+        elif kind in (KIND_FPADD, KIND_FPSUB, KIND_FPMUL, KIND_FPDIV,
+                      KIND_FPFMA, KIND_FPSQRT, KIND_FPRTI):
+            return children[1].sort
         # special cases
         elif kind == KIND_ITE:
             if True in [c.sort == self.sortNode("Real") for c in children[1:]]:
@@ -1724,6 +2286,8 @@ class SMTFormula:
             return children[0].sort.elem_sort
         elif kind == KIND_STORE:
             return children[0].sort
+        elif kind == KIND_FPTOFP or kind == KIND_FPTOFPUNS:
+            return self.fpSortNode(fun.indices[0], fun.indices[1])
         return fun.sort
 
     def funAppNode (self, fun, children):
@@ -1863,7 +2427,6 @@ class DDSMTParser (SMTParser):
                         t[0].lower()))
                         #t[0])) # TODO debug
 
-
             self.binary.set_parse_action (lambda t:
                     sf.bvConstNode (
                         KIND_CONSTB,
@@ -1875,6 +2438,7 @@ class DDSMTParser (SMTParser):
                     sf.constNode (KIND_CONSTS, sf.sortNode ("String"), t[0]))
 
             self.b_value.set_parse_action (lambda t: sf.boolConstNode (t[0]))
+            self.rm_value.set_parse_action (lambda t: sf.rmConstNode (t[0]))
 
             self.symbol.set_parse_action (lambda t: str(t))
             self.keyword.set_parse_action (lambda t: str(t))
@@ -1926,9 +2490,15 @@ class DDSMTParser (SMTParser):
                 t_ident = t[0]
                 if t_ident[0] == SMTParser.IDXED:
                     assert (len(t_ident) == 3)
-                    assert (len(t_ident[2]) == 1)
+                    assert (len(t_ident[2]) >= 1)
                     assert (isinstance(t_ident[2][0], SMTConstNode))
-                    res = sf.bvSortNode (t_ident[2][0].value)
+                    if len(t_ident[2]) == 1:
+                        return sf.bvSortNode (t_ident[2][0].value)
+                    else:
+                        assert (len(t_ident[2]) == 2)
+                        assert (isinstance(t_ident[2][1], SMTConstNode))
+                        return sf.fpSortNode (
+                                t_ident[2][0].value, t_ident[2][1].value)
                 else:
                     assert (len(t_ident) == 1)
                     assert (type(t_ident[0]) == str)
@@ -1939,7 +2509,7 @@ class DDSMTParser (SMTParser):
                         res.defsort = s[0]
             else:
                 assert (t[0] == SMTParser.LPAR)
-                assert (len(t[1]) == 1)  # none but bv sorts are indexed
+                assert (len(t[1]) == 1)  # only bv and fp sorts are indexed
                 t_ident = t[1]
                 t_sorts = t[2]
                 if str(t_ident) == "Array":
@@ -1978,9 +2548,16 @@ class DDSMTParser (SMTParser):
                 t_ident = t[0]
                 if t_ident[0] == SMTParser.IDXED:
                     assert (len(t_ident) == 3)
-                    assert (len(t_ident[2]) == 1)
+                    assert (len(t_ident[2]) >= 1)
                     assert (isinstance(t_ident[2][0], SMTConstNode))
-                    return SMTSortExprNode (sf.bvSortNode (t_ident[2][0].value))
+                    if len(t_ident[2]) == 1:
+                        return SMTSortExprNode (
+                                sf.bvSortNode (t_ident[2][0].value))
+                    else:
+                        assert (len(t_ident[2]) == 2)
+                        assert (isinstance(t_ident[2][1], SMTConstNode))
+                        return SMTSortExprNode (sf.fpSortNode (
+                            t_ident[2][0].value, t_ident[2][1].value))
                 else:
                     assert (len(t_ident) == 1)
                     assert (type(t_ident[0]) == str)
@@ -2014,17 +2591,80 @@ class DDSMTParser (SMTParser):
             if len(t) == 1:
                 t_ident = t[0]
                 if t_ident[0] == SMTParser.IDXED:
-                    if str(t_ident[1]).find("bv") == 0 and sf.is_bv_logic():
-                        assert (len(t_ident) == 3)
-                        assert (len(t_ident[2]) == 1)
-                        assert (isinstance(t_ident[2][0], SMTConstNode))
-                        bw = t_ident[2][0].value
-                        value = int(t_ident[1][2:])
-                        return sf.bvConstNode (
-                                KIND_CONSTN,
-                                bw,
-                                value,
-                                "(_ bv{} {})".format(value, bw))
+                    if str(t_ident[1]).find("bv") == 0 \
+                       and (sf.is_bv_logic() or sf.is_fp_logic):
+                           assert (len(t_ident) == 3)
+                           assert (len(t_ident[2]) == 1)
+                           assert (isinstance(t_ident[2][0], SMTConstNode))
+                           bw = t_ident[2][0].value
+                           value = int(t_ident[1][2:])
+                           return sf.bvConstNode (
+                                   KIND_CONSTN,
+                                   bw,
+                                   value,
+                                   "(_ bv{} {})".format(value, bw))
+                    elif str(t_ident[1]).find("+zero") == 0 \
+                         and sf.is_fp_logic():
+                             assert (len(t_ident) == 3)
+                             assert (len(t_ident[2]) == 2)
+                             assert (isinstance(t_ident[2][0], SMTConstNode))
+                             assert (isinstance(t_ident[2][1], SMTConstNode))
+                             ew = t_ident[2][0].value
+                             sw = t_ident[2][1].value
+                             return sf.fpConstNode (
+                                     KIND_CONSTFPPZ,
+                                     ew,
+                                     sw,
+                                     "(_ +zero {} {})".format(ew, sw))
+                    elif str(t_ident[1]).find("-zero") == 0 \
+                         and sf.is_fp_logic():
+                             assert (len(t_ident) == 3)
+                             assert (len(t_ident[2]) == 2)
+                             assert (isinstance(t_ident[2][0], SMTConstNode))
+                             assert (isinstance(t_ident[2][1], SMTConstNode))
+                             ew = t_ident[2][0].value
+                             sw = t_ident[2][1].value
+                             return sf.fpConstNode (
+                                     KIND_CONSTFPNZ,
+                                     ew,
+                                     sw,
+                                     "(_ -zero {} {})".format(ew, sw))
+                    elif str(t_ident[1]).find("+oo") == 0 and sf.is_fp_logic():
+                         assert (len(t_ident) == 3)
+                         assert (len(t_ident[2]) == 2)
+                         assert (isinstance(t_ident[2][0], SMTConstNode))
+                         assert (isinstance(t_ident[2][1], SMTConstNode))
+                         ew = t_ident[2][0].value
+                         sw = t_ident[2][1].value
+                         return sf.fpConstNode (
+                                 KIND_CONSTFPPI,
+                                 ew,
+                                 sw,
+                                 "(_ +oo {} {})".format(ew, sw))
+                    elif str(t_ident[1]).find("-oo") == 0 and sf.is_fp_logic():
+                         assert (len(t_ident) == 3)
+                         assert (len(t_ident[2]) == 2)
+                         assert (isinstance(t_ident[2][0], SMTConstNode))
+                         assert (isinstance(t_ident[2][1], SMTConstNode))
+                         ew = t_ident[2][0].value
+                         sw = t_ident[2][1].value
+                         return sf.fpConstNode (
+                                 KIND_CONSTFPNI,
+                                 ew,
+                                 sw,
+                                 "(_ -oo {} {})".format(ew, sw))
+                    elif str(t_ident[1]).find("NaN") == 0 and sf.is_fp_logic():
+                         assert (len(t_ident) == 3)
+                         assert (len(t_ident[2]) == 2)
+                         assert (isinstance(t_ident[2][0], SMTConstNode))
+                         assert (isinstance(t_ident[2][1], SMTConstNode))
+                         ew = t_ident[2][0].value
+                         sw = t_ident[2][1].value
+                         return sf.fpConstNode (
+                                 KIND_CONSTFPN,
+                                 ew,
+                                 sw,
+                                 "(_ NaN {} {})".format(ew, sw))
                     else:
                         assert (len(t_ident) > 1)
                         name = "(_ {} {})".format(

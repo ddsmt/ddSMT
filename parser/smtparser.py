@@ -98,6 +98,18 @@ class SMTParser:
     TRUE    = "true"
     FALSE   = "false"
 
+    RNE = "RNE"
+    RNA = "RNA"
+    RTN = "RTN"
+    RTP = "RTP"
+    RTZ = "RTZ"
+
+    RNES = "roundNearestTiesToEven"
+    RNAS = "roundNearestTiesToAway"
+    RTNS = "roundTowardNegative"
+    RTPS = "roundTowardPositive"
+    RTZS = "roundTowardZero"
+
     PRINTSUCC = ":print-success"
     EXPANDDEF = ":expand-definitions"
     INTERMODE = ":interactive-mode"
@@ -155,6 +167,7 @@ class SMTParser:
         self.binary          = SMTParseElement()
         self.string          = SMTParseElement()
         self.b_value         = SMTParseElement()
+        self.rm_value        = SMTParseElement()
         self.symbol          = SMTParseElement()
         self.keyword         = SMTParseElement()
         self.spec_constant   = SMTParseElement()
@@ -303,6 +316,14 @@ class SMTParser:
     def __first_of_symbol (self, c):
         return c.isalpha() or c in self.spec_chars or c == SMTParser.PIPE
 
+    def __is_special_const (self, la):
+        return la in (SMTParser.TRUE, SMTParser.FALSE,
+                      SMTParser.RNE,  SMTParser.RNA,   SMTParser.RTN,
+                      SMTParser.RTP,  SMTParser.RTZ,   SMTParser.RNES,
+                      SMTParser.RNAS, SMTParser.RTNS,  SMTParser.RTPS,
+                      SMTParser.RTZS) \
+               or self.__first_of_const(la[0])
+
     def __numeral (self):
         tokens = SMTParseResult()
         if not self.la.isnumeric():
@@ -353,14 +374,19 @@ class SMTParser:
         self.__scan()
         return tokens
 
+    def __rm_value (self):
+        tokens = SMTParseResult()
+        if self.la not in (SMTParser.RNE,  SMTParser.RNA,  SMTParser.RTN,
+                           SMTParser.RTP,  SMTParser.RTZ,  SMTParser.RNES,
+                           SMTParser.RNAS, SMTParser.RTNS, SMTParser.RTPS,
+                           SMTParser.RTZS):
+            raise SMTParseException ("RoundingMode value expected", self)
+        tokens.append(self.la)
+        self.__scan()
+        return tokens
+
     def __symbol (self):
         tokens = SMTParseResult()
-        # Note: disabled for performance reasons (error check not necessary
-        #       for ddSMT), enable this when needed
-        #if not re.match(
-        #        r'[0-9a-zA-Z\*|\+\-/\*\=%\?\!\.\$_~&\^\<\>@]*', self.la):
-        #    raise SMTParseException (
-        #            "unexpected character: {}".format(self.la[0]), self)
         if self.la[0] == SMTParser.PIPE and not self.la[-1] == SMTParser.PIPE:
             raise SMTParseException ("unclosed symbol, missing '|'", self)
         tokens.append(self.la)
@@ -395,6 +421,8 @@ class SMTParser:
                 tokens.append(self.numeral.parse_action(self.__numeral()))
         elif self.la in (SMTParser.TRUE, SMTParser.FALSE):
             tokens.append(self.b_value.parse_action(self.__b_value()))
+        elif self.__is_special_const(self.la):
+            tokens.append(self.rm_value.parse_action(self.__rm_value()))
         else:
             raise SMTParseException ("special constant expected", self)
         return tokens
@@ -403,8 +431,7 @@ class SMTParser:
         tokens = SMTParseResult()
         if self.la[0] == ':':
             tokens.append(self.keyword.parse_action(self.__keyword()))
-        elif self.la in (SMTParser.TRUE, SMTParser.FALSE) \
-                or self.__first_of_const(self.la[0]):
+        elif self.is_special_const (self.la):
             tokens.append(
                     self.spec_constant.parse_action(self.__spec_constant()))
         elif self.__first_of_symbol(self.la[0]):
@@ -631,12 +658,11 @@ class SMTParser:
                 self.__check_rpar()
             else:
                 terms[-1][1].append(self.pos)
-                if self.la in (SMTParser.TRUE, SMTParser.FALSE) \
-                   or self.__first_of_const(self.la[0]):
-                       tokens = SMTParseResult()
-                       tokens.append(self.spec_constant.parse_action(
-                           self.__spec_constant()))
-                       stack.append(tokens)
+                if self.__is_special_const (self.la):
+                    tokens = SMTParseResult()
+                    tokens.append(self.spec_constant.parse_action(
+                        self.__spec_constant()))
+                    stack.append(tokens)
                 elif self.la == SMTParser.IDXED \
                      or self.__first_of_symbol(self.la[0]):
                          tokens = SMTParseResult()

@@ -482,6 +482,7 @@ class PassConstZero:
         return not x.is_const() \
                and x.sort \
                and (x.sort.is_bv_sort() \
+                    or x.sort.is_fp_sort() \
                     or x.sort.is_int_sort() \
                     or x.sort.is_real_sort() \
                     or x.sort.is_str_sort())
