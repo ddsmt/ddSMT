@@ -297,7 +297,7 @@ g_fun_kinds   = \
         KIND_LE: -1,
         KIND_LT: -1,
         KIND_MOD: 2,
-        KIND_MUL: 2,
+        KIND_MUL: -1,
         KIND_NEG: 1,
         KIND_NOT: 1,
         KIND_OR: -1,
