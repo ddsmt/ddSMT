@@ -433,7 +433,7 @@ def _substitute_cmds (bfs, randomized, filter_fun = None):
     _log (2, "----------------------------------------------------------------")
     ntests_prev = g_ntests
     filter_fun = filter_fun if filter_fun else \
-            lambda x: not x.is_setlogic() and not x.is_exit()
+            lambda x: not x.is_setlogic() and not x.is_exit() and not x.is_getmodel()
     nsubst_total = _substitute (lambda x: None, g_smtformula.substs,
             _filter_cmds(filter_fun, bfs), randomized)
     _log (2, "  >> {} command(s) substituted in total".format(nsubst_total))
