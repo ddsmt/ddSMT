@@ -186,6 +186,7 @@ KIND_GETUCORE  = "get-unsat-core"
 KIND_GETVALUE  = "get-value"
 KIND_GETOPT    = "get-option"
 KIND_GETINFO   = "get-info"
+KIND_GETMODEL  = "get-model"
 KIND_EXIT      = "exit"
 KIND_PUSH      = "push"
 KIND_POP       = "pop"
@@ -331,6 +332,7 @@ g_cmd_kinds   = \
         KIND_GETVALUE,
         KIND_GETOPT,
         KIND_GETINFO,
+        KIND_GETMODEL,
         KIND_EXIT,
         KIND_PUSH,
         KIND_POP,
@@ -1341,6 +1343,9 @@ class SMTCmdNode:
 
     def is_setlogic (self):
         return self.kind == KIND_SETLOGIC
+
+    def is_getmodel (self):
+        return self.kind == KIND_GETMODEL
 
     def subst (self, substitution):
         SMTCmdNode.g_smtformula.subst(self, substitution)
