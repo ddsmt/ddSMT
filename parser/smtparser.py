@@ -149,6 +149,7 @@ class SMTParser:
     GETASSIGN = "get-assignment"
     GETOPT    = "get-option"
     GETINFO   = "get-info"
+    GETMODEL  = "get-model"
     EXIT      = "exit"
 
     PLACEHOLDER = "@::@"
@@ -852,6 +853,8 @@ class SMTParser:
         elif self.la == SMTParser.GETINFO:
             self.__scan()
             tokens.append(self.info_flag.parse_action(self.__info_flag()))
+        elif self.la == SMTParser.GETMODEL:
+            self.__scan()
         elif self.la == SMTParser.EXIT:
             self.__scan()
         else:
