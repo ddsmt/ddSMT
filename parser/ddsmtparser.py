@@ -1344,9 +1344,6 @@ class SMTCmdNode:
     def is_setlogic (self):
         return self.kind == KIND_SETLOGIC
 
-    def is_getmodel (self):
-        return self.kind == KIND_GETMODEL
-
     def subst (self, substitution):
         SMTCmdNode.g_smtformula.subst(self, substitution)
 
