@@ -517,6 +517,16 @@ class PassLetPullBody:
     def msg(self):
         return "substitute LETs with body"
 
+class PassQuantPullBody:
+    def filter(self, x):
+        return x.is_quant()
+
+    def subst(self, x):
+        return x.children[-1]
+
+    def msg(self):
+        return "substitute quantifier with body"
+
 class PassElimVarBind:
     def __init__(self, cmds):
         varbinds = _filter_terms(lambda x: x.is_varb(), g_args.bfs,
@@ -669,6 +679,7 @@ def ddsmt_main ():
                 # Create passes in each iteration, since a pass may initialize
                 # data structures based on the current formula
                 passes = [PassConstZero(), PassFreshVar(), PassLetPullBody(),
+                          PassQuantPullBody(),
                           PassElimVarBind(cmds[i]),
                           PassConstBool('true'), PassConstBool('false'),
                           PassPullChild(0), PassPullChild(1), PassPullChild(2),

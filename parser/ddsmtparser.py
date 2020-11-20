@@ -426,6 +426,9 @@ class SMTNode:
     def is_let (self):
         return False
 
+    def is_quant (self):
+        return False
+
     def is_varb (self):
         return False
 
@@ -1066,6 +1069,9 @@ class SMTForallExistsNode (SMTNode):
                     visited[cur.id] = cur.id
                 else:
                     outfile.write(")")
+
+    def is_quant (self):
+        return True
 
 
 class SMTLetNode (SMTNode):
