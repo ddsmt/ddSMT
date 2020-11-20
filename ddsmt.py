@@ -527,6 +527,24 @@ class PassQuantPullBody:
     def msg(self):
         return "substitute quantifier with body"
 
+class PassShortenSymbols:
+    cache = set()
+    num_symbols = 0
+    prefix = "_s"
+
+    def filter(self, x):
+        return x.is_fun() and x not in self.cache \
+                and len(x.name) > (len(self.prefix) + len(str(self.num_symbols)))
+
+    def subst(self, x):
+        name = "{}{}".format(self.prefix, self.num_symbols)
+        self.num_symbols += 1
+        self.cache.add(x)
+        return type(x)(name, x.sort, x.sorts, x.indices, x.children)
+
+    def msg(self):
+        return "shorten symbols"
+
 class PassElimVarBind:
     def __init__(self, cmds):
         varbinds = _filter_terms(lambda x: x.is_varb(), g_args.bfs,
@@ -683,8 +701,8 @@ def ddsmt_main ():
                           PassElimVarBind(cmds[i]),
                           PassConstBool('true'), PassConstBool('false'),
                           PassPullChild(0), PassPullChild(1), PassPullChild(2),
-                          PassInlineDefFun(), PassCompactAndOr()]
-
+                          PassInlineDefFun(), PassCompactAndOr(),
+                          PassShortenSymbols()]
 
                 pass_num = 0
                 do_break = False

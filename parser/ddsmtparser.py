@@ -974,7 +974,7 @@ class SMTVarBindNode (SMTNode):
     def __str__ (self):
         assert (len(self.children) == 1)
         return str(self.get_subst()) if self.is_subst() else \
-                "({} {!s})".format(self.var.name, self.children[0])
+                "({} {!s})".format(str(self.var), self.children[0])
 
 
     def dump (self, outfile, lead = " " ):
@@ -984,7 +984,7 @@ class SMTVarBindNode (SMTNode):
                 subst.dump(outfile, lead)
         else:
             outfile.write(lead)
-            outfile.write("({}".format(self.var.name))
+            outfile.write("({}".format(str(self.var)))
             self.children[0].dump(outfile)
             outfile.write(")")
 
@@ -1039,7 +1039,7 @@ class SMTForallExistsNode (SMTNode):
                             "({} ({}) {})".format(
                                 cur.kind,
                                 " ".join(
-                                    ["({} {!s})".format(s.var.name, s.var.sort)
+                                    ["({} {!s})".format(str(s.var), s.var.sort)
                                     for s in cur.svars]) \
                                             if len(cur.svars) > 0 else "",
                                 strings.pop()))
@@ -1063,7 +1063,7 @@ class SMTForallExistsNode (SMTNode):
                     outfile.write(lead)
                     outfile.write("({} ({})".format(
                         cur.kind,
-                        " ".join(["({} {!s})".format(s.var.name, s.var.sort)
+                        " ".join(["({} {!s})".format(str(s.var), s.var.sort)
                             for s in cur.svars]) if len(cur.svars) > 0 else ""))
                     to_visit.extend(cur.children[::-1])
                     visited[cur.id] = cur.id
@@ -1495,6 +1495,7 @@ class SMTSubstList:
 
     def get_subst (self, node):
         while node and node.is_subst():
+            assert node != self.substs[node.id]
             node = self.substs[node.id]
         return node
 
