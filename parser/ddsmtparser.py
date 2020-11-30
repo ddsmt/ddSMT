@@ -189,6 +189,7 @@ KIND_POP       = "pop"
 KIND_SETLOGIC  = "set-logic"
 KIND_SETINFO   = "set-info"
 KIND_SETOPT    = "set-option"
+KIND_ECHO      = "echo"
 
 
 g_const_kinds = \
@@ -334,7 +335,8 @@ g_cmd_kinds   = \
         KIND_POP,
         KIND_SETLOGIC,
         KIND_SETINFO,
-        KIND_SETOPT
+        KIND_SETOPT,
+        KIND_ECHO
     ]
 
 
@@ -1250,6 +1252,8 @@ class SMTCmdNode:
             assert (len(self.children) == 3)
             assert (isinstance(self.children[0], SMTDefinedSortNode))
             return "({}{})".format(self.kind, self.defChildren2str())
+        elif self.kind == KIND_ECHO:
+            return "({} {})".format(self.kind, self.children[0])
 
         return "({}{})".format(self.kind, self.children2str())
 

@@ -151,6 +151,7 @@ class SMTParser:
     GETINFO   = "get-info"
     GETMODEL  = "get-model"
     EXIT      = "exit"
+    ECHO      = "echo"
 
     PLACEHOLDER = "@::@"
 
@@ -864,6 +865,9 @@ class SMTParser:
             self.__scan()
         elif self.la == SMTParser.EXIT:
             self.__scan()
+        elif self.la == SMTParser.ECHO:
+            self.__scan()
+            tokens.append(self.symbol.parse_action(self.__symbol()))
         else:
             raise SMTParseException (
                     "unknown command '{}'".format(self.la), self)
