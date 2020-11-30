@@ -191,6 +191,12 @@ class SMTParser:
         self.command         = SMTParseElement()
         self.script          = SMTParseElement()
 
+    def open_scope(self):
+        pass
+
+    def close_scope(self):
+        pass
+
     def parse (self, filename):
         self.filename = filename
         self.tokens = self.__tokenize()
@@ -567,13 +573,11 @@ class SMTParser:
 
     def __var_bindings (self):
         tokens = SMTParseResult()
-        cnt = 0
         self.__check_lpar()
         tokens.append([])
         while self.la and self.la != SMTParser.RPAR:
-            cnt += 1
             tokens[-1].append(self.var_binding.parse_action(
-                self.__var_binding(), cnt))
+                self.__var_binding()))
         if not tokens[-1]:
             raise SMTParseException ("variable binding expected", self)
         self.__check_rpar()
@@ -599,13 +603,11 @@ class SMTParser:
 
     def __sorted_qvars (self):
         tokens = SMTParseResult()
-        cnt = 0
         self.__check_lpar()
         tokens.append([])
         while self.la and self.la != SMTParser.RPAR:
-            cnt += 1
             tokens[-1].append(self.sorted_qvar.parse_action(
-                self.__sorted_qvar(), cnt))
+                self.__sorted_qvar()))
         if not tokens[-1]:
             raise SMTParseException ("sorted variable expected", self)
         self.__check_rpar()
@@ -647,6 +649,7 @@ class SMTParser:
                             [tmp.pop(),  # let, forall, exists
                              tmp.pop(),  # var bindings, sorted vars
                              self.term.parse_action(tmp.pop())])  # term
+                    self.close_scope()
                 else:
                     tokens = tmp.pop()
                 if stack:
@@ -683,6 +686,7 @@ class SMTParser:
                         cntpar += 1
                         stack.append(self.la)
                         terms.append([self.la, []])
+                        self.open_scope()
                         self.__scan()
                         stack.append(self.var_bindings.parse_action(
                             self.__var_bindings()))
@@ -691,6 +695,7 @@ class SMTParser:
                         cntpar += 1
                         stack.append(self.la)
                         terms.append([self.la, []])
+                        self.open_scope()
                         self.__scan()
                         stack.append(self.sorted_qvars.parse_action(
                             self.__sorted_qvars()))
@@ -810,6 +815,7 @@ class SMTParser:
         elif self.la == SMTParser.DEFFUN:
             self.__scan()
             tokens.append(self.symbol.parse_action(self.__symbol()))
+            self.open_scope()
             self.__check_lpar()
             tokens.append([])
             while self.la and self.la != SMTParser.RPAR:
@@ -819,6 +825,7 @@ class SMTParser:
             tokens.extend(
                     [self.sort.parse_action(self.__sort()),
                      self.term.parse_action(self.__term())])
+            self.close_scope()
         elif self.la == SMTParser.PUSH:
             self.__scan()
             tokens.append(self.numeral.parse_action(self.__numeral()))

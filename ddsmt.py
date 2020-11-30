@@ -242,7 +242,7 @@ def _filter_cmds (filter_fun, bfs):
     global g_smtformula
     assert (g_smtformula)
     cmds = []
-    scopes = _filter_scopes (lambda x: x.is_regular(), bfs)
+    scopes = _filter_scopes (lambda x: True, bfs)
     to_visit = [c for cmd_list in [s.cmds for s in scopes] for c in cmd_list]
     to_visit.extend(g_smtformula.scopes.declfun_cmds.values())
     while to_visit:
@@ -401,8 +401,7 @@ def _substitute_scopes (bfs, randomized):
     nsubst_total = 0
     level = 1
     while True:
-        scopes = _filter_scopes (lambda x: x.level == level and
-                                 x.is_regular(), bfs)
+        scopes = _filter_scopes (lambda x: x.level == level, bfs)
         if not scopes:
             break
         nsubst_total += _substitute (

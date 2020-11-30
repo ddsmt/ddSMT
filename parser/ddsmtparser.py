@@ -28,10 +28,6 @@ KIND_FUNAPP    = "<fun application>"
 KIND_VARB      = "<var binding>"
 KIND_SVAR      = "<sorted var>"
 
-KIND_SCOPE     = "<scope>"
-KIND_FESCOPE   = "<forall/exists scope>"
-KIND_LSCOPE    = "<let scope>"
-
 KIND_SORT      = "<sort>"
 KIND_DSORT     = "<defined sort>"
 KIND_ARRSORT   = "<array sort>"
@@ -1401,13 +1397,11 @@ class SMTScopeNode:
                  "sorts", "declfun_cmds", "declfun_id"]
     g_smtformula = None
 
-    def __init__ (self, level = 0, prev = None, kind = KIND_SCOPE):
-        assert (kind in (KIND_SCOPE, KIND_FESCOPE, KIND_LSCOPE))
+    def __init__ (self, level = 0, prev = None):
         SMTFormula.g_node_id += 1
         self.id = SMTFormula.g_node_id
         self.level  = level
         self.prev   = prev
-        self.kind   = kind
         self.scopes = []
         self.cmds   = []
         self.funs   = {}
@@ -1428,7 +1422,6 @@ class SMTScopeNode:
             elif cmd.kind == KIND_PUSH:
                 assert (len(self.scopes) > 0)
                 assert (cmd.scope in self.scopes)
-                assert (cmd.scope.is_regular())
                 if cmd.scope.is_subst():
                     continue
                 res.append(str(cmd))
@@ -1450,16 +1443,12 @@ class SMTScopeNode:
             elif cmd.kind == KIND_PUSH:
                 assert (len(self.scopes) > 0)
                 assert (cmd.scope in self.scopes)
-                assert (cmd.scope.is_regular())
                 if cmd.scope.is_subst():
                     continue
                 cmd.dump(outfile)
                 cmd.scope.dump(outfile)
             else:
                 cmd.dump(outfile)
-
-    def is_regular (self):
-        return self.kind == KIND_SCOPE
 
     def subst (self, substitution):
         SMTScopeNode.g_smtformula.subst(self, substitution)
@@ -1578,13 +1567,11 @@ class SMTFormula:
                         self.substs.get_subst(node) == None)
         return self.substs.get_subst(node)
 
-    def open_scope (self, nscopes = 1, kind = KIND_SCOPE):
-        assert (kind == KIND_SCOPE or nscopes == 1)
+    def open_scope (self, nscopes = 1):
         # Note: forall, exists open exactly one scope
         first_scope = None
         for i in range (nscopes):
-            new_scope = SMTScopeNode (
-                    self.cur_scope.level + 1, self.cur_scope, kind)
+            new_scope = SMTScopeNode(self.cur_scope.level + 1, self.cur_scope)
             if not first_scope:
                 first_scope = new_scope
             self.cur_scope.scopes.append(new_scope)
@@ -2324,9 +2311,8 @@ class SMTFormula:
             ch.append(children[1])
         else:
             assert (self.__assert_svar)
-            assert (self.cur_scope.kind == KIND_FESCOPE)
             ch = children
-        self.close_scope()
+        #self.close_scope()
         return SMTLetNode (ch) if kind == KIND_LET \
                                else SMTForallExistsNode (svars, kind, ch)
 
@@ -2386,14 +2372,12 @@ class SMTFormula:
 
     def __assert_varb (self, var_bindings):
         for varb in var_bindings:
-            assert (varb.scope.kind == KIND_LSCOPE)
             assert (varb.scope == self.cur_scope)
             assert (self.find_fun(varb.var.name, scope=self.cur_scope))
         return True
 
     def __assert_svar (self, sorted_vars):
         for svar in sorted_vars:
-            assert (svar.scope == KIND_SCOPE)
             assert (svar.scope == self.cur_scope)
             assert (self.find_fun(svar.var.name, scope=self.cur_scope))
         return True
@@ -2491,6 +2475,12 @@ class DDSMTParser (SMTParser):
 
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, e.parser)
+
+    def open_scope(self):
+        self.smtformula.open_scope()
+
+    def close_scope(self):
+        self.smtformula.close_scope()
 
     def __sort2SMTNode (self, t, use_placeholders = False):
         sf = self.smtformula
@@ -2698,20 +2688,16 @@ class DDSMTParser (SMTParser):
         except DDSMTParseCheckException as e:
             raise DDSMTParseException (e.msg, self)
 
-    def __varBinding2SMTNode (self, t, cnt = 1):
+    def __varBinding2SMTNode (self, t):
         sf = self.smtformula
-        if cnt == 1:  # open scope at first var binding
-            sf.open_scope(kind = KIND_LSCOPE)
         varb = SMTVarBindNode (
                 sf.funNode (
                     str(t[0]), t[1].sort, [], [], [], sf.cur_scope, False),
                 [t[1]])
         return varb
 
-    def __sortedQVar2SMTNode (self, t, cnt = 1):
+    def __sortedQVar2SMTNode (self, t):
         sf = self.smtformula
-        if cnt == 1:  # open scope at first sorted var
-            sf.open_scope(kind = KIND_FESCOPE)
         svar = SMTSortedQVarNode (
                 sf.funNode (str(t[0]), t[1], [], [], [], sf.cur_scope, False))
         return svar
