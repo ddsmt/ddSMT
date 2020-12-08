@@ -34,10 +34,6 @@ from subprocess import Popen, PIPE, TimeoutExpired
 from parser.ddsmtparser import DDSMTParser, DDSMTParseException
 
 
-__version__ = "1.0"
-__author__  = "Aina Niemetz <aina.niemetz@gmail.com>"
-
-
 g_golden_exit = 0
 g_golden_exit_cc = 0
 g_golden_err = None
