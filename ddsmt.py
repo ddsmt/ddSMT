@@ -809,8 +809,6 @@ if __name__ == "__main__":
                               help="run ddSMT in parser test mode "\
                                    "(parse only, does not require command "\
                                    "argument)")
-        aparser.add_argument ("--version", action="version",
-                              version=__version__)
         g_args = aparser.parse_args()
 
 ## TODO profile debug
