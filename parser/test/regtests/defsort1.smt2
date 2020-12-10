@@ -1,7 +1,0 @@
-(set-logic QF_BV)
-(define-sort FPN (X) (Array X Bool))
-(declare-fun x () (FPN Bool))
-(declare-fun y () (Array Bool Bool))
-(assert (= x y))
-(check-sat)
-(exit)
