@@ -52,7 +52,12 @@ def parse_options():
                     dest="parser_test",
                     help="run ddSMT in parser test mode "\
                          "(parses only, does not require command argument)")
-    return ap.parse_args()
+    res = ap.parse_args()
+
+    if res.cmd_cc:
+        res.cmd_cc = res.cmd_cc.split()
+
+    return res
 
 __PARSED_ARGS = None
 
