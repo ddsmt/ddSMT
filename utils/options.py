@@ -53,3 +53,12 @@ def parse_options():
                     help="run ddSMT in parser test mode "\
                          "(parses only, does not require command argument)")
     return ap.parse_args()
+
+__PARSED_ARGS = None
+
+def args():
+    """Returns the commandline options. Calls :code:`parse_options()` if parsing has not yet happened."""
+    global __PARSED_ARGS
+    if __PARSED_ARGS is None:
+        __PARSED_ARGS = parse_options()
+    return __PARSED_ARGS
