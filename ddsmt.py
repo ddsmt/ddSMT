@@ -61,7 +61,7 @@ def setup_logging():
         1: logging.INFO,
         2: logging.DEBUG,
     }
-    logging.getLogger().setLevel(level=verbositymap.get(g_args.verbosity, logging.DEBUG))
+    logging.getLogger().setLevel(level=verbositymap.get(options.args().verbosity, logging.DEBUG))
 
 class DDSMTException(Exception):
     def __init__(self, msg):
@@ -206,6 +206,7 @@ def ddsmt_main():
     global g_golden_run, g_golden_run_cc
 
     g_args = options.args()
+    setup_logging()
 
     if not os.path.exists(g_args.infile):
         raise DDSMTException("given input file does not exist")
