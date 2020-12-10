@@ -214,9 +214,11 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
                     restart = True
                     break
 
-                logging.debug("granularity: {}, subset {} of {}, "\
-                      "s-expressions: {}/{}".format(gran, i, len(subsets),
-                          nexprs - nreduced_total, nexprs))
+                if options.args().verbosity >= 2:
+                    sys.stdout.write(
+                        "[ddSMT] granularity: {}, subset {} of {}, s-expressions: {}/{}\r"
+                        .format(gran, i, len(subsets), nexprs - nreduced_total,
+                                nexprs))
 
         # Update superset and remove already substituted expressions
         superset = [x for subset in subsets for x in subset]
