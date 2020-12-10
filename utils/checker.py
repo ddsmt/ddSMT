@@ -12,6 +12,7 @@ __GOLDEN_CC = None
 
 
 def execute(cmd, filename, timeout):
+    """Execute the command on the file with a timeout."""
     proc = subprocess.Popen(cmd + [filename],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
@@ -28,6 +29,8 @@ def execute(cmd, filename, timeout):
 
 
 def matches_golden(golden, run, match_out, match_err):
+    """Checks whether the :code:`run` result matches the golden run,
+    considering :code:`match_out` and :code:`match_err`."""
     if run.exit != golden.exit:
         return False
 
@@ -47,6 +50,7 @@ def matches_golden(golden, run, match_out, match_err):
 
 
 def check(filename):
+    """Check whether the given file behaves as the original input."""
     ri = execute(options.args().cmd, filename, __GOLDEN.runtime)
     if not matches_golden(__GOLDEN, ri,
                           options.args().match_out,
@@ -64,6 +68,7 @@ def check(filename):
 
 
 def do_golden_runs():
+    """Do the initial runs to obtain the golden run results."""
     global __GOLDEN
     global __GOLDEN_CC
 
