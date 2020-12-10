@@ -23,13 +23,13 @@ def copy_binaries():
 
 
 def get_tmp_filename():
-    """Return a handle to a temporary file within our temporary directory."""
-    return tempfile.TemporaryFile(dir=__TMPDIR.name)
+    """Return a filename within our temporary directory based on the pid."""
+    return os.path.join(__TMPDIR.name, "ddsmt-tmp-{}.smt2".format(os.getpid()))
 
 
 def copy_to_tmp_file(source):
-    """Copy the given source file to a new temporary file and return a file
-    handle as returned by :code:`get_tmp_filename()`."""
+    """Copy the given source file to a temporary file as returned by
+    :code:`get_tmp_filename()`."""
     res = get_tmp_filename()
     shutil.copy(source, res.name)
     return res
