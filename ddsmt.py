@@ -22,6 +22,7 @@
 # along with ddSMT.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import logging
 import os
 import shutil
 import sys
@@ -33,6 +34,7 @@ from multiprocessing import Pool
 from subprocess import Popen, PIPE, TimeoutExpired
 from collections import namedtuple
 
+from utils import options
 from utils.subst import Substitution
 import utils.iter as iters
 import utils.smtlib as smtlib
@@ -50,6 +52,14 @@ g_golden_run_cc = None
 g_ntests = 0
 g_args = None
 
+def setup_logging():
+    logging.basicConfig(format = '[ddSMT %(levelname)s] %(message)s')
+    verbositymap = {
+        0: logging.WARN,
+        1: logging.INFO,
+        2: logging.DEBUG,
+    }
+    logging.getLogger().setLevel(level=verbositymap.get(g_args.verbosity, logging.DEBUG))
 
 class DDSMTException(Exception):
     def __init__(self, msg):
@@ -62,17 +72,6 @@ class DDSMTException(Exception):
 def _cleanup():
     if os.path.exists(g_tmp_dir):
         shutil.rmtree(g_tmp_dir)
-
-
-def _msg(verbosity, msg="", update=False):
-    global g_args
-    if g_args.verbosity >= verbosity:
-        sys.stdout.write(" " * 80 + "\r")
-        if update:
-            sys.stdout.write("[ddsmt] {}\r".format(msg))
-            sys.stdout.flush()
-        else:
-            sys.stdout.write("[ddsmt] {}\n".format(msg))
 
 
 def _print_exprs(filename, exprs):
@@ -100,7 +99,7 @@ def _run(cmd, filename, golden_runtime, is_golden=False):
         runtime = time.time() - start
     except TimeoutExpired as exc:
         proc.kill()
-        _msg(3, "[!!] timeout: terminated after {:.2f} seconds".format(
+        logging.debug("[!!] timeout: terminated after {:.2f} seconds".format(
                 timeout))
         if is_golden:
             raise DDSMTException("initial run timed out") from exc
@@ -215,10 +214,9 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
                     restart = True
                     break
 
-                _msg(2,
-                     "granularity: {}, subset {} of {}, "\
+                logging.debug("granularity: {}, subset {} of {}, "\
                       "s-expressions: {}/{}".format(gran, i, len(subsets),
-                          nexprs - nreduced_total, nexprs), True)
+                          nexprs - nreduced_total, nexprs))
 
         # Update superset and remove already substituted expressions
         superset = [x for subset in subsets for x in subset]
@@ -263,64 +261,12 @@ def _reduce(exprs):
     return exprs, nreduced_total
 
 
-def _parse_args():
-    usage = "ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]"
-    ap = ArgumentParser(usage=usage)
-    ap.add_argument("infile", help="the input file (in SMT-LIB v2 format)")
-    ap.add_argument("outfile", help="the output file")
-    ap.add_argument("cmd",
-                    nargs=REMAINDER,
-                    help="the command (with optional arguments)")
-
-    ap.add_argument("-p",
-                    dest="nprocs",
-                    type=int,
-                    default=os.cpu_count(),
-                    help="use nprocs parallel processes, default: {}".format(
-                        os.cpu_count()))
-    ap.add_argument("-c",
-                    dest="cmd_cc",
-                    help="cross check command")
-    ap.add_argument("-t",
-                    dest="timeout",
-                    type=float,
-                    help="timeout for test runs in seconds, "\
-                         "default: 1.5 * golden runtime")
-    ap.add_argument("-v",
-                    action="count",
-                    dest="verbosity",
-                    default=0,
-                    help="increase verbosity")
-    ap.add_argument("--match-err",
-                    dest="match_err",
-                    help="match string in stderr to identify "\
-                         "failing input (default: stderr output)")
-    ap.add_argument("--match-err-cc",
-                    dest="match_err_cc",
-                    help="match string to identify failing input for "\
-                         "cross check command (default: stderr output)")
-    ap.add_argument("--match-out",
-                    dest="match_out",
-                    help="match string in stdout to identify "\
-                         "failing input (default: stdout output)")
-    ap.add_argument("--match-out-cc",
-                    dest="match_out_cc",
-                    help="match string to identify failing input "
-                         "for cross check command (default: stdout output)")
-    ap.add_argument("--parser-test",
-                    action="store_true",
-                    dest="parser_test",
-                    help="run ddSMT in parser test mode "\
-                         "(parses only, does not require command argument)")
-    return ap.parse_args()
-
-
 def ddsmt_main():
     global g_args
     global g_cur_runtime, g_cur_runtime_cc
     global g_golden_run, g_golden_run_cc
 
-    g_args = _parse_args()
+    g_args = options.parse_options()
 
     if not os.path.exists(g_args.infile):
         raise DDSMTException("given input file does not exist")
@@ -330,11 +276,11 @@ def ddsmt_main():
         raise DDSMTException("command missing")
 
 
-    _msg(1, "input file:   '{}'".format(g_args.infile))
-    _msg(1, "output file:  '{}'".format(g_args.outfile))
-    _msg(1, "command:      '{}'".format(" ".join(map(str, g_args.cmd))))
+    logging.info("input file:   '{}'".format(g_args.infile))
+    logging.info("output file:  '{}'".format(g_args.outfile))
+    logging.info("command:      '{}'".format(" ".join(map(str, g_args.cmd))))
     if g_args.cmd_cc:
-        _msg(1, "command (cc): '{}'".format(g_args.cmd_cc))
+        logging.info("command (cc): '{}'".format(g_args.cmd_cc))
 
     ifilesize = os.path.getsize(g_args.infile)
 
@@ -343,8 +289,8 @@ def ddsmt_main():
         exprs = list(smtlib.parse(infile.read()))
         nexprs = iters.count_exprs(exprs)
 
-    _msg(2)
-    _msg(2, "parsed {} s-expressions in {:.2f} seconds".format(
+    logging.debug("")
+    logging.debug("parsed {} s-expressions in {:.2f} seconds".format(
             nexprs, time.time() - start_time))
 
     if g_args.parser_test:
@@ -356,23 +302,23 @@ def ddsmt_main():
     shutil.copy(g_args.cmd[0], g_tmpbin)       # copy binary
     g_args.cmd[0] = g_tmpbin                   # use copy
 
-    _msg(1)
-    _msg(1, "starting initial run{}... ".format(
+    logging.info("")
+    logging.info("starting initial run{}... ".format(
             "" if not g_args.cmd_cc else ", cross checking"))
-    _msg(1)
+    logging.info("")
 
     # Record golden exit code, stdout and stderr output
     g_golden_run = _run(g_args.cmd, g_tmpfile, 0, True)
     g_cur_runtime = g_golden_run.runtime
 
-    _msg(1, "golden exit:    {}".format(g_golden_run.exit))
-    _msg(1, "golden err:     {}".format(repr(g_golden_run.err)))
-    _msg(1, "golden out:     {}".format(repr(g_golden_run.out)))
-    _msg(1, "golden runtime: {0: .2f} seconds".format(g_golden_run.runtime))
+    logging.info("golden exit:    {}".format(g_golden_run.exit))
+    logging.info("golden err:     {}".format(repr(g_golden_run.err)))
+    logging.info("golden out:     {}".format(repr(g_golden_run.out)))
+    logging.info("golden runtime: {0: .2f} seconds".format(g_golden_run.runtime))
     if g_args.match_out:
-        _msg(1, "match (stdout): '{}'".format(g_args.match_out))
+        logging.info("match (stdout): '{}'".format(g_args.match_out))
     if g_args.match_err:
-        _msg(1, "match (stderr): '{}'".format(g_args.match_err))
+        logging.info("match (stderr): '{}'".format(g_args.match_err))
 
     if g_args.cmd_cc:
         g_args.cmd_cc = g_args.cmd_cc.split()
@@ -383,16 +329,16 @@ def ddsmt_main():
         g_golden_run_cc = _run(g_args.cmd_cc, g_tmpfile, 0, True)
         g_cur_runtime_cc = g_golden_run_cc.runtime
 
-        _msg(1)
-        _msg(1, "golden exit (cc): {}".format(g_golden_run_cc.exit))
-        _msg(1, "golden err (cc): '{}'".format(g_golden_run_cc.err))
-        _msg(1, "golden out (cc): '{}'".format(g_golden_run_cc.out))
-        _msg(1, "golden runtime (cc): {0: .2f} seconds".format(
+        logging.info("")
+        logging.info("golden exit (cc): {}".format(g_golden_run_cc.exit))
+        logging.info("golden err (cc): '{}'".format(g_golden_run_cc.err))
+        logging.info("golden out (cc): '{}'".format(g_golden_run_cc.out))
+        logging.info("golden runtime (cc): {0: .2f} seconds".format(
                 g_golden_run_cc.runtime))
         if g_args.match_out_cc:
-            _msg(1, "match (cc) (stdout): '{}'".format(g_args.match_out_cc))
+            logging.info("match (cc) (stdout): '{}'".format(g_args.match_out_cc))
         if g_args.match_err_cc:
-            _msg(1, "match (cc) (stderr): '{}'".format(g_args.match_err_cc))
+            logging.info("match (cc) (stderr): '{}'".format(g_args.match_err_cc))
 
     reduced_exprs, nreduced = _reduce(exprs)
     end_time = time.time()
@@ -400,19 +346,19 @@ def ddsmt_main():
         ofilesize = os.path.getsize(g_args.outfile)
         nreduced_exprs = iters.count_exprs(reduced_exprs)
 
-        _msg(1)
-        _msg(1, "runtime:         {:.2f} s".format(end_time - start_time))
-        _msg(1, "tests:           {}".format(g_ntests))
-        _msg(1, "input file:")
-        _msg(1, "  file size:     {} B".format(ifilesize))
-        _msg(1, "  s-expressions: {}".format(nexprs))
-        _msg(1, "reduced file:")
-        _msg(1, "  file size:     {} B ({:3.1f}%)".format(
+        logging.info("")
+        logging.info("runtime:         {:.2f} s".format(end_time - start_time))
+        logging.info("tests:           {}".format(g_ntests))
+        logging.info("input file:")
+        logging.info("  file size:     {} B".format(ifilesize))
+        logging.info("  s-expressions: {}".format(nexprs))
+        logging.info("reduced file:")
+        logging.info("  file size:     {} B ({:3.1f}%)".format(
                 ofilesize, ofilesize / ifilesize * 100))
-        _msg(1, "  s-expressions: {} ({:3.1f}%)".format(
+        logging.info("  s-expressions: {} ({:3.1f}%)".format(
                 nreduced_exprs, nreduced_exprs / nexprs * 100))
     else:
-        _msg(0, "unable to minimize input file")
+        logging.warning("unable to minimize input file")
 
 
 if __name__ == "__main__":
