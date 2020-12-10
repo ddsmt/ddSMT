@@ -266,7 +266,7 @@ def ddsmt_main():
     global g_cur_runtime, g_cur_runtime_cc
     global g_golden_run, g_golden_run_cc
 
-    g_args = options.parse_options()
+    g_args = options.args()
 
     if not os.path.exists(g_args.infile):
         raise DDSMTException("given input file does not exist")
