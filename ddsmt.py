@@ -33,6 +33,7 @@ from multiprocessing import Pool
 from subprocess import Popen, PIPE, TimeoutExpired
 from collections import namedtuple
 
+from utils import options
 from utils.subst import Substitution
 import utils.iter as iters
 import utils.smtlib as smtlib
@@ -100,8 +101,8 @@ def _run(cmd, filename, golden_runtime, is_golden=False):
         runtime = time.time() - start
     except TimeoutExpired as exc:
         proc.kill()
-        _msg(3, "[!!] timeout: terminated after {:.2f} seconds".format(
-                timeout))
+        _msg(3,
+             "[!!] timeout: terminated after {:.2f} seconds".format(timeout))
         if is_golden:
             raise DDSMTException("initial run timed out") from exc
         return RunInfo(proc.returncode, None, None, timeout)
@@ -132,15 +133,15 @@ def _test(filename):
 
     ri = _run(g_args.cmd, filename, g_golden_run.runtime)
 
-    if not _matches_golden(g_golden_run, ri,
-                           g_args.match_out, g_args.match_err):
+    if not _matches_golden(g_golden_run, ri, g_args.match_out,
+                           g_args.match_err):
         return False
 
     if g_args.cmd_cc:
         ri = _run(g_args.cmd_cc, filename, g_golden_run_cc.runtime)
 
-        if not _matches_golden(g_golden_run_cc, ri,
-                               g_args.match_out_cc, g_args.match_err_cc):
+        if not _matches_golden(g_golden_run_cc, ri, g_args.match_out_cc,
+                               g_args.match_err_cc):
             return False
 
     return True
@@ -191,7 +192,8 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
         restart = True
         while restart:
             restart = False
-            work_list = [(exprs, x, y) for x, y in zip(subsets, subsets_substs)]
+            work_list = [(exprs, x, y)
+                         for x, y in zip(subsets, subsets_substs)]
             for i, result in enumerate(
                     pool.imap(_process_substitution, work_list, 1)):
 
@@ -263,64 +265,12 @@ def _reduce(exprs):
     return exprs, nreduced_total
 
 
-def _parse_args():
-    usage = "ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]"
-    ap = ArgumentParser(usage=usage)
-    ap.add_argument("infile", help="the input file (in SMT-LIB v2 format)")
-    ap.add_argument("outfile", help="the output file")
-    ap.add_argument("cmd",
-                    nargs=REMAINDER,
-                    help="the command (with optional arguments)")
-
-    ap.add_argument("-p",
-                    dest="nprocs",
-                    type=int,
-                    default=os.cpu_count(),
-                    help="use nprocs parallel processes, default: {}".format(
-                        os.cpu_count()))
-    ap.add_argument("-c",
-                    dest="cmd_cc",
-                    help="cross check command")
-    ap.add_argument("-t",
-                    dest="timeout",
-                    type=float,
-                    help="timeout for test runs in seconds, "\
-                         "default: 1.5 * golden runtime")
-    ap.add_argument("-v",
-                    action="count",
-                    dest="verbosity",
-                    default=0,
-                    help="increase verbosity")
-    ap.add_argument("--match-err",
-                    dest="match_err",
-                    help="match string in stderr to identify "\
-                         "failing input (default: stderr output)")
-    ap.add_argument("--match-err-cc",
-                    dest="match_err_cc",
-                    help="match string to identify failing input for "\
-                         "cross check command (default: stderr output)")
-    ap.add_argument("--match-out",
-                    dest="match_out",
-                    help="match string in stdout to identify "\
-                         "failing input (default: stdout output)")
-    ap.add_argument("--match-out-cc",
-                    dest="match_out_cc",
-                    help="match string to identify failing input "
-                         "for cross check command (default: stdout output)")
-    ap.add_argument("--parser-test",
-                    action="store_true",
-                    dest="parser_test",
-                    help="run ddSMT in parser test mode "\
-                         "(parses only, does not require command argument)")
-    return ap.parse_args()
-
-
 def ddsmt_main():
     global g_args
     global g_cur_runtime, g_cur_runtime_cc
     global g_golden_run, g_golden_run_cc
 
-    g_args = _parse_args()
+    g_args = options.args()
 
     if not os.path.exists(g_args.infile):
         raise DDSMTException("given input file does not exist")
@@ -328,7 +278,6 @@ def ddsmt_main():
         raise DDSMTException("given input file is a directory")
     if not g_args.parser_test and not g_args.cmd:
         raise DDSMTException("command missing")
-
 
     _msg(1, "input file:   '{}'".format(g_args.infile))
     _msg(1, "output file:  '{}'".format(g_args.outfile))
@@ -344,8 +293,10 @@ def ddsmt_main():
         nexprs = iters.count_exprs(exprs)
 
     _msg(2)
-    _msg(2, "parsed {} s-expressions in {:.2f} seconds".format(
-            nexprs, time.time() - start_time))
+    _msg(
+        2, "parsed {} s-expressions in {:.2f} seconds".format(
+            nexprs,
+            time.time() - start_time))
 
     if g_args.parser_test:
         _print_exprs(g_args.outfile, exprs)
@@ -353,11 +304,12 @@ def ddsmt_main():
 
     # Copy input file and binary
     shutil.copyfile(g_args.infile, g_tmpfile)  # copy input file
-    shutil.copy(g_args.cmd[0], g_tmpbin)       # copy binary
-    g_args.cmd[0] = g_tmpbin                   # use copy
+    shutil.copy(g_args.cmd[0], g_tmpbin)  # copy binary
+    g_args.cmd[0] = g_tmpbin  # use copy
 
     _msg(1)
-    _msg(1, "starting initial run{}... ".format(
+    _msg(
+        1, "starting initial run{}... ".format(
             "" if not g_args.cmd_cc else ", cross checking"))
     _msg(1)
 
@@ -378,7 +330,7 @@ def ddsmt_main():
         g_args.cmd_cc = g_args.cmd_cc.split()
 
         shutil.copy(g_args.cmd_cc[0], g_tmpbin_cc)  # copy cross check binary
-        g_args.cmd_cc[0] = g_tmpbin_cc              # use copy
+        g_args.cmd_cc[0] = g_tmpbin_cc  # use copy
 
         g_golden_run_cc = _run(g_args.cmd_cc, g_tmpfile, 0, True)
         g_cur_runtime_cc = g_golden_run_cc.runtime
@@ -387,7 +339,8 @@ def ddsmt_main():
         _msg(1, "golden exit (cc): {}".format(g_golden_run_cc.exit))
         _msg(1, "golden err (cc): '{}'".format(g_golden_run_cc.err))
         _msg(1, "golden out (cc): '{}'".format(g_golden_run_cc.out))
-        _msg(1, "golden runtime (cc): {0: .2f} seconds".format(
+        _msg(
+            1, "golden runtime (cc): {0: .2f} seconds".format(
                 g_golden_run_cc.runtime))
         if g_args.match_out_cc:
             _msg(1, "match (cc) (stdout): '{}'".format(g_args.match_out_cc))
@@ -407,9 +360,11 @@ def ddsmt_main():
         _msg(1, "  file size:     {} B".format(ifilesize))
         _msg(1, "  s-expressions: {}".format(nexprs))
         _msg(1, "reduced file:")
-        _msg(1, "  file size:     {} B ({:3.1f}%)".format(
+        _msg(
+            1, "  file size:     {} B ({:3.1f}%)".format(
                 ofilesize, ofilesize / ifilesize * 100))
-        _msg(1, "  s-expressions: {} ({:3.1f}%)".format(
+        _msg(
+            1, "  s-expressions: {} ({:3.1f}%)".format(
                 nreduced_exprs, nreduced_exprs / nexprs * 100))
     else:
         _msg(0, "unable to minimize input file")
