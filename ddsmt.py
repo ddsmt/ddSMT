@@ -216,7 +216,7 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
 
                 if options.args().verbosity >= 2:
                     sys.stdout.write(
-                        "granularity: {}, subset {} of {}, s-expressions: {}/{}\r"
+                        "[ddSMT] granularity: {}, subset {} of {}, s-expressions: {}/{}\r"
                         .format(gran, i, len(subsets), nexprs - nreduced_total,
                                 nexprs))
 
