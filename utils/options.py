@@ -26,6 +26,11 @@ def parse_options():
                     type=float,
                     help="timeout for test runs in seconds, "\
                          "default: 1.5 * golden runtime")
+    ap.add_argument("--timeout-cc",
+                    dest="timeout_cc",
+                    type=float,
+                    help="timeout for test runs of the cross check in seconds, "\
+                         "default: 1.5 * golden runtime")
     ap.add_argument("-v",
                     action="count",
                     dest="verbosity",
@@ -52,7 +57,12 @@ def parse_options():
                     dest="parser_test",
                     help="run ddSMT in parser test mode "\
                          "(parses only, does not require command argument)")
-    return ap.parse_args()
+    res = ap.parse_args()
+
+    if res.cmd_cc:
+        res.cmd_cc = res.cmd_cc.split()
+
+    return res
 
 __PARSED_ARGS = None
 
