@@ -35,6 +35,8 @@ from subprocess import Popen, PIPE, TimeoutExpired
 from collections import namedtuple
 
 from utils import options
+from utils import tmpfiles
+from utils import checker
 from utils.subst import Substitution
 import utils.iter as iters
 import utils.smtlib as smtlib
@@ -61,7 +63,7 @@ def setup_logging():
         2: logging.DEBUG,
     }
     logging.getLogger().setLevel(
-        level=verbositymap.get(g_args.verbosity, logging.DEBUG))
+        level=verbositymap.get(options.args().verbosity, logging.DEBUG))
 
 
 class DDSMTException(Exception):
@@ -83,71 +85,6 @@ def _print_exprs(filename, exprs):
         outfile.write('\n')
 
 
-def _run(cmd, filename, golden_runtime, is_golden=False):
-
-    if g_args.timeout:
-        timeout = g_args.timeout
-    else:
-        timeout = 1.5 * golden_runtime
-
-    cmd = cmd[:]
-    cmd.append(filename)
-    proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
-    try:
-        start = time.time()
-        if is_golden:
-            out, err = proc.communicate()
-        else:
-            out, err = proc.communicate(timeout=timeout)
-        runtime = time.time() - start
-    except TimeoutExpired as exc:
-        proc.kill()
-        logging.debug(
-            "[!!] timeout: terminated after {:.2f} seconds".format(timeout))
-        if is_golden:
-            raise DDSMTException("initial run timed out") from exc
-        return RunInfo(proc.returncode, None, None, timeout)
-    return RunInfo(proc.returncode, out.decode(), err.decode(), runtime)
-
-
-def _matches_golden(golden_run, run, match_out, match_err):
-
-    if run.exit != golden_run.exit:
-        return False
-
-    if match_out:
-        if match_out not in run.out:
-            return False
-    elif golden_run.out != run.out:
-        return False
-
-    if match_err:
-        if match_err not in run.err:
-            return False
-    elif golden_run.err != run.err:
-        return False
-
-    return True
-
-
-def _test(filename):
-
-    ri = _run(g_args.cmd, filename, g_golden_run.runtime)
-
-    if not _matches_golden(g_golden_run, ri, g_args.match_out,
-                           g_args.match_err):
-        return False
-
-    if g_args.cmd_cc:
-        ri = _run(g_args.cmd_cc, filename, g_golden_run_cc.runtime)
-
-        if not _matches_golden(g_golden_run_cc, ri, g_args.match_out_cc,
-                               g_args.match_err_cc):
-            return False
-
-    return True
-
-
 def _process_substitution(tup):
     exprs, subset, substs = tup
 
@@ -162,7 +99,7 @@ def _process_substitution(tup):
     nreduced = 0
     runtime = 0
     start = time.time()
-    if _test(tmpfile):
+    if checker.check(tmpfile):
         runtime = time.time() - start
         nreduced = iters.count_exprs(exprs) - iters.count_exprs(test_exprs)
         exprs = test_exprs
@@ -273,6 +210,7 @@ def ddsmt_main():
     global g_golden_run, g_golden_run_cc
 
     g_args = options.args()
+    setup_logging()
 
     if not os.path.exists(g_args.infile):
         raise DDSMTException("given input file does not exist")
@@ -303,51 +241,8 @@ def ddsmt_main():
         _print_exprs(g_args.outfile, exprs)
         return
 
-    # Copy input file and binary
-    shutil.copyfile(g_args.infile, g_tmpfile)  # copy input file
-    shutil.copy(g_args.cmd[0], g_tmpbin)  # copy binary
-    g_args.cmd[0] = g_tmpbin  # use copy
-
-    logging.info("")
-    logging.info("starting initial run{}... ".format(
-        "" if not g_args.cmd_cc else ", cross checking"))
-    logging.info("")
-
-    # Record golden exit code, stdout and stderr output
-    g_golden_run = _run(g_args.cmd, g_tmpfile, 0, True)
-    g_cur_runtime = g_golden_run.runtime
-
-    logging.info("golden exit:    {}".format(g_golden_run.exit))
-    logging.info("golden err:     {}".format(repr(g_golden_run.err)))
-    logging.info("golden out:     {}".format(repr(g_golden_run.out)))
-    logging.info("golden runtime: {0: .2f} seconds".format(
-        g_golden_run.runtime))
-    if g_args.match_out:
-        logging.info("match (stdout): '{}'".format(g_args.match_out))
-    if g_args.match_err:
-        logging.info("match (stderr): '{}'".format(g_args.match_err))
-
-    if g_args.cmd_cc:
-        g_args.cmd_cc = g_args.cmd_cc.split()
-
-        shutil.copy(g_args.cmd_cc[0], g_tmpbin_cc)  # copy cross check binary
-        g_args.cmd_cc[0] = g_tmpbin_cc  # use copy
-
-        g_golden_run_cc = _run(g_args.cmd_cc, g_tmpfile, 0, True)
-        g_cur_runtime_cc = g_golden_run_cc.runtime
-
-        logging.info("")
-        logging.info("golden exit (cc): {}".format(g_golden_run_cc.exit))
-        logging.info("golden err (cc): '{}'".format(g_golden_run_cc.err))
-        logging.info("golden out (cc): '{}'".format(g_golden_run_cc.out))
-        logging.info("golden runtime (cc): {0: .2f} seconds".format(
-            g_golden_run_cc.runtime))
-        if g_args.match_out_cc:
-            logging.info("match (cc) (stdout): '{}'".format(
-                g_args.match_out_cc))
-        if g_args.match_err_cc:
-            logging.info("match (cc) (stderr): '{}'".format(
-                g_args.match_err_cc))
+    tmpfiles.copy_binaries()
+    checker.do_golden_runs()
 
     reduced_exprs, nreduced = _reduce(exprs)
     end_time = time.time()
