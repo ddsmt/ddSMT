@@ -43,18 +43,6 @@ from utils.subst import Substitution
 import utils.iter as iters
 import utils.smtlib as smtlib
 
-g_tmp_dir = tempfile.mkdtemp(prefix="ddsmt-")
-TMPFILE_PREFIX = os.path.join(g_tmp_dir, "ddsmt-tmp-{}.smt2")
-g_tmpbin = os.path.join(g_tmp_dir, "binary")
-g_tmpbin_cc = os.path.join(g_tmp_dir, "binary-cc")
-g_tmpfile = TMPFILE_PREFIX.format(os.getpid())
-
-RunInfo = namedtuple("RunInfo", ["exit", "out", "err", "runtime"])
-
-g_golden_run = None
-g_golden_run_cc = None
-g_args = None
-
 
 def setup_logging():
     logging.basicConfig(format='[ddSMT %(levelname)s] %(message)s')
@@ -75,36 +63,28 @@ class DDSMTException(Exception):
         return "[ddsmt] Error: {}".format(self.msg)
 
 
-def _cleanup():
-    if os.path.exists(g_tmp_dir):
-        shutil.rmtree(g_tmp_dir)
-
-
 def ddsmt_main():
-    global g_args
-    global g_golden_run, g_golden_run_cc
-
-    g_args = options.args()
+    options.args()
     setup_logging()
 
-    if not os.path.exists(g_args.infile):
+    if not os.path.exists(options.args().infile):
         raise DDSMTException("given input file does not exist")
-    if os.path.isdir(g_args.infile):
+    if os.path.isdir(options.args().infile):
         raise DDSMTException("given input file is a directory")
-    if not g_args.parser_test and not g_args.cmd:
+    if not options.args().parser_test and not options.args().cmd:
         raise DDSMTException("command missing")
 
 
-    logging.info("input file:   '{}'".format(g_args.infile))
-    logging.info("output file:  '{}'".format(g_args.outfile))
-    logging.info("command:      '{}'".format(" ".join(map(str, g_args.cmd))))
-    if g_args.cmd_cc:
-        logging.info("command (cc): '{}'".format(g_args.cmd_cc))
+    logging.info("input file:   '{}'".format(options.args().infile))
+    logging.info("output file:  '{}'".format(options.args().outfile))
+    logging.info("command:      '{}'".format(" ".join(map(str, options.args().cmd))))
+    if options.args().cmd_cc:
+        logging.info("command (cc): '{}'".format(options.args().cmd_cc))
 
-    ifilesize = os.path.getsize(g_args.infile)
+    ifilesize = os.path.getsize(options.args().infile)
 
     start_time = time.time()
-    with open(g_args.infile, 'r') as infile:
+    with open(options.args().infile, 'r') as infile:
         exprs = list(smtlib.parse(infile.read()))
         nexprs = iters.count_exprs(exprs)
 
@@ -122,7 +102,7 @@ def ddsmt_main():
     reduced_exprs, nreduced, ntests = ddmin.reduce(exprs)
     end_time = time.time()
     if nreduced:
-        ofilesize = os.path.getsize(g_args.outfile)
+        ofilesize = os.path.getsize(options.args().outfile)
         nreduced_exprs = iters.count_exprs(reduced_exprs)
 
         logging.info("")
@@ -149,6 +129,4 @@ if __name__ == "__main__":
         sys.exit("[ddsmt] memory exhausted")
     except KeyboardInterrupt:
         sys.exit("[ddsmt] interrupted")
-    finally:
-        _cleanup()
     sys.exit(0)
