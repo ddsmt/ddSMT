@@ -54,14 +54,17 @@ g_golden_run_cc = None
 g_ntests = 0
 g_args = None
 
+
 def setup_logging():
-    logging.basicConfig(format = '[ddSMT %(levelname)s] %(message)s')
+    logging.basicConfig(format='[ddSMT %(levelname)s] %(message)s')
     verbositymap = {
         0: logging.WARN,
         1: logging.INFO,
         2: logging.DEBUG,
     }
-    logging.getLogger().setLevel(level=verbositymap.get(options.args().verbosity, logging.DEBUG))
+    logging.getLogger().setLevel(level=verbositymap.get(
+        options.args().verbosity, logging.DEBUG))
+
 
 class DDSMTException(Exception):
     def __init__(self, msg):
