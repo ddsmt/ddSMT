@@ -140,6 +140,12 @@ def to_str_rec(exprs):
     return '\n'.join(map(_to_str_rec, exprs))
 
 
+def print_exprs(filename, exprs):
+    with open(filename, 'w') as outfile:
+        outfile.write(to_str_iter(exprs))
+        outfile.write('\n')
+
+
 ## Semantic testers
 
 def is_assert(x):
