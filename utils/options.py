@@ -26,6 +26,11 @@ def parse_options():
                     type=float,
                     help="timeout for test runs in seconds, "\
                          "default: 1.5 * golden runtime")
+    ap.add_argument("--timeout-cc",
+                    dest="timeout_cc",
+                    type=float,
+                    help="timeout for test runs of the cross check in seconds, "\
+                         "default: 1.5 * golden runtime")
     ap.add_argument("-v",
                     action="count",
                     dest="verbosity",

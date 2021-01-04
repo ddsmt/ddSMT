@@ -1,10 +1,11 @@
 ## Parsing
 
+
 def parse(text):
     """Convert SMT-LIB input to list of (nested) Python tuples.
 
-        A tuple represents an s-expression in SMT-LIB. This generator yields
-        top-level s-expressions (commands) or comments.
+    A tuple represents an s-expression in SMT-LIB. This generator yields
+    top-level s-expressions (commands) or comments.
     """
     exprs = []
     cur_expr = None
@@ -96,11 +97,11 @@ def parse(text):
 
 ## Printing
 
+
 def to_str_iter(exprs):
     """Convert `exprs` to SMT-LIB compliant string.
 
-
-       Iterative version.
+    Iterative version.
     """
     if isinstance(exprs, tuple):
         visit = [(exprs, False)]
@@ -126,28 +127,38 @@ def to_str_iter(exprs):
 
     return '\n'.join(args)
 
+
 def _to_str_rec(exprs):
     if isinstance(exprs, tuple):
         return '({})'.format(' '.join(map(_to_str_rec, exprs)))
     return exprs
 
+
 def to_str_rec(exprs):
     """Convert `exprs` to SMT-LIB compliant string.
 
-       Recursive version, slightly faster than the iterative one, but may run
-       into recursion limit issues for deeply nested s-expressions.
+    Recursive version, slightly faster than the iterative one, but may
+    run into recursion limit issues for deeply nested s-expressions.
     """
     return '\n'.join(map(_to_str_rec, exprs))
 
 
+def print_exprs(filename, exprs):
+    with open(filename, 'w') as outfile:
+        outfile.write(to_str_iter(exprs))
+        outfile.write('\n')
+
+
 ## Semantic testers
+
 
 def is_assert(x):
     return isinstance(x, tuple) and x and x[0] == 'assert'
 
+
 def is_definefun(x):
     return isinstance(x, tuple) and x and x[0] == 'define-fun'
 
+
 def is_exit(x):
     return isinstance(x, tuple) and x and x[0] == 'exit'
-
