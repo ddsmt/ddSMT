@@ -45,6 +45,38 @@ import utils.iter as iters
 import utils.smtlib as smtlib
 
 
+def check_options():
+    if options.args().max_threads != 1:
+        # configure number of threads
+        if options.args().max_threads <= 0:
+            options.args(
+            ).max_threads = os.cpu_count() + options.args().max_threads
+        logging.info('Using up to %d threads.', options.args().max_threads)
+
+    if options.args().dump_config:
+        pprint.pprint(vars(options.args()))
+
+    # check input file
+    if not os.path.isfile(options.args().infile):
+        raise Exception('input file is not a regular file')
+
+    if options.args().parser_test:
+        # only parse and print
+        exprs = parser.parse_smtlib(open(options.args().infile).read())
+        print(parser.render_smtlib(exprs))
+        sys.exit(0)
+
+    # check executable
+    if not options.args().cmd:
+        raise Exception('No executable was specified as command')
+    if not os.path.isfile(options.args().cmd[0]):
+        raise Exception('Command "{}" is not a regular file'.format(
+            options.args().cmd[0]))
+    if not os.access(options.args().cmd[0], os.X_OK):
+        raise Exception('Command "{}" is not executable'.format(
+            options.args().cmd[0]))
+
+
 def setup_logging():
     logging.basicConfig(format='[ddSMT %(levelname)s] %(message)s')
     verbositymap = {
@@ -56,24 +88,9 @@ def setup_logging():
         level=verbositymap.get(options.args().verbosity, logging.DEBUG))
 
 
-class DDSMTException(Exception):
-    def __init__(self, msg):
-        self.msg = msg
-
-    def __str__(self):
-        return "[ddsmt] Error: {}".format(self.msg)
-
-
 def ddsmt_main():
-    options.args()
     setup_logging()
-
-    if not os.path.exists(options.args().infile):
-        raise DDSMTException("given input file does not exist")
-    if os.path.isdir(options.args().infile):
-        raise DDSMTException("given input file is a directory")
-    if not options.args().parser_test and not options.args().cmd:
-        raise DDSMTException("command missing")
+    check_options()
 
     logging.info("input file:   '{}'".format(options.args().infile))
     logging.info("output file:  '{}'".format(options.args().outfile))
@@ -90,13 +107,12 @@ def ddsmt_main():
         exprs = list(parser.parse_smtlib(infile.read()))
         nexprs = iters.count_exprs(exprs)
 
-    logging.debug("")
     logging.debug("parsed {} s-expressions in {:.2f} seconds".format(
         nexprs,
         time.time() - start_time))
 
     if options.args().parser_test:
-        smtlib.print_exprs(options.args().outfile, exprs)
+        parser.write_smtlib_to_file(options.args().outfile, exprs)
         return
 
     tmpfiles.copy_binaries()
@@ -126,8 +142,6 @@ def ddsmt_main():
 if __name__ == "__main__":
     try:
         ddsmt_main()
-    except DDSMTException as exc:
-        sys.exit(str(exc))
     except MemoryError:
         sys.exit("[ddsmt] memory exhausted")
     except KeyboardInterrupt:
