@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 
-from utils import options
+from . import options
 
 # The temporary directory. Automatically deleted upon termination.
 __TMPDIR = tempfile.TemporaryDirectory(prefix="ddsmt-")

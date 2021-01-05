@@ -1,7 +1,8 @@
 import argparse
 
-from utils import mutators
-from utils import argparsemod
+from . import argparsemod
+from . import mutators
+from . import version
 
 
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
@@ -37,6 +38,7 @@ def parse_options():
                     dest="verbosity",
                     default=0,
                     help="increase verbosity")
+    ap.add_argument('--version', action='version', version=version.VERSION)
     ap.add_argument('--max-threads',
                     type=int,
                     metavar='n',
@@ -55,41 +57,42 @@ def parse_options():
                     dest="timeout",
                     metavar='timeout',
                     type=float,
-                    help="timeout for test runs in seconds, "\
-                         "default: 1.5 * golden runtime")
+                    help="timeout for test runs in seconds, "
+                    "default: 1.5 * golden runtime")
     ap.add_argument('--strategy',
                     choices=['ddmin', 'naive'],
                     default='ddmin',
                     help='minimization strategy')
     ap.add_argument("--match-err",
                     dest="match_err",
-                    help="match string in stderr to identify "\
-                         "failing input (default: stderr output)")
+                    help="match string in stderr to identify "
+                    "failing input (default: stderr output)")
     ap.add_argument("--match-out",
                     dest="match_out",
-                    help="match string in stdout to identify "\
-                         "failing input (default: stdout output)")
+                    help="match string in stdout to identify "
+                    "failing input (default: stdout output)")
     ap.add_argument("--parser-test",
                     action="store_true",
                     dest="parser_test",
-                    help="run ddSMT in parser test mode "\
-                         "(parses only, does not require command argument)")
+                    help="run ddSMT in parser test mode "
+                    "(parses only, does not require command argument)")
 
     apcc = ap.add_argument_group('cross check')
     apcc.add_argument("-c",
                       metavar='cmd-cc',
                       dest="cmd_cc",
                       help="cross check command")
-    apcc.add_argument("--timeout-cc",
-                    dest="timeout_cc",
-                    metavar='timeout',
-                    type=float,
-                    help="timeout for test runs of the cross check in seconds, "\
-                         "default: 1.5 * golden runtime")
+    apcc.add_argument(
+        "--timeout-cc",
+        dest="timeout_cc",
+        metavar='timeout',
+        type=float,
+        help="timeout for test runs of the cross check in seconds, "
+        "default: 1.5 * golden runtime")
     apcc.add_argument("--match-err-cc",
-                    dest="match_err_cc",
-                    help="match string to identify failing input for "\
-                         "cross check command (default: stderr output)")
+                      dest="match_err_cc",
+                      help="match string to identify failing input for "
+                      "cross check command (default: stderr output)")
     apcc.add_argument("--match-out-cc",
                       dest="match_out_cc",
                       help="match string to identify failing input "

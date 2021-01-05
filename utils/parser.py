@@ -1,4 +1,4 @@
-def parse_smtlib(text):
+def parse_smtlib(text):  # noqa: C901
     """Convert SMT-LIB input to list of (nested) Python tuples.
 
     A tuple represents an s-expression in SMT-LIB. This generator yields
@@ -92,14 +92,8 @@ def parse_smtlib(text):
                 yield token
 
 
-## Printing
-
-
 def render_smtlib(exprs):
-    """Convert `exprs` to SMT-LIB compliant string.
-
-    Iterative version.
-    """
+    """Convert :code:`exprs` to an SMT-LIBv2 compliant string."""
     if isinstance(exprs, tuple):
         visit = [(exprs, False)]
     else:

@@ -5,10 +5,10 @@ import subprocess
 import sys
 import time
 
-from utils import options
-from utils import parser
-from utils import smtlib
-from utils import tmpfiles
+from . import options
+from . import parser
+from . import smtlib
+from . import tmpfiles
 
 RunInfo = collections.namedtuple("RunInfo", ["exit", "out", "err", "runtime"])
 

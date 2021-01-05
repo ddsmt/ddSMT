@@ -2,16 +2,14 @@ import collections
 import logging
 from multiprocessing import Pool
 import sys
-import time
 
-from utils import checker
-from utils import options
-from utils import parser
-from utils import subst
-from utils import smtlib
-from utils import tmpfiles
-from utils import mutators
-from utils import progress
+from . import checker
+from . import options
+from . import parser
+from . import subst
+from . import smtlib
+from . import mutators
+from . import progress
 
 Mutation = collections.namedtuple('Mutation', ['nodeid', 'name', 'exprs'])
 

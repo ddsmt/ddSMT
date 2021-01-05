@@ -1,6 +1,6 @@
 import re
 
-from utils import subst
+from . import subst
 
 # global lookups for defined functions and variables
 __defined_functions = {}
@@ -40,7 +40,7 @@ def collect_information(exprs):
                              for i in range(len(args))})
 
 
-##### Generic utilities
+# Generic utilities
 def dfs(exprs):
     """DFS traversal of s-expressions in exprs."""
     visit = list(reversed(exprs))
@@ -104,7 +104,7 @@ def get_variables_with_type(var_type):
     ]
 
 
-## Semantic testers
+# Semantic testers
 
 
 def is_leaf(node):
