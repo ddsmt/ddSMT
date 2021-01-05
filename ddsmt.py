@@ -118,9 +118,9 @@ def ddsmt_main():
     tmpfiles.copy_binaries()
     checker.do_golden_runs()
 
-    reduced_exprs, nreduced, ntests = ddmin.reduce(exprs)
+    reduced_exprs, ntests = ddmin.reduce(exprs)
     end_time = time.time()
-    if nreduced:
+    if reduced_exprs != exprs:
         ofilesize = os.path.getsize(options.args().outfile)
         nreduced_exprs = smtlib.node_count(reduced_exprs)
 

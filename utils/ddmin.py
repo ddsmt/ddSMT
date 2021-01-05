@@ -53,17 +53,17 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
             for i, result in enumerate(
                     pool.imap(_process_substitution, work_list, 1)):
 
-                reduced_exprs, nreduced, runtime = result
+                nreduced, reduced_exprs, runtime = result
 
                 ntests += 1
 
                 if nreduced:
                     exprs = reduced_exprs
 
+                    nreduced_total += nreduced
+
                     # Print current working set to file
                     parser.write_smtlib_to_file(options.args().outfile, exprs)
-
-                    nreduced_total += nreduced
 
                     # Remove already substituted expressions
                     subsets.pop(i)
@@ -85,14 +85,13 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
 
         gran = gran // 2
 
-    return exprs, nreduced_total, ntests
+    return exprs, ntests
 
 
 def reduce(exprs):
 
     passes = ddmin_passes()
 
-    nreduced = 0
     ntests = 0
     with Pool(options.args().max_threads) as pool:
 
@@ -112,4 +111,4 @@ def reduce(exprs):
                                                exprs_substs)
             ntests += nt
 
-    return exprs, nreduced, ntests
+    return exprs, ntests
