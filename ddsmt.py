@@ -24,6 +24,7 @@
 
 import logging
 import os
+import pprint
 import shutil
 import sys
 import time
@@ -34,12 +35,12 @@ from multiprocessing import Pool
 from subprocess import Popen, PIPE, TimeoutExpired
 from collections import namedtuple
 
+from utils import checker
 from utils import ddmin
 from utils import ddnaive
 from utils import options
 from utils import parser
 from utils import tmpfiles
-from utils import checker
 from utils import smtlib
 from utils.subst import Substitution
 import utils.smtlib as smtlib
