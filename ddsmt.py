@@ -36,6 +36,7 @@ from collections import namedtuple
 
 from utils import ddmin
 from utils import options
+from utils import parser
 from utils import tmpfiles
 from utils import checker
 from utils import smtlib
@@ -86,7 +87,7 @@ def ddsmt_main():
 
     start_time = time.time()
     with open(options.args().infile, 'r') as infile:
-        exprs = list(smtlib.parse(infile.read()))
+        exprs = list(parser.parse_smtlib(infile.read()))
         nexprs = iters.count_exprs(exprs)
 
     logging.debug("")

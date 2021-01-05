@@ -5,6 +5,7 @@ import time
 from utils import checker
 from utils import iter as iters
 from utils import options
+from utils import parser
 from utils.subst import Substitution
 from utils import smtlib
 from utils import tmpfiles
@@ -21,21 +22,9 @@ def _process_substitution(tup):
 
     subst = Substitution()
     for x, y in zip(subset, substs):
-        subst.add(x, y)
+        subst.add_local(x, y)
 
-    tmpfile = tmpfiles.get_tmp_filename()
-    test_exprs = subst.apply(exprs)
-    smtlib.print_exprs(tmpfile, test_exprs)
-
-    nreduced = 0
-    runtime = 0
-    start = time.time()
-    if checker.check(tmpfile):
-        runtime = time.time() - start
-        nreduced = iters.count_exprs(exprs) - iters.count_exprs(test_exprs)
-        exprs = test_exprs
-
-    return exprs, nreduced, runtime
+    return checker.check_substitution(exprs, subst)
 
 
 def _process_substitutions(pool, exprs, superset, superset_substs):
@@ -73,7 +62,7 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
                     exprs = reduced_exprs
 
                     # Print current working set to file
-                    smtlib.print_exprs(options.args().outfile, exprs)
+                    parser.write_smtlib_to_file(options.args().outfile, exprs)
 
                     nreduced_total += nreduced
 
