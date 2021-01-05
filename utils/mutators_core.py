@@ -85,7 +85,7 @@ class SortChildren:
 
     def mutations(self, node):
         """Return :code:`sorted(node, key = node_count)`."""
-        s = sorted(node, key=node_count)
+        s = tuple(sorted(node, key=node_count))
         if s != node:
             return [s]
         return []
@@ -100,7 +100,7 @@ class SubstituteChildren:
         return not is_leaf(node) and not is_operator(node, 'let')
 
     def mutations(self, node):
-        return node[1:]
+        return list(node[1:])
 
     def __str__(self):
         return 'substitute with child'
@@ -157,18 +157,18 @@ def collect_mutator_options(argparser):
 def collect_mutators(args):
     res = []
     if args.mutator_core:
-        #if args.mutator_top_level_binary_reduction:
-        #    res.append(TopLevelBinaryReduction())
+        if args.mutator_top_level_binary_reduction:
+            res.append(TopLevelBinaryReduction())
         if args.mutator_erase_children:
             res.append(EraseChildren())
-        #if args.mutator_constants:
-        #    res.append(Constants())
-        #if args.mutator_merge_children:
-        #    res.append(MergeWithChildren())
-        #if args.mutator_replace_by_variable:
-        #    res.append(ReplaceByVariable())
-        #if args.mutator_sort_children:
-        #    res.append(SortChildren())
-        #if args.mutator_substitute_children:
-        #    res.append(SubstituteChildren())
+        if args.mutator_constants:
+            res.append(Constants())
+        if args.mutator_merge_children:
+            res.append(MergeWithChildren())
+        if args.mutator_replace_by_variable:
+            res.append(ReplaceByVariable())
+        if args.mutator_sort_children:
+            res.append(SortChildren())
+        if args.mutator_substitute_children:
+            res.append(SubstituteChildren())
     return res

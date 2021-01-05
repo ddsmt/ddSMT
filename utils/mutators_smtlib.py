@@ -17,7 +17,7 @@ class CheckSatAssuming:
         return has_name(node) and get_name(node) == 'check-sat-assuming'
 
     def mutations(self, node):
-        return [['check-sat']]
+        return [('check-sat', )]
 
     def __str__(self):
         return 'substitute check-sat-assuming by check-sat'
@@ -29,7 +29,7 @@ class EliminateDistinct:
         return has_name(node) and get_name(node) == 'distinct'
 
     def mutations(self, node):
-        return [['not', ['='] + node[1:]]]
+        return [('not', ['='] + node[1:])]
 
     def __str__(self):
         return 'eliminate distinct'
@@ -85,27 +85,29 @@ class PushPopRemoval:
     def filter(self, node):
         return not has_name(node)
 
-    def mutations(self, node):
+    def global_mutations(self, linput, ginput):
+        if linput != ginput:
+            return []
         res = []
         pairs = []
         # identify (push) / (pop) pairs
         stack = []
-        for i in range(len(node)):
-            if node[i] == ['push']:
+        for i in range(len(ginput)):
+            if ginput[i] == ('push', ):
                 stack.append(i)
-            if node[i] == ['pop'] and stack != []:
+            if ginput[i] == ('pop', ) and stack != []:
                 pairs.append((stack[-1], i))
                 stack.pop()
         # remove directly successive pairs
         for p in pairs:
             if p[0] + 1 == p[1]:
                 i = p[0]
-                res.append(node[:i] + node[i + 2:])
+                res.append(ginput[:i] + ginput[i + 2:])
         if res != []:
             return res
         # remove non-successive pairs
         for p in pairs:
-            r = node[:p[0]] + node[p[0] + 1:p[1]] + node[p[1] + 1:]
+            r = ginput[:p[0]] + ginput[p[0] + 1:p[1]] + ginput[p[1] + 1:]
             res.append(r)
         return res
 
@@ -126,7 +128,7 @@ class SimplifyLogic:
         for r in repls:
             if r in logic:
                 cands.append(logic.replace(r, repls[r]))
-        return [['set-logic', c] for c in cands]
+        return [('set-logic', c) for c in cands]
 
     def __str__(self):
         return 'simplify logic'
