@@ -57,6 +57,10 @@ def parse_options():
                     type=float,
                     help="timeout for test runs in seconds, "\
                          "default: 1.5 * golden runtime")
+    ap.add_argument('--strategy',
+                    choices=['ddmin', 'naive'],
+                    default='ddmin',
+                    help='minimization strategy')
     ap.add_argument("--match-err",
                     dest="match_err",
                     help="match string in stderr to identify "\

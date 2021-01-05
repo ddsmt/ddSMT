@@ -35,6 +35,7 @@ from subprocess import Popen, PIPE, TimeoutExpired
 from collections import namedtuple
 
 from utils import ddmin
+from utils import ddnaive
 from utils import options
 from utils import parser
 from utils import tmpfiles
@@ -117,7 +118,10 @@ def ddsmt_main():
     tmpfiles.copy_binaries()
     checker.do_golden_runs()
 
-    reduced_exprs, ntests = ddmin.reduce(exprs)
+    if options.args().strategy == 'ddmin':
+        reduced_exprs, ntests = ddmin.reduce(exprs)
+    elif options.args().strategy == 'naive':
+        reduced_exprs, ntests = ddnaive.reduce(exprs)
     end_time = time.time()
     if reduced_exprs != exprs:
         ofilesize = os.path.getsize(options.args().outfile)
