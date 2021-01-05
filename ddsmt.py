@@ -41,7 +41,6 @@ from utils import tmpfiles
 from utils import checker
 from utils import smtlib
 from utils.subst import Substitution
-import utils.iter as iters
 import utils.smtlib as smtlib
 
 
