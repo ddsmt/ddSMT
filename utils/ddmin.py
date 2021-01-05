@@ -6,14 +6,13 @@ from utils import checker
 from utils import options
 from utils import parser
 from utils.subst import Substitution
+from utils import mutators
 from utils import smtlib
 from utils import tmpfiles
 
-from utils.mutators import *
-
 
 def ddmin_passes():
-    return [PassDeleteAssert()]
+    return mutators.collect_mutators(options.args())
 
 
 def _process_substitution(tup):
