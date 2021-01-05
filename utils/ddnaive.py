@@ -11,6 +11,7 @@ from utils import subst
 from utils import smtlib
 from utils import tmpfiles
 from utils import mutators
+from utils import progress
 
 Mutation = collections.namedtuple('Mutation', ['nodeid', 'name', 'exprs'])
 
@@ -80,12 +81,15 @@ def reduce(exprs):
     while True:
         reduction = False
         cnt = smtlib.node_count(exprs)
+        progress.start(cnt)
+        progress.update(min(cnt, skip))
         with Pool(options.args().max_threads) as pool:
             mg = MutationGenerator(skip, passes)
             for result in pool.imap(_check, mg.generate_mutations(exprs,
                                                                   skip)):
                 nchecks += 1
                 success, runtime, task = result
+                progress.update(task.nodeid)
                 if success:
                     sys.stdout.write('\n')
                     logging.info('Found simplification: {} ({:.2f}s)'.format(
