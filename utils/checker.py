@@ -2,9 +2,13 @@ import collections
 import logging
 import resource
 import subprocess
+import sys
 import time
 
-from . import options
+from utils import options
+from utils import parser
+from utils import smtlib
+from utils import tmpfiles
 
 RunInfo = collections.namedtuple("RunInfo", ["exit", "out", "err", "runtime"])
 
@@ -76,6 +80,43 @@ def check(filename):
             return False
 
     return True
+
+
+def check_exprs(exprs):
+    """Run the check on the given expressions.
+
+    Returns (True,runtime) if the check was successful and (False,0)
+    otherwise.
+    """
+    tmpfile = tmpfiles.get_tmp_filename()
+    parser.write_smtlib_to_file(tmpfile, exprs)
+
+    runtime = 0
+    start = time.time()
+    if check(tmpfile):
+        runtime = time.time() - start
+        return True, runtime
+
+    return False, 0
+
+
+def check_substitution(exprs, subst):
+    """Run the check on the given expressions with substitutions applied.
+
+    Returns (nreduced,test_exprs,runtime) if the check was successful
+    where nreduced is the number of removed nodes and test_exprs the new
+    expressions. Otherwise returns (0,[],0).
+    """
+    test_exprs = subst.apply(exprs)
+
+    success, runtime = check_exprs(test_exprs)
+
+    nreduced = 0
+    if success:
+        nreduced = smtlib.node_count(exprs) - smtlib.node_count(test_exprs)
+        return nreduced, test_exprs, runtime
+
+    return 0, [], 0
 
 
 def do_golden_runs():
