@@ -61,14 +61,15 @@ def matches_golden(golden, run, match_out, match_err):
 
 def check(filename):
     """Check whether the given file behaves as the original input."""
-    ri = execute(options.args().cmd, filename, __GOLDEN.runtime)
+    ri = execute(options.args().cmd, filename, options.args().timeout)
     if not matches_golden(__GOLDEN, ri,
                           options.args().match_out,
                           options.args().match_err):
         return False
 
     if options.args().cmd_cc:
-        ri = execute(options.args().cmd_cc, filename, __GOLDEN_CC.runtime)
+        ri = execute(options.args().cmd_cc, filename,
+                     options.args().timeout_cc)
         if not matches_golden(__GOLDEN_CC, ri,
                               options.args().match_out_cc,
                               options.args().match_err_cc):
@@ -89,14 +90,30 @@ def do_golden_runs():
 
     __GOLDEN = execute(options.args().cmd, options.args().infile, None)
 
-    logging.info("golden exit:    {}".format(__GOLDEN.exit))
-    logging.info("golden err:     {}".format(repr(__GOLDEN.err)))
-    logging.info("golden out:     {}".format(repr(__GOLDEN.out)))
-    logging.info("golden runtime: {0: .2f} seconds".format(__GOLDEN.runtime))
+    logging.info('golden exit: {}'.format(__GOLDEN.exit))
+    logging.info('golden err:\n{}'.format(__GOLDEN.err))
+    logging.info('golden out:\n{}'.format(__GOLDEN.out))
+    logging.info('golden runtime: {0: .2f} seconds'.format(__GOLDEN.runtime))
     if options.args().match_out:
-        logging.info("match (stdout): '{}'".format(options.args().match_out))
+        logging.info('match (stdout): "{}"'.format(options.args().match_out))
     if options.args().match_err:
-        logging.info("match (stderr): '{}'".format(options.args().match_err))
+        logging.info('match (stderr): "{}"'.format(options.args().match_err))
+
+    if options.args().match_out:
+        if options.args().match_out not in __GOLDEN.out:
+            logging.error('Expected stdout to match "{}"'.format(
+                options.args().match_out))
+            sys.exit(1)
+
+    if options.args().match_err:
+        if options.args().match_err not in __GOLDEN.err:
+            logging.error('Expected stderr to match "{}"'.format(
+                options.args().match_err))
+            sys.exit(1)
+
+    if options.args().timeout is None:
+        options.args().timeout = (__GOLDEN.runtime + 1) * 1.5
+        logging.info('automatic timeout: {}'.format(options.args().timeout))
 
     if options.args().cmd_cc:
         __GOLDEN_CC = execute(options.args().cmd_cc,
@@ -104,8 +121,8 @@ def do_golden_runs():
 
         logging.info("")
         logging.info("golden exit (cc): {}".format(__GOLDEN_CC.exit))
-        logging.info("golden err (cc): '{}'".format(__GOLDEN_CC.err))
-        logging.info("golden out (cc): '{}'".format(__GOLDEN_CC.out))
+        logging.info("golden err (cc):\n{}".format(__GOLDEN_CC.err))
+        logging.info("golden out (cc):\n{}".format(__GOLDEN_CC.out))
         logging.info("golden runtime (cc): {0: .2f} seconds".format(
             __GOLDEN_CC.runtime))
         if options.args().match_out_cc:
@@ -114,3 +131,8 @@ def do_golden_runs():
         if options.args().match_err_cc:
             logging.info("match (cc) (stderr): '{}'".format(
                 options.args().match_err_cc))
+
+        if options.args().timeout_cc is None:
+            options.args().timeout_cc = (__GOLDEN_CC.runtime + 1) * 1.5
+            logging.info('automatic timeout (cc): {}'.format(
+                options.args().timeout_cc))
