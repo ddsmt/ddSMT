@@ -19,11 +19,11 @@ class DeMorgan:
 
     def mutations(self, node):
         if get_name(node[1]) == 'and':
-            res = [['not', t] for t in node[1][1:]]
-            return [['or', *res]]
+            res = [('not', t) for t in node[1][1:]]
+            return [('or', *res)]
         if get_name(node[1]) == 'or':
-            res = [['not', t] for t in node[1][1:]]
-            return [['and', *res]]
+            res = [('not', t) for t in node[1][1:]]
+            return [('and', *res)]
         return []
 
     def __str__(self):
@@ -49,7 +49,7 @@ class EliminateFalseEquality:
             node) and get_name(node) == '=' and node[1] == 'false'
 
     def mutations(self, node):
-        return [['not', node[2]]]
+        return [('not', node[2])]
 
     def __str__(self):
         return 'replace equality with false by negation'
@@ -61,7 +61,7 @@ class EliminateImplications:
         return has_name(node) and get_name(node) == '=>' and len(node) == 3
 
     def mutations(self, node):
-        return [['or', ['not', node[1]], node[2]]]
+        return [('or', ('not', node[1]), node[2])]
 
     def __str__(self):
         return 'eliminate implication'
@@ -74,9 +74,9 @@ class NegatedQuantifiers:
 
     def mutations(self, node):
         if get_name(node[1]) == 'exists':
-            return [['forall', node[1][1], ['not', node[1][2]]]]
+            return [('forall', node[1][1], ('not', node[1][2]))]
         if get_name(node[1]) == 'forall':
-            return [['exists', node[1][1], ['not', node[1][2]]]]
+            return [('exists', node[1][1], ('not', node[1][2]))]
         return []
 
     def __str__(self):
@@ -94,7 +94,7 @@ class XORRemoveConstants:
             res.append([c for c in node if c != 'false'])
         if 'true' in node:
             res.append([c for c in node if c != 'true'])
-            res.append(['not', [c for c in node if c != 'true']])
+            res.append(('not', [c for c in node if c != 'true']))
         return res
 
     def __str__(self):
@@ -107,7 +107,7 @@ class XOREliminateBinary:
         return has_name(node) and get_name(node) == 'xor' and len(node) == 3
 
     def mutations(self, node):
-        return [['distinct', node[1], node[2]]]
+        return [('distinct', node[1], node[2])]
 
     def __str__(self):
         return 'eliminate binary xor'

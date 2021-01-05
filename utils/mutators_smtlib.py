@@ -29,7 +29,7 @@ class EliminateDistinct:
         return has_name(node) and get_name(node) == 'distinct'
 
     def mutations(self, node):
-        return [('not', ['='] + node[1:])]
+        return [('not', tuple(['='] + list(node[1:])))]
 
     def __str__(self):
         return 'eliminate distinct'
