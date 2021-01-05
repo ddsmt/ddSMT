@@ -1,11 +1,11 @@
 import argparse
 
-from utils import mutators_arithmetic
-from utils import mutators_bitvectors
-from utils import mutators_boolean
-from utils import mutators_core
-from utils import mutators_smtlib
-from utils import mutators_strings
+from . import mutators_arithmetic
+from . import mutators_bitvectors
+from . import mutators_boolean
+from . import mutators_core
+from . import mutators_smtlib
+from . import mutators_strings
 
 
 def disable(namespace, option):
@@ -110,7 +110,6 @@ def collect_mutator_modes(argparser):
 
 def add_mutator_group(argparser, name):
     """Add a new argument group for a mutator group."""
-    #return argparser.add_argument_group('{} mutator arguments'.format(name))
     return argparser.add_argument_group('{} mutator arguments'.format(name),
                                         help_name=name,
                                         help_group='mutator help',

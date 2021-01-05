@@ -1,5 +1,5 @@
-from utils import options
-from utils.smtlib import *
+from . import options
+from .smtlib import *
 
 NAME = 'arithmetic'
 MUTATORS = [
@@ -62,10 +62,10 @@ class ArithmeticSplitNaryRelations:
         return is_arithmetic_relation(node) and len(node) > 3
 
     def mutations(self, node):
-        split = [[get_name(node), node[i], node[i + 1]]
+        split = [(get_name(node), node[i], node[i + 1])
                  for i in range(1,
                                 len(node) - 1)]
-        return [['and', *split]]
+        return [('and', *split)]
 
     def __str__(self):
         return 'split n-ary relation'

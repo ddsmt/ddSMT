@@ -1,5 +1,5 @@
-from utils import options
-from utils.smtlib import *
+from . import options
+from .smtlib import *
 
 NAME = 'core'
 MUTATORS = [

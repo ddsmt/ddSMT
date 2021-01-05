@@ -1,14 +1,12 @@
 from multiprocessing import Pool
 import sys
-import time
 
-from utils import checker
-from utils import options
-from utils import parser
-from utils.subst import Substitution
-from utils import mutators
-from utils import smtlib
-from utils import tmpfiles
+from . import checker
+from . import options
+from . import parser
+from .subst import Substitution
+from . import mutators
+from . import smtlib
 
 
 def ddmin_passes():
@@ -93,6 +91,7 @@ def reduce(exprs):
 
     ntests = 0
     with Pool(options.args().max_threads) as pool:
+
         for p in passes:
             if not hasattr(p, 'filter'):
                 continue
