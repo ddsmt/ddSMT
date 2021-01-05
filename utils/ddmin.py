@@ -3,7 +3,6 @@ import sys
 import time
 
 from utils import checker
-from utils import iter as iters
 from utils import options
 from utils import parser
 from utils.subst import Substitution
@@ -32,7 +31,7 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
 
     ntests = 0
     nreduced_total = 0
-    nexprs = iters.count_exprs(exprs)
+    nexprs = smtlib.node_count(exprs)
 
     gran = len(superset)
     while gran > 0:
@@ -105,11 +104,12 @@ def reduce(exprs):
         #nreduced_total += nreduced
 
         for p in passes:
-            exprs_filtered = iters.filter_exprs(exprs, p.filter)
-            exprs_substs = list(map(p.subst, exprs_filtered))
-            exprs, nr, nt = _process_substitutions(pool, exprs, exprs_filtered,
-                                                   exprs_substs)
-            nreduced += nr
+            exprs_filtered = list(smtlib.filter_exprs(exprs, p.filter))
+            exprs_substs = list(
+                map(lambda x: None if x == [] else x[0],
+                    map(p.mutations, exprs_filtered)))
+            exprs, nt = _process_substitutions(pool, exprs, exprs_filtered,
+                                               exprs_substs)
             ntests += nt
 
     return exprs, nreduced, ntests
