@@ -14,27 +14,31 @@ def parse_options():
                     nargs=argparse.REMAINDER,
                     help="the command (with optional arguments)")
 
-    ap.add_argument("-p",
-                    dest="nprocs",
-                    type=int,
-                    default=os.cpu_count(),
-                    help="use nprocs parallel processes, default: {}".format(
-                        os.cpu_count()))
-    ap.add_argument("-t",
-                    dest="timeout",
-                    type=float,
-                    help="timeout for test runs in seconds, "\
-                         "default: 1.5 * golden runtime")
-    ap.add_argument('--memout',
-                    type=int,
-                    metavar='megabytes',
-                    default=0,
-                    help='memout for individual checks')
     ap.add_argument("-v",
                     action="count",
                     dest="verbosity",
                     default=0,
                     help="increase verbosity")
+    ap.add_argument('--max-threads',
+                    type=int,
+                    metavar='n',
+                    default=1,
+                    help='number of threads to use; #processors+n if n<=0')
+    ap.add_argument('--dump-config',
+                    action='store_true',
+                    default=False,
+                    help='dump configuration')
+    ap.add_argument('--memout',
+                    type=int,
+                    metavar='megabytes',
+                    default=0,
+                    help='memout for individual checks')
+    ap.add_argument("--timeout",
+                    dest="timeout",
+                    metavar='timeout',
+                    type=float,
+                    help="timeout for test runs in seconds, "\
+                         "default: 1.5 * golden runtime")
     ap.add_argument("--match-err",
                     dest="match_err",
                     help="match string in stderr to identify "\
