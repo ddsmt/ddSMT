@@ -1,5 +1,20 @@
 import argparse
-import os
+
+from utils import mutators
+from utils import argparsemod
+
+
+class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
+                      argparse.HelpFormatter):
+    """A custom formatter for printing the commandline help.
+
+    It combines :code:`argparse.ArgumentDefaultsHelpFormatter` with the
+    :code:`argparse.HelpFormatter`, slightly increases the width
+    reserved for the options and removed defaults for the mutator
+    options.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, max_help_position=35)
 
 
 def parse_options():
@@ -7,7 +22,10 @@ def parse_options():
     options."""
 
     usage = "ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]"
-    ap = argparse.ArgumentParser(usage=usage)
+    ap = argparsemod.ModularArgumentParser(
+        usage=usage,
+        formatter_class=CustomFormatter,
+        modular_help_groups=['mutator help'])
     ap.add_argument("infile", help="the input file (in SMT-LIB v2 format)")
     ap.add_argument("outfile", help="the output file")
     ap.add_argument("cmd",
