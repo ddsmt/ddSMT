@@ -11,11 +11,12 @@ class ModularArgumentParser(argparse.ArgumentParser):
     """A variant of argparse.ArgumentParser that allows to modularly enable and
     disable printing help for individual argument groups.
 
-    A new variant of add_argument_groups() allows adding commands of the
-    form --help-group.
+    A new variant of :code:`add_argument_groups()` allows adding
+    commands of the form `--help-group`.
     """
     def __init__(self, *args, **kwargs):
-        """As argparse.ArgumentParser.__init__(), additionally modular_action_groups = [] can be used to specify the names of argument groups used for the custom help options."""
+        """As :code:`argparse.ArgumentParser.__init__()`, additionally :code:`modular_action_groups = []` can be used to specify
+        the names of argument groups used for the custom help options."""
         self._modular_action_groups = {}
         self._modular_active = False
         modular_help_groups = kwargs.pop('modular_help_groups', [])
@@ -35,7 +36,7 @@ class ModularArgumentParser(argparse.ArgumentParser):
     def add_argument_group(self, *args, **kwargs):
         """As argparse.ArgumentParser.add_argument_group(), additionally
         help_name, help_group and help_text allow to add a new option
-        `--help-{{help_name}}."""
+        :code:`--help-{{help_name}}."""
         help_name = kwargs.pop('help_name', None)
         help_group = kwargs.pop('help_group', None)
         help_text = kwargs.pop('help_text', 'show help for {}')
@@ -54,8 +55,8 @@ class ModularArgumentParser(argparse.ArgumentParser):
         return grp
 
     def enable_modular_help(self, grp):
-        """Remove grp from self._modular_action_groups and thereby enable
-        printing it."""
+        """Remove grp from :code:`self._modular_action_groups` and thereby
+        enable printing it."""
         self._modular_active = True
         if grp is None:
             self._modular_action_groups = {}
@@ -73,8 +74,8 @@ class ModularArgumentParser(argparse.ArgumentParser):
             super().error(message)
 
     def format_help(self):
-        """Removes all items from self._action_groups that are still in
-        self._modular_action_groups."""
+        """Removes all items from :code:`self._action_groups` that are still in
+        :code:`self._modular_action_groups`."""
         self._action_groups = [
             ag for ag in self._action_groups
             if ag not in self._modular_action_groups
