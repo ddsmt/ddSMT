@@ -8,7 +8,7 @@ MUTATORS = [
 
 
 def is_bv_not(node):
-    """Checks whether :code:`node` is a bitvector negation."""
+    """Checks whether :code:`node` is a bit-vector negation."""
     return has_name(node) and get_name(node) == 'bvnot'
 
 
@@ -60,7 +60,7 @@ class BVConcatToZeroExtend:
 
 
 class BVDoubleNegation:
-    """Elimination double bitvector negations."""
+    """Elimination double bit-vector negations."""
     def filter(self, node):
         return is_bv_not(node) and is_bv_not(node[1])
 
@@ -68,7 +68,7 @@ class BVDoubleNegation:
         return [node[1][1]]
 
     def __str__(self):
-        return 'eliminate double bitvector negation'
+        return 'eliminate double bit-vector negation'
 
 
 class BVElimBVComp:
@@ -88,7 +88,7 @@ class BVElimBVComp:
 
 
 class BVEvalExtend:
-    """Evaluates a bitvector :code:`(sign|zero)_extend` if it is applied to a
+    """Evaluates a bit-vector :code:`(sign|zero)_extend` if it is applied to a
     constant or another :code:`(sign|zero)_extend`."""
     def filter(self, node):
         return is_indexed_operator(node, 'extend')
@@ -100,11 +100,12 @@ class BVEvalExtend:
         return []
 
     def __str__(self):
-        return 'evaluate bitvector extend'
+        return 'evaluate bit-vector extend'
 
 
 class BVExtractConstants:
-    """Evaluates a bitvector :code:`extract` if it is applied to a constant."""
+    """Evaluates a bit-vector :code:`extract` if it is applied to a
+    constant."""
     def filter(self, node):
         return is_indexed_operator(node, 'extract') and is_bv_constant(node[1])
 
@@ -117,7 +118,7 @@ class BVExtractConstants:
         return [['_', 'bv{}'.format(constant), str(upper - lower + 1)]]
 
     def __str__(self):
-        return 'evaluate bitvector extract on constant'
+        return 'evaluate bit-vector extract on constant'
 
 
 class BVOneZeroITE:
@@ -179,7 +180,7 @@ class BVSimplifyConstant:
         ]
 
     def __str__(self):
-        return 'simplify bitvector constant'
+        return 'simplify bit-vector constant'
 
 
 class BVTransformToBool:
@@ -197,7 +198,7 @@ class BVTransformToBool:
         return []
 
     def __str__(self):
-        return 'transform bitvector to boolean'
+        return 'transform bit-vector to boolean'
 
 
 def collect_mutator_options(argparser):
@@ -207,9 +208,9 @@ def collect_mutator_options(argparser):
     options.add_mutator_argument(argparser, 'bv-elim-bvcomp', True,
                                  'replace bvcomp by a regular equality')
     options.add_mutator_argument(argparser, 'bv-eval-extract', True,
-                                 'evaluate bitvector extract on constants')
+                                 'evaluate bit-vector extract on constants')
     options.add_mutator_argument(argparser, 'bv-eval-extend', True,
-                                 'evaluate bitvector extend on constants')
+                                 'evaluate bit-vector extend on constants')
     options.add_mutator_argument(argparser, 'bv-ite-to-bvcomp', True,
                                  'replaces bv1/bv0 ites by bvcomp')
     options.add_mutator_argument(
