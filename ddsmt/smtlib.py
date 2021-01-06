@@ -174,7 +174,7 @@ def is_string_constant(node):
     return is_leaf(node) and re.match('^\"[^\"]*\"$', node) is not None
 
 
-def is_bitvector_constant(node):
+def is_bv_constant(node):
     if is_leaf(node):
         if node.startswith('#b'):
             return True
@@ -191,7 +191,7 @@ def is_bitvector_constant(node):
 def is_constant(node):
     return is_boolean_constant(node) or is_arithmetic_constant(
         node) or is_int_constant(node) or is_real_constant(
-            node) or is_string_constant(node) or is_bitvector_constant(node)
+            node) or is_string_constant(node) or is_bv_constant(node)
 
 
 def is_defined_function(node):
@@ -221,7 +221,7 @@ def get_constants(const_type):
         return ['0', '1']
     if const_type == 'Real':
         return ['0.0', '1.0']
-    if is_bitvector_type(const_type):
+    if is_bv_type(const_type):
         return [['_', c, const_type[2]] for c in ['bv0', 'bv1']]
     if is_set_type(const_type):
         return [['as', 'emptyset', const_type]
@@ -238,13 +238,13 @@ def get_return_type(node):
         return get_type(node)
     if is_boolean_constant(node):
         return 'Bool'
-    if is_bitvector_constant(node):
-        return ['_', 'BitVec', str(get_bitvector_width(node))]
+    if is_bv_constant(node):
+        return ['_', 'BitVec', str(get_bv_width(node))]
     if is_int_constant(node):
         return 'Int'
     if is_real_constant(node):
         return 'Real'
-    bvwidth = get_bitvector_width(node)
+    bvwidth = get_bv_width(node)
     if bvwidth != -1:
         return ['_', 'BitVec', str(bvwidth)]
     if has_name(node):
@@ -323,7 +323,7 @@ def get_return_type(node):
     return None
 
 
-def is_bitvector_type(node):
+def is_bv_type(node):
     if is_leaf(node) or len(node) != 3:
         return False
     if not has_name(node) or get_name(node) != '_':
@@ -339,8 +339,8 @@ def is_set_type(node):
     return True
 
 
-def get_bitvector_width(node):
-    if is_bitvector_constant(node):
+def get_bv_width(node):
+    if is_bv_constant(node):
         if is_leaf(node):
             if node.startswith('#b'):
                 return len(node[2:])
@@ -348,7 +348,7 @@ def get_bitvector_width(node):
                 return len(node[2:]) * 4
         return int(node[2])
     if has_type(node):
-        assert is_bitvector_type(get_type(node))
+        assert is_bv_type(get_type(node))
         return int(get_type(node)[2])
     if has_name(node):
         if get_name(node) in [
@@ -356,18 +356,18 @@ def get_bitvector_width(node):
                 'bvurem', 'bvshl', 'bvshr', 'bvnand', 'bvnor', 'bvxor',
                 'bvsub', 'bvsdiv', 'bvsrem', 'bvsmod', 'bvashr'
         ]:
-            return get_bitvector_width(node[1])
+            return get_bv_width(node[1])
         if get_name(node) == 'concat':
             assert len(node) == 3
-            return get_bitvector_width(node[1]) + get_bitvector_width(node[2])
+            return get_bv_width(node[1]) + get_bv_width(node[2])
         if get_name(node) == 'bvcomp':
             return 1
         if is_indexed_operator(node, 'extend'):
-            return int(node[0][2]) + get_bitvector_width(node[1])
+            return int(node[0][2]) + get_bv_width(node[1])
         if is_indexed_operator(node, 'extract', 2):
             return int(node[0][2]) - int(node[0][3]) + 1
         if is_indexed_operator(node, 'repeat'):
-            return int(node[0][2]) * get_bitvector_width(node[1])
+            return int(node[0][2]) * get_bv_width(node[1])
         if is_indexed_operator(node, 'rotate'):
-            return get_bitvector_width(node[1])
+            return get_bv_width(node[1])
     return -1

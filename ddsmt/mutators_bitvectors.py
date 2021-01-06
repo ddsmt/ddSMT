@@ -7,13 +7,13 @@ MUTATORS = [
 ]
 
 
-def is_bitvector_not(node):
+def is_bv_not(node):
     """Checks whether :code:`node` is a bitvector negation."""
     return has_name(node) and get_name(node) == 'bvnot'
 
 
-def get_bitvector_constant_value(node):
-    assert is_bitvector_constant(node)
+def get_bv_constant_value(node):
+    assert is_bv_constant(node)
     if is_leaf(node):
         if node.startswith('#b'):
             return (int(node[2:], 2), len(node[2:]))
@@ -23,23 +23,21 @@ def get_bitvector_constant_value(node):
     return (int(node[1][2:]), node[2])
 
 
-def possible_bitvector_widths_imp(definition):
-    if is_bitvector_type(definition):
+def possible_bv_widths_imp(definition):
+    if is_bv_type(definition):
         return [definition[2]]
     if not is_leaf(definition):
-        return [
-            w for arg in definition for w in possible_bitvector_widths_imp(arg)
-        ]
+        return [w for arg in definition for w in possible_bv_widths_imp(arg)]
     return []
 
 
-def possible_bitvector_widths(node):
+def possible_bv_widths(node):
     if has_type(node):
-        assert is_bitvector_type(get_type(node))
+        assert is_bv_type(get_type(node))
         return [get_type(node)[2]]
     widths = set()
     for bvtype in get_variable_info().values():
-        for wid in possible_bitvector_widths_imp(bvtype):
+        for wid in possible_bv_widths_imp(bvtype):
             widths.add(wid)
     return list(widths)
 
@@ -49,13 +47,13 @@ class BVConcatToZeroExtend:
     def filter(self, node):
         if not has_name(node) or get_name(node) != 'concat':
             return False
-        if not is_bitvector_constant(node[1]):
+        if not is_bv_constant(node[1]):
             return False
-        return get_bitvector_constant_value(node[1])[0] == 0
+        return get_bv_constant_value(node[1])[0] == 0
 
     def mutations(self, node):
-        return [(('_', 'zero_extend',
-                  get_bitvector_constant_value(node[1])[1]), node[2])]
+        return [(('_', 'zero_extend', get_bv_constant_value(node[1])[1]),
+                 node[2])]
 
     def __str__(self):
         return 'replace concat by zero_extend'
@@ -64,7 +62,7 @@ class BVConcatToZeroExtend:
 class BVDoubleNegation:
     """Elimination double bitvector negations."""
     def filter(self, node):
-        return is_bitvector_not(node) and is_bitvector_not(node[1])
+        return is_bv_not(node) and is_bv_not(node[1])
 
     def mutations(self, node):
         return [node[1][1]]
@@ -76,9 +74,8 @@ class BVDoubleNegation:
 class BVElimBVComp:
     """Replace bvcomp by a regular equality."""
     def filter(self, node):
-        return has_name(node) and get_name(
-            node) == '=' and is_bitvector_constant(node[1]) and has_name(
-                node[2]) and get_name(node[2]) == 'bvcomp'
+        return has_name(node) and get_name(node) == '=' and is_bv_constant(
+            node[1]) and has_name(node[2]) and get_name(node[2]) == 'bvcomp'
 
     def mutations(self, node):
         return [
@@ -97,8 +94,8 @@ class BVEvalExtend:
         return is_indexed_operator(node, 'extend')
 
     def mutations(self, node):
-        if is_bitvector_constant(node[1]):
-            (val, width) = get_bitvector_constant_value(node[1])
+        if is_bv_constant(node[1]):
+            (val, width) = get_bv_constant_value(node[1])
             return [['_', 'bv{}'.format(val), str(width + node[0][2])]]
         return []
 
@@ -109,13 +106,12 @@ class BVEvalExtend:
 class BVExtractConstants:
     """Evaluates a bitvector :code:`extract` if it is applied to a constant."""
     def filter(self, node):
-        return is_indexed_operator(node, 'extract') and is_bitvector_constant(
-            node[1])
+        return is_indexed_operator(node, 'extract') and is_bv_constant(node[1])
 
     def mutations(self, node):
         upper = int(node[0][2])
         lower = int(node[0][3])
-        constant = get_bitvector_constant_value(node[1])[0]
+        constant = get_bv_constant_value(node[1])[0]
         constant = constant % (2**(upper + 1))
         constant -= constant % (2**lower)
         return [['_', 'bv{}'.format(constant), str(upper - lower + 1)]]
@@ -133,11 +129,11 @@ class BVOneZeroITE:
         if not has_name(
                 node[1]) or get_name(node[1]) != '=' or len(node[1]) != 3:
             return False
-        if not is_bitvector_constant(
-                node[2]) or get_bitvector_constant_value(node[2]) != (1, '1'):
+        if not is_bv_constant(
+                node[2]) or get_bv_constant_value(node[2]) != (1, '1'):
             return False
-        if not is_bitvector_constant(
-                node[3]) or get_bitvector_constant_value(node[3]) != (0, '1'):
+        if not is_bv_constant(
+                node[3]) or get_bv_constant_value(node[3]) != (0, '1'):
             return False
         return True
 
@@ -165,11 +161,12 @@ class BVReflexiveNand:
 class BVSimplifyConstant:
     """Replace a constant by a simpler version (smaller value)."""
     def filter(self, node):
-        return is_bitvector_constant(node) and get_bitvector_constant_value(
-            node)[0] not in [0, 1]
+        return is_bv_constant(node) and get_bv_constant_value(node)[0] not in [
+            0, 1
+        ]
 
     def mutations(self, node):
-        val, width = get_bitvector_constant_value(node)
+        val, width = get_bv_constant_value(node)
         return [
             '#b{{:0>{}b}}'.format(width).format(v)
             for v in [val // 2, val // 10]
@@ -188,8 +185,8 @@ class BVSimplifyConstant:
 class BVTransformToBool:
     """Turn BV constructs into Boolean constructs."""
     def filter(self, node):
-        return has_name(node) and get_name(
-            node) == '=' and is_bitvector_constant(node[1])
+        return has_name(node) and get_name(node) == '=' and is_bv_constant(
+            node[1])
 
     def mutations(self, node):
         repl = {'bvand': 'and', 'bvor': 'or'}
