@@ -12,7 +12,7 @@
   recommended to use Python version 3.3 or later.
 
   ddSMT is free software released under the GPLv3. You should have received a
-  copy of the GNU General Public License along with ddSMT (see file COPYING).
+  copy of the GNU General Public License along with ddSMT (see file LICENSE).
   If not, see [3].
 
 
