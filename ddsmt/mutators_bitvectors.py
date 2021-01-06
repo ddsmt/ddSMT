@@ -186,10 +186,10 @@ class BVTransformToBool:
     """Turn BV constructs into Boolean constructs."""
     def filter(self, node):
         return has_name(node) and get_name(node) == '=' and is_bv_constant(
-            node[1])
+            node[1]) and get_bv_width(node[1]) == 1
 
     def mutations(self, node):
-        repl = {'bvand': 'and', 'bvor': 'or'}
+        repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
         if has_name(node[2]) and get_name(node[2]) in repl:
             return [(repl[get_name(node[2])], ) + tuple([('=', node[1], c)
                                                          for c in node[2][1:]])
