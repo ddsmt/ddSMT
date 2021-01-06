@@ -79,7 +79,8 @@ def subs_local(expr, old, new):
     return s.apply(expr)
 
 
-def subs_global(expr, old, new):
+def subs_global(expr, repl):
     s = Substitution()
-    s.add_global(old, new)
+    for old, new in repl.items():
+        s.add_global(old, new)
     return s.apply(expr)
