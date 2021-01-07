@@ -176,7 +176,7 @@ class BVSimplifyConstant:
 
     def global_mutations(self, linput, ginput):
         return [
-            subst.subs_global(ginput, {repr(linput): rep})
+            subst.subs_global(ginput, {linput: rep})
             for rep in self.mutations(linput)
         ]
 
