@@ -50,16 +50,18 @@ def collect_information(exprs):
 
 
 # Generic utilities
-def dfs(exprs):
-    """DFS traversal of s-expressions in exprs."""
-    visit = list(reversed(exprs))
+def dfs(exprs, max_depth=-1):
+    """DFS traversal of s-expressions in exprs up to a maximum depth."""
+    #visit = list(reversed([(1, x) for x in exprs]))
+    visit = [(1, x) for x in reversed(exprs)]
     while visit:
-        sexpr = visit.pop()
-        if isinstance(sexpr, tuple):
-            yield sexpr
-            visit.extend(list(reversed(sexpr)))
+        cur_depth, expr = visit.pop()
+        if isinstance(expr, tuple) \
+            and (max_depth == -1 or cur_depth < max_depth):
+            yield expr
+            visit.extend([(cur_depth + 1, x) for x in reversed(expr)])
         else:
-            yield sexpr
+            yield expr
 
 
 def dfs_postorder(exprs):
@@ -83,9 +85,9 @@ def node_count(node):
     return len(list(dfs(node)))
 
 
-def filter_exprs(exprs, filter_func):
+def filter_exprs(exprs, filter_func, max_depth=-1):
     """Filter s-expressions based on filter_func."""
-    for expr in dfs(exprs):
+    for expr in dfs(exprs, max_depth):
         if filter_func(expr):
             yield expr
 
@@ -169,8 +171,9 @@ def is_real_constant(node):
 
 
 def is_string_constant(node):
-    """Check whether the :code:`node` is a string constant."""
-    return is_leaf(node) and re.match('^\"[^\"]*\"$', node) is not None
+    """Checks whether the :code:`node` is a string constant."""
+    return is_leaf(node) and isinstance(node, str) \
+            and re.match('^\"[^\"]*\"$', node) is not None
 
 
 def is_bv_constant(node):
