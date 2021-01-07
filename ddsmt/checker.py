@@ -68,7 +68,7 @@ def check(filename):
     """Check whether the given file behaves as the original input."""
     ri = execute(options.args().cmd, filename, options.args().timeout)
     if not matches_golden(__GOLDEN, ri,
-                          options.args().ignore_out,
+                          options.args().ignore_output,
                           options.args().match_out,
                           options.args().match_err):
         return False
@@ -77,7 +77,7 @@ def check(filename):
         ri = execute(options.args().cmd_cc, filename,
                      options.args().timeout_cc)
         if not matches_golden(__GOLDEN_CC, ri,
-                              options.args().ignore_out_cc,
+                              options.args().ignore_output_cc,
                               options.args().match_out_cc,
                               options.args().match_err_cc):
             return False
