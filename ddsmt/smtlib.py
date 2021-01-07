@@ -234,10 +234,10 @@ def get_constants(const_type):
     if const_type == 'Real':
         return ['0.0', '1.0']
     if is_bv_type(const_type):
-        return [['_', c, const_type[2]] for c in ['bv0', 'bv1']]
+        return [('_', c, const_type[2]) for c in ['bv0', 'bv1']]
     if is_set_type(const_type):
-        return [['as', 'emptyset', const_type]
-                ] + [['singleton', c] for c in get_constants(const_type[1])]
+        return [('as', 'emptyset', const_type)
+                ] + [('singleton', c) for c in get_constants(const_type[1])]
     return []
 
 
@@ -251,14 +251,14 @@ def get_return_type(node):
     if is_boolean_constant(node):
         return 'Bool'
     if is_bv_constant(node):
-        return ['_', 'BitVec', str(get_bv_width(node))]
+        return ('_', 'BitVec', str(get_bv_width(node)))
     if is_int_constant(node):
         return 'Int'
     if is_real_constant(node):
         return 'Real'
     bvwidth = get_bv_width(node)
     if bvwidth != -1:
-        return ['_', 'BitVec', str(bvwidth)]
+        return ('_', 'BitVec', str(bvwidth))
     if has_name(node):
         if is_operator(node, 'ite'):
             return get_return_type(node[1])
