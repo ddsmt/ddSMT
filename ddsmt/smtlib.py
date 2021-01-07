@@ -69,6 +69,8 @@ def dfs_postorder(exprs):
 
 
 def node_count(node):
+    """Return the number of expressions yielded when traversing :code:`node` in
+    DFS manner."""
     return len(list(dfs(node)))
 
 
@@ -80,7 +82,7 @@ def filter_exprs(exprs, filter_func):
 
 
 def has_type(node):
-    """Checks whether :code:`node` was defined to have a certain type.
+    """Check whether :code:`node` was defined to have a certain type.
 
     Mostly applies to variables.
     """
@@ -88,7 +90,7 @@ def has_type(node):
 
 
 def get_type(node):
-    """Returns the type of :code:`node` if it was defined to have a certain
+    """Return the type of :code:`node` if it was defined to have a certain
     type.
 
     Assumes :code:`has_type(node)`.
@@ -98,7 +100,7 @@ def get_type(node):
 
 
 def get_variables_with_type(var_type):
-    """Returns all variables with the type :code:`var_type`."""
+    """Return all variables with the type :code:`var_type`."""
     return [
         v for v in __defined_variables if __defined_variables[v] == var_type
     ]
@@ -108,18 +110,24 @@ def get_variables_with_type(var_type):
 
 
 def is_leaf(node):
-    """Checks whether the :code:`node` is a leaf node."""
+    """Check whether the :code:`node` is a leaf node."""
     return not isinstance(node, tuple)
 
 
+def is_var(node):
+    """Return true if :code:`node` is a variable (first order constant)
+    node."""
+    return is_leaf(node) and node in __defined_variables
+
+
 def has_name(node):
-    """Checks whether the :code:`node` has a name, that is its first child is a
+    """Check whether the :code:`node` has a name, that is its first child is a
     leaf node."""
     return not is_leaf(node) and not node == () and is_leaf(node[0])
 
 
 def get_name(node):
-    """Gets the name of the :code:`node`, asserting that
+    """Get the name of the :code:`node`, asserting that
     :code:`has_name(node)`."""
     assert has_name(node)
     return node[0]
@@ -130,6 +138,8 @@ def is_operator(node, name):
 
 
 def is_indexed_operator(node, name, index_count=1):
+    """Return true if :code:`node` is an indexed operator :code:`name` and the
+    given number of indices matches :code:`index_count`."""
     if is_leaf(node) or len(node) < 2:
         return False
     if has_name(node) or not has_name(node[0]):
@@ -140,7 +150,7 @@ def is_indexed_operator(node, name, index_count=1):
 
 
 def is_nary(node):
-    """Checks whether the :code:`node` is a n-ary operator."""
+    """Check whether the :code:`node` is a n-ary operator."""
     if is_leaf(node) or not has_name(node):
         return False
     return get_name(node) in [
@@ -150,31 +160,32 @@ def is_nary(node):
 
 
 def is_boolean_constant(node):
-    """Checks whether the :code:`node` is a Boolean constant."""
+    """Check whether the :code:`node` is a Boolean constant."""
     return is_leaf(node) and node in ['false', 'true']
 
 
 def is_arithmetic_constant(node):
-    """Checks whether the :code:`node` is an arithmetic constant."""
+    """Check whether the :code:`node` is an arithmetic constant."""
     return is_leaf(node) and re.match('[0-9]+(\\.[0-9]*)?', node) is not None
 
 
 def is_int_constant(node):
-    """Checks whether the :code:`node` is an int constant."""
+    """Check whether the :code:`node` is an int constant."""
     return is_leaf(node) and re.match('^[0-9]+$', node) is not None
 
 
 def is_real_constant(node):
-    """Checks whether the :code:`node` is a real constant."""
+    """Check whether the :code:`node` is a real constant."""
     return is_leaf(node) and re.match('^[0-9]+(\\.[0-9]*)?$', node) is not None
 
 
 def is_string_constant(node):
-    """Checks whether the :code:`node` is a string constant."""
+    """Check whether the :code:`node` is a string constant."""
     return is_leaf(node) and re.match('^\"[^\"]*\"$', node) is not None
 
 
 def is_bv_constant(node):
+    """Return true if :code:`node` is a bit-vector constant."""
     if is_leaf(node):
         if node.startswith('#b'):
             return True
@@ -189,20 +200,21 @@ def is_bv_constant(node):
 
 
 def is_constant(node):
+    """Return true if :code:`node` is a constant value."""
     return is_boolean_constant(node) or is_arithmetic_constant(
         node) or is_int_constant(node) or is_real_constant(
             node) or is_string_constant(node) or is_bv_constant(node)
 
 
 def is_defined_function(node):
-    """Checks whether :code:`node` is a defined function."""
+    """Check whether :code:`node` is a defined function."""
     if is_leaf(node):
         return node in __defined_functions
     return has_name(node) and get_name(node) in __defined_functions
 
 
 def get_defined_function(node):
-    """Returns the defined function :code:`node`, instantiated with the
+    """Return the defined function :code:`node`, instantiated with the
     arguments of :code:`node` if necessary.
 
     Assumes :code:`__is_defined_functions(node)`.
@@ -214,7 +226,7 @@ def get_defined_function(node):
 
 
 def get_constants(const_type):
-    """Returns a list of constants for the given type."""
+    """Return a list of constants for the given type."""
     if const_type == 'Bool':
         return ['false', 'true']
     if const_type == 'Int':
@@ -230,9 +242,9 @@ def get_constants(const_type):
 
 
 def get_return_type(node):
-    """Tries to figure out the return type of the given node.
+    """Get the return type of the given node.
 
-    Returns :code:`None` if it can not be inferred.
+    Return :code:`None` if it can not be inferred.
     """
     if has_type(node):
         return get_type(node)
@@ -324,6 +336,7 @@ def get_return_type(node):
 
 
 def is_bv_type(node):
+    """Return true if :code:`node` is a bit-vector sort."""
     if is_leaf(node) or len(node) != 3:
         return False
     if not has_name(node) or get_name(node) != '_':
@@ -332,6 +345,7 @@ def is_bv_type(node):
 
 
 def is_set_type(node):
+    """Return true if :code:`node` is a set sort."""
     if is_leaf(node) or len(node) != 2:
         return False
     if not has_name(node) or get_name(node) != 'Set':
@@ -340,6 +354,10 @@ def is_set_type(node):
 
 
 def get_bv_width(node):
+    """Return the bit-width of a bit-vector node.
+
+    Asserts that :code:`node` is a bit-vector node.
+    """
     if is_bv_constant(node):
         if is_leaf(node):
             if node.startswith('#b'):
