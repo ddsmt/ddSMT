@@ -104,7 +104,8 @@ def render_smtlib(exprs):
     while visit:
         expr, visited = visit.pop()
         if not isinstance(expr, tuple):
-            args.append(expr)
+            assert isinstance(expr, (str, int))
+            args.append(str(expr))
             continue
 
         if visited:
