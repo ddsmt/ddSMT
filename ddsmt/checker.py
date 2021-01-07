@@ -49,17 +49,19 @@ def matches_golden(golden, run, ignore_out, match_out, match_err):
         return False
 
     if not ignore_out:
-        if match_out:
-            if match_out not in run.out:
+        if match_out or match_err:
+            # we have --match-out or --match-err
+            if match_out:
+                if match_out not in run.out:
+                    return False
+            if match_err:
+                if match_err not in run.err:
+                    return False
+        else:
+            if golden.out != run.out:
                 return False
-        elif golden.out != run.out:
-            return False
-
-        if match_err:
-            if match_err not in run.err:
+            if golden.err != run.err:
                 return False
-        elif golden.err != run.err:
-            return False
 
     return True
 
