@@ -2,17 +2,20 @@ import re
 
 from . import subst
 
-# global lookups for defined functions and variables
+# Stores all declared or defined (first-order) constants with their types
+__constants = {}
+# Stores all defined functions with their return types
 __defined_functions = {}
-__defined_variables = {}
+# Stores the types for all declared or defined symbols
+__type_lookup = {}
 
 
 def collect_information(exprs):
     """Initialize global lookups: defined functions and types."""
     global __defined_functions
-    global __defined_variables
+    global __type_lookup
     __defined_functions = {}
-    __defined_variables = {}
+    __type_lookup = {}
 
     for cmd in exprs:
         if not has_name(cmd):
@@ -21,23 +24,28 @@ def collect_information(exprs):
             if not len(cmd) == 3:
                 continue
             assert is_leaf(cmd[1])
-            __defined_variables[cmd[1]] = cmd[2]
+            __constants[cmd[1]] = cmd[2]
+            __type_lookup[cmd[1]] = cmd[2]
         if get_name(cmd) == 'declare-fun':
             if not len(cmd) == 4:
                 continue
             assert is_leaf(cmd[1])
-            __defined_variables[cmd[1]] = cmd[3]
+            assert not is_leaf(cmd[2])
+            if cmd[2] == tuple():
+                __constants[cmd[1]] = cmd[2]
+            __type_lookup[cmd[1]] = cmd[3]
         if get_name(cmd) == 'define-fun':
             if not len(cmd) == 5:
                 continue
             assert is_leaf(cmd[1])
             assert not is_leaf(cmd[2])
-            if not is_leaf(cmd[3]):
-                continue
+            if cmd[2] == tuple():
+                __constants[cmd[1]] = cmd[2]
             __defined_functions[
                 cmd[1]] = lambda args, cmd=cmd: subst.subs_global(
                     cmd[4], {cmd[2][i][0]: args[i]
                              for i in range(len(args))})
+            __type_lookup[cmd[1]] = cmd[3]
 
 
 # Generic utilities
@@ -86,7 +94,7 @@ def has_type(node):
 
     Mostly applies to variables.
     """
-    return is_leaf(node) and node in __defined_variables
+    return is_leaf(node) and node in __type_lookup
 
 
 def get_type(node):
@@ -96,14 +104,12 @@ def get_type(node):
     Assumes :code:`has_type(node)`.
     """
     assert has_type(node)
-    return __defined_variables[node]
+    return __type_lookup[node]
 
 
 def get_variables_with_type(var_type):
     """Return all variables with the type :code:`var_type`."""
-    return [
-        v for v in __defined_variables if __defined_variables[v] == var_type
-    ]
+    return [v for v in __type_lookup if __type_lookup[v] == var_type]
 
 
 # Semantic testers
@@ -117,7 +123,7 @@ def is_leaf(node):
 def is_var(node):
     """Return true if :code:`node` is a variable (first order constant)
     node."""
-    return is_leaf(node) and node in __defined_variables
+    return is_leaf(node) and node in __constants
 
 
 def has_name(node):
