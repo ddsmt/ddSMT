@@ -69,13 +69,13 @@ def _check(task):
 
 def reduce(exprs):
     passes = ddnaive_passes()
-    smtlib.collect_information(exprs)
 
     nchecks = 0
     skip = 0
     fresh_run = True
 
     while True:
+        smtlib.collect_information(exprs)
         reduction = False
         cnt = smtlib.node_count(exprs)
         progress.start(cnt)
