@@ -42,23 +42,24 @@ def execute(cmd, filename, timeout):
     return RunInfo(proc.returncode, out.decode(), err.decode(), runtime)
 
 
-def matches_golden(golden, run, match_out, match_err):
+def matches_golden(golden, run, ignore_out, match_out, match_err):
     """Checks whether the :code:`run` result matches the golden run,
     considering :code:`match_out` and :code:`match_err`."""
     if run.exit != golden.exit:
         return False
 
-    if match_out:
-        if match_out not in run.out:
+    if not ignore_out:
+        if match_out:
+            if match_out not in run.out:
+                return False
+        elif golden.out != run.out:
             return False
-    elif golden.out != run.out:
-        return False
 
-    if match_err:
-        if match_err not in run.err:
+        if match_err:
+            if match_err not in run.err:
+                return False
+        elif golden.err != run.err:
             return False
-    elif golden.err != run.err:
-        return False
 
     return True
 
@@ -67,6 +68,7 @@ def check(filename):
     """Check whether the given file behaves as the original input."""
     ri = execute(options.args().cmd, filename, options.args().timeout)
     if not matches_golden(__GOLDEN, ri,
+                          options.args().ignore_out,
                           options.args().match_out,
                           options.args().match_err):
         return False
@@ -75,6 +77,7 @@ def check(filename):
         ri = execute(options.args().cmd_cc, filename,
                      options.args().timeout_cc)
         if not matches_golden(__GOLDEN_CC, ri,
+                              options.args().ignore_out_cc,
                               options.args().match_out_cc,
                               options.args().match_err_cc):
             return False

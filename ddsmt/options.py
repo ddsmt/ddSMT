@@ -63,6 +63,9 @@ def parse_options():
                     choices=['ddmin', 'naive'],
                     default='ddmin',
                     help='minimization strategy')
+    ap.add_argument("--ignore-output",
+                    dest="ignore_output",
+                    help="ignore stdout and stderr, only consider exit code")
     ap.add_argument("--match-err",
                     dest="match_err",
                     help="match string in stderr to identify "
@@ -89,6 +92,12 @@ def parse_options():
         type=float,
         help="timeout for test runs of the cross check in seconds, "
         "default: 1.5 * golden runtime")
+    ap.add_argument(
+        "--ignore-output-cc",
+        dest="ignore_output_cc",
+        help=
+        "ignore stdout and stderr, only consider exit code for cross check command"
+    )
     apcc.add_argument("--match-err-cc",
                       dest="match_err_cc",
                       help="match string to identify failing input for "
