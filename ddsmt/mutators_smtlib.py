@@ -69,7 +69,7 @@ class LetSubstitution:
         res = []
         for var in node[1]:
             if contains(node[2], var[0]):
-                subs = substitute(node[2], {var[0]: var[1]})
+                subs = subst.subs_global(node[2], {var[0]: var[1]})
                 res.append([node[0], node[1], subs])
         return res
 
@@ -181,11 +181,12 @@ class SimplifySymbolNames:
         symbol."""
         if is_quoted_symbol(symbol):
             return [
-                substitute(ginput, {symbol: '|' + s + '|'})
+                subst.subs_global(ginput, {symbol: '|' + s + '|'})
                 for s in self.__simpler(get_quoted_symbol(symbol))
             ]
         return [
-            substitute(ginput, {symbol: s}) for s in self.__simpler(symbol)
+            subst.subs_global(ginput, {symbol: s})
+            for s in self.__simpler(symbol)
         ]
 
     def __simpler(self, symbol):

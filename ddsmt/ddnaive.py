@@ -46,9 +46,8 @@ class MutationGenerator:
                 if hasattr(m, 'global_mutations'):
                     yield from list(
                         map(
-                            lambda x: Mutation(
-                                self.__node_count, "(global) " + str(m),
-                                subst.subs_global(ginput, {linput: x})),
+                            lambda x: Mutation(self.__node_count, "(global) " +
+                                               str(m), x),
                             m.global_mutations(linput, ginput)))
             except Exception as e:
                 print("Exception: {}".format(e))

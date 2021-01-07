@@ -19,7 +19,8 @@ class StringSimplifyConstant:
 
     def global_mutations(self, linput, ginput):
         return [
-            substitute(ginput, {linput: rep}) for rep in self.mutations(linput)
+            subst.subs_global(ginput, {linput: rep})
+            for rep in self.mutations(linput)
         ]
 
     def __str__(self):
