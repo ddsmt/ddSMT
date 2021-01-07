@@ -1,5 +1,6 @@
 from multiprocessing import Pool
 import sys
+import time
 
 from . import checker
 from . import options
@@ -13,30 +14,37 @@ def ddmin_passes():
     return mutators.collect_mutators(options.args())
 
 
-def _process_substitution(tup):
-    exprs, subset, substs = tup
+def _worker(tup):
+    exprs, subset, mutator = tup
 
     subst = Substitution()
-    for x, y in zip(subset, substs):
-        subst.add_local(x, y)
+    # TODO: if subset size is 1 try all mutations?
+    for x in subset:
+        mutations = mutator.mutations(x)
+        subst.add_local(x, mutations[0] if mutations else None)
 
     return checker.check_substitution(exprs, subst)
 
 
-def _process_substitutions(pool, exprs, superset, superset_substs):
-    assert len(superset) == len(superset_substs)
+def _apply_mutator(pool, mutator, exprs):
 
+    nexprs = smtlib.node_count(exprs)
+    max_depth = mutator.max_depth() if hasattr(mutator, 'max_depth') else -1
+    exprs_filtered = list(smtlib.filter_exprs(exprs, mutator.filter,
+                                              max_depth))
+
+    start_time = time.time()
     ntests = 0
     nreduced_total = 0
-    nexprs = smtlib.node_count(exprs)
 
-    gran = len(superset)
+    msg = ""
+    gran = len(exprs_filtered)
     while gran > 0:
 
-        # Partition superset and superset_substs into lists of size gran
-        subsets = [superset[s:s + gran] for s in range(0, len(superset), gran)]
-        subsets_substs = [
-            superset_substs[s:s + gran] for s in range(0, len(superset), gran)
+        # Partition superset into lists of size gran
+        subsets = [
+            exprs_filtered[s:s + gran]
+            for s in range(0, len(exprs_filtered), gran)
         ]
 
         # Note: As soon as one of the processed was able to reduce the input
@@ -44,65 +52,83 @@ def _process_substitutions(pool, exprs, superset, superset_substs):
         # granularity.
         restart = True
         while restart:
+            #print("\nrestart done")
             restart = False
-            work_list = [(exprs, x, y)
-                         for x, y in zip(subsets, subsets_substs)]
-            for i, result in enumerate(
-                    pool.imap(_process_substitution, work_list, 1)):
+            subsets = [x for x in subsets if x]
+            work_list = [(exprs, x, mutator) for x in subsets]
+            #print("work_list size: {} ({})".format(len(work_list), len(subsets)))
+            for i, result in enumerate(pool.imap(_worker, work_list, 1)):
 
-                nreduced, reduced_exprs, runtime = result
+                nreduced, reduced_exprs, _ = result
 
                 ntests += 1
 
+                # Remove already substituted expressions
+                #subsets[i] = None
+
                 if nreduced:
                     exprs = reduced_exprs
-
+                    exprs_filtered = list(
+                        smtlib.filter_exprs(exprs, mutator.filter, max_depth))
                     nreduced_total += nreduced
 
                     # Print current working set to file
                     parser.write_smtlib_to_file(options.args().outfile, exprs)
 
-                    # Remove already substituted expressions
-                    subsets.pop(i)
-                    subsets_substs.pop(i)
-
                     restart = True
+                    #print("\nrestart at {} {}".format(i, subsets[i]))
+                    subsets[i] = None
                     break
 
-                if options.args().verbosity >= 2:
-                    sys.stdout.write(
-                        "[ddSMT] granularity: {}, subset {} of {}, s-expressions: {}/{}\r"
-                        .format(gran, i, len(subsets), nexprs - nreduced_total,
-                                nexprs))
+                subsets[i] = None
 
-        # Update superset and remove already substituted expressions
-        superset = [x for subset in subsets for x in subset]
-        superset_substs = [x for subset in subsets_substs for x in subset]
-        assert len(superset) == len(superset_substs)
+                if options.args().verbosity >= 2:
+                    sys.stdout.write('{}\r'.format(' ' * len(msg)))
+                    msg ="[ddSMT INFO] {}: granularity: {}, subset {} of {}, " \
+                            "expressions: {}/{}\r".format(
+                                    mutator, gran, i, len(subsets),
+                                    nexprs - nreduced_total, nexprs)
+                    sys.stdout.write(msg)
 
         gran = gran // 2
+
+    if options.args().verbosity >= 2:
+        sys.stdout.write('{}\r'.format(' ' * len(msg)))
+        print("[ddSMT INFO] {}: eliminated {} expressions, {} tests, " \
+                "{:.1f}s".format(mutator, nreduced_total, ntests,
+                                 time.time() - start_time))
 
     return exprs, ntests
 
 
-def reduce(exprs):
+# TODO: move to core mutators
+class RemoveCommand:
+    def filter(self, node):
+        return True
 
-    passes = ddmin_passes()
+    def mutations(self, node):
+        return None
+
+    def max_depth(self):
+        return 1
+
+    def __str__(self):
+        return "remove command"
+
+
+def reduce(exprs):
 
     ntests = 0
     with Pool(options.args().max_threads) as pool:
 
-        for p in passes:
-            if not hasattr(p, 'filter'):
+        exprs, nt = _apply_mutator(pool, RemoveCommand(), exprs)
+
+        for mut in ddmin_passes():
+            if not hasattr(mut, 'filter'):
                 continue
-            if not hasattr(p, 'mutations'):
+            if not hasattr(mut, 'mutations'):
                 continue
-            exprs_filtered = list(smtlib.filter_exprs(exprs, p.filter))
-            exprs_substs = list(
-                map(lambda x: None if x == [] else x[0],
-                    map(p.mutations, exprs_filtered)))
-            exprs, nt = _process_substitutions(pool, exprs, exprs_filtered,
-                                               exprs_substs)
+            exprs, nt = _apply_mutator(pool, mut, exprs)
             ntests += nt
 
     return exprs, ntests
