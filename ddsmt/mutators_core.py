@@ -23,17 +23,8 @@ class Constants:
 
 class EraseChildren:
     """Erases a single child of the given node."""
-    def filter(self, node):
-        return True  # not is_leaf(node)
-
     def mutations(self, node):
         return [None]
-        res = []
-        for i in range(len(node)):
-            tmp = list(node)
-            del tmp[i]
-            res.append(tuple(tmp))
-        return res
 
     def __str__(self):
         return 'erase child'

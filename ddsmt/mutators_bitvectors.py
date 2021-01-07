@@ -171,7 +171,7 @@ class BVSimplifyConstant:
         val, width = get_bv_constant_value(node)
         return [
             '#b{{:0>{}b}}'.format(width).format(v)
-            for v in [val // 2, val // 10]
+            for v in [val // 32, val // 8, val // 2]
         ]
 
     def global_mutations(self, linput, ginput):
