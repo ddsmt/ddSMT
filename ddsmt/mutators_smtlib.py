@@ -68,7 +68,7 @@ class LetSubstitution:
     def mutations(self, node):
         res = []
         for var in node[1]:
-            if contains(node[2], var[0]):
+            if any(n == var[0] for n in dfs(node[2])):
                 subs = subst.subs_global(node[2], {var[0]: var[1]})
                 res.append([node[0], node[1], subs])
         return res
