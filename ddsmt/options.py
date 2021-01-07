@@ -64,6 +64,7 @@ def parse_options():
                     default='ddmin',
                     help='minimization strategy')
     ap.add_argument("--ignore-output",
+                    action="store_true",
                     dest="ignore_output",
                     help="ignore stdout and stderr, only consider exit code")
     ap.add_argument("--match-err",
@@ -94,6 +95,7 @@ def parse_options():
         "default: 1.5 * golden runtime")
     ap.add_argument(
         "--ignore-output-cc",
+        action="store_true",
         dest="ignore_output_cc",
         help=
         "ignore stdout and stderr, only consider exit code for cross check command"
