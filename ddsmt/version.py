@@ -2,6 +2,7 @@ import os
 
 
 def version_from_git(gitdir):
+    """Tries to obtain a version string from git based on the last tag."""
     import re
     import subprocess
     try:
@@ -25,6 +26,8 @@ def version_from_git(gitdir):
 
 
 def version_from_package_metadata():
+    """Tries to obtain a version string from git based on the pypi package
+    information."""
     try:
         from importlib import metadata
     except ImportError:

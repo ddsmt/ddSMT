@@ -74,12 +74,15 @@ class Substitution:
 
 
 def subs_local(expr, old, new):
+    """Shorthand to apply a single local substitution."""
     s = Substitution()
     s.add_local(old, new)
     return s.apply(expr)
 
 
 def subs_global(expr, repl):
+    """Shorthand to apply multiple global substitutions given by the dictionary
+    repl."""
     s = Substitution()
     for old, new in repl.items():
         s.add_global(old, new)
