@@ -203,6 +203,77 @@ class BVTransformToBool:
         return 'transform bit-vector to boolean'
 
 
+class BVReduceBW:
+    """Reduce the bit-width of a variable by introducing an extract and zero
+    extension on that variable, e.g., (declare-const v (_ BitVec 32)) is
+    transformed into (define-fun v () (_ BitVec 32) ((_ zero_extend 31) _v))
+    with (declare-const _v (_BitVec 1)) This mutator generates all possible
+    mutations for a variable."""
+    def filter(self, node):
+        return has_name(node) \
+               and (get_name(node) == 'declare-const' or \
+                   (get_name(node) == 'declare-fun' and len(node[2]) == 0)) \
+               and has_type(node[1]) \
+               and is_bv_type(get_type(node[1]))
+
+    def global_mutations(self, linput, ginput):
+        idx = ginput.index(linput)
+        gin1 = ginput[:idx]
+        gin2 = ginput[idx + 1:]
+
+        res = []
+        bw = get_bv_width(linput[1])
+        for b in range(1, bw):
+            varname = '_{}'.format(linput[1])
+            var = ('declare-const', varname, ('_', 'BitVec', str(b)))
+            zext = ('define-fun', linput[1], (), get_type(linput[1]),
+                    (('_', 'zero_extend', str(bw - b)), varname))
+            res.append(gin1 + [var] + [zext] + gin2)
+        return res
+
+    def __str__(self):
+        return 'reduce bit-width of variable'
+
+
+class BVMergeReducedBW:
+    """Merge previous bit-width reductions of the form (declare-const __w
+    (_BitVec MM)) (define-fun _w () (_ BitVec Y) ((_ zero_extend N) __w))
+    (define-fun w () (_ BitVec X) ((_ zero_extend M) _w)) into (declare-const
+    __w (_BitVec MM)) (define-fun _w () (_ BitVec Y) ((_ zero_extend N) __w))
+    (define-fun w () (_ BitVec X) ((_ zero_extend M+N) __w)) Obsolete define-
+    fun expressions will be removed later on."""
+    def filter(self, node):
+        return has_name(node) \
+               and get_name(node) == 'define-fun' \
+               and len(node[2]) == 0 \
+               and has_type(node[1]) \
+               and is_bv_type(get_type(node[1])) \
+               and is_indexed_operator(
+                       get_defined_function(node[1]), 'zero_extend', 1) \
+               and is_defined_function(node[-1][-1]) \
+               and is_indexed_operator(
+                       get_defined_function(node[-1][-1]), 'zero_extend', 1)
+
+    def mutations(self, node):
+        name = node[1]
+        zext = int(get_defined_function(name)[0][-1])
+        deffun_name = node[-1][-1]
+        deffun_body = get_defined_function(deffun_name)
+        deffun_zext = int(deffun_body[0][-1])
+        decfun_name = deffun_body[-1]
+        return [('define-fun', name, (),
+                 ('zero_extend', str(zext + deffun_zext), decfun_name))]
+
+    def global_mutations(self, linput, ginput):
+        return [
+            subst.subs_global(ginput, {linput: rep})
+            for rep in self.mutations(linput)
+        ]
+
+    def __str__(self):
+        return 'merge previous bit-width reductions'
+
+
 def collect_mutator_options(argparser):
     options.add_mutator_argument(argparser, NAME, True, 'bitvector mutators')
     options.add_mutator_argument(argparser, 'bv-constants', True,
@@ -241,4 +312,6 @@ def collect_mutators(args):
             res.append(BVTransformToBool())
         if args.mutator_bv_zero_concat:
             res.append(BVConcatToZeroExtend())
+        res.append(BVReduceBW())
+        res.append(BVMergeReducedBW())
     return res
