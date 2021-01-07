@@ -25,7 +25,7 @@ def limit_memory():
 
 
 def execute(cmd, filename, timeout):
-    """Execute the command on the file with a timeout."""
+    """Execute the command on the file with a timeout and a memory limit."""
     proc = subprocess.Popen(cmd + [filename],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
@@ -44,7 +44,13 @@ def execute(cmd, filename, timeout):
 
 def matches_golden(golden, run, ignore_out, match_out, match_err):
     """Checks whether the :code:`run` result matches the golden run,
-    considering :code:`match_out` and :code:`match_err`."""
+    considering :code:`ignore_out`, :code:`match_out` and :code:`match_err`.
+
+    If :code:`ignore_out` is true, only the exit code is compared.
+    Otherwise, if either :code:`match_out` or :code:`match_err` are
+    given, they need to match. Otherwise, both stdout and stderr must be
+    the same.
+    """
     if run.exit != golden.exit:
         return False
 
@@ -67,7 +73,11 @@ def matches_golden(golden, run, ignore_out, match_out, match_err):
 
 
 def check(filename):
-    """Check whether the given file behaves as the original input."""
+    """Check whether the given file behaves as the original input.
+
+    First execute the command and then call :code:`matches_golden`. If a
+    cross-check command is specified, do the same for that one as well.
+    """
     ri = execute(options.args().cmd, filename, options.args().timeout)
     if not matches_golden(__GOLDEN, ri,
                           options.args().ignore_output,
