@@ -274,6 +274,13 @@ def get_return_type(node):
                 'distinct',
                 # bv theory
                 'bvult',
+                'bvule',
+                'bvugt',
+                'bvuge',
+                'bvslt',
+                'bvsle',
+                'bvsgt',
+                'bvsge',
                 # fp theory
                 'fp.leq',
                 'fp.lt',
