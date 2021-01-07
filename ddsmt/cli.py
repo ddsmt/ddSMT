@@ -37,6 +37,14 @@ from . import tmpfiles
 from . import smtlib
 
 
+class DDSMTException(Exception):
+    def __init__(self, msg):
+        self.__msg = msg
+
+    def __str__(self):
+        return "[ddsmt] Error: {}".format(self.__msg)
+
+
 def check_options():
     if options.args().max_threads != 1:
         # configure number of threads
@@ -50,7 +58,7 @@ def check_options():
 
     # check input file
     if not os.path.isfile(options.args().infile):
-        raise Exception('input file is not a regular file')
+        raise DDSMTException('input file is not a regular file')
 
     if options.args().parser_test:
         # only parse and print
@@ -60,12 +68,12 @@ def check_options():
 
     # check executable
     if not options.args().cmd:
-        raise Exception('No executable was specified as command')
+        raise DDSMTException('No executable was specified as command')
     if not os.path.isfile(options.args().cmd[0]):
-        raise Exception('Command "{}" is not a regular file'.format(
+        raise DDSMTException('Command "{}" is not a regular file'.format(
             options.args().cmd[0]))
     if not os.access(options.args().cmd[0], os.X_OK):
-        raise Exception('Command "{}" is not executable'.format(
+        raise DDSMTException('Command "{}" is not executable'.format(
             options.args().cmd[0]))
 
 
@@ -141,8 +149,8 @@ def main():
         sys.exit("[ddsmt] memory exhausted")
     except KeyboardInterrupt:
         sys.exit("[ddsmt] interrupted")
-    except Exception as e:
-        sys.exit(str(e))
+    except DDSMTException as e:
+        sys.exit(e)
     sys.exit(0)
 
 
