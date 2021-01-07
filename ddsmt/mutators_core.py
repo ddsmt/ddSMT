@@ -63,7 +63,7 @@ class ReplaceByVariable:
             if options.args().replace_by_variable_mode == 'inc':
                 return [v for v in variables if v > node]
             return [v for v in variables if v < node]
-        return [v for v in variables if node_count(v) < node_count(node)]
+        return [v for v in variables if count_nodes(v) < count_nodes(node)]
 
     def __str__(self):
         return 'substitute by existing variable'
@@ -75,8 +75,8 @@ class SortChildren:
         return not is_leaf(node)
 
     def mutations(self, node):
-        """Return :code:`sorted(node, key = node_count)`."""
-        s = tuple(sorted(node, key=node_count))
+        """Return :code:`sorted(node, key = count_nodes)`."""
+        s = tuple(sorted(node, key=count_nodes))
         if s != node:
             return [s]
         return []

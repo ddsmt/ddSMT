@@ -79,10 +79,16 @@ def dfs_postorder(exprs):
             visit.extend((x, False) for x in reversed(sexpr))
 
 
-def node_count(node):
+def count_nodes(node):
     """Return the number of expressions yielded when traversing :code:`node` in
     DFS manner."""
     return len(list(dfs(node)))
+
+
+def count_exprs(node):
+    """Return the number of tuples yielded when traversing :code:`node` in DFS
+    manner."""
+    return len([x for x in dfs(node) if isinstance(x, tuple)])
 
 
 def filter_exprs(exprs, filter_func, max_depth=-1):

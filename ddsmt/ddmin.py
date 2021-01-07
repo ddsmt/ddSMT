@@ -23,12 +23,17 @@ def _worker(tup):
         mutations = mutator.mutations(x)
         subst.add_local(x, mutations[0] if mutations else None)
 
-    return checker.check_substitution(exprs, subst)
+    reduced_exprs = checker.check_substitution(exprs, subst)
+    nreduced = 0
+    if reduced_exprs:
+        nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(
+            reduced_exprs)
+    return nreduced, reduced_exprs
 
 
 def _apply_mutator(pool, mutator, exprs):
 
-    nexprs = smtlib.node_count(exprs)
+    nexprs = smtlib.count_exprs(exprs)
     max_depth = mutator.max_depth() if hasattr(mutator, 'max_depth') else -1
     exprs_filtered = list(smtlib.filter_exprs(exprs, mutator.filter,
                                               max_depth))
@@ -52,19 +57,15 @@ def _apply_mutator(pool, mutator, exprs):
         # granularity.
         restart = True
         while restart:
-            #print("\nrestart done")
             restart = False
             subsets = [x for x in subsets if x]
             work_list = [(exprs, x, mutator) for x in subsets]
-            #print("work_list size: {} ({})".format(len(work_list), len(subsets)))
             for i, result in enumerate(pool.imap(_worker, work_list, 1)):
-
-                nreduced, reduced_exprs, _ = result
-
+                nreduced, reduced_exprs = result
                 ntests += 1
 
                 # Remove already substituted expressions
-                #subsets[i] = None
+                subsets[i] = None
 
                 if nreduced:
                     exprs = reduced_exprs
@@ -76,11 +77,7 @@ def _apply_mutator(pool, mutator, exprs):
                     parser.write_smtlib_to_file(options.args().outfile, exprs)
 
                     restart = True
-                    #print("\nrestart at {} {}".format(i, subsets[i]))
-                    subsets[i] = None
                     break
-
-                subsets[i] = None
 
                 if options.args().verbosity >= 2:
                     sys.stdout.write('{}\r'.format(' ' * len(msg)))
@@ -94,8 +91,8 @@ def _apply_mutator(pool, mutator, exprs):
 
     if options.args().verbosity >= 2:
         sys.stdout.write('{}\r'.format(' ' * len(msg)))
-        print("[ddSMT INFO] {}: eliminated {} expressions, {} tests, " \
-                "{:.1f}s".format(mutator, nreduced_total, ntests,
+        print("[ddSMT INFO] {}: diff {:+} expressions, {} tests, " \
+                "{:.1f}s".format(mutator, -nreduced_total, ntests,
                                  time.time() - start_time))
 
     return exprs, ntests
