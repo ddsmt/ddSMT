@@ -1,4 +1,5 @@
 from . import options
+from . import subst
 from .smtlib import *
 
 NAME = 'bitvector'
@@ -175,7 +176,7 @@ class BVSimplifyConstant:
 
     def global_mutations(self, linput, ginput):
         return [
-            substitute_repr(ginput, {repr(linput): rep})
+            subst.subs_global(ginput, {repr(linput): rep})
             for rep in self.mutations(linput)
         ]
 
