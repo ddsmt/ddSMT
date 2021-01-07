@@ -11,8 +11,8 @@ MUTATORS = [
 class Constants:
     """Replaces any node by a constant."""
     def mutations(self, node):
-        """Return :code:`get_constants(get_return_type(node))`."""
-        res = get_constants(get_return_type(node))
+        """Return :code:`get_constants(get_type(node))`."""
+        res = get_constants(get_type(node))
         if node in res:
             return []
         return res
@@ -55,7 +55,7 @@ class ReplaceByVariable:
         return not is_constant(node)
 
     def mutations(self, node):
-        ret_type = get_return_type(node)
+        ret_type = get_type(node)
         if ret_type is None:
             return []
         variables = get_variables_with_type(ret_type)

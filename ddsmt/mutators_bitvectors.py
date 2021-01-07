@@ -33,9 +33,10 @@ def possible_bv_widths_imp(definition):
 
 
 def possible_bv_widths(node):
-    if has_type(node):
-        assert is_bv_type(get_type(node))
-        return [get_type(node)[2]]
+    bvtype = get_type(node)
+    if bvtype:
+        assert is_bv_type(bvtype)
+        return [bvtype[2]]
     widths = set()
     for bvtype in get_variable_info().values():
         for wid in possible_bv_widths_imp(bvtype):

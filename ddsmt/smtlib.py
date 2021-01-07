@@ -90,24 +90,6 @@ def filter_exprs(exprs, filter_func):
             yield expr
 
 
-def has_type(node):
-    """Check whether :code:`node` was defined to have a certain type.
-
-    Mostly applies to variables.
-    """
-    return is_leaf(node) and node in __type_lookup
-
-
-def get_type(node):
-    """Return the type of :code:`node` if it was defined to have a certain
-    type.
-
-    Assumes :code:`has_type(node)`.
-    """
-    assert has_type(node)
-    return __type_lookup[node]
-
-
 def get_variables_with_type(var_type):
     """Return all variables with the type :code:`var_type`."""
     return [v for v in __type_lookup if __type_lookup[v] == var_type]
@@ -248,13 +230,13 @@ def get_constants(const_type):
     return []
 
 
-def get_return_type(node):
+def get_type(node):
     """Get the return type of the given node.
 
     Return :code:`None` if it can not be inferred.
     """
-    if has_type(node):
-        return get_type(node)
+    if node in __type_lookup:
+        return __type_lookup[node]
     if is_boolean_constant(node):
         return 'Bool'
     if is_bv_constant(node):
@@ -268,7 +250,7 @@ def get_return_type(node):
         return ('_', 'BitVec', str(bvwidth))
     if has_name(node):
         if is_operator(node, 'ite'):
-            return get_return_type(node[1])
+            return get_type(node[1])
         # stuff that returns Bool
         if get_name(node) in [
                 # core theory
@@ -342,7 +324,7 @@ def get_return_type(node):
         if get_name(node) in ['/', 'to_real', 'fp.to_real']:
             return 'Real'
         if get_name(node) in ['+', '-', '*']:
-            if any(map(lambda n: get_return_type(n) == 'Real', node[1:])):
+            if any(map(lambda n: get_type(n) == 'Real', node[1:])):
                 return 'Real'
             else:
                 return 'Int'
@@ -379,9 +361,10 @@ def get_bv_width(node):
             if node.startswith('#x'):
                 return len(node[2:]) * 4
         return int(node[2])
-    if has_type(node):
-        assert is_bv_type(get_type(node))
-        return int(get_type(node)[2])
+    if node in __type_lookup:
+        bvtype = __type_lookup[node]
+        assert is_bv_type(bvtype)
+        return int(bvtype[2])
     if has_name(node):
         if get_name(node) in [
                 'bvnot', 'bvand', 'bvor', 'bvneg', 'bvadd', 'bvmul', 'bvudiv',
