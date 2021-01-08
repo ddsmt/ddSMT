@@ -2,15 +2,19 @@ class Node:
     """Represents a node in the input, consisting of an id and some data.
 
     The :code:`data` can either be a string or a tuple of nodes. The
-    :code:`id` is initially None. When iterating through a tree with
-    :code:`dfs`, the tree nodes get unique ids that can be used for
-    local substitutions. As soon as a substitution has been performed,
-    the ids are invalid.
+    :code:`id` is automatically set to a unique integer that can be used
+    for local substitutions.
     """
     __slots__ = 'id', 'data'
+    __ID_COUNTER = 0
+
+    @classmethod
+    def __get_id(self):
+        self.__ID_COUNTER += 1
+        return self.__ID_COUNTER
 
     def __init__(self, *args):
-        self.id = None
+        self.id = self.__get_id()
         if len(args) == 1 and isinstance(args[0], str):
             self.data = args[0]
         else:
@@ -56,18 +60,11 @@ class Node:
 
 
 def dfs(exprs, max_depth=None):
-    """DFS traversal of s-expressions in exprs up to a maximum depth.
-
-    Updates exprs with fresh ids that can be used for subsequent
-    substitutions.
-    """
+    """DFS traversal of s-expressions in exprs up to a maximum depth."""
     visit = [(1, x) for x in reversed(exprs)]
-    id = 0
     while visit:
         cur_depth, expr = visit.pop()
         if isinstance(expr, Node) and (not max_depth or cur_depth < max_depth):
-            expr.id = id
-            id += 1
             yield expr
             if not expr.is_leaf():
                 visit.extend([(cur_depth + 1, x) for x in reversed(expr.data)])
@@ -81,7 +78,6 @@ def substitute(exprs, repl):
 
     - int -> Node to replace nodes with the given id with the value node
     - Node -> Node to replace nodes equal to the key node with the value node
-    The resulting expressions have all ids set to None.
     """
     assert isinstance(exprs, list)
     visit = [(x, False) for x in reversed(exprs)]
