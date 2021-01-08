@@ -121,9 +121,9 @@ def render_smtlib(exprs):
     args = []
     while visit:
         expr, visited = visit.pop()
-        if not isinstance(expr, Node):
-            assert isinstance(expr, str)
-            args.append(expr)
+        if expr.is_leaf():
+            assert isinstance(expr.data, str)
+            args.append(str(expr.data))
             continue
 
         if visited:
