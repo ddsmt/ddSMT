@@ -65,8 +65,8 @@ class ReplaceByVariable:
         variables = get_variables_with_type(ret_type)
         if is_leaf(node):
             if options.args().replace_by_variable_mode == 'inc':
-                return [Node(v) for v in variables if v > node.get_name()]
-            return [Node(v) for v in variables if v < node.get_name()]
+                return [Node(v) for v in variables if v > node.data]
+            return [Node(v) for v in variables if v < node.data]
         return [
             Node(v) for v in variables if count_nodes(v) < count_nodes(node)
         ]

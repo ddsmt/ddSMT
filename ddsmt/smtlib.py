@@ -1,6 +1,7 @@
 import re
 
 from . import nodes
+from .nodes import dfs, Node
 from . import subst
 
 # Stores all declared or defined (first-order) constants with their types
@@ -90,12 +91,12 @@ def count_nodes(node):
 def count_exprs(node):
     """Return the number of tuples yielded when traversing :code:`node` in DFS
     manner."""
-    return len([x for x in dfs(node) if isinstance(x, tuple)])
+    return len([x for x in nodes.dfs(node) if isinstance(x, tuple)])
 
 
 def filter_exprs(exprs, filter_func, max_depth=-1):
     """Filter s-expressions based on filter_func."""
-    for expr in dfs(exprs, max_depth):
+    for expr in nodes.dfs(exprs, max_depth):
         if filter_func(expr):
             yield expr
 
@@ -243,16 +244,20 @@ def get_defined_function(node):
 def get_constants(const_type):
     """Return a list of constants for the given type."""
     if const_type == 'Bool':
-        return ['false', 'true']
+        return [Node('false'), Node('true')]
     if const_type == 'Int':
-        return ['0', '1']
+        return [Node('0'), Node('1')]
     if const_type == 'Real':
-        return ['0.0', '1.0']
+        return [Node('0.0'), Node('1.0')]
     if is_bv_type(const_type):
-        return [('_', c, const_type[2]) for c in ['bv0', 'bv1']]
+        return [
+            Node(Node('_'), Node(c), Node(const_type[2]))
+            for c in ['bv0', 'bv1']
+        ]
     if is_set_type(const_type):
-        return [('as', 'emptyset', const_type)
-                ] + [('singleton', c) for c in get_constants(const_type[1])]
+        return [Node(Node('as'), Node('emptyset'), Node(const_type))] + [
+            Node(Node('singleton'), c) for c in get_constants(const_type[1])
+        ]
     return []
 
 
