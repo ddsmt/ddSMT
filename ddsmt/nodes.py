@@ -90,6 +90,9 @@ def substitute(exprs, repl):
             expr = repl[expr.id]
         if expr in repl:
             expr = repl[expr]
+
+        if expr is None:
+            continue
         assert isinstance(expr, Node)
 
         if visited:
