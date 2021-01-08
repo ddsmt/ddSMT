@@ -14,6 +14,8 @@ def is_bv_not(node):
 
 
 def get_bv_constant_value(node):
+    """Assume that node is a bit-vector constant and return :code:`(value, bit-
+    width)`."""
     assert is_bv_constant(node)
     if is_leaf(node):
         if node.startswith('#b'):
@@ -25,6 +27,7 @@ def get_bv_constant_value(node):
 
 
 def possible_bv_widths_imp(definition):
+    """Try to guess a list of bit-widths that this node may have."""
     if is_bv_type(definition):
         return [definition[2]]
     if not is_leaf(definition):
@@ -33,6 +36,11 @@ def possible_bv_widths_imp(definition):
 
 
 def possible_bv_widths(node):
+    """Return the bit-widths this node may have.
+
+    First try to get the type of the given node, then just collect bit-
+    width that show up elsewhere in the input.
+    """
     bvtype = get_type(node)
     if bvtype:
         assert is_bv_type(bvtype)
@@ -213,7 +221,7 @@ class BVReduceBW:
         return has_name(node) \
                and (get_name(node) == 'declare-const' or \
                    (get_name(node) == 'declare-fun' and len(node[2]) == 0)) \
-               and has_type(node[1]) \
+               and get_type(node[1]) is not None \
                and is_bv_type(get_type(node[1]))
 
     def global_mutations(self, linput, ginput):
@@ -246,7 +254,7 @@ class BVMergeReducedBW:
         return has_name(node) \
                and get_name(node) == 'define-fun' \
                and len(node[2]) == 0 \
-               and has_type(node[1]) \
+               and get_type(node[1]) is not None \
                and is_bv_type(get_type(node[1])) \
                and is_indexed_operator(
                        get_defined_function(node[1]), 'zero_extend', 1) \
