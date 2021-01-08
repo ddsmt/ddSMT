@@ -1,3 +1,4 @@
+import logging
 from multiprocessing import Pool
 import sys
 import time
@@ -8,30 +9,45 @@ from . import parser
 from .subst import Substitution
 from . import mutators
 from . import smtlib
+from . import nodes
 
 
 def ddmin_passes():
     return mutators.collect_mutators(options.args())
 
 
-def _worker(tup):
-    exprs, subset, mutator = tup
+def _subst(exprs, subset, mutator):
 
-    subst = Substitution()
+    substs = dict()
     # TODO: if subset size is 1 try all mutations?
-    for x in subset:
-        mutations = mutator.mutations(x)
-        subst.add_local(x, mutations[0] if mutations else None)
+    for node in subset:
+        mutations = mutator.mutations(node)
+        substs[node.id] = mutations[0] if mutations else None
 
-    reduced_exprs = checker.check_substitution(exprs, subst)
-    nreduced = 0
-    if reduced_exprs:
+    return nodes.substitute(exprs, substs)
+
+
+def _worker(task):
+    task_id, exprs, subset, mutator = task
+
+    reduced_exprs = _subst(exprs, subset, mutator)
+    if checker.check_exprs(reduced_exprs):
         nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(
             reduced_exprs)
-    return nreduced, reduced_exprs
+        return task_id, nreduced, reduced_exprs
+    return task_id, 0, []
 
 
-def _apply_mutator(pool, mutator, exprs):
+def _partition(exprs, gran):
+    subsets = [exprs[s:s + gran] for s in range(0, len(exprs), gran)]
+    return subsets
+
+
+def _clear_msg(nchars):
+    sys.stdout.write('{}\r'.format(' ' * nchars))
+
+
+def _apply_mutator(mutator, exprs):
 
     nexprs = smtlib.count_exprs(exprs)
     max_depth = mutator.max_depth() if hasattr(mutator, 'max_depth') else -1
@@ -47,55 +63,59 @@ def _apply_mutator(pool, mutator, exprs):
     while gran > 0:
 
         # Partition superset into lists of size gran
-        subsets = [
-            exprs_filtered[s:s + gran]
-            for s in range(0, len(exprs_filtered), gran)
-        ]
+        subsets = _partition(exprs_filtered, gran)
 
         # Note: As soon as one of the processed was able to reduce the input
-        # file we recompute the work_list with the updated expressions and same
+        # file we recompute the task_list with the updated expressions and same
         # granularity.
         restart = True
         while restart:
             restart = False
             subsets = [x for x in subsets if x]
-            work_list = [(exprs, x, mutator) for x in subsets]
-            for i, result in enumerate(pool.imap(_worker, work_list, 1)):
-                nreduced, reduced_exprs = result
-                ntests += 1
+            if not subsets:
+                break
+            task_list = [(i, exprs, x, mutator) for i, x in enumerate(subsets)]
 
-                # Remove already substituted expressions
-                subsets[i] = None
+            nprocs = min(options.args().max_threads, len(task_list))
+            with Pool(nprocs) as pool:
 
-                if nreduced:
-                    exprs = reduced_exprs
-                    exprs_filtered = list(
-                        smtlib.filter_exprs(exprs, mutator.filter, max_depth))
-                    nreduced_total += nreduced
+                for result in pool.imap(_worker, task_list):
+                    task_id, nreduced, reduced_exprs = result
+                    ntests += 1
 
-                    # Print current working set to file
-                    parser.write_smtlib_to_file(options.args().outfile, exprs)
+                    if nreduced:
+                        pool.close()
+                        exprs = reduced_exprs
+                        nreduced_total += nreduced
+                        restart = True
 
-                    restart = True
-                    break
+                        # Print current working set to file
+                        nodes.write_smtlib_to_file(options.args().outfile,
+                                                   exprs)
 
-                if options.args().verbosity >= 2:
-                    sys.stdout.write('{}\r'.format(' ' * len(msg)))
-                    msg ="[ddSMT INFO] {}: granularity: {}, subset {} of {}, " \
-                            "expressions: {}/{}\r".format(
-                                    mutator, gran, i, len(subsets),
-                                    nexprs - nreduced_total, nexprs)
-                    sys.stdout.write(msg)
+                    # Remove already substituted expressions
+                    subsets[task_id] = None
+
+                    if options.args().verbosity >= 2:
+                        _clear_msg(len(msg))
+                        msg ="[ddSMT INFO] {}: granularity: {}, subset {} of {}, " \
+                                "expressions: {}/{}\r".format(
+                                        mutator, gran, task_id, len(subsets),
+                                        nexprs - nreduced_total, nexprs)
+                        sys.stdout.write(msg)
+
+                    if restart:
+                        break
 
         gran = gran // 2
 
     if options.args().verbosity >= 2:
-        sys.stdout.write('{}\r'.format(' ' * len(msg)))
-        print("[ddSMT INFO] {}: diff {:+} expressions, {} tests, " \
+        _clear_msg(len(msg))
+        logging.info("[ddSMT INFO] {}: diff {:+} expressions, {} tests, " \
                 "{:.1f}s".format(mutator, -nreduced_total, ntests,
                                  time.time() - start_time))
 
-    return exprs, ntests
+    return exprs, ntests, nreduced_total
 
 
 # TODO: move to core mutators
@@ -115,17 +135,25 @@ class RemoveCommand:
 
 def reduce(exprs):
 
-    ntests = 0
-    with Pool(options.args().max_threads) as pool:
+    ntests_total = 0
 
-        exprs, nt = _apply_mutator(pool, RemoveCommand(), exprs)
+    passes = [RemoveCommand()]
+    #passes.extend(ddmin_passes())
 
-        for mut in ddmin_passes():
-            if not hasattr(mut, 'filter'):
-                continue
-            if not hasattr(mut, 'mutations'):
-                continue
-            exprs, nt = _apply_mutator(pool, mut, exprs)
-            ntests += nt
+    for mut in passes:
+        while True:
+            exprs, ntests, nreduced = _apply_mutator(mut, exprs)
+            ntests_total += ntests
 
-    return exprs, ntests
+            if nreduced == 0:
+                break
+
+    #for mut in ddmin_passes():
+    #    if not hasattr(mut, 'filter'):
+    #        continue
+    #    if not hasattr(mut, 'mutations'):
+    #        continue
+    #    exprs, nt = _apply_mutator(mut, exprs)
+    #    ntests += nt
+
+    return exprs, ntests_total
