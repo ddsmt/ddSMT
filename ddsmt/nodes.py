@@ -79,8 +79,10 @@ def substitute(exprs, repl):
     - int -> Node to replace nodes with the given id with the value node
     - Node -> Node to replace nodes equal to the key node with the value node
     """
-    assert isinstance(exprs, list)
-    visit = [(x, False) for x in reversed(exprs)]
+    if isinstance(exprs, Node):
+        visit = [(x, False) for x in reversed(exprs.data)]
+    else:
+        visit = [(x, False) for x in reversed(exprs)]
     args = [[]]
     while visit:
         expr, visited = visit.pop()
@@ -108,7 +110,10 @@ def substitute(exprs, repl):
                 visit.append((expr, True))
                 visit.extend((x, False) for x in reversed(expr.data))
                 args.append([])
-    return args[0]
+    if isinstance(exprs, Node):
+        return Node(*args[0])
+    else:
+        return args[0]
 
 
 def render_smtlib(exprs):
