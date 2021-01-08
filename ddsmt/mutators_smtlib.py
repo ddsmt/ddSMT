@@ -138,7 +138,7 @@ class SimplifyQuotedSymbols:
             '\\|[a-zA-Z0-9~!@$%^&*_+=<>.?/-]+\\|', node) is not None
 
     def global_mutations(self, linput, ginput):
-        return [substitute(ginput, {linput: get_quoted_symbol(linput)})]
+        return [subst.subs_global(ginput, {linput: get_quoted_symbol(linput)})]
 
     def __str__(self):
         return 'simplify quoted symbol'

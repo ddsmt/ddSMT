@@ -130,6 +130,17 @@ def get_name(node):
     return node[0]
 
 
+def is_quoted_symbol(node):
+    """Checks whether the :code:`node` is a quoted symbol."""
+    return is_leaf(node) and node[0] == '|' and node[-1] == '|'
+
+
+def get_quoted_symbol(node):
+    """Returns the actual symbol name from a quoted symbol :code:`node`."""
+    assert is_quoted_symbol(node)
+    return node[1:-1]
+
+
 def is_operator(node, name):
     return has_name(node) and get_name(node) == name
 
@@ -215,7 +226,7 @@ def get_defined_function(node):
     """Return the defined function :code:`node`, instantiated with the
     arguments of :code:`node` if necessary.
 
-    Assumes :code:`__is_defined_function(node)`.
+    Assumes :code:`is_defined_function(node)`.
     """
     assert is_defined_function(node)
     if is_leaf(node):
