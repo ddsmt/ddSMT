@@ -90,14 +90,17 @@ def substitute(exprs, repl):
             expr = repl[expr.id]
         if expr in repl:
             expr = repl[expr]
-
         if expr is None:
             continue
         assert isinstance(expr, Node)
 
         if visited:
             children = args.pop()
-            args[-1].append(Node(*children))
+            node = Node(*children)
+            if node == expr:
+                args[-1].append(expr)
+            else:
+                args[-1].append(node)
         else:
             if expr.is_leaf():
                 args[-1].append(expr)
