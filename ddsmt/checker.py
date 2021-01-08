@@ -160,7 +160,8 @@ def do_golden_runs():
 
     if options.args().timeout is None:
         options.args().timeout = round((__GOLDEN.runtime + 1) * 1.5, 2)
-        logging.info('automatic timeout: {}'.format(options.args().timeout))
+        logging.info('automatic timeout: {:.2f} seconds'.format(
+            options.args().timeout))
 
     if options.args().cmd_cc:
         __GOLDEN_CC = execute(options.args().cmd_cc,
@@ -182,5 +183,5 @@ def do_golden_runs():
         if options.args().timeout_cc is None:
             options.args().timeout_cc = round((__GOLDEN_CC.runtime + 1) * 1.5,
                                               2)
-            logging.info('automatic timeout (cc): {}'.format(
+            logging.info('automatic timeout (cc): {:.2f} seconds'.format(
                 options.args().timeout_cc))
