@@ -99,7 +99,7 @@ def reduce(exprs):
                     exprs = task.exprs
                     skip = task.nodeid - 1
                     fresh_run = False
-                    parser.write_smtlib_to_file(options.args().outfile, exprs)
+                    nodes.write_smtlib_to_file(options.args().outfile, exprs)
                     pool.close()
                     break
         pool.join()
