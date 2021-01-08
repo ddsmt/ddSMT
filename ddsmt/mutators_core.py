@@ -1,3 +1,4 @@
+from .nodes import Node
 from . import options
 from .smtlib import *
 
@@ -12,7 +13,10 @@ class Constants:
     """Replaces any node by a constant."""
     def mutations(self, node):
         """Return :code:`get_constants(get_type(node))`."""
-        res = get_constants(get_type(node))
+        t = get_type(node)
+        if t is None:
+            return []
+        res = get_constants(t)
         if node in res:
             return []
         return res
@@ -21,13 +25,13 @@ class Constants:
         return 'substitute by a constant'
 
 
-class EraseChildren:
-    """Erases a single child of the given node."""
+class EraseNode:
+    """Erases the given node."""
     def mutations(self, node):
         return [None]
 
     def __str__(self):
-        return 'erase child'
+        return 'erase node'
 
 
 class MergeWithChildren:
@@ -61,9 +65,11 @@ class ReplaceByVariable:
         variables = get_variables_with_type(ret_type)
         if is_leaf(node):
             if options.args().replace_by_variable_mode == 'inc':
-                return [v for v in variables if v > node]
-            return [v for v in variables if v < node]
-        return [v for v in variables if count_nodes(v) < count_nodes(node)]
+                return [Node(v) for v in variables if v > node.get_name()]
+            return [Node(v) for v in variables if v < node.get_name()]
+        return [
+            Node(v) for v in variables if count_nodes(v) < count_nodes(node)
+        ]
 
     def __str__(self):
         return 'substitute by existing variable'
@@ -76,7 +82,7 @@ class SortChildren:
 
     def mutations(self, node):
         """Return :code:`sorted(node, key = count_nodes)`."""
-        s = tuple(sorted(node, key=count_nodes))
+        s = nodes.Node(*sorted(node, key=count_nodes))
         if s != node:
             return [s]
         return []
@@ -126,8 +132,8 @@ def collect_mutator_options(argparser):
     options.add_mutator_argument(argparser, NAME, True, 'core mutators')
     options.add_mutator_argument(argparser, 'constants', True,
                                  'replace by theory constants')
-    options.add_mutator_argument(argparser, 'erase-children', True,
-                                 'erase individual children of nodes')
+    options.add_mutator_argument(argparser, 'erase-node', True,
+                                 'erase single node')
     options.add_mutator_argument(argparser, 'merge-children', True,
                                  'merge children into nodes')
     options.add_mutator_argument(argparser, 'replace-by-variable', True,
@@ -150,8 +156,8 @@ def collect_mutators(args):
     if args.mutator_core:
         if args.mutator_top_level_binary_reduction:
             res.append(TopLevelBinaryReduction())
-        if args.mutator_erase_children:
-            res.append(EraseChildren())
+        if args.mutator_erase_node:
+            res.append(EraseNode())
         if args.mutator_constants:
             res.append(Constants())
         if args.mutator_merge_children:
