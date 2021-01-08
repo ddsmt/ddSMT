@@ -159,7 +159,7 @@ def do_golden_runs():
             sys.exit(1)
 
     if options.args().timeout is None:
-        options.args().timeout = (__GOLDEN.runtime + 1) * 1.5
+        options.args().timeout = round((__GOLDEN.runtime + 1) * 1.5, 2)
         logging.info('automatic timeout: {}'.format(options.args().timeout))
 
     if options.args().cmd_cc:
@@ -180,6 +180,7 @@ def do_golden_runs():
                 options.args().match_err_cc))
 
         if options.args().timeout_cc is None:
-            options.args().timeout_cc = (__GOLDEN_CC.runtime + 1) * 1.5
+            options.args().timeout_cc = round((__GOLDEN_CC.runtime + 1) * 1.5,
+                                              2)
             logging.info('automatic timeout (cc): {}'.format(
                 options.args().timeout_cc))
