@@ -18,18 +18,18 @@ class ArithmeticSimplifyConstant:
     """Replace a constant by a simpler version (smaller or fewer decimal
     places)."""
     def filter(self, node):
-        return is_arithmetic_constant(node) and float(node) not in [0, 1]
+        return is_arithmetic_constant(node) and float(node.data) not in [0, 1]
 
     def mutations(self, node):
-        f = float(node)
+        f = float(node.data)
         if int(f) == f:
             i = int(f)
-            return [str(i // 2), str(i // 10)]
-        return [str(int(f)), node[:-1]]
+            return [Node(str(i // 2)), Node(str(i // 10))]
+        return [Node(str(int(f))), Node(node.data[:-1])]
 
     def global_mutations(self, linput, ginput):
         return [
-            subst.subs_global(ginput, {linput: rep})
+            nodes.substitute(ginput, {linput: rep})
             for rep in self.mutations(linput)
         ]
 
