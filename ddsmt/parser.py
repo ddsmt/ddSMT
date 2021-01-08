@@ -1,3 +1,6 @@
+from . import nodes
+
+
 def parse_smtlib(text):  # noqa: C901
     """Convert SMT-LIB input to list of (nested) Python tuples.
 
@@ -31,7 +34,7 @@ def parse_smtlib(text):  # noqa: C901
                         pos += 1
                         continue
                     break
-            cur_expr.append(''.join(literal))
+            cur_expr.append(nodes.Node(''.join(literal)))
 
         # Comments
         elif char == ';':
@@ -62,10 +65,10 @@ def parse_smtlib(text):  # noqa: C901
 
             # Do we have nested s-expressions?
             if exprs:
-                exprs[-1].append(tuple(cur_expr))
+                exprs[-1].append(nodes.Node(*cur_expr))
                 cur_expr = exprs[-1]
             else:
-                yield tuple(cur_expr)
+                yield nodes.Node(*cur_expr)
                 cur_expr = None
 
         # Identifier
@@ -83,7 +86,7 @@ def parse_smtlib(text):  # noqa: C901
                     break
                 token.append(char)
 
-            token = ''.join(token)
+            token = nodes.Node(''.join(token))
 
             # Append to current s-expression
             if cur_expr is not None:

@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 
+from . import nodes
 from . import options
 from . import parser
 from . import smtlib
@@ -104,7 +105,7 @@ def check_exprs(exprs):
     otherwise.
     """
     tmpfile = tmpfiles.get_tmp_filename()
-    parser.write_smtlib_to_file(tmpfile, exprs)
+    nodes.write_smtlib_to_file(tmpfile, exprs)
     return check(tmpfile)
 
 
