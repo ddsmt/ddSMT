@@ -46,7 +46,7 @@ def collect_information(exprs):
             if cmd[2] == tuple():
                 __constants[cmd[1].data] = cmd[2]
             __defined_functions[
-                cmd[1]] = lambda args, cmd=cmd: subst.subs_global(
+                cmd[1]] = lambda args, cmd=cmd: nodes.substitute(
                     cmd[4], {cmd[2][i][0]: args[i]
                              for i in range(len(args))})
             __type_lookup[cmd[1].data] = cmd[3]
@@ -391,7 +391,7 @@ def get_bv_width(node):
                 return len(node[2:])
             if node.startswith('#x'):
                 return len(node[2:]) * 4
-        return int(node[2])
+        return int(node[2].data)
     if node in __type_lookup:
         bvtype = __type_lookup[node]
         assert is_bv_type(bvtype)
