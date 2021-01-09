@@ -387,26 +387,27 @@ def get_bv_width(node):
     """
     if is_bv_constant(node):
         if node.is_leaf():
-            if node.startswith('#b'):
-                return len(node[2:])
-            if node.startswith('#x'):
-                return len(node[2:]) * 4
+            data = node.data
+            if data.startswith('#b'):
+                return len(data[2:])
+            if data.startswith('#x'):
+                return len(data[2:]) * 4
         return int(node[2].data)
     if node in __type_lookup:
         bvtype = __type_lookup[node]
         assert is_bv_type(bvtype)
         return int(bvtype[2].data)
-    if has_name(node):
-        if get_name(node) in [
+    if node.has_name():
+        if node.get_name() in [
                 'bvnot', 'bvand', 'bvor', 'bvneg', 'bvadd', 'bvmul', 'bvudiv',
                 'bvurem', 'bvshl', 'bvshr', 'bvnand', 'bvnor', 'bvxor',
                 'bvsub', 'bvsdiv', 'bvsrem', 'bvsmod', 'bvashr'
         ]:
             return get_bv_width(node[1])
-        if get_name(node) == 'concat':
+        if node.get_name() == 'concat':
             assert len(node) == 3
             return get_bv_width(node[1]) + get_bv_width(node[2])
-        if get_name(node) == 'bvcomp':
+        if node.get_name() == 'bvcomp':
             return 1
         if is_indexed_operator(node, 'extend'):
             return int(node[0][2]) + get_bv_width(node[1])

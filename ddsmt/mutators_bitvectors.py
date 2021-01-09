@@ -17,10 +17,10 @@ def get_bv_constant_value(node):
     """Assume that node is a bit-vector constant and return :code:`(value, bit-
     width)`."""
     assert is_bv_constant(node)
-    if is_leaf(node):
-        if node.startswith('#b'):
+    if node.is_leaf():
+        if node.data.startswith('#b'):
             return (int(node[2:], 2), len(node[2:]))
-        if node.startswith('#x'):
+        if node.data.startswith('#x'):
             return (int(node[2:], 16), len(node[2:]) * 4)
         assert False
     return (int(node[1][2:]), node[2])
