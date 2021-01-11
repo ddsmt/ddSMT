@@ -273,8 +273,10 @@ class BVMergeReducedBW:
         deffun_body = get_defined_function(deffun_name)
         deffun_zext = int(deffun_body[0][-1].data)
         decfun_name = deffun_body[-1]
-        return [('define-fun', name, (),
-                 ('zero_extend', str(zext + deffun_zext), decfun_name))]
+        return [
+            Node('define-fun', name, (),
+                 ('zero_extend', str(zext + deffun_zext), decfun_name))
+        ]
 
     def global_mutations(self, linput, ginput):
         return [
