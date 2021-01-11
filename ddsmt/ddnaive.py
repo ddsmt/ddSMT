@@ -193,6 +193,10 @@ def reduce(exprs):
         if cur_pool < len(passes):
             cur_passes.extend(passes[cur_pool])
             cur_pool += 1
-            logging.info(f'Adding additional mutators (pass {cur_pool})')
+            logging.info(
+                f'Adding additional mutators (pass {cur_pool} / {len(passes)})'
+            )
+        else:
+            break
 
     return exprs, nchecks
