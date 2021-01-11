@@ -5,6 +5,12 @@ import sys
 import time
 
 from . import checker
+from . import mutators_arithmetic
+from . import mutators_bitvectors
+from . import mutators_boolean
+from . import mutators_core
+from . import mutators_smtlib
+from . import mutators_strings
 from . import nodes
 from . import options
 from . import parser
@@ -25,7 +31,57 @@ Task = collections.namedtuple('Task', ['nodeid', 'name', 'exprs', 'repl'])
 
 
 def ddnaive_passes():
-    return mutators.collect_mutators(options.args())
+    """Returns a list of passes, each pass being a list of mutators.
+
+    The list is ordered so that earlier passes are more promising for a
+    quick reduction.
+    """
+    return [
+        [  # Usually yield strong reduction / need to be done early on
+            mutators_core.Constants(),
+            mutators_core.EraseNode(),
+            mutators_core.SubstituteChildren(),
+            mutators_core.TopLevelBinaryReduction(),
+            mutators_smtlib.CheckSatAssuming(),
+            mutators_smtlib.LetElimination(),
+            mutators_smtlib.LetSubstitution(),
+            mutators_smtlib.PushPopRemoval(),
+        ],
+        [  # Regular mutators
+            mutators_arithmetic.ArithmeticSimplifyConstant(),
+            mutators_arithmetic.ArithmeticNegateRelations(),
+            mutators_arithmetic.ArithmeticSplitNaryRelations(),
+            mutators_arithmetic.ArithmeticStrengthenRelations(),
+            mutators_bitvectors.BVConcatToZeroExtend(),
+            mutators_bitvectors.BVDoubleNegation(),
+            mutators_bitvectors.BVElimBVComp(),
+            mutators_bitvectors.BVEvalExtend(),
+            mutators_bitvectors.BVExtractConstants(),
+            mutators_bitvectors.BVOneZeroITE(),
+            mutators_bitvectors.BVReflexiveNand(),
+            mutators_bitvectors.BVSimplifyConstant(),
+            mutators_bitvectors.BVTransformToBool(),
+            mutators_bitvectors.BVReduceBW(),
+            mutators_bitvectors.BVMergeReducedBW(),
+            mutators_boolean.DeMorgan(),
+            mutators_boolean.DoubleNegation(),
+            mutators_boolean.EliminateFalseEquality(),
+            mutators_boolean.EliminateImplications(),
+            mutators_boolean.XORRemoveConstants(),
+            mutators_boolean.XOREliminateBinary(),
+            mutators_core.MergeWithChildren(),
+            mutators_core.ReplaceByVariable(),
+            mutators_core.SortChildren(),
+            mutators_smtlib.EliminateDistinct(),
+            mutators_smtlib.InlineDefinedFuns(),
+            mutators_smtlib.SimplifyLogic(),
+            mutators_strings.StringSimplifyConstant(),
+        ],
+        [  # Usually only have cosmetic impact
+            mutators_smtlib.SimplifyQuotedSymbols(),
+            mutators_smtlib.SimplifySymbolNames(),
+        ]
+    ]
 
 
 class MutationGenerator:
@@ -88,44 +144,55 @@ def _check(task):
 
 def reduce(exprs):
     passes = ddnaive_passes()
+    cur_pool = 1
+    cur_passes = passes[0]
 
     nchecks = 0
-    skip = 0
-    fresh_run = True
 
     while True:
-        start = time.time()
-        smtlib.collect_information(exprs)
-        reduction = False
-        cnt = smtlib.count_nodes(exprs)
-        progress.start(cnt)
-        progress.update(min(cnt, skip))
-        with Pool(options.args().max_threads) as pool:
-            mg = MutationGenerator(skip, passes)
-            for result in pool.imap(_check, mg.generate_mutations(exprs)):
-                nchecks += 1
-                success, task = result
-                progress.update(task.nodeid)
-                if success:
-                    sys.stdout.write('\n')
-                    runtime = time.time() - start
-                    logging.info('Found simplification: {} ({:.2f}s)'.format(
-                        task.name, runtime))
-                    reduction = True
-                    exprs = task.exprs
-                    skip = task.nodeid - 1
-                    fresh_run = False
-                    nodes.write_smtlib_to_file(options.args().outfile, exprs)
-                    pool.close()
+        skip = 0
+        fresh_run = True
+        while True:
+            start = time.time()
+            smtlib.collect_information(exprs)
+            reduction = False
+            cnt = smtlib.count_nodes(exprs)
+            progress.start(cnt)
+            progress.update(min(cnt, skip))
+            with Pool(options.args().max_threads) as pool:
+                mg = MutationGenerator(skip, cur_passes)
+                for result in pool.imap_unordered(
+                        _check, mg.generate_mutations(exprs)):
+                    nchecks += 1
+                    success, task = result
+                    progress.update(task.nodeid)
+                    if success:
+                        sys.stdout.write('\n')
+                        runtime = time.time() - start
+                        logging.info(
+                            'Found simplification: {} ({:.2f}s)'.format(
+                                task.name, runtime))
+                        reduction = True
+                        exprs = task.exprs
+                        skip = task.nodeid - 1
+                        fresh_run = False
+                        nodes.write_smtlib_to_file(options.args().outfile,
+                                                   exprs)
+                        pool.close()
+                        break
+            pool.join()
+            if not reduction:
+                sys.stdout.write('\n')
+                logging.info('No further simplification found')
+                if fresh_run:
                     break
-        pool.join()
-        if not reduction:
-            sys.stdout.write('\n')
-            logging.info('No further simplification found')
-            if fresh_run:
-                break
-            logging.info('Starting over')
-            skip = 0
-            fresh_run = True
+                logging.info('Starting over')
+                skip = 0
+                fresh_run = True
+
+        if cur_pool < len(passes):
+            cur_passes.extend(passes[cur_pool])
+            cur_pool += 1
+            logging.info(f'Adding additional mutators (pass {cur_pool})')
 
     return exprs, nchecks
