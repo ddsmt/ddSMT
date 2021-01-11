@@ -89,6 +89,7 @@ def setup_logging():
 
 
 def ddsmt_main():
+    start_time_process = time.process_time()
     setup_logging()
     check_options()
 
@@ -129,6 +130,8 @@ def ddsmt_main():
 
         logging.info("")
         logging.info("runtime:         {:.2f} s".format(end_time - start_time))
+        logging.debug("main process:   {:.2f} s".format(time.process_time()
+                                                        - start_time_process))
         logging.info("tests:           {}".format(ntests))
         logging.info("input file:")
         logging.info("  file size:     {} B".format(ifilesize))
