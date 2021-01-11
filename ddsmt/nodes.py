@@ -108,11 +108,17 @@ def substitute(exprs, repl):
         expr, visited = visit.pop()
         assert isinstance(expr, Node)
 
+        didrepl = False
         if expr.id and expr.id in repl:
             expr = repl[expr.id]
+            didrepl = True
         if expr in repl:
             expr = repl[expr]
-        if expr is None:
+            didrepl = True
+        if didrepl:
+            if expr is None:
+                continue
+            args[-1].append(expr)
             continue
         assert isinstance(expr, Node)
 
