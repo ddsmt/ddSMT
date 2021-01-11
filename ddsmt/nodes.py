@@ -93,6 +93,8 @@ def substitute(exprs, repl):
     - int -> Node to replace nodes with the given id with the value node
     - Node -> Node to replace nodes equal to the key node with the value node
     """
+    if len(repl) == 0:
+        return exprs
     if isinstance(exprs, Node):
         if exprs.is_leaf():
             if exprs.id and exprs.id in repl:
