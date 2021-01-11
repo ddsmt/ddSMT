@@ -14,11 +14,8 @@ from . import mutators_smtlib
 from . import mutators_strings
 from . import nodes
 from . import options
-from . import parser
-from . import subst
-from . import smtlib
-from . import mutators
 from . import progress
+from . import smtlib
 
 # nodeid: id of the mutated node in dfs order. Only used for progress indication
 # name: name of the mutator
@@ -116,8 +113,7 @@ class MutationGenerator:
                                            str(m), None, pickle.dumps(x)),
                             m.global_mutations(linput, ginput)))
             except Exception as e:
-                print("Exception: {}".format(e))
-                pass
+                logging.info(f'{type(e)} in application of {m}: {e}')
 
     def generate_mutations(self, original):
         """A generator that produces all possible mutations from the given
@@ -142,7 +138,7 @@ def _check(task):
             return True, Task(task.nodeid, task.name, exprs, None)
         return False, Task(task.nodeid, task.name, None, None)
     except Exception as e:
-        logging.info(f'{type(e)} in check: {e}')
+        logging.info(f'{type(e)} in check of {task.name}: {e}')
 
 
 def reduce(exprs):
