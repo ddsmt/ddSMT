@@ -35,7 +35,6 @@ class Node:
         return len(self.data)
 
     def __getitem__(self, key):
-        assert not self.is_leaf()
         return self.data[key]
 
     def __eq__(self, other):
@@ -52,7 +51,8 @@ class Node:
         return isinstance(self.data, str)
 
     def has_name(self):
-        return self.data and self.data[0].is_leaf()
+        return isinstance(self.data,
+                          tuple) and self.data and self.data[0].is_leaf()
 
     def get_name(self):
         assert (self.has_name())
