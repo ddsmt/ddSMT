@@ -124,8 +124,9 @@ class SimplifyLogic:
         repls = {'BV': '', 'FP': '', 'UF': '', 'S': '', 'T': '', 'NRA': 'LRA'}
         for r in repls:
             if r in logic:
-                cands.append(logic.replace(r, repls[r]))
-        return [('set-logic', c) for c in cands]
+                assert logic.is_leaf()
+                cands.append(logic.data.replace(r, repls[r]))
+        return [Node('set-logic', c) for c in cands]
 
     def __str__(self):
         return 'simplify logic'

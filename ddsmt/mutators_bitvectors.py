@@ -268,10 +268,10 @@ class BVMergeReducedBW:
 
     def mutations(self, node):
         name = node[1]
-        zext = int(get_defined_function(name)[0][-1])
+        zext = int(get_defined_function(name)[0][-1].data)
         deffun_name = node[-1][-1]
         deffun_body = get_defined_function(deffun_name)
-        deffun_zext = int(deffun_body[0][-1])
+        deffun_zext = int(deffun_body[0][-1].data)
         decfun_name = deffun_body[-1]
         return [('define-fun', name, (),
                  ('zero_extend', str(zext + deffun_zext), decfun_name))]

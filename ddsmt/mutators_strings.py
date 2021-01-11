@@ -13,13 +13,13 @@ class StringSimplifyConstant:
     def mutations(self, node):
         content = node[1:-1]
         return [
-            '"{}"'.format(c) for c in
+            Node(f'"{c}"') for c in
             ['', content[:len(content) // 2], content[1:], content[:-1]]
         ]
 
     def global_mutations(self, linput, ginput):
         return [
-            subst.subs_global(ginput, {linput: rep})
+            nodes.substitute(ginput, {linput: rep})
             for rep in self.mutations(linput)
         ]
 

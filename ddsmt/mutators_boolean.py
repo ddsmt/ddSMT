@@ -91,10 +91,10 @@ class XORRemoveConstants:
     def mutations(self, node):
         res = []
         if 'false' in node:
-            res.append([c for c in node if c != 'false'])
+            res.append(Node(*[c for c in node if c != 'false']))
         if 'true' in node:
-            res.append([c for c in node if c != 'true'])
-            res.append(('not', [c for c in node if c != 'true']))
+            res.append(Node(*[c for c in node if c != 'true']))
+            res.append(Node('not', tuple(c for c in node if c != 'true')))
         return res
 
     def __str__(self):
