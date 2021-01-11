@@ -55,12 +55,12 @@ class MutationGenerator:
                 print("Exception: {}".format(e))
                 pass
 
-    def generate_mutations(self, original, skip):
+    def generate_mutations(self, original):
         """A generator that produces all possible mutations from the given
         original."""
         for node in nodes.dfs(original):
             self.__node_count += 1
-            if skip < self.__node_count:
+            if self.__node_skip < self.__node_count:
                 for task in self.__mutate_node(node, original):
                     yield original, task
 
@@ -85,8 +85,7 @@ def reduce(exprs):
         progress.update(min(cnt, skip))
         with Pool(options.args().max_threads) as pool:
             mg = MutationGenerator(skip, passes)
-            for result in pool.imap(_check, mg.generate_mutations(exprs,
-                                                                  skip)):
+            for result in pool.imap(_check, mg.generate_mutations(exprs)):
                 nchecks += 1
                 success, task = result
                 progress.update(task.nodeid)
