@@ -189,9 +189,10 @@ class SimplifySymbolNames:
 
     def __simpler(self, symbol):
         """Return a list of simpler versions of the given symbol."""
-        if len(symbol) < 2:
+        sym = symbol.data
+        if len(sym) < 2:
             return []
-        return [symbol[:len(symbol) // 2], symbol[1:], symbol[:-1]]
+        return [sym[:len(sym) // 2], sym[1:], sym[:-1]]
 
     def __str__(self):
         return 'simplify symbol name'
