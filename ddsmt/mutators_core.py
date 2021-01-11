@@ -11,6 +11,9 @@ MUTATORS = [
 
 class Constants:
     """Replaces any node by a constant."""
+    def filter(self, node):
+        return get_type(node) is not None
+
     def mutations(self, node):
         """Return :code:`get_constants(get_type(node))`."""
         t = get_type(node)
