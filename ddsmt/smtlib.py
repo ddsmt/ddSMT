@@ -55,35 +55,6 @@ def collect_information(exprs):
 
 
 # Generic utilities
-def dfs(exprs, max_depth=-1):
-    """DFS traversal of s-expressions in exprs up to a maximum depth."""
-    #visit = list(reversed([(1, x) for x in exprs]))
-    visit = [(1, x) for x in reversed(exprs)]
-    while visit:
-        cur_depth, expr = visit.pop()
-        if isinstance(expr, tuple) \
-            and (max_depth == -1 or cur_depth < max_depth):
-            yield expr
-            visit.extend([(cur_depth + 1, x) for x in reversed(expr)])
-        else:
-            yield expr
-
-
-def dfs_postorder(exprs):
-    """Postorder DFS traversal of s-expressions in exprs."""
-    visit = [(x, False) for x in exprs]
-    while visit:
-        sexpr, visited = visit.pop()
-        if not isinstance(sexpr, tuple):
-            continue
-
-        if visited:
-            yield sexpr
-        else:
-            visit.append((sexpr, True))
-            visit.extend((x, False) for x in reversed(sexpr))
-
-
 def count_nodes(node):
     """Return the number of expressions yielded when traversing :code:`node` in
     DFS manner."""
