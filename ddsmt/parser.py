@@ -38,21 +38,12 @@ def parse_smtlib(text):  # noqa: C901
 
         # Comments
         elif char == ';':
-            comment = [char]
             # Read until newline
-            while True:
-                if pos >= size:
-                    return
+            while pos < size:
                 char = text[pos]
                 pos += 1
-                comment.append(char)
                 if char == '\n':
                     break
-            comment = ''.join(comment)
-            if cur_expr:
-                cur_expr.append(comment)
-            else:
-                yield comment
 
         # Open s-expression
         elif char == '(':
