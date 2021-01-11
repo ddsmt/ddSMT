@@ -17,7 +17,7 @@ class CheckSatAssuming:
         return has_name(node) and get_name(node) == 'check-sat-assuming'
 
     def mutations(self, node):
-        return [('check-sat', )]
+        return [Node('check-sat')]
 
     def __str__(self):
         return 'substitute check-sat-assuming by check-sat'
@@ -29,7 +29,7 @@ class EliminateDistinct:
         return has_name(node) and get_name(node) == 'distinct'
 
     def mutations(self, node):
-        return [('not', tuple(['='] + list(node[1:])))]
+        return [Node('not', tuple(['='] + list(node[1:])))]
 
     def __str__(self):
         return 'eliminate distinct'

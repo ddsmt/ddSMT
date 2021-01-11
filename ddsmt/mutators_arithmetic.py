@@ -68,7 +68,7 @@ class ArithmeticSplitNaryRelations:
         split = [(get_name(node), node[i], node[i + 1])
                  for i in range(1,
                                 len(node) - 1)]
-        return [('and', *split)]
+        return [Node('and', *split)]
 
     def __str__(self):
         return 'split n-ary relation'
@@ -82,7 +82,7 @@ class ArithmeticStrengthenRelations:
     def mutations(self, node):
         negator = {'<': ['='], '>': ['='], '<=': ['<', '='], '>=': ['>', '=']}
         if node[0] in negator:
-            return [(rel, ) + node[1:] for rel in negator[node[0]]]
+            return [Node(rel, *node.data[1:]) for rel in negator[node[0]]]
         return []
 
     def __str__(self):
