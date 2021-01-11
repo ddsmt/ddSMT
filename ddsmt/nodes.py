@@ -94,6 +94,12 @@ def substitute(exprs, repl):
     - Node -> Node to replace nodes equal to the key node with the value node
     """
     if isinstance(exprs, Node):
+        if exprs.is_leaf():
+            if exprs.id and exprs.id in repl:
+                return repl[exprs.id]
+            if exprs in repl:
+                return repl[exprs]
+            return exprs
         visit = [(x, False) for x in reversed(exprs.data)]
     else:
         visit = [(x, False) for x in reversed(exprs)]
