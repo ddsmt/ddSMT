@@ -70,7 +70,7 @@ class LetSubstitution:
         for var in node[1]:
             if any(n == var[0] for n in dfs(node[2])):
                 subs = nodes.substitute(node[2], {var[0]: var[1]})
-                res.append([node[0], node[1], subs])
+                res.append(Node(node[0], node[1], subs))
         return res
 
     def __str__(self):
