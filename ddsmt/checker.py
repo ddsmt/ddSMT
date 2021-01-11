@@ -111,23 +111,6 @@ def check_exprs(exprs):
     return check(tmpfile)
 
 
-def check_substitution(exprs, subst):
-    """Run the check on the given expressions with substitutions applied.
-
-    Returns (nreduced,test_exprs,runtime) if the check was successful
-    where nreduced is the number of removed nodes and test_exprs the new
-    expressions. Otherwise returns (0,[],0).
-    """
-    test_exprs = subst.apply(exprs)
-
-    success = check_exprs(test_exprs)
-
-    if success:
-        return test_exprs
-
-    return []
-
-
 def do_golden_runs():
     """Do the initial runs to obtain the golden run results."""
     global __GOLDEN

@@ -188,7 +188,7 @@ class BVSimplifyConstant:
 
     def global_mutations(self, linput, ginput):
         return [
-            subst.subs_global(ginput, {linput: rep})
+            nodes.substitute(ginput, {linput: rep})
             for rep in self.mutations(linput)
         ]
 
@@ -278,7 +278,7 @@ class BVMergeReducedBW:
 
     def global_mutations(self, linput, ginput):
         return [
-            subst.subs_global(ginput, {linput: rep})
+            nodes.substitute(ginput, {linput: rep})
             for rep in self.mutations(linput)
         ]
 
