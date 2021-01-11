@@ -13,7 +13,15 @@ from . import smtlib
 from . import mutators
 from . import progress
 
-Mutation = collections.namedtuple('Mutation', ['nodeid', 'name', 'exprs'])
+# nodeid: id of the mutated node in dfs order. Only used for progress indication
+# name: name of the mutator
+# if we have a global mutation:
+#   exprs: None
+#   repl: the new input to check
+# if we have a local mutation:
+#   exprs: the current input
+#   repl: the substitution to be checked
+Task = collections.namedtuple('Task', ['nodeid', 'name', 'exprs', 'repl'])
 
 
 def ddnaive_passes():
@@ -41,15 +49,14 @@ class MutationGenerator:
                 if hasattr(m, 'mutations'):
                     yield from list(
                         map(
-                            lambda x: Mutation(
-                                self.__node_count, str(m),
-                                nodes.substitute(ginput, {linput.id: x})),
+                            lambda x: Task(self.__node_count, str(m),
+                                           ginput, {linput.id: x}),
                             m.mutations(linput)))
                 if hasattr(m, 'global_mutations'):
                     yield from list(
                         map(
-                            lambda x: Mutation(self.__node_count, "(global) " +
-                                               str(m), x),
+                            lambda x: Task(self.__node_count, "(global) " +
+                                           str(m), None, x),
                             m.global_mutations(linput, ginput)))
             except Exception as e:
                 print("Exception: {}".format(e))
@@ -61,12 +68,22 @@ class MutationGenerator:
         for node in nodes.dfs(original):
             self.__node_count += 1
             if self.__node_skip < self.__node_count:
-                for task in self.__mutate_node(node, original):
-                    yield original, task
+                yield from self.__mutate_node(node, original)
 
 
 def _check(task):
-    return checker.check_exprs(task[1].exprs), task[1]
+    try:
+        if task.exprs is None:
+            # global
+            exprs = task.repl
+        else:
+            # local
+            exprs = nodes.substitute(task.exprs, task.repl)
+        if checker.check_exprs(exprs):
+            return True, Task(task.nodeid, task.name, exprs, None)
+        return False, Task(task.nodeid, task.name, None, None)
+    except Exception as e:
+        logging.info(f'{type(e)} in check: {e}')
 
 
 def reduce(exprs):
