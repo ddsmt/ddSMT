@@ -237,7 +237,7 @@ def get_defined_function(node):
     """
     assert is_defined_function(node)
     if node.is_leaf():
-        return __defined_functions[node]([])
+        return __defined_functions[node.data]([])
     return __defined_functions[get_name(node)](node[1:])
 
 

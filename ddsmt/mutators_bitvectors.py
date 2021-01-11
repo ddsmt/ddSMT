@@ -1,3 +1,4 @@
+from .nodes import Node
 from . import options
 from . import subst
 from .smtlib import *
@@ -62,8 +63,10 @@ class BVConcatToZeroExtend:
         return get_bv_constant_value(node[1])[0] == 0
 
     def mutations(self, node):
-        return [(('_', 'zero_extend', get_bv_constant_value(node[1])[1]),
-                 node[2])]
+        return [
+            Node(('_', 'zero_extend', get_bv_constant_value(node[1])[1]),
+                 node[2])
+        ]
 
     def __str__(self):
         return 'replace concat by zero_extend'
@@ -149,7 +152,7 @@ class BVOneZeroITE:
         return True
 
     def mutations(self, node):
-        return [('bvcomp', node[1][1], node[1][2])]
+        return [Node(Node('bvcomp'), node[1][1], node[1][2])]
 
     def __str__(self):
         return 'eliminate ite with bv1 / bv0 cases'
@@ -179,7 +182,7 @@ class BVSimplifyConstant:
     def mutations(self, node):
         val, width = get_bv_constant_value(node)
         return [
-            '#b{{:0>{}b}}'.format(width).format(v)
+            Node('#b{{:0>{}b}}'.format(width).format(v))
             for v in [val // 32, val // 8, val // 2]
         ]
 
@@ -202,9 +205,10 @@ class BVTransformToBool:
     def mutations(self, node):
         repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
         if has_name(node[2]) and get_name(node[2]) in repl:
-            return [(repl[get_name(node[2])], ) + tuple([('=', node[1], c)
-                                                         for c in node[2][1:]])
-                    ]
+            return [
+                Node(repl[get_name(node[2])],
+                     *[Node('=', node[1], c) for c in node[2][1:]])
+            ]
         return []
 
     def __str__(self):
@@ -233,9 +237,9 @@ class BVReduceBW:
         bw = get_bv_width(linput[1])
         for b in range(1, bw):
             varname = '_{}'.format(linput[1])
-            var = ('declare-const', varname, ('_', 'BitVec', str(b)))
-            zext = ('define-fun', linput[1], (), get_type(linput[1]),
-                    (('_', 'zero_extend', str(bw - b)), varname))
+            var = Node('declare-const', varname, Node('_', 'BitVec', str(b)))
+            zext = Node('define-fun', linput[1], (), get_type(linput[1]),
+                        Node(Node('_', 'zero_extend', str(bw - b)), varname))
             res.append(gin1 + [var] + [zext] + gin2)
         return res
 
