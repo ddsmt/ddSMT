@@ -269,16 +269,16 @@ def get_type(node):
     if node.is_leaf() and node.data in __type_lookup:
         return __type_lookup[node.data]
     if is_boolean_constant(node):
-        return 'Bool'
+        return Node('Bool')
     if is_bv_constant(node):
-        return ('_', 'BitVec', str(get_bv_width(node)))
+        return Node('_', 'BitVec', str(get_bv_width(node)))
     if is_int_constant(node):
-        return 'Int'
+        return Node('Int')
     if is_real_constant(node):
-        return 'Real'
+        return Node('Real')
     bvwidth = get_bv_width(node)
     if bvwidth != -1:
-        return ('_', 'BitVec', str(bvwidth))
+        return Node('_', 'BitVec', str(bvwidth))
     if has_name(node):
         if is_operator(node, 'ite'):
             return get_type(node[1])
@@ -332,10 +332,10 @@ def get_type(node):
                 'str.contains',
                 'str.is_digit',
         ]:
-            return 'Bool'
+            return Node('Bool')
         # int theory
         if get_name(node) == '_' and len(node) == 3 and node[1] == 'divisible':
-            return 'Bool'
+            return Node('Bool')
         # stuff that returns Int
         if get_name(node) in [
                 'div',
@@ -350,15 +350,15 @@ def get_type(node):
                 # sets theory
                 'card'
         ]:
-            return 'Int'
+            return Node('Int')
         # stuff that returns Real
         if get_name(node) in ['/', 'to_real', 'fp.to_real']:
-            return 'Real'
+            return Node('Real')
         if get_name(node) in ['+', '-', '*']:
             if any(map(lambda n: get_type(n) == 'Real', node[1:])):
-                return 'Real'
+                return Node('Real')
             else:
-                return 'Int'
+                return Node('Int')
     return None
 
 
