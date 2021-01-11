@@ -1,6 +1,7 @@
 import collections
 import logging
 from multiprocessing import Pool
+import pickle
 import sys
 import time
 
@@ -90,7 +91,7 @@ class MutationGenerator:
         self.__node_skip = skip
         self.__mutators = mutators
 
-    def __mutate_node(self, linput, ginput):
+    def __mutate_node(self, linput, ginput, gpickled):
         """Apply all active mutators to the given node.
 
         Returns a list of all possible mutations as tuples :code:`(name,
@@ -105,14 +106,14 @@ class MutationGenerator:
                 if hasattr(m, 'mutations'):
                     yield from list(
                         map(
-                            lambda x: Task(self.__node_count, str(m),
-                                           ginput, {linput.id: x}),
+                            lambda x: Task(self.__node_count, str(m), gpickled,
+                                           pickle.dumps({linput.id: x})),
                             m.mutations(linput)))
                 if hasattr(m, 'global_mutations'):
                     yield from list(
                         map(
                             lambda x: Task(self.__node_count, "(global) " +
-                                           str(m), None, x),
+                                           str(m), None, pickle.dumps(x)),
                             m.global_mutations(linput, ginput)))
             except Exception as e:
                 print("Exception: {}".format(e))
@@ -121,20 +122,22 @@ class MutationGenerator:
     def generate_mutations(self, original):
         """A generator that produces all possible mutations from the given
         original."""
+        pickled = pickle.dumps(original)
         for node in nodes.dfs(original):
             self.__node_count += 1
             if self.__node_skip < self.__node_count:
-                yield from self.__mutate_node(node, original)
+                yield from self.__mutate_node(node, original, pickled)
 
 
 def _check(task):
     try:
         if task.exprs is None:
             # global
-            exprs = task.repl
+            exprs = pickle.loads(task.repl)
         else:
             # local
-            exprs = nodes.substitute(task.exprs, task.repl)
+            exprs = nodes.substitute(pickle.loads(task.exprs),
+                                     pickle.loads(task.repl))
         if checker.check_exprs(exprs):
             return True, Task(task.nodeid, task.name, exprs, None)
         return False, Task(task.nodeid, task.name, None, None)
