@@ -18,24 +18,40 @@ def ddmin_passes():
 
 def _subst(exprs, subset, mutator):
 
-    substs = dict()
-    # TODO: if subset size is 1 try all mutations?
-    for node in subset:
-        mutations = mutator.mutations(node)
-        substs[node.id] = mutations[0] if mutations else None
+    res = []
 
-    return nodes.substitute(exprs, substs)
+    # if subset size is 1 try all mutations
+    if len(subset) == 1:
+        node = subset[0]
+        mutations = mutator.mutations(node)
+        if mutations:
+            res.extend(
+                nodes.substitute(exprs, {node.id: x}) for x in mutations)
+        else:
+            res.append(nodes.substitute(exprs, {node.id: None}))
+    else:
+        substs = dict()
+        for node in subset:
+            mutations = mutator.mutations(node)
+            substs[node.id] = mutations[0] if mutations else None
+        res.append(nodes.substitute(exprs, substs))
+
+    return res
 
 
 def _worker(task):
     task_id, exprs, subset, mutator = task
 
-    reduced_exprs = _subst(exprs, subset, mutator)
-    if checker.check_exprs(reduced_exprs):
-        nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(
-            reduced_exprs)
-        return task_id, nreduced, reduced_exprs
-    return task_id, 0, []
+    substs = _subst(exprs, subset, mutator)
+
+    ntests = 0
+    for reduced_exprs in substs:
+        ntests += 1
+        if checker.check_exprs(reduced_exprs):
+            nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(
+                reduced_exprs)
+            return task_id, nreduced, reduced_exprs, ntests
+    return task_id, 0, [], ntests
 
 
 def _partition(exprs, gran):
@@ -49,8 +65,9 @@ def _clear_msg(nchars):
 
 def _apply_mutator(mutator, exprs):
 
+    smtlib.collect_information(exprs)
     nexprs = smtlib.count_exprs(exprs)
-    max_depth = mutator.max_depth() if hasattr(mutator, 'max_depth') else -1
+    max_depth = mutator.max_depth() if hasattr(mutator, 'max_depth') else None
     exprs_filtered = list(smtlib.filter_exprs(exprs, mutator.filter,
                                               max_depth))
 
@@ -80,14 +97,15 @@ def _apply_mutator(mutator, exprs):
             with Pool(nprocs) as pool:
 
                 for result in pool.imap(_worker, task_list):
-                    task_id, nreduced, reduced_exprs = result
-                    ntests += 1
+                    task_id, nreduced, reduced_exprs, nt = result
+                    ntests += nt
 
                     if nreduced:
                         pool.close()
                         exprs = reduced_exprs
                         nreduced_total += nreduced
                         restart = True
+                        smtlib.collect_information(exprs)
 
                         # Print current working set to file
                         nodes.write_smtlib_to_file(options.args().outfile,
@@ -135,19 +153,21 @@ class RemoveCommand:
 
 def reduce(exprs):
 
-    ntests_total = 0
-
     passes = [RemoveCommand()]
     passes.extend(
         p for p in ddmin_passes() \
                 if hasattr(p, 'filter') and hasattr(p, 'mutations'))
 
-    for mut in passes:
-        while True:
+    ntests_total = 0
+    while True:
+        nreduced_round = 0
+
+        for mut in passes:
             exprs, ntests, nreduced = _apply_mutator(mut, exprs)
             ntests_total += ntests
+            nreduced_round += nreduced
 
-            if nreduced == 0:
-                break
+        if nreduced_round == 0:
+            break
 
     return exprs, ntests_total
