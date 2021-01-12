@@ -10,16 +10,18 @@ from . import smtlib
 from . import nodes
 
 
+# Disabled mutators use global_mutations only, which are currently not handled
+# by ddmin.
 def ddmin_passes():
     return mutators.get_mutators([
         'Constants',
         'EraseNode',
         'SubstituteChildren',
-        'TopLevelBinaryReduction',
+        #        'TopLevelBinaryReduction',
         'CheckSatAssuming',
         'LetElimination',
         'LetSubstitution',
-        'PushPopRemoval',
+        #        'PushPopRemoval',
         'ArithmeticSimplifyConstant',
         'ArithmeticNegateRelations',
         'ArithmeticSplitNaryRelations',
@@ -48,8 +50,8 @@ def ddmin_passes():
         'InlineDefinedFuns',
         'SimplifyLogic',
         'StringSimplifyConstant',
-        'SimplifyQuotedSymbols',
-        'SimplifySymbolNames',
+        #        'SimplifyQuotedSymbols',
+        #        'SimplifySymbolNames',
     ])
 
 
