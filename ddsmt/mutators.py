@@ -2,7 +2,7 @@ import argparse
 
 from . import options
 from . import mutators_arithmetic
-from . import mutators_bitvectors
+from . import mutators_bv
 from . import mutators_boolean
 from . import mutators_core
 from . import mutators_smtlib
@@ -23,7 +23,7 @@ class AgressiveAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, 'mode_aggressive', True)
         disable(namespace, mutators_arithmetic.NAME)
-        disable(namespace, mutators_bitvectors.NAME)
+        disable(namespace, mutators_bv.NAME)
         disable(namespace, mutators_boolean.NAME)
         disable_all(namespace, mutators_core.MUTATORS)
         disable(namespace, mutators_strings.NAME)
@@ -47,7 +47,7 @@ class LetEliminationAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, 'mode_let_elimination', True)
         disable(namespace, mutators_arithmetic.NAME)
-        disable(namespace, mutators_bitvectors.NAME)
+        disable(namespace, mutators_bv.NAME)
         disable(namespace, mutators_boolean.NAME)
         disable(namespace, mutators_core.NAME)
         disable_all(namespace, mutators_smtlib.MUTATORS)
@@ -67,7 +67,7 @@ class TopLevelOnlyAction(argparse.Action):
     """Mode that only uses top level binary reduction."""
     def __call__(self, parser, namespace, values, option_string=None):
         disable(namespace, mutators_arithmetic.NAME)
-        disable(namespace, mutators_bitvectors.NAME)
+        disable(namespace, mutators_bv.NAME)
         disable(namespace, mutators_boolean.NAME)
         disable_all(namespace, mutators_core.MUTATORS)
         disable(namespace, mutators_smtlib.NAME)
@@ -124,7 +124,7 @@ def collect_mutator_options(argparser):
         add_mutator_group(argparser, 'boolean'))
     mutators_arithmetic.collect_mutator_options(
         add_mutator_group(argparser, 'arithmetic'))
-    mutators_bitvectors.collect_mutator_options(
+    mutators_bv.collect_mutator_options(
         add_mutator_group(argparser, 'bitvector'))
     mutators_smtlib.collect_mutator_options(
         add_mutator_group(argparser, 'smtlib'))
@@ -136,7 +136,7 @@ def get_all_mutators():
     """Return all available mutators, arranged by their theory."""
     return {
         mutators_arithmetic: mutators_arithmetic.get_mutators(),
-        mutators_bitvectors: mutators_bitvectors.get_mutators(),
+        mutators_bv: mutators_bv.get_mutators(),
         mutators_boolean: mutators_boolean.get_mutators(),
         mutators_core: mutators_core.get_mutators(),
         mutators_smtlib: mutators_core.get_mutators(),
