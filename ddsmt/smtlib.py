@@ -2,7 +2,6 @@ import re
 
 from . import nodes
 from .nodes import dfs, Node
-from . import subst
 
 # Stores all declared or defined (first-order) constants with their types
 __constants = {}
