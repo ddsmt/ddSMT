@@ -11,7 +11,46 @@ from . import nodes
 
 
 def ddmin_passes():
-    return mutators.collect_mutators(options.args())
+    return mutators.get_mutators([
+        'Constants',
+        'EraseNode',
+        'SubstituteChildren',
+        'TopLevelBinaryReduction',
+        'CheckSatAssuming',
+        'LetElimination',
+        'LetSubstitution',
+        'PushPopRemoval',
+        'ArithmeticSimplifyConstant',
+        'ArithmeticNegateRelations',
+        'ArithmeticSplitNaryRelations',
+        'ArithmeticStrengthenRelations',
+        'BVConcatToZeroExtend',
+        'BVDoubleNegation',
+        'BVElimBVComp',
+        'BVEvalExtend',
+        'BVExtractConstants',
+        'BVOneZeroITE',
+        'BVReflexiveNand',
+        'BVSimplifyConstant',
+        'BVTransformToBool',
+        'BVReduceBW',
+        'BVMergeReducedBW',
+        'DeMorgan',
+        'DoubleNegation',
+        'EliminateFalseEquality',
+        'EliminateImplications',
+        'XORRemoveConstants',
+        'XOREliminateBinary',
+        'MergeWithChildren',
+        'ReplaceByVariable',
+        'SortChildren',
+        'EliminateDistinct',
+        'InlineDefinedFuns',
+        'SimplifyLogic',
+        'StringSimplifyConstant',
+        'SimplifyQuotedSymbols',
+        'SimplifySymbolNames',
+    ])
 
 
 def _subst(exprs, subset, mutator):
