@@ -1,5 +1,4 @@
 from ..nodes import Node, dfs, substitute, parse_smtlib
-from .. import parser
 
 
 def test_basic():
