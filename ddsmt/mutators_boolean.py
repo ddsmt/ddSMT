@@ -145,23 +145,3 @@ def get_mutators():
         'NegatedQuantifiers': 'negated_quant',
         'XORRemoveConstants': 'remove_xor_constants',
     }
-
-
-def collect_mutators(args):
-    res = []
-    if args.mutator_boolean:
-        if args.mutator_de_morgan:
-            res.append(DeMorgan())
-        if args.mutator_double_negations:
-            res.append(DoubleNegation())
-        if args.mutator_eliminate_binary_xor:
-            res.append(XOREliminateBinary())
-        if args.mutator_eliminate_false_eq:
-            res.append(EliminateFalseEquality())
-        if args.mutator_eliminate_implications:
-            res.append(EliminateImplications())
-        if args.mutator_negated_quant:
-            res.append(NegatedQuantifiers())
-        if args.mutator_remove_xor_constants:
-            res.append(XORRemoveConstants())
-    return res

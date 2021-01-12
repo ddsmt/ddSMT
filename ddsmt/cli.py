@@ -33,7 +33,6 @@ from . import ddmin
 from . import ddnaive
 from . import nodes
 from . import options
-from . import parser
 from . import tmpfiles
 from . import smtlib
 

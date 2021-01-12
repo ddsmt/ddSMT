@@ -132,16 +132,16 @@ def collect_mutator_options(argparser):
         add_mutator_group(argparser, 'string'))
 
 
-def collect_mutators(args):
-    """Initializes the list of all active mutators."""
-    res = []
-    res += mutators_core.collect_mutators(args)
-    res += mutators_boolean.collect_mutators(args)
-    res += mutators_arithmetic.collect_mutators(args)
-    res += mutators_bitvectors.collect_mutators(args)
-    res += mutators_smtlib.collect_mutators(args)
-    res += mutators_strings.collect_mutators(args)
-    return res
+def get_all_mutators():
+    """Return all available mutators, arranged by their theory."""
+    return {
+        mutators_arithmetic: mutators_arithmetic.get_mutators(),
+        mutators_bitvectors: mutators_bitvectors.get_mutators(),
+        mutators_boolean: mutators_boolean.get_mutators(),
+        mutators_core: mutators_core.get_mutators(),
+        mutators_smtlib: mutators_core.get_mutators(),
+        mutators_strings: mutators_core.get_mutators(),
+    }
 
 
 def get_mutators(mutators):
@@ -151,14 +151,7 @@ def get_mutators(mutators):
     theory, checks whether the mutator is enabled and then adds an
     instance of this class to the result.
     """
-    lookups = {
-        mutators_arithmetic: mutators_arithmetic.get_mutators(),
-        mutators_bitvectors: mutators_bitvectors.get_mutators(),
-        mutators_boolean: mutators_boolean.get_mutators(),
-        mutators_core: mutators_core.get_mutators(),
-        mutators_smtlib: mutators_core.get_mutators(),
-        mutators_strings: mutators_core.get_mutators(),
-    }
+    lookups = get_all_mutators()
     res = []
     for m in mutators:
         for theory, lookup in lookups.items():

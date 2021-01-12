@@ -236,27 +236,3 @@ def get_mutators():
         'SimplifyQuotedSymbols': 'simplify_quoted_symbols',
         'SimplifySymbolNames': 'simplify_symbol_names',
     }
-
-
-def collect_mutators(args):
-    res = []
-    if args.mutator_smtlib:
-        if args.mutator_check_sat_assuming:
-            res.append(CheckSatAssuming())
-        if args.mutator_eliminate_distinct:
-            res.append(EliminateDistinct())
-        if args.mutator_inline_functions:
-            res.append(InlineDefinedFuns())
-        if args.mutator_let_elimination:
-            res.append(LetElimination())
-        if args.mutator_let_substitution:
-            res.append(LetSubstitution())
-        if args.mutator_push_pop_removal:
-            res.append(PushPopRemoval())
-        if args.mutator_simplify_logic:
-            res.append(SimplifyLogic())
-        if args.mutator_simplify_quoted_symbols:
-            res.append(SimplifyQuotedSymbols())
-        if args.mutator_simplify_symbol_names:
-            res.append(SimplifySymbolNames())
-    return res

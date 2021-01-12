@@ -324,27 +324,3 @@ def get_mutators():
         'BVReduceBW': 'dummy',
         'BVMergeReducedBW': 'dummy',
     }
-
-
-def collect_mutators(args):
-    res = []
-    if args.mutator_bitvector:
-        res.append(BVDoubleNegation())
-        res.append(BVReflexiveNand())
-        if args.mutator_bv_constants:
-            res.append(BVSimplifyConstant())
-        if args.mutator_bv_elim_bvcomp:
-            res.append(BVElimBVComp())
-        if args.mutator_bv_eval_extract:
-            res.append(BVExtractConstants())
-        if args.mutator_bv_eval_extend:
-            res.append(BVEvalExtend())
-        if args.mutator_bv_ite_to_bvcomp:
-            res.append(BVOneZeroITE())
-        if args.mutator_bv_to_bool:
-            res.append(BVTransformToBool())
-        if args.mutator_bv_zero_concat:
-            res.append(BVConcatToZeroExtend())
-        res.append(BVReduceBW())
-        res.append(BVMergeReducedBW())
-    return res

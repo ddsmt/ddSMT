@@ -41,11 +41,3 @@ def get_mutators():
     return {
         'StringSimplifyConstant': 'str_constants',
     }
-
-
-def collect_mutators(args):
-    res = []
-    if args.mutator_strings:
-        if args.mutator_str_constants:
-            res.append(StringSimplifyConstant())
-    return res

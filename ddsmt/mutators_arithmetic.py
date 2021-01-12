@@ -112,17 +112,3 @@ def get_mutators():
         'ArithmeticSplitNaryRelations': 'arith_split_nary_relations',
         'ArithmeticStrengthenRelations': 'arith_strengthen_relations',
     }
-
-
-def collect_mutators(args):
-    res = []
-    if args.mutator_arithmetic:
-        if args.mutator_arith_constants:
-            res.append(ArithmeticSimplifyConstant())
-        if args.mutator_arith_negate_relations:
-            res.append(ArithmeticNegateRelations())
-        if args.mutator_arith_split_nary_relations:
-            res.append(ArithmeticSplitNaryRelations())
-        if args.mutator_arith_strengthen_relations:
-            res.append(ArithmeticStrengthenRelations())
-    return res
