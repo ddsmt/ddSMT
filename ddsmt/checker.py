@@ -127,15 +127,12 @@ def do_golden_runs():
     logging.info(f'golden runtime: {__GOLDEN.runtime:.2f} seconds')
     if options.args().match_out:
         logging.info(f'match (stdout): "{options.args().match_out}"')
-        logging.info(f'match (stderr): "{options.args().match_out}"')
-
-    if options.args().match_out:
         if options.args().match_out not in __GOLDEN.out:
             logging.error(
                 f'Expected stdout to match "{options.args().match_out}"')
             sys.exit(1)
-
     if options.args().match_err:
+        logging.info(f'match (stderr): "{options.args().match_err}"')
         if options.args().match_err not in __GOLDEN.err:
             logging.error(
                 f'Expected stderr to match "{options.args().match_err}"')
