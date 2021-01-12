@@ -28,12 +28,14 @@ class Node:
             return data
         if isinstance(data, str):
             return Node(data)
-        if isinstance(data, tuple):
-            res = []
-            for d in data:
-                res.append(self.__ensure_is_node(d))
-            return Node(*res)
-        return None
+        if isinstance(data, int):
+            return Node(str(data))
+        assert isinstance(data, tuple)
+        res = []
+        print(data)
+        for d in data:
+            res.append(self.__ensure_is_node(d))
+        return Node(*res)
 
     def __str__(self):
         if isinstance(self.data, str):

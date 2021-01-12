@@ -67,7 +67,7 @@ class BVEvalExtend:
     def mutations(self, node):
         if is_bv_constant(node[1]):
             (val, width) = get_bv_constant_value(node[1])
-            return [Node('_', f'bv{val}', str(width + node[0][2]))]
+            return [Node('_', f'bv{val}', width + node[0][2])]
         return []
 
     def __str__(self):
@@ -86,7 +86,7 @@ class BVExtractConstants:
         constant = get_bv_constant_value(node[1])[0]
         constant = constant % (2**(upper + 1))
         constant -= constant % (2**lower)
-        return [Node('_', 'bv{constant}', str(upper - lower + 1))]
+        return [Node('_', 'bv{constant}', upper - lower + 1)]
 
     def __str__(self):
         return 'evaluate bit-vector extract on constant'
@@ -197,9 +197,9 @@ class BVReduceBW:
         bw = get_bv_width(linput[1])
         for b in range(1, bw):
             varname = '_{}'.format(linput[1])
-            var = Node('declare-const', varname, Node('_', 'BitVec', str(b)))
+            var = Node('declare-const', varname, Node('_', 'BitVec', b))
             zext = Node('define-fun', linput[1], (), get_type(linput[1]),
-                        Node(Node('_', 'zero_extend', str(bw - b)), varname))
+                        Node(Node('_', 'zero_extend', bw - b), varname))
             res.append(gin1 + [var] + [zext] + gin2)
         return res
 
@@ -235,7 +235,7 @@ class BVMergeReducedBW:
         decfun_name = deffun_body[-1]
         return [
             Node('define-fun', name, (),
-                 ('zero_extend', str(zext + deffun_zext), decfun_name))
+                 ('zero_extend', zext + deffun_zext, decfun_name))
         ]
 
     def global_mutations(self, linput, ginput):
