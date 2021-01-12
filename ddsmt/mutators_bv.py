@@ -26,32 +26,6 @@ def get_bv_constant_value(node):
     return (int(node[1][2:]), node[2])
 
 
-def possible_bv_widths_imp(definition):
-    """Try to guess a list of bit-widths that this node may have."""
-    if is_bv_type(definition):
-        return [definition[2]]
-    if not is_leaf(definition):
-        return [w for arg in definition for w in possible_bv_widths_imp(arg)]
-    return []
-
-
-def possible_bv_widths(node):
-    """Return the bit-widths this node may have.
-
-    First try to get the type of the given node, then just collect bit-
-    width that show up elsewhere in the input.
-    """
-    bvtype = get_type(node)
-    if bvtype:
-        assert is_bv_type(bvtype)
-        return [bvtype[2]]
-    widths = set()
-    for bvtype in get_variable_info().values():
-        for wid in possible_bv_widths_imp(bvtype):
-            widths.add(wid)
-    return list(widths)
-
-
 class BVConcatToZeroExtend:
     """Replace a :code:`concat` with zero by :code:`zero_extend`."""
     def filter(self, node):
