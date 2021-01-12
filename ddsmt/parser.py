@@ -91,36 +91,3 @@ def parse_smtlib(text):  # noqa: C901
                 cur_expr.append(token)
             else:
                 yield token
-
-
-def render_smtlib(exprs):
-    """Convert :code:`exprs` to an SMT-LIBv2 compliant string."""
-    if isinstance(exprs, tuple):
-        visit = [(exprs, False)]
-    else:
-        assert isinstance(exprs, list)
-        visit = [(x, False) for x in reversed(exprs)]
-
-    args = []
-    while visit:
-        expr, visited = visit.pop()
-        if not isinstance(expr, tuple):
-            assert isinstance(expr, (str, int))
-            args.append(str(expr))
-            continue
-
-        if visited:
-            pos = len(args) - len(expr)
-            children = args[pos:]
-            args = args[:pos]
-            args.append('({})'.format(' '.join(children)))
-        else:
-            visit.append((expr, True))
-            visit.extend((x, False) for x in reversed(expr))
-
-    return '\n'.join(args)
-
-
-def write_smtlib_to_file(filename, exprs):
-    """Writes a sequence of nodes to a file."""
-    open(filename, 'w').write(render_smtlib(exprs))

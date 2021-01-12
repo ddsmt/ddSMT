@@ -31,6 +31,7 @@ import time
 from . import checker
 from . import ddmin
 from . import ddnaive
+from . import nodes
 from . import options
 from . import parser
 from . import tmpfiles
@@ -62,8 +63,8 @@ def check_options():
 
     if options.args().parser_test:
         # only parse and print
-        exprs = parser.parse_smtlib(open(options.args().infile).read())
-        print(parser.render_smtlib(exprs))
+        exprs = list(parser.parse_smtlib(open(options.args().infile).read()))
+        print(nodes.render_smtlib(exprs))
         sys.exit(0)
 
     # check executable
