@@ -1,6 +1,5 @@
 from .nodes import Node
 from . import options
-from . import subst
 from .smtlib import *
 
 NAME = 'bitvector'

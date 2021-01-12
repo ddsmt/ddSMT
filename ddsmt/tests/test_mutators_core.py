@@ -4,7 +4,7 @@ from .. import smtlib
 
 
 def test_constants():
-    exprs = [Node(Node('declare-const'), Node('x'), Node('Real'))]
+    exprs = [Node('declare-const', 'x', 'Real')]
     smtlib.collect_information(exprs)
     m = mutators_core.Constants()
     assert m.mutations(Node('x')) == [Node('0.0'), Node('1.0')]

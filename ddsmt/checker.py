@@ -7,8 +7,6 @@ import time
 
 from . import nodes
 from . import options
-from . import parser
-from . import smtlib
 from . import tmpfiles
 
 RunInfo = collections.namedtuple("RunInfo", ["exit", "out", "err", "runtime"])
@@ -39,8 +37,7 @@ def execute(cmd, filename, timeout):
         runtime = time.time() - start
     except subprocess.TimeoutExpired:
         proc.kill()
-        logging.debug(
-            "[!!] timeout: terminated after {:.2f} seconds".format(timeout))
+        logging.debug(f'[!!] timeout: terminated after {timeout:.2f} seconds')
         return RunInfo(proc.returncode, None, None, timeout)
     return RunInfo(proc.returncode, out.decode(), err.decode(), runtime)
 
@@ -117,57 +114,57 @@ def do_golden_runs():
     global __GOLDEN_CC
 
     logging.info("")
-    logging.info("starting initial run{}... ".format(
-        "" if not options.args().cmd_cc else ", cross checking"))
+    logging.info(
+        f'starting initial run{", cross checking" if options.args().cmd_cc else ""}...'
+    )
     logging.info("")
 
     __GOLDEN = execute(options.args().cmd, options.args().infile, None)
 
-    logging.info('golden exit: {}'.format(__GOLDEN.exit))
-    logging.info('golden err:\n{}'.format(__GOLDEN.err))
-    logging.info('golden out:\n{}'.format(__GOLDEN.out))
-    logging.info('golden runtime: {0: .2f} seconds'.format(__GOLDEN.runtime))
+    logging.info(f'golden exit: {__GOLDEN.exit}')
+    logging.info(f'golden err:\n{__GOLDEN.err}')
+    logging.info(f'golden out:\n{__GOLDEN.out}')
+    logging.info(f'golden runtime: {__GOLDEN.runtime:.2f} seconds')
     if options.args().match_out:
-        logging.info('match (stdout): "{}"'.format(options.args().match_out))
-    if options.args().match_err:
-        logging.info('match (stderr): "{}"'.format(options.args().match_err))
+        logging.info(f'match (stdout): "{options.args().match_out}"')
+        logging.info(f'match (stderr): "{options.args().match_out}"')
 
     if options.args().match_out:
         if options.args().match_out not in __GOLDEN.out:
-            logging.error('Expected stdout to match "{}"'.format(
-                options.args().match_out))
+            logging.error(
+                f'Expected stdout to match "{options.args().match_out}"')
             sys.exit(1)
 
     if options.args().match_err:
         if options.args().match_err not in __GOLDEN.err:
-            logging.error('Expected stderr to match "{}"'.format(
-                options.args().match_err))
+            logging.error(
+                f'Expected stderr to match "{options.args().match_err}"')
             sys.exit(1)
 
     if options.args().timeout is None:
         options.args().timeout = round((__GOLDEN.runtime + 1) * 1.5, 2)
-        logging.info('automatic timeout: {:.2f} seconds'.format(
-            options.args().timeout))
+        logging.info(
+            f'automatic timeout: {options.args().timeout:.2f} seconds')
 
     if options.args().cmd_cc:
         __GOLDEN_CC = execute(options.args().cmd_cc,
                               options.args().infile, None)
 
         logging.info("")
-        logging.info("golden exit (cc): {}".format(__GOLDEN_CC.exit))
-        logging.info("golden err (cc):\n{}".format(__GOLDEN_CC.err))
-        logging.info("golden out (cc):\n{}".format(__GOLDEN_CC.out))
-        logging.info("golden runtime (cc): {0: .2f} seconds".format(
-            __GOLDEN_CC.runtime))
+        logging.info(f'golden exit (cc): {__GOLDEN_CC.exit}')
+        logging.info(f'golden err (cc):\n{__GOLDEN_CC.err}')
+        logging.info(f'golden out (cc):\n{__GOLDEN_CC.out}')
+        logging.info(f'golden runtime (cc): {__GOLDEN_CC.runtime:.2f} seconds')
         if options.args().match_out_cc:
-            logging.info("match (cc) (stdout): '{}'".format(
-                options.args().match_out_cc))
+            logging.info(
+                f'match (cc) (stdout): "{options.args().match_out_cc}"')
         if options.args().match_err_cc:
-            logging.info("match (cc) (stderr): '{}'".format(
-                options.args().match_err_cc))
+            logging.info(
+                f'match (cc) (stderr): "{options.args().match_err_cc}"')
 
         if options.args().timeout_cc is None:
             options.args().timeout_cc = round((__GOLDEN_CC.runtime + 1) * 1.5,
                                               2)
-            logging.info('automatic timeout (cc): {:.2f} seconds'.format(
-                options.args().timeout_cc))
+            logging.info(
+                f'automatic timeout (cc): {options.args().timeout_cc:.2f} seconds'
+            )

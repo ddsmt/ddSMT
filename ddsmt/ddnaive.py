@@ -7,12 +7,6 @@ import time
 
 from . import checker
 from . import mutators
-from . import mutators_arithmetic
-from . import mutators_bitvectors
-from . import mutators_boolean
-from . import mutators_core
-from . import mutators_smtlib
-from . import mutators_strings
 from . import nodes
 from . import options
 from . import progress
