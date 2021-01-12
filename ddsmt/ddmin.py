@@ -82,12 +82,11 @@ def _worker(task):
     substs = _subst(exprs, subset, mutator)
 
     ntests = 0
-    for reduced_exprs in substs:
+    for rexprs in substs:
         ntests += 1
-        if checker.check_exprs(reduced_exprs):
-            nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(
-                reduced_exprs)
-            return task_id, nreduced, reduced_exprs, ntests
+        if checker.check_exprs(rexprs):
+            nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(rexprs)
+            return task_id, nreduced, rexprs, ntests
     return task_id, 0, [], ntests
 
 
@@ -110,6 +109,7 @@ def _apply_mutator(mutator, exprs):
 
     start_time = time.time()
     ntests = 0
+    ntests_reduced = 0
     nreduced_total = 0
 
     msg = ""
@@ -119,34 +119,35 @@ def _apply_mutator(mutator, exprs):
         # Partition superset into lists of size gran
         subsets = _partition(exprs_filtered, gran)
 
-        # Note: As soon as one of the processed was able to reduce the input
+        # Note: As soon as one of the processes was able to reduce the input
         # file we recompute the task_list with the updated expressions and same
         # granularity.
         restart = True
         while restart:
             restart = False
+
             subsets = [x for x in subsets if x]
             if not subsets:
                 break
+
             task_list = [(i, exprs, x, mutator) for i, x in enumerate(subsets)]
-
-            nprocs = min(options.args().max_threads, len(task_list))
-            with Pool(nprocs) as pool:
-
-                for result in pool.imap(_worker, task_list):
+            with Pool(options.args().max_threads) as pool:
+                for result in pool.imap_unordered(_worker, task_list):
                     task_id, nreduced, reduced_exprs, nt = result
+
                     ntests += nt
 
                     if nreduced:
                         pool.close()
-                        exprs = reduced_exprs
+                        ntests_reduced += 1
                         nreduced_total += nreduced
-                        restart = True
+                        exprs = reduced_exprs
                         smtlib.collect_information(exprs)
 
                         # Print current working set to file
                         nodes.write_smtlib_to_file(options.args().outfile,
                                                    exprs)
+                        restart = True
 
                     # Remove already substituted expressions
                     subsets[task_id] = None
@@ -166,9 +167,10 @@ def _apply_mutator(mutator, exprs):
 
     if options.args().verbosity >= 2:
         _clear_msg(len(msg))
-        logging.info("{}: diff {:+} expressions, {} tests, {:.1f}s".format(
-            mutator, -nreduced_total, ntests,
-            time.time() - start_time))
+        logging.info(
+            "{}: diff {:+} expressions, {} tests ({}), {:.1f}s".format(
+                mutator, -nreduced_total, ntests, ntests_reduced,
+                time.time() - start_time))
 
     return exprs, ntests, nreduced_total
 
@@ -190,7 +192,7 @@ class RemoveCommand:
 
 def reduce(exprs):
 
-    passes = [RemoveCommand()]
+    passes = []
     passes.extend(
         p for p in ddmin_passes() \
                 if hasattr(p, 'filter') and hasattr(p, 'mutations'))
@@ -198,6 +200,14 @@ def reduce(exprs):
     ntests_total = 0
     while True:
         nreduced_round = 0
+
+        while True:
+            exprs, ntests, nreduced = _apply_mutator(RemoveCommand(), exprs)
+            ntests_total += ntests
+            nreduced_round += nreduced
+
+            if nreduced == 0:
+                break
 
         for mut in passes:
             exprs, ntests, nreduced = _apply_mutator(mut, exprs)
