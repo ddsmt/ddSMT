@@ -32,7 +32,6 @@ class Node:
             return Node(str(data))
         assert isinstance(data, tuple)
         res = []
-        print(data)
         for d in data:
             res.append(self.__ensure_is_node(d))
         return Node(*res)
