@@ -74,10 +74,10 @@ class Node:
 
 
 def parse_smtlib(text):  # noqa: C901
-    """Convert SMT-LIB input to list of (nested) Python tuples.
+    """Parse SMT-LIB input to list of :code:`Node` objects.
 
-    A tuple represents an s-expression in SMT-LIB. This generator yields
-    top-level s-expressions (commands) or comments.
+    Every node represents an s-expression. This generator yields top-
+    level s-expressions (commands) or comments.
     """
     exprs = []
     cur_expr = None

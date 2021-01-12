@@ -1,4 +1,4 @@
-from ..nodes import Node, dfs, substitute, parse_smtlib
+from ..nodes import Node, parse_smtlib
 
 
 def test_basic():
