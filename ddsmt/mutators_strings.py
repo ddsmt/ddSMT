@@ -33,6 +33,16 @@ def collect_mutator_options(argparser):
                                  'replaces constants by simpler ones')
 
 
+def get_mutators():
+    """Returns a mapping from mutator class names to the name of their config
+    options."""
+    if not options.args().mutator_strings:
+        return {}
+    return {
+        'StringSimplifyConstant': 'str_constants',
+    }
+
+
 def collect_mutators(args):
     res = []
     if args.mutator_strings:

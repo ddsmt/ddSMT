@@ -307,6 +307,26 @@ def collect_mutator_options(argparser):
                                  'replaces concat with zero by zero_extend')
 
 
+def get_mutators():
+    """Returns a mapping from mutator class names to the name of their config
+    options."""
+    if not options.args().mutator_bitvector:
+        return {}
+    return {
+        'BVDoubleNegation': 'dummy',
+        'BVReflexiveNand': 'dummy',
+        'BVSimplifyConstant': 'bv_constants',
+        'BVElimBVComp': 'bv_elim_bvcomp',
+        'BVExtractConstants': 'bv_eval_extract',
+        'BVEvalExtend': 'bv_eval_extend',
+        'BVOneZeroITE': 'bv_ite_to_bvcomp',
+        'BVTransformToBool': 'bv_to_bool',
+        'BVConcatToZeroExtend': 'bv_zero_concat',
+        'BVReduceBW': 'dummy',
+        'BVMergeReducedBW': 'dummy',
+    }
+
+
 def collect_mutators(args):
     res = []
     if args.mutator_bitvector:

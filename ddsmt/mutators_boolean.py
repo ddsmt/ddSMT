@@ -131,6 +131,22 @@ def collect_mutator_options(argparser):
                                  'remove constants from xor')
 
 
+def get_mutators():
+    """Returns a mapping from mutator class names to the name of their config
+    options."""
+    if not options.args().mutator_boolean:
+        return {}
+    return {
+        'DeMorgan': 'de_morgan',
+        'DoubleNegation': 'double_negations',
+        'XOREliminateBinary': 'eliminate_binary_xor',
+        'EliminateFalseEquality': 'eliminate_false_eq',
+        'EliminateImplications': 'eliminate_implications',
+        'NegatedQuantifiers': 'negated_quant',
+        'XORRemoveConstants': 'remove_xor_constants',
+    }
+
+
 def collect_mutators(args):
     res = []
     if args.mutator_boolean:

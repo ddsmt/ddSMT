@@ -6,6 +6,7 @@ import sys
 import time
 
 from . import checker
+from . import mutators
 from . import mutators_arithmetic
 from . import mutators_bitvectors
 from . import mutators_boolean
@@ -34,51 +35,55 @@ def ddnaive_passes():
     The list is ordered so that earlier passes are more promising for a
     quick reduction.
     """
+
+    mutators.get_mutators(['Constants', 'EraseNode', 'Foo'])
+
     return [
-        [  # Usually yield strong reduction / need to be done early on
-            mutators_core.Constants(),
-            mutators_core.EraseNode(),
-            mutators_core.SubstituteChildren(),
-            mutators_core.TopLevelBinaryReduction(),
-            mutators_smtlib.CheckSatAssuming(),
-            mutators_smtlib.LetElimination(),
-            mutators_smtlib.LetSubstitution(),
-            mutators_smtlib.PushPopRemoval(),
-        ],
-        [  # Regular mutators
-            mutators_arithmetic.ArithmeticSimplifyConstant(),
-            mutators_arithmetic.ArithmeticNegateRelations(),
-            mutators_arithmetic.ArithmeticSplitNaryRelations(),
-            mutators_arithmetic.ArithmeticStrengthenRelations(),
-            mutators_bitvectors.BVConcatToZeroExtend(),
-            mutators_bitvectors.BVDoubleNegation(),
-            mutators_bitvectors.BVElimBVComp(),
-            mutators_bitvectors.BVEvalExtend(),
-            mutators_bitvectors.BVExtractConstants(),
-            mutators_bitvectors.BVOneZeroITE(),
-            mutators_bitvectors.BVReflexiveNand(),
-            mutators_bitvectors.BVSimplifyConstant(),
-            mutators_bitvectors.BVTransformToBool(),
-            mutators_bitvectors.BVReduceBW(),
-            mutators_bitvectors.BVMergeReducedBW(),
-            mutators_boolean.DeMorgan(),
-            mutators_boolean.DoubleNegation(),
-            mutators_boolean.EliminateFalseEquality(),
-            mutators_boolean.EliminateImplications(),
-            mutators_boolean.XORRemoveConstants(),
-            mutators_boolean.XOREliminateBinary(),
-            mutators_core.MergeWithChildren(),
-            mutators_core.ReplaceByVariable(),
-            mutators_core.SortChildren(),
-            mutators_smtlib.EliminateDistinct(),
-            mutators_smtlib.InlineDefinedFuns(),
-            mutators_smtlib.SimplifyLogic(),
-            mutators_strings.StringSimplifyConstant(),
-        ],
-        [  # Usually only have cosmetic impact
-            mutators_smtlib.SimplifyQuotedSymbols(),
-            mutators_smtlib.SimplifySymbolNames(),
-        ]
+        mutators.get_mutators(
+            [  # Usually yield strong reduction / need to be done early on
+                'Constants',
+                'EraseNode',
+                'SubstituteChildren',
+                'TopLevelBinaryReduction',
+                'CheckSatAssuming',
+                'LetElimination',
+                'LetSubstitution',
+                'PushPopRemoval',
+            ]),
+        mutators.get_mutators([  # Regular mutators
+            'ArithmeticSimplifyConstant',
+            'ArithmeticNegateRelations',
+            'ArithmeticSplitNaryRelations',
+            'ArithmeticStrengthenRelations',
+            'BVConcatToZeroExtend',
+            'BVDoubleNegation',
+            'BVElimBVComp',
+            'BVEvalExtend',
+            'BVExtractConstants',
+            'BVOneZeroITE',
+            'BVReflexiveNand',
+            'BVSimplifyConstant',
+            'BVTransformToBool',
+            'BVReduceBW',
+            'BVMergeReducedBW',
+            'DeMorgan',
+            'DoubleNegation',
+            'EliminateFalseEquality',
+            'EliminateImplications',
+            'XORRemoveConstants',
+            'XOREliminateBinary',
+            'MergeWithChildren',
+            'ReplaceByVariable',
+            'SortChildren',
+            'EliminateDistinct',
+            'InlineDefinedFuns',
+            'SimplifyLogic',
+            'StringSimplifyConstant',
+        ]),
+        mutators.get_mutators([  # Usually only have cosmetic impact
+            'SimplifyQuotedSymbols',
+            'SimplifySymbolNames',
+        ])
     ]
 
 

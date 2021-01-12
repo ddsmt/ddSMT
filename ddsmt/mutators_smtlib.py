@@ -220,6 +220,24 @@ def collect_mutator_options(argparser):
                                  'simplify symbol names')
 
 
+def get_mutators():
+    """Returns a mapping from mutator class names to the name of their config
+    options."""
+    if not options.args().mutator_smtlib:
+        return {}
+    return {
+        'CheckSatAssuming': 'check_sat_assuming',
+        'EliminateDistinct': 'eliminate_distinct',
+        'InlineDefinedFuns': 'inline_functions',
+        'LetElimination': 'let_elimination',
+        'LetSubstitution': 'let_substitution',
+        'PushPopRemoval': 'push_pop_removal',
+        'SimplifyLogic': 'simplify_logic',
+        'SimplifyQuotedSymbols': 'simplify_quoted_symbols',
+        'SimplifySymbolNames': 'simplify_symbol_names',
+    }
+
+
 def collect_mutators(args):
     res = []
     if args.mutator_smtlib:

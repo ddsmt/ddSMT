@@ -101,6 +101,19 @@ def collect_mutator_options(argparser):
                                  'strengthen relations')
 
 
+def get_mutators():
+    """Returns a mapping from mutator class names to the name of their config
+    options."""
+    if not options.args().mutator_arithmetic:
+        return {}
+    return {
+        'ArithmeticSimplifyConstant': 'arith_constants',
+        'ArithmeticNegateRelations': 'arith_negate_relations',
+        'ArithmeticSplitNaryRelations': 'arith_split_nary_relations',
+        'ArithmeticStrengthenRelations': 'arith_strengthen_relations',
+    }
+
+
 def collect_mutators(args):
     res = []
     if args.mutator_arithmetic:

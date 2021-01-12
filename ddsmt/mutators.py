@@ -1,5 +1,6 @@
 import argparse
 
+from . import options
 from . import mutators_arithmetic
 from . import mutators_bitvectors
 from . import mutators_boolean
@@ -140,4 +141,30 @@ def collect_mutators(args):
     res += mutators_bitvectors.collect_mutators(args)
     res += mutators_smtlib.collect_mutators(args)
     res += mutators_strings.collect_mutators(args)
+    return res
+
+
+def get_mutators(mutators):
+    """Return mutator instances from a list of names.
+
+    For each mutator class name in :code:`mutators` retrieves the proper
+    theory, checks whether the mutator is enabled and then adds an
+    instance of this class to the result.
+    """
+    lookups = {
+        mutators_arithmetic: mutators_arithmetic.get_mutators(),
+        mutators_bitvectors: mutators_bitvectors.get_mutators(),
+        mutators_boolean: mutators_boolean.get_mutators(),
+        mutators_core: mutators_core.get_mutators(),
+        mutators_smtlib: mutators_core.get_mutators(),
+        mutators_strings: mutators_core.get_mutators(),
+    }
+    res = []
+    for m in mutators:
+        for theory, lookup in lookups.items():
+            if m in lookup:
+                attr = f'mutator_{lookup[m]}'
+                if getattr(options.args(), attr, True):
+                    res.append(getattr(theory, m)())
+                break
     return res
