@@ -53,7 +53,9 @@ def collect_information(exprs):
             __type_lookup[cmd[1].data] = cmd[3]
 
 
-# Generic utilities
+### General utilities
+
+
 def count_nodes(node):
     """Return the number of expressions yielded when traversing :code:`node` in
     DFS manner."""
@@ -78,7 +80,7 @@ def get_variables_with_type(var_type):
     return [v for v in __type_lookup if __type_lookup[v] == var_type]
 
 
-# Semantic testers
+### General semantic testers and testers
 
 
 def is_leaf(node):
@@ -142,75 +144,11 @@ def is_nary(node):
     ]
 
 
-def is_boolean_constant(node):
-    """Check whether the :code:`node` is a Boolean constant."""
-    return node.is_leaf() and node.data in ['false', 'true']
-
-
-def is_arithmetic_constant(node):
-    """Check whether the :code:`node` is an arithmetic constant."""
-    return node.is_leaf() and re.match('[0-9]+(\\.[0-9]*)?',
-                                       node.data) is not None
-
-
-def is_int_constant(node):
-    """Check whether the :code:`node` is an int constant."""
-    return node.is_leaf() and re.match('^[0-9]+$', node.data) is not None
-
-
-def is_real_constant(node):
-    """Check whether the :code:`node` is a real constant."""
-    return node.is_leaf() and re.match('^[0-9]+(\\.[0-9]*)?$',
-                                       node.data) is not None
-
-
-def is_string_constant(node):
-    """Checks whether the :code:`node` is a string constant."""
-    return node.is_leaf() and re.match('^\"[^\"]*\"$', node.data) is not None
-
-
-def is_bv_constant(node):
-    """Return true if :code:`node` is a bit-vector constant."""
-    if node.is_leaf():
-        s = node.data
-        if s.startswith('#b'):
-            return True
-        if s.startswith('#x'):
-            return True
-        return False
-    if len(node) != 3:
-        return False
-    if not node.has_name() or node.get_name() != '_':
-        return False
-    if not node.data[1].is_leaf():
-        return False
-    return node.data[1].data.startswith('bv')
-
-
 def is_constant(node):
     """Return true if :code:`node` is a constant value."""
     return is_boolean_constant(node) or is_arithmetic_constant(
         node) or is_int_constant(node) or is_real_constant(
             node) or is_string_constant(node) or is_bv_constant(node)
-
-
-def is_defined_function(node):
-    """Check whether :code:`node` is a defined function."""
-    if node.is_leaf():
-        return node in __defined_functions
-    return has_name(node) and get_name(node) in __defined_functions
-
-
-def get_defined_function(node):
-    """Return the defined function :code:`node`, instantiated with the
-    arguments of :code:`node` if necessary.
-
-    Assumes :code:`is_defined_function(node)`.
-    """
-    assert is_defined_function(node)
-    if node.is_leaf():
-        return __defined_functions[node.data]([])
-    return __defined_functions[get_name(node)](node[1:])
 
 
 def get_constants(const_type):
@@ -334,6 +272,37 @@ def get_type(node):
     return None
 
 
+### Boolean
+
+
+def is_boolean_constant(node):
+    """Check whether the :code:`node` is a Boolean constant."""
+    return node.is_leaf() and node.data in ['false', 'true']
+
+
+### Arithmetic
+
+
+def is_arithmetic_constant(node):
+    """Check whether the :code:`node` is an arithmetic constant."""
+    return node.is_leaf() and re.match('[0-9]+(\\.[0-9]*)?',
+                                       node.data) is not None
+
+
+def is_int_constant(node):
+    """Check whether the :code:`node` is an int constant."""
+    return node.is_leaf() and re.match('^[0-9]+$', node.data) is not None
+
+
+def is_real_constant(node):
+    """Check whether the :code:`node` is a real constant."""
+    return node.is_leaf() and re.match('^[0-9]+(\\.[0-9]*)?$',
+                                       node.data) is not None
+
+
+### BV
+
+
 def is_bv_type(node):
     """Return true if :code:`node` is a bit-vector sort."""
     if node.is_leaf() or len(node) != 3:
@@ -343,13 +312,27 @@ def is_bv_type(node):
     return node[1] == 'BitVec'
 
 
-def is_set_type(node):
-    """Return true if :code:`node` is a set sort."""
-    if node.is_leaf() or len(node) != 2:
+def is_bv_constant(node):
+    """Return true if :code:`node` is a bit-vector constant."""
+    if node.is_leaf():
+        s = node.data
+        if s.startswith('#b'):
+            return True
+        if s.startswith('#x'):
+            return True
         return False
-    if not has_name(node) or get_name(node) != 'Set':
+    if len(node) != 3:
         return False
-    return True
+    if not node.has_name() or node.get_name() != '_':
+        return False
+    if not node.data[1].is_leaf():
+        return False
+    return node.data[1].data.startswith('bv')
+
+
+def is_bv_not(node):
+    """Checks whether :code:`node` is a bit-vector negation."""
+    return has_name(node) and get_name(node) == 'bvnot'
 
 
 def get_bv_width(node):
@@ -390,3 +373,60 @@ def get_bv_width(node):
         if is_indexed_operator(node, 'rotate'):
             return get_bv_width(node[1])
     return -1
+
+
+def get_bv_constant_value(node):
+    """
+    Assume that node is a bit-vector constant and return
+    :code:`(value, bit-width)`.
+    """
+    assert is_bv_constant(node)
+    if node.is_leaf():
+        if node.data.startswith('#b'):
+            return (int(node[2:], 2), len(node[2:]))
+        if node.data.startswith('#x'):
+            return (int(node[2:], 16), len(node[2:]) * 4)
+        assert False
+    return (int(node[1][2:]), node[2])
+
+
+### Functions
+
+
+def is_defined_function(node):
+    """Check whether :code:`node` is a defined function."""
+    if node.is_leaf():
+        return node in __defined_functions
+    return has_name(node) and get_name(node) in __defined_functions
+
+
+def get_defined_function(node):
+    """Return the defined function :code:`node`, instantiated with the
+    arguments of :code:`node` if necessary.
+
+    Assumes :code:`is_defined_function(node)`.
+    """
+    assert is_defined_function(node)
+    if node.is_leaf():
+        return __defined_functions[node.data]([])
+    return __defined_functions[get_name(node)](node[1:])
+
+
+### Sets
+
+
+def is_set_type(node):
+    """Return true if :code:`node` is a set sort."""
+    if node.is_leaf() or len(node) != 2:
+        return False
+    if not has_name(node) or get_name(node) != 'Set':
+        return False
+    return True
+
+
+### Strings
+
+
+def is_string_constant(node):
+    """Checks whether the :code:`node` is a string constant."""
+    return node.is_leaf() and re.match('^\"[^\"]*\"$', node.data) is not None
