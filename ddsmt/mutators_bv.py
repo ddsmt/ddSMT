@@ -42,8 +42,11 @@ class BVDoubleNegation:
 class BVElimBVComp:
     """Replace bvcomp by a regular equality."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == '=' and is_bv_constant(
-            node[1]) and has_name(node[2]) and get_name(node[2]) == 'bvcomp'
+        return has_name(node) and \
+               get_name(node) == '=' and \
+               is_bv_constant(node[1]) and \
+               has_name(node[2]) and \
+               get_name(node[2]) == 'bvcomp'
 
     def mutations(self, node):
         return [
@@ -95,14 +98,15 @@ class BVOneZeroITE:
     def filter(self, node):
         if not is_operator(node, 'ite'):
             return False
-        if not has_name(
-                node[1]) or get_name(node[1]) != '=' or len(node[1]) != 3:
+        if not has_name(node[1]) \
+           or get_name(node[1]) != '=' \
+           or len(node[1]) != 3:
             return False
-        if not is_bv_constant(
-                node[2]) or get_bv_constant_value(node[2]) != (1, '1'):
+        if not is_bv_constant(node[2]) \
+           or get_bv_constant_value(node[2]) != (1, '1'):
             return False
-        if not is_bv_constant(
-                node[3]) or get_bv_constant_value(node[3]) != (0, '1'):
+        if not is_bv_constant(node[3]) \
+           or get_bv_constant_value(node[3]) != (0, '1'):
             return False
         return True
 
@@ -130,9 +134,8 @@ class BVReflexiveNand:
 class BVSimplifyConstant:
     """Replace a constant by a simpler version (smaller value)."""
     def filter(self, node):
-        return is_bv_constant(node) and get_bv_constant_value(node)[0] not in [
-            0, 1
-        ]
+        return is_bv_constant(node) \
+               and get_bv_constant_value(node)[0] not in [0, 1]
 
     def mutations(self, node):
         val, width = get_bv_constant_value(node)
@@ -154,8 +157,10 @@ class BVSimplifyConstant:
 class BVTransformToBool:
     """Turn BV constructs into Boolean constructs."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == '=' and is_bv_constant(
-            node[1]) and get_bv_width(node[1]) == 1
+        return has_name(node) \
+               and get_name(node) == '=' \
+               and is_bv_constant(node[1]) \
+               and get_bv_width(node[1]) == 1
 
     def mutations(self, node):
         repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
@@ -263,7 +268,7 @@ def collect_mutator_options(argparser):
 
 
 def get_mutators():
-    """Returns a mapping from mutator class names to the name of their config
+    """Return mapping from mutator class names to the name of their config
     options."""
     if not options.args().mutator_bitvector:
         return {}
