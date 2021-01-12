@@ -63,7 +63,7 @@ def check_options():
 
     if options.args().parser_test:
         # only parse and print
-        exprs = list(parser.parse_smtlib(open(options.args().infile).read()))
+        exprs = list(nodes.parse_smtlib(open(options.args().infile).read()))
         print(nodes.render_smtlib(exprs))
         sys.exit(0)
 
@@ -106,7 +106,7 @@ def ddsmt_main():
 
     start_time = time.time()
     with open(options.args().infile, 'r') as infile:
-        exprs = list(parser.parse_smtlib(infile.read()))
+        exprs = list(nodes.parse_smtlib(infile.read()))
         nexprs = smtlib.count_exprs(exprs)
 
     logging.debug("parsed {} s-expressions in {:.2f} seconds".format(
@@ -114,7 +114,7 @@ def ddsmt_main():
         time.time() - start_time))
 
     if options.args().parser_test:
-        parser.write_smtlib_to_file(options.args().outfile, exprs)
+        nodes.write_smtlib_to_file(options.args().outfile, exprs)
         return
 
     tmpfiles.copy_binaries()

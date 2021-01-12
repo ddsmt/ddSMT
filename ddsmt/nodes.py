@@ -73,6 +73,98 @@ class Node:
         return self.data[0]
 
 
+def parse_smtlib(text):  # noqa: C901
+    """Convert SMT-LIB input to list of (nested) Python tuples.
+
+    A tuple represents an s-expression in SMT-LIB. This generator yields
+    top-level s-expressions (commands) or comments.
+    """
+    exprs = []
+    cur_expr = None
+
+    pos = 0
+    size = len(text)
+    while pos < size:
+        char = text[pos]
+        pos += 1
+
+        # String literals/quoted symbols
+        if char in ('"', '|'):
+            first_char = char
+            literal = [char]
+            # Read until terminating " or |
+            while True:
+                if pos >= size:
+                    return
+                char = text[pos]
+                pos += 1
+                literal.append(char)
+                if char == first_char:
+                    # Check is quote is escaped "a "" b" is one string literal
+                    if char == '"' and pos < size and text[pos] == '"':
+                        literal.append(text[pos])
+                        pos += 1
+                        continue
+                    break
+            cur_expr.append(Node(''.join(literal)))
+
+        # Comments
+        elif char == ';':
+            comment = [char]
+            # Read until newline
+            while pos < size:
+                char = text[pos]
+                pos += 1
+                comment.append(char)
+                if char == '\n':
+                    break
+            comment = ''.join(comment)
+            if cur_expr:
+                cur_expr.append(Node(comment))
+            else:
+                yield Node(comment)
+
+        # Open s-expression
+        elif char == '(':
+            cur_expr = []
+            exprs.append(cur_expr)
+
+        # Close s-expression
+        elif char == ')':
+            cur_expr = exprs.pop()
+
+            # Do we have nested s-expressions?
+            if exprs:
+                exprs[-1].append(Node(*cur_expr))
+                cur_expr = exprs[-1]
+            else:
+                yield Node(*cur_expr)
+                cur_expr = None
+
+        # Identifier
+        elif char not in (' ', '\t', '\n'):
+            token = [char]
+            while True:
+                if pos >= size:
+                    return
+                char = text[pos]
+                pos += 1
+                if char in (' ', '\t', '\n'):
+                    break
+                if char in ('(', ')'):
+                    pos -= 1
+                    break
+                token.append(char)
+
+            token = Node(''.join(token))
+
+            # Append to current s-expression
+            if cur_expr is not None:
+                cur_expr.append(token)
+            else:
+                yield token
+
+
 def dfs(exprs, max_depth=None):
     """DFS traversal of s-expressions in exprs up to a maximum depth."""
     visit = [(1, x) for x in reversed(exprs)]
