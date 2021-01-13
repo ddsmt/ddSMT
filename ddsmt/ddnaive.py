@@ -20,8 +20,6 @@ def ddnaive_passes():
     quick reduction.
     """
 
-    mutators.get_mutators(['Constants', 'EraseNode', 'Foo'])
-
     return [
         mutators.get_mutators(
             [  # Usually yield strong reduction / need to be done early on
