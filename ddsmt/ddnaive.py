@@ -56,7 +56,9 @@ def ddnaive_passes():
 # if we have a local mutation:
 #   exprs: the current input
 #   repl: the substitution to be checked
-Task = collections.namedtuple('Task', ['nodeid', 'name', 'exprs', 'repl'])
+# runtime: time needed to check this task
+Task = collections.namedtuple('Task',
+                              ['nodeid', 'name', 'exprs', 'repl', 'runtime'])
 
 
 class Producer:
@@ -89,13 +91,14 @@ class Producer:
                     yield from list(
                         map(
                             lambda x: Task(self.__node_count, str(m), gpickled,
-                                           pickle.dumps({linput.id: x})),
+                                           pickle.dumps({linput.id: x}), None),
                             m.mutations(linput)))
                 if hasattr(m, 'global_mutations'):
                     yield from list(
                         map(
-                            lambda x: Task(self.__node_count, "(global) " +
-                                           str(m), None, pickle.dumps(x)),
+                            lambda x: Task(self.__node_count,
+                                           "(global) " + str(m), None,
+                                           pickle.dumps(x), None),
                             m.global_mutations(linput, ginput)))
             except Exception as e:
                 logging.info(f'{type(e)} in application of {m}: {e}')
@@ -124,8 +127,9 @@ class Consumer:
 
     def check(self, task):
         if self.__abort.is_set():
-            return False, Task(task.nodeid, task.name, None, None)
+            return False, Task(task.nodeid, task.name, None, None, None)
         try:
+            start = time.time()
             if task.exprs is None:
                 # global
                 exprs = pickle.loads(task.repl)
@@ -133,11 +137,45 @@ class Consumer:
                 # local
                 exprs = nodes.substitute(pickle.loads(task.exprs),
                                          pickle.loads(task.repl))
-            if checker.check_exprs(exprs):
-                return True, Task(task.nodeid, task.name, exprs, None)
-            return False, Task(task.nodeid, task.name, None, None)
+            res = checker.check_exprs(exprs)
+            runtime = time.time() - start
+            if res:
+                return True, Task(task.nodeid, task.name, exprs, None, runtime)
+            return False, Task(task.nodeid, task.name, None, None, runtime)
         except Exception as e:
             logging.info(f'{type(e)} in check of {task.name}: {e}')
+
+
+class MutatorStats:
+    """Gather information about the performance of the individual mutators."""
+    def __init__(self):
+        self.data = {}
+        self.__enabled = logging.getLogger().isEnabledFor(logging.INFO)
+
+    def add(self, success, task, original):
+        """Add results from one check."""
+        if task.runtime is None or not self.__enabled:
+            return
+        d = self.data.setdefault(task.name, {
+            'tests': 0,
+            'success': 0,
+            'diff': 0,
+            'runtime': 0
+        })
+        d['tests'] += 1
+        if success:
+            d['success'] += 1
+            d['diff'] += smtlib.count_exprs(
+                task.exprs) - smtlib.count_exprs(original)
+        d['runtime'] += task.runtime
+
+    def print(self):
+        """Print cumulative results."""
+        if self.__enabled:
+            for name, data in sorted(self.data.items()):
+                logging.info(
+                    f'{name}: diff {data["diff"]:+} expressions, {data["tests"]} tests ({data["success"]}), {data["runtime"]:.1f}s'
+                )
 
 
 def reduce(exprs):
@@ -148,6 +186,7 @@ def reduce(exprs):
     cur_passes = passes[0]
 
     nchecks = 0
+    stats = MutatorStats()
 
     while True:
         skip = 0
@@ -170,6 +209,7 @@ def reduce(exprs):
                     nchecks += 1
                     success, task = result
                     progress.update(task.nodeid)
+                    stats.add(success, task, exprs)
                     if success:
                         # trigger abort and close the pool, then process the result
                         abort_flag.set()
@@ -205,5 +245,7 @@ def reduce(exprs):
             )
         else:
             break
+
+    stats.print()
 
     return exprs, nchecks
