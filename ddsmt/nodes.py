@@ -1,3 +1,6 @@
+import textwrap
+
+
 class Node:
     """Represents a node in the input, consisting of an id and some data.
 
@@ -237,32 +240,73 @@ def substitute(exprs, repl):
         return args[0]
 
 
-def render_smtlib(exprs):
-    """Convert :code:`exprs` to an SMT-LIBv2 compliant string."""
-    if isinstance(exprs, Node):
-        visit = [(exprs, False)]
+def __render_smtlib_expression_pretty(children, visit):
+    if len(children) == 0:
+        return '()'
     else:
-        assert isinstance(exprs, list)
-        visit = [(x, False) for x in reversed(exprs)]
+        if children[0] in ['declare-const', 'declare-fun', 'define-fun']:
+            return '({})'.format(' '.join(children))
+        elif not any(map(lambda c: c.find('(') >= 0, children)):
+            return '({})'.format(' '.join(children))
+        else:
+            name = children.pop(0)
+            depth = 2 + 2 * len(list(filter(lambda n: n[1], visit)))
+            if len(children) > 0:
+                children = '\n' + '\n'.join(
+                    [f'{" "*depth}{child}' for child in children])
+            else:
+                children = ''
+
+            return f'({name}{children})'
+
+
+def __render_smtlib_expression(expr: Node, pretty: bool = False):
+    """Convert a single :code:`Node expr` to an SMT-LIBv2 compliant string."""
+    visit = [(expr, False)]
     args = []
     while visit:
-        expr, visited = visit.pop()
-        if expr.is_leaf():
-            assert isinstance(expr.data, str)
-            args.append(str(expr.data))
+        ex, visited = visit.pop()
+        if ex.is_leaf():
+            assert isinstance(ex.data, str)
+            args.append(str(ex.data))
             continue
 
         if visited:
-            pos = len(args) - len(expr.data)
+            pos = len(args) - len(ex.data)
             children = args[pos:]
             args = args[:pos]
-            args.append('({})'.format(' '.join(children)))
+            if pretty:
+                args.append(__render_smtlib_expression_pretty(children, visit))
+            else:
+                args.append('({})'.format(' '.join(children)))
         else:
-            visit.append((expr, True))
-            if not expr.is_leaf():
-                visit.extend((x, False) for x in reversed(expr.data))
+            visit.append((ex, True))
+            if not ex.is_leaf():
+                visit.extend((x, False) for x in reversed(ex.data))
+    assert len(args) == 1
+    return args[0]
 
-    return '\n'.join(args)
+
+def __render_smtlib(exprs):
+    """Convert :code:`exprs` to an SMT-LIBv2 compliant string."""
+    return map(__render_smtlib_expression, exprs)
+
+
+def render_smtlib(exprs):
+    from . import options
+    if options.args().pretty_print:
+        # pretty print
+        return '\n'.join(
+            map(lambda expr: __render_smtlib_expression(expr, True), exprs))
+    lines = __render_smtlib(exprs)
+    if options.args().wrap_lines:
+        # wrap every line
+        lines = map(
+            lambda line: textwrap.wrap(line, width=78, subsequent_indent='  '),
+            lines)
+        # and flatten the list
+        lines = [sub for line in lines for sub in line]
+    return '\n'.join(lines)
 
 
 def write_smtlib_to_file(filename, exprs):
