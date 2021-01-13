@@ -2,12 +2,6 @@ from .nodes import Node
 from .smtlib import *
 from . import options
 
-NAME = 'core'
-MUTATORS = [
-    'constants', 'erase-children', 'merge-children', 'replace-by-variable',
-    'sort-children', 'substitute-children', 'top-level-binary-reduction'
-]
-
 
 class Constants:
     """Replaces any node by a constant."""

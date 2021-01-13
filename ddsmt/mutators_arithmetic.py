@@ -1,11 +1,5 @@
 from .smtlib import *
 
-NAME = 'arithmetic'
-MUTATORS = [
-    'arith-constants', 'arith-negate-relations', 'split-nary-relations',
-    'strengthen-relations'
-]
-
 
 def is_arithmetic_relation(node):
     if not has_name(node):

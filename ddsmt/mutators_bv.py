@@ -2,11 +2,6 @@ from .nodes import Node
 from . import options
 from .smtlib import *
 
-NAME = 'bitvector'
-MUTATORS = [
-    'bv-constants', 'bv-eval-extract', 'bv-ite-to-bvcomp', 'bv-zero-concat'
-]
-
 
 class BVConcatToZeroExtend:
     """Replace a :code:`concat` with zero by :code:`zero_extend`."""

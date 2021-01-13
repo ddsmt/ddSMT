@@ -1,8 +1,5 @@
 from .smtlib import *
 
-NAME = 'strings'
-MUTATORS = ['str-constants']
-
 
 class StringSimplifyConstant:
     """Replace a string constant by a shorter version."""

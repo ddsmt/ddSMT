@@ -9,6 +9,57 @@ from . import mutators_smtlib
 from . import mutators_strings
 
 
+def get_all_mutators():
+    """Return all available mutators, arranged by their theory."""
+    return {
+        'core': (mutators_core, mutators_core.get_mutators()),
+        'arithmetic':
+        (mutators_arithmetic, mutators_arithmetic.get_mutators()),
+        'bitvector': (mutators_bv, mutators_bv.get_mutators()),
+        'boolean': (mutators_boolean, mutators_boolean.get_mutators()),
+        'smtlib': (mutators_smtlib, mutators_smtlib.get_mutators()),
+        'strings': (mutators_strings, mutators_strings.get_mutators()),
+    }
+
+
+def get_mutators(mutators):
+    """Return mutator instances from a list of names.
+
+    For each mutator class name in :code:`mutators` retrieves the proper
+    theory, checks whether the mutator is enabled and then adds an
+    instance of this class to the result.
+    """
+    res = []
+    for m in mutators:
+        for _, theory in get_all_mutators().items():
+            # check if this mutator belongs to this theory
+            if m in theory[1]:
+                attr = f'mutator_{theory[1][m].replace("-", "_")}'
+                # check if this mutator is enabled
+                if getattr(options.args(), attr, True):
+                    res.append(getattr(theory[0], m)())
+                break
+    return res
+
+
+def toggle_theory(namespace, theory_name, value):
+    """Enables or disables all mutators for the given theory by setting their
+    respective options in :code:`namespace`."""
+    setattr(namespace, f'mutators_{theory_name}', value)
+    _, mutators = get_all_mutators()[theory_name]
+    for _, opt in mutators.items():
+        setattr(namespace, f'mutator_{opt.replace("-", "_")}', value)
+
+
+def toggle_all_theories(namespace, value):
+    """Enables or disables all mutators for all theories by setting their
+    respective options in :code:`namespace`."""
+    for theory_name, data in get_all_mutators():
+        setattr(namespace, f'mutators_{theory_name}', value)
+        for _, opt in data[1].items():
+            setattr(namespace, f'mutator_{opt.replace("-", "_")}', value)
+
+
 def disable(namespace, option):
     setattr(namespace, 'mutator_{}'.format(option.replace('-', '_')), False)
 
@@ -22,11 +73,11 @@ class AgressiveAction(argparse.Action):
     """Mode that only checks aggressive mutations."""
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, 'mode_aggressive', True)
-        disable(namespace, mutators_arithmetic.NAME)
-        disable(namespace, mutators_bv.NAME)
-        disable(namespace, mutators_boolean.NAME)
-        disable_all(namespace, mutators_core.MUTATORS)
-        disable(namespace, mutators_strings.NAME)
+        toggle_theory(namespace, 'arithmetic', False)
+        toggle_theory(namespace, 'bitvector', False)
+        toggle_theory(namespace, 'boolean', False)
+        toggle_theory(namespace, 'core', False)
+        toggle_theory(namespace, 'strings', False)
         setattr(namespace, 'mutator_constants', True)
         setattr(namespace, 'mutator_erase_children', True)
         setattr(namespace, 'mutator_inline_functions', True)
@@ -34,24 +85,10 @@ class AgressiveAction(argparse.Action):
         setattr(namespace, 'mutator_substitute_children', True)
 
 
-class BeautifyAction(argparse.Action):
-    """Mode that enables mutations merely beautify the output."""
-    def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, 'mutator_simplify_quoted_symbols', True)
-        setattr(namespace, 'mutator_simplify_symbol_names', True)
-        setattr(namespace, 'wrap_lines', True)
-
-
 class LetEliminationAction(argparse.Action):
     """Mode that only checks for let eliminations."""
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, 'mode_let_elimination', True)
-        disable(namespace, mutators_arithmetic.NAME)
-        disable(namespace, mutators_bv.NAME)
-        disable(namespace, mutators_boolean.NAME)
-        disable(namespace, mutators_core.NAME)
-        disable_all(namespace, mutators_smtlib.MUTATORS)
-        disable(namespace, mutators_strings.NAME)
+        toggle_all_theories(namespace, False)
         setattr(namespace, 'mutator_let_elimination', True)
         setattr(namespace, 'mutator_let_substitution', True)
 
@@ -61,18 +98,6 @@ class ReductionOnlyAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, 'mode_reduction_only', True)
         setattr(namespace, 'mutator_sort_children', False)
-
-
-class TopLevelOnlyAction(argparse.Action):
-    """Mode that only uses top level binary reduction."""
-    def __call__(self, parser, namespace, values, option_string=None):
-        disable(namespace, mutators_arithmetic.NAME)
-        disable(namespace, mutators_bv.NAME)
-        disable(namespace, mutators_boolean.NAME)
-        disable_all(namespace, mutators_core.MUTATORS)
-        disable(namespace, mutators_smtlib.NAME)
-        disable(namespace, mutators_strings.NAME)
-        setattr(namespace, 'mutator_top_level_binary_reduction', True)
 
 
 def collect_mutator_modes(argparser):
@@ -87,11 +112,6 @@ def collect_mutator_modes(argparser):
         type=float,
         default=0.01,
         help='percentage of the input a mutators needs to remove')
-    argparser.add_argument('--mode-beautify',
-                           default=False,
-                           nargs=0,
-                           action=BeautifyAction,
-                           help='enables beautification mutators')
     argparser.add_argument('--mode-let-elimination',
                            default=False,
                            nargs=0,
@@ -102,33 +122,6 @@ def collect_mutator_modes(argparser):
                            nargs=0,
                            action=ReductionOnlyAction,
                            help='only allow reducing mutations')
-    argparser.add_argument('--mode-top-level-only',
-                           default=False,
-                           nargs=0,
-                           action=TopLevelOnlyAction,
-                           help='use top level binary reduction')
-
-
-def get_all_mutators():
-    """Return all available mutators, arranged by their theory."""
-    return {
-        'core': (mutators_core, mutators_core.get_mutators()),
-        'arithmetic':
-        (mutators_arithmetic, mutators_arithmetic.get_mutators()),
-        'bitvector': (mutators_bv, mutators_bv.get_mutators()),
-        'boolean': (mutators_boolean, mutators_boolean.get_mutators()),
-        'smtlib': (mutators_smtlib, mutators_smtlib.get_mutators()),
-        'strings': (mutators_strings, mutators_strings.get_mutators()),
-    }
-
-
-def toggle_theory(namespace, theory_name, value):
-    """Enables or disables all mutators for the given theory by setting their
-    respective options in :code:`namespace`."""
-    setattr(namespace, f'mutators_{theory_name}', value)
-    _, mutators = get_all_mutators()[theory_name]
-    for _, opt in mutators.items():
-        setattr(namespace, f'mutator_{opt.replace("-", "_")}', value)
 
 
 class TheoryToggleAction(options.ToggleAction):
@@ -142,6 +135,7 @@ class TheoryToggleAction(options.ToggleAction):
     def __call__(self, parser, namespace, values, option_string=None):
         """Set the option, as well as all mutator options for this theory."""
         value = self._get_value(option_string)
+        setattr(namespace, self.dest, value)
         toggle_theory(namespace, self.__theory, value)
 
 
@@ -149,8 +143,7 @@ class DisableAllTheoriesAction(argparse.Action):
     """Disables all mutators from all theories when called."""
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, True)
-        for name in get_all_mutators():
-            toggle_theory(namespace, name, False)
+        toggle_all_theories(namespace, False)
 
 
 def add_mutator_group(argparser, name):
@@ -189,23 +182,3 @@ def collect_mutator_options(argparser):
         # add custom option, if the theory wants it
         if hasattr(theory, 'get_mutator_options'):
             theory.get_mutator_options(ap)
-
-
-def get_mutators(mutators):
-    """Return mutator instances from a list of names.
-
-    For each mutator class name in :code:`mutators` retrieves the proper
-    theory, checks whether the mutator is enabled and then adds an
-    instance of this class to the result.
-    """
-    res = []
-    for m in mutators:
-        for name, theory in get_all_mutators().items():
-            # check if this mutator belongs to this theory
-            if m in theory[1]:
-                attr = f'mutator_{theory[1][m].replace("-", "_")}'
-                # check if this mutator is enabled
-                if getattr(options.args(), attr, True):
-                    res.append(getattr(theory[0], m)())
-                break
-    return res

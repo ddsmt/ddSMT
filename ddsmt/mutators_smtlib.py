@@ -2,13 +2,6 @@ import re
 
 from .smtlib import *
 
-NAME = 'smtlib'
-MUTATORS = [
-    'check-sat-assuming', 'eliminate-distinct', 'inline-functions',
-    'let-elimination', 'let-substitution', 'push-pop-removal',
-    'simplify-logic', 'simplify-quoted-symbol', 'variable-names'
-]
-
 
 class CheckSatAssuming:
     """Replaces a :code:`check-sat-assuming` by a regular :code:`check-sat`."""
