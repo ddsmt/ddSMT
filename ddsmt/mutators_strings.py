@@ -72,8 +72,8 @@ def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
     return {
-        'StringSimplifyConstant': 'str-constants',
-        'StringReplaceAll': 'str-replace-all',
-        'StringIndexOfNotFound': 'str-index-not-found',
         'StringContainsToConcat': 'str-contains-to-concat',
+        'StringIndexOfNotFound': 'str-index-not-found',
+        'StringReplaceAll': 'str-replace-all',
+        'StringSimplifyConstant': 'str-constants',
     }

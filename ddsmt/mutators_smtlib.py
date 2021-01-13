@@ -160,11 +160,11 @@ class SimplifySymbolNames:
 
     def __flatten(self, n):
         """Yield given node as flattened sequence."""
-        if isinstance(n, list):
-            for e in n:
+        if isinstance(n, Node):
+            for e in n.data:
                 yield from self.__flatten(e)
         else:
-            yield n
+            yield Node(n)
 
     def __mutate_symbol(self, symbol, ginput):
         """Return a list of mutations of ginput based on simpler versions of
