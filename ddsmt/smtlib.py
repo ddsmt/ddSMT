@@ -173,6 +173,11 @@ def is_constant(node):
             node) or is_string_constant(node) or is_bv_constant(node)
 
 
+def is_eq(node):
+    """Checks whether :code:`node` is an equality."""
+    return has_name(node) and get_name(node) == '='
+
+
 def get_constants(const_type):
     """Return a list of constants for the given type."""
     if const_type == 'Bool':
@@ -350,6 +355,11 @@ def is_bv_constant(node):
     if not node.data[1].is_leaf():
         return False
     return node.data[1].data.startswith('bv')
+
+
+def is_bv_comp(node):
+    """Checks whether :code:`node` is a bit-vector comparison."""
+    return has_name(node) and get_name(node) == 'bvcomp'
 
 
 def is_bv_not(node):

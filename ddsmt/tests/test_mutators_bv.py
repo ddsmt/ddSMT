@@ -39,8 +39,44 @@ def test_bv_double_negation():
     assert m.mutations(bvneg) == [x]
 
 
+def test_bv_elim_bvcomp():
+    x = Node('x')
+    const = Node('#011')
+    const0 = Node('#b0')
+    const1 = Node('#b1')
+    bvcomp = Node('bvcomp', x, x)
+    eq0_1 = Node('=', const0, bvcomp)
+    eq1_1 = Node('=', const0, bvcomp, x)
+    eq2_1 = Node('=', const0, x, bvcomp, x)
+    eq0_2 = Node('=', const1, bvcomp)
+    eq1_2 = Node('=', const1, bvcomp, x)
+    eq2_2 = Node('=', const1, x, bvcomp, x)
+    m = mutators_bv.BVElimBVComp()
+    assert not m.filter(x)
+    assert not m.filter(Node('=', x, x))
+    assert not m.filter(Node('=', const0, x, x))
+    assert not m.filter(Node('=', const, bvcomp))
+    assert m.filter(eq0_1)
+    assert m.filter(eq1_1)
+    assert m.filter(eq2_1)
+    assert m.filter(eq0_2)
+    assert m.filter(eq1_2)
+    assert m.filter(eq2_2)
+    assert m.mutations(eq0_1) == [Node('not', ('=', x, x))]
+    assert m.mutations(eq1_1) == [
+        Node('and', ('not', ('=', x, x)), ('=', const0, x))
+    ]
+    assert m.mutations(eq2_1) == [
+        Node('and', ('=', const0, x), ('not', ('=', x, x)), ('=', const0, x))
+    ]
+    assert m.mutations(eq0_2) == [Node('=', x, x)]
+    assert m.mutations(eq1_2) == [Node('and', ('=', x, x), ('=', const1, x))]
+    assert m.mutations(eq2_2) == [
+        Node('and', ('=', const1, x), ('=', x, x), ('=', const1, x))
+    ]
+
+
 # TODO
-#class BVElimBVComp:
 #class BVEvalExtend:
 #class BVExtractConstants:
 #class BVOneZeroITE:

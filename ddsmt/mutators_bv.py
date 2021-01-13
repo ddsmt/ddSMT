@@ -38,17 +38,22 @@ class BVDoubleNegation:
 class BVElimBVComp:
     """Replace bvcomp by a regular equality."""
     def filter(self, node):
-        return has_name(node) and \
-               get_name(node) == '=' and \
-               is_bv_constant(node[1]) and \
-               has_name(node[2]) and \
-               get_name(node[2]) == 'bvcomp'
+        return is_eq(node) \
+               and is_bv_constant(node[1]) \
+               and get_bv_width(node[1]) == 1 \
+               and any(is_bv_comp(n) for n in node[2:])
 
     def mutations(self, node):
-        return [
-            Node('=', *node[2][1:]),
-            Node('not', Node('=', *node[2][1:])),
-        ]
+        val = get_bv_constant_value(node[1])[0]
+        res = []
+        for n in node[2:]:
+            if is_bv_comp(n):
+                res.append(Node('=', *n[1:])) if val == 1 else \
+                res.append(Node('not', Node('=', *n[1:])))
+            else:
+                res.append(Node('=', node[1], n))
+        res = res if len(res) == 1 else [Node('and', *res)]
+        return res
 
     def __str__(self):
         return 'eliminate bvcomp by equality'
