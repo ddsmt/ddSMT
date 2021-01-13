@@ -53,9 +53,6 @@ def check_options():
             ).max_threads = os.cpu_count() + options.args().max_threads
         logging.info('Using up to %d threads.', options.args().max_threads)
 
-    if options.args().dump_config:
-        pprint.pprint(vars(options.args()))
-
     # check input file
     if not os.path.isfile(options.args().infile):
         raise DDSMTException('input file is not a regular file')

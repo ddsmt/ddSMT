@@ -4,8 +4,7 @@ from . import argparsemod
 from . import version
 
 
-class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
-                      argparse.HelpFormatter):
+class CustomFormatter(argparse.HelpFormatter):
     """A custom formatter for printing the commandline help.
 
     It combines :code:`argparse.ArgumentDefaultsHelpFormatter` with the
@@ -15,6 +14,25 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, max_help_position=35)
+
+    def _get_help_string(self, action):
+        help = action.help
+        if action.default is not None:
+            if '%(default)' not in action.help:
+                if action.default is not argparse.SUPPRESS:
+                    defaulting_nargs = [
+                        argparse.OPTIONAL, argparse.ZERO_OR_MORE
+                    ]
+                    if action.option_strings or action.nargs in defaulting_nargs:
+                        help += ' (default: %(default)s)'
+        return help
+
+
+class DumpConfigAction(argparse.Action):
+    """Dump the current config."""
+    def __call__(self, parser, namespace, values, option_string=None):
+        import pprint
+        pprint.pprint(vars(namespace))
 
 
 def parse_options(mutators):
@@ -32,54 +50,19 @@ def parse_options(mutators):
                     nargs=argparse.REMAINDER,
                     help="the command (with optional arguments)")
 
+    ap.add_argument('--version', action='version', version=version.VERSION)
     ap.add_argument("-v",
                     action="count",
                     dest="verbosity",
                     default=0,
                     help="increase verbosity")
-    ap.add_argument('--version', action='version', version=version.VERSION)
-    ap.add_argument('--max-threads',
-                    type=int,
-                    metavar='n',
-                    default=-2,
-                    help='number of threads to use; #processors+n if n<=0')
     ap.add_argument('--dump-config',
-                    action='store_true',
-                    default=False,
+                    nargs=0,
+                    action=DumpConfigAction,
                     help='dump configuration')
-    ap.add_argument('--memout',
-                    type=int,
-                    metavar='megabytes',
-                    default=0,
-                    help='memout for individual checks')
-    ap.add_argument("--timeout",
-                    dest="timeout",
-                    metavar='timeout',
-                    type=float,
-                    help="timeout for test runs in seconds, "
-                    "default: 1.5 * golden runtime")
-    ap.add_argument('--strategy',
-                    choices=['ddmin', 'naive'],
-                    default='ddmin',
-                    help='minimization strategy')
-    ap.add_argument("--ignore-output",
-                    action="store_true",
-                    dest="ignore_output",
-                    help="ignore stdout and stderr, only consider exit code")
-    ap.add_argument("--match-err",
-                    dest="match_err",
-                    help="match string in stderr to identify "
-                    "failing input (default: stderr output)")
-    ap.add_argument("--match-out",
-                    dest="match_out",
-                    help="match string in stdout to identify "
-                    "failing input (default: stdout output)")
     ap.add_argument("--parser-test",
                     action="store_true",
-                    dest="parser_test",
-                    help="run ddSMT in parser test mode "
-                    "(parses only, does not require command argument)")
-
+                    help="only test the parser")
     ap.add_argument('--pretty-print',
                     action='store_true',
                     default=False,
@@ -88,34 +71,66 @@ def parse_options(mutators):
                     action='store_true',
                     default=False,
                     help='wrap lines in output file')
+    ap.add_argument('--strategy',
+                    choices=['ddmin', 'naive'],
+                    default='ddmin',
+                    help='minimization strategy')
 
-    apcc = ap.add_argument_group('cross check')
-    apcc.add_argument("-c",
-                      metavar='cmd-cc',
-                      dest="cmd_cc",
-                      help="cross check command")
-    apcc.add_argument(
+    apcheck = ap.add_argument_group('checker arguments')
+    apcheck.add_argument(
+        '-j',
+        '--jobs',
+        type=int,
+        metavar='n',
+        default=-2,
+        help='number of parallel checks; #processors+n if n<=0')
+    apcheck.add_argument('--memout',
+                         type=int,
+                         metavar='megabytes',
+                         help='memout for individual checks')
+    apcheck.add_argument("--timeout",
+                         metavar='timeout',
+                         type=float,
+                         help="timeout for test runs in seconds "
+                         "(default: 1.5 * golden runtime)")
+    apcheck.add_argument(
+        "--ignore-output",
+        action="store_true",
+        help="ignore stdout and stderr, only consider exit code")
+    apcheck.add_argument(
+        "--match-err",
+        metavar='str',
+        help="match string in stderr to identify failing input")
+    apcheck.add_argument(
+        "--match-out",
+        metavar='str',
+        help="match string in stdout to identify failing input")
+
+    apcheck.add_argument("-c", metavar='cmd-cc', help="cross check command")
+    apcheck.add_argument(
         "--timeout-cc",
-        dest="timeout_cc",
         metavar='timeout',
         type=float,
-        help="timeout for test runs of the cross check in seconds, "
-        "default: 1.5 * golden runtime")
-    ap.add_argument(
+        help="timeout for test runs of the cross check in seconds "
+        "(default: 1.5 * golden runtime)")
+    apcheck.add_argument(
         "--ignore-output-cc",
         action="store_true",
-        dest="ignore_output_cc",
         help=
         "ignore stdout and stderr, only consider exit code for cross check command"
     )
-    apcc.add_argument("--match-err-cc",
-                      dest="match_err_cc",
-                      help="match string to identify failing input for "
-                      "cross check command (default: stderr output)")
-    apcc.add_argument("--match-out-cc",
-                      dest="match_out_cc",
-                      help="match string to identify failing input "
-                      "for cross check command (default: stdout output)")
+    apcheck.add_argument(
+        "--match-err-cc",
+        metavar='str',
+        help=
+        "match string in stderr to identify failing input for cross check command"
+    )
+    apcheck.add_argument(
+        "--match-out-cc",
+        metavar='str',
+        help=
+        "match string in stdout to identify failing input for cross check command"
+    )
 
     argp_modes = ap.add_argument_group('special modes')
     mutators.collect_mutator_modes(argp_modes)

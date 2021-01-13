@@ -105,7 +105,7 @@ class BVExtractZeroExtend:
         varwidth = get_bv_width(var)
         upper = int(node[0][2].data)
         lower = int(node[0][3].data)
-        # we extract upper..lower from 0*zeroes|varwidth
+        # we extract upper..lower from 0|varwidth
         if lower >= varwidth:
             # we only extract from the zeroes
             return [Node('_', 'bv0', upper - lower + 1)]

@@ -17,7 +17,7 @@ __GOLDEN_CC = None
 
 def limit_resources(timeout):
     """Apply resource limit given by :code:`--memout` and timeout arguments."""
-    if options.args().memout != 0:
+    if options.args().memout:
         resource.setrlimit(
             resource.RLIMIT_AS,
             (options.args().memout * 1024 * 1024, resource.RLIM_INFINITY))
