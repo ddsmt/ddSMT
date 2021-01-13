@@ -4,32 +4,59 @@ from . import argparsemod
 from . import version
 
 
-class CustomFormatter(argparse.HelpFormatter):
+class ToggleAction(argparse.Action):
+    """A simple :code:`argparse.Action` class that is used for option pairs of
+    the form :code:`--option` and :code:`--no-option`."""
+    def __init__(self, opt_name, dest=None, help=None):
+        super(ToggleAction, self).__init__(
+            [f'--{opt_name}', f'--no-{opt_name}'],
+            dest=dest,
+            nargs=0,
+            help=help,
+        )
+
+    def _get_value(self, option_string):
+        """Figure out whether the option shall be true or false."""
+        return not option_string.startswith('--no-')
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """Set the option depending on which option was used."""
+        setattr(namespace, self.dest, self._get_value(option_string))
+
+
+class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
+                      argparse.HelpFormatter):
     """A custom formatter for printing the commandline help.
 
-    It combines :code:`argparse.ArgumentDefaultsHelpFormatter` with the
-    :code:`argparse.HelpFormatter`, slightly increases the width
-    reserved for the options and removed defaults for the mutator
-    options.
+    Uses :code:`argparse.ArgumentDefaultsHelpFormatter` to print default
+    values, but avoids printing for :code:`ToggleAction` options and
+    :code:`None` defaults. Furthermore uses the
+    :code:`argparse.HelpFormatter`, to slightly increase the width
+    reserved for the options.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, max_help_position=35)
 
     def _get_help_string(self, action):
-        help = action.help
-        if action.default is not None:
-            if '%(default)' not in action.help:
-                if action.default is not argparse.SUPPRESS:
-                    defaulting_nargs = [
-                        argparse.OPTIONAL, argparse.ZERO_OR_MORE
-                    ]
-                    if action.option_strings or action.nargs in defaulting_nargs:
-                        help += ' (default: %(default)s)'
-        return help
+        """Render the help string.
+
+        Appends the default, if needed.
+        """
+        if action.default is None or isinstance(action, ToggleAction):
+            return action.help
+        return super(CustomFormatter, self)._get_help_string(action)
+
+    def _format_action_invocation(self, action):
+        """Formats the options for the help page, uses a special formatting for
+        :code:`ToggleAction` options."""
+        if isinstance(action, ToggleAction):
+            name = action.option_strings[0][2:]
+            return ', '.join([f'--[no-]{name}'] + action.option_strings[2:])
+        return super(CustomFormatter, self)._format_action_invocation(action)
 
 
 class DumpConfigAction(argparse.Action):
-    """Dump the current config."""
+    """Dump the current config using :code:`pprint`."""
     def __call__(self, parser, namespace, values, option_string=None):
         import pprint
         pprint.pprint(vars(namespace))
@@ -162,18 +189,3 @@ def args():
         from . import mutators
         __PARSED_ARGS = parse_options(mutators)
     return __PARSED_ARGS
-
-
-def add_mutator_argument(argparser, name, default, help_msg):
-    dest = 'mutator_{}'.format(name.replace('-', '_'))
-    grp = argparser.add_mutually_exclusive_group()
-    grp.add_argument('--{}'.format(name),
-                     action='store_true',
-                     default=default,
-                     dest=dest,
-                     help=help_msg if not default else argparse.SUPPRESS)
-    grp.add_argument('--no-{}'.format(name),
-                     action='store_false',
-                     default=default,
-                     dest=dest,
-                     help=help_msg if default else argparse.SUPPRESS)

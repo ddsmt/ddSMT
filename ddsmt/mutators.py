@@ -109,14 +109,6 @@ def collect_mutator_modes(argparser):
                            help='use top level binary reduction')
 
 
-def add_mutator_group(argparser, name):
-    """Add a new argument group for a mutator group."""
-    return argparser.add_argument_group('{} mutator arguments'.format(name),
-                                        help_name=name,
-                                        help_group='mutator help',
-                                        help_text='show help for {} mutators')
-
-
 def get_all_mutators():
     """Return all available mutators, arranged by their theory."""
     return {
@@ -130,18 +122,52 @@ def get_all_mutators():
     }
 
 
+class TheoryToggleAction(options.ToggleAction):
+    """A specialization of :code:`ToggleAction` that disables (or enables) all
+    mutators of a given theory."""
+    def __init__(self, theory, *args, **kwargs):
+        """Expects an additional option with the name of the theory."""
+        self.__theory = theory
+        super(TheoryToggleAction, self).__init__(*args, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """Set the option, as well as all mutator options for this theory."""
+        value = self._get_value(option_string)
+        setattr(namespace, self.dest, value)
+        theory, mutators = get_all_mutators()[self.__theory]
+        for _, opt in mutators.items():
+            setattr(namespace, f'mutator_{opt.replace("-", "_")}', value)
+
+
+def add_mutator_group(argparser, name):
+    """Add a new argument group for a mutator group, including options to
+    enable and disable the whole theory."""
+    res = argparser.add_argument_group('{} mutator arguments'.format(name),
+                                       help_name=name,
+                                       help_group='mutator help',
+                                       help_text='show help for {} mutators')
+
+    res._add_action(
+        TheoryToggleAction(name,
+                           name,
+                           f'mutators_{name}',
+                           help=f'{name} theory'))
+    return res
+
+
 def collect_mutator_options(argparser):
     """Adds all options related to mutators to the given argument parser."""
     for name, tdata in get_all_mutators().items():
         theory = tdata[0]
         # add argument group for this theory
         ap = add_mutator_group(argparser, name)
-        # add option to disable the whole theory
-        options.add_mutator_argument(ap, name, True, f'{name} mutators')
         for mname, mopt in theory.get_mutators().items():
             # add options for every individual mutator
             mdesc = str(getattr(theory, mname)())
-            options.add_mutator_argument(ap, mopt, True, mdesc)
+            ap._add_action(
+                options.ToggleAction(mopt,
+                                     dest=f'mutator_{mopt.replace("-", "_")}',
+                                     help=mdesc))
         # add custom option, if the theory wants it
         if hasattr(theory, 'get_mutator_options'):
             theory.get_mutator_options(ap)
@@ -157,9 +183,6 @@ def get_mutators(mutators):
     res = []
     for m in mutators:
         for name, theory in get_all_mutators().items():
-            # check if the theory is enabled
-            if not getattr(options.args(), f'mutator_{name}', True):
-                continue
             # check if this mutator belongs to this theory
             if m in theory[1]:
                 attr = f'mutator_{theory[1][m].replace("-", "_")}'
