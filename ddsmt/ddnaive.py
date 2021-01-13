@@ -182,7 +182,7 @@ def reduce(exprs):
             progress.start(cnt)
             progress.update(min(cnt, skip))
 
-            with multiprocessing.Pool(options.args().max_threads) as pool:
+            with multiprocessing.Pool(options.args().jobs) as pool:
                 # multiprocessing: abort flag is passed to both producer and consumer
                 abort_flag = multiprocessing.Manager().Event()
                 prod = Producer(skip, cur_passes, abort_flag)

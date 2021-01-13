@@ -133,7 +133,7 @@ def _apply_mutator(mutator, exprs):
                 break
 
             task_list = [(i, exprs, x, mutator) for i, x in enumerate(subsets)]
-            with Pool(options.args().max_threads) as pool:
+            with Pool(options.args().jobs) as pool:
                 for result in pool.imap_unordered(_worker, task_list):
                     task_id, nreduced, reduced_exprs, nt = result
 

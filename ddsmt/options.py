@@ -106,7 +106,10 @@ def parse_options(mutators):
         metavar='str',
         help="match string in stdout to identify failing input")
 
-    apcheck.add_argument("-c", metavar='cmd-cc', help="cross check command")
+    apcheck.add_argument("-c",
+                         metavar='cmd-cc',
+                         dest='cmd_cc',
+                         help="cross check command")
     apcheck.add_argument(
         "--timeout-cc",
         metavar='timeout',
