@@ -1,73 +1,87 @@
-import logging
 from multiprocessing import Pool
+import logging
 import sys
 import time
 
 from . import checker
-from . import options
 from . import mutators
-from . import smtlib
 from . import nodes
+from . import options
+from . import smtlib
 
 
-# Disabled mutators use global_mutations only, which are currently not handled
-# by ddmin.
 def ddmin_passes():
-    return mutators.get_mutators([
-        'Constants',
-        'EraseNode',
-        'SubstituteChildren',
-        #        'TopLevelBinaryReduction',
-        'CheckSatAssuming',
-        'LetElimination',
-        'LetSubstitution',
-        #        'PushPopRemoval',
-        'ArithmeticSimplifyConstant',
-        'ArithmeticNegateRelations',
-        'ArithmeticSplitNaryRelations',
-        'ArithmeticStrengthenRelations',
-        'BVConcatToZeroExtend',
-        'BVDoubleNegation',
-        'BVElimBVComp',
-        'BVEvalExtend',
-        'BVExtractConstants',
-        'BVOneZeroITE',
-        'BVReflexiveNand',
-        'BVSimplifyConstant',
-        'BVTransformToBool',
-        'BVReduceBW',
-        'BVMergeReducedBW',
-        'DeMorgan',
-        'DoubleNegation',
-        'EliminateFalseEquality',
-        'EliminateImplications',
-        'XORRemoveConstants',
-        'XOREliminateBinary',
-        'MergeWithChildren',
-        'ReplaceByVariable',
-        'SortChildren',
-        'EliminateDistinct',
-        'InlineDefinedFuns',
-        'SimplifyLogic',
-        'StringSimplifyConstant',
-        #        'SimplifyQuotedSymbols',
-        #        'SimplifySymbolNames',
-    ])
+    """Return list of ddmin passes.
+
+    Mutators that apply global_mutations only are disabled since this is
+    not supported by ddmin.
+    """
+    return [
+        # Passes applied to top-level nodes (DFS max-depth 1)
+        mutators.get_mutators([
+            'EraseNode',
+            'CheckSatAssuming',
+        ]),
+
+        # Passes applied to all nodes
+        mutators.get_mutators([
+            'Constants',
+            'SubstituteChildren',
+            #        'TopLevelBinaryReduction',
+            'LetElimination',
+            'LetSubstitution',
+            #        'PushPopRemoval',
+            'ArithmeticSimplifyConstant',
+            'ArithmeticNegateRelations',
+            'ArithmeticSplitNaryRelations',
+            'ArithmeticStrengthenRelations',
+            'BVConcatToZeroExtend',
+            'BVDoubleNegation',
+            'BVElimBVComp',
+            'BVEvalExtend',
+            'BVExtractConstants',
+            'BVOneZeroITE',
+            'BVReflexiveNand',
+            'BVSimplifyConstant',
+            'BVTransformToBool',
+            #        'BVReduceBW',
+            'BVMergeReducedBW',
+            'DeMorgan',
+            'DoubleNegation',
+            'EliminateFalseEquality',
+            'EliminateImplications',
+            'XORRemoveConstants',
+            'XOREliminateBinary',
+            'MergeWithChildren',
+            'ReplaceByVariable',
+            'SortChildren',
+            'EliminateDistinct',
+            'InlineDefinedFuns',
+            'SimplifyLogic',
+            'StringSimplifyConstant',
+            #        'SimplifyQuotedSymbols',
+            #        'SimplifySymbolNames',
+        ])
+    ]
 
 
 def _subst(exprs, subset, mutator):
+    """Return list of mutated formulas.
+
+    Apply :code:`mutator` to nodes in :code:`subset` and substitute the
+    nodes in :code:`exprs`. At granularity 1 try all mutations returned
+    by :code:`mutator`, for all other granularities pick the first
+    mutation.
+    """
 
     res = []
-
-    # if subset size is 1 try all mutations
+    # Granularity 1: Try all mutations separately.
     if len(subset) == 1:
         node = subset[0]
         mutations = mutator.mutations(node)
-        if mutations:
-            res.extend(
-                nodes.substitute(exprs, {node.id: x}) for x in mutations)
-        else:
-            res.append(nodes.substitute(exprs, {node.id: None}))
+        res.extend(nodes.substitute(exprs, {node.id: x}) for x in mutations)
+    # Granularity > 1: Pick first mutation and perform parallel substitution of
+    # nodes in `subset`.
     else:
         substs = dict()
         for node in subset:
@@ -79,139 +93,182 @@ def _subst(exprs, subset, mutator):
 
 
 def _worker(task):
+    """Perform mutations on given :code:`subset` and check mutated input.
+
+    A worker process takes a task and performs mutations on the input
+    and checks whether the input fails.
+    """
     task_id, exprs, subset, mutator = task
 
-    substs = _subst(exprs, subset, mutator)
+    mutated_exprs = _subst(exprs, subset, mutator)
 
     ntests = 0
-    for rexprs in substs:
+    for mexprs in mutated_exprs:
         ntests += 1
-        if checker.check_exprs(rexprs):
-            nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(rexprs)
-            return task_id, nreduced, rexprs, ntests
+        if checker.check_exprs(mexprs):
+            nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(mexprs)
+            return task_id, nreduced, mexprs, ntests
     return task_id, 0, [], ntests
 
 
 def _partition(exprs, gran):
-    subsets = [exprs[s:s + gran] for s in range(0, len(exprs), gran)]
-    return subsets
+    """Partition :code:`exprs` into a list of subsets of size :code:`gran`."""
+    return [exprs[s:s + gran] for s in range(0, len(exprs), gran)]
 
 
-def _clear_msg(nchars):
-    sys.stdout.write('{}\r'.format(' ' * nchars))
+__last_msg = ""
 
 
-def _apply_mutator(mutator, exprs):
+def _print_progress(msg, update=True):
+    """Print progress :code:`msg`.
 
-    smtlib.collect_information(exprs)
-    nexprs = smtlib.count_exprs(exprs)
-    max_depth = mutator.max_depth() if hasattr(mutator, 'max_depth') else None
-    exprs_filtered = list(smtlib.filter_exprs(exprs, mutator.filter,
-                                              max_depth))
+    If :code:`update` is True the previous line will be overwritten.
+    """
+    global __last_msg
 
-    start_time = time.time()
-    ntests = 0
-    ntests_reduced = 0
-    nreduced_total = 0
+    if options.args().verbosity < 1:
+        return
 
-    msg = ""
-    gran = len(exprs_filtered)
-    while gran > 0:
+    print(' ' * len(__last_msg), end='\r', flush=True)
+    if update:
+        print(msg, end='\r', flush=True)
+    else:
+        logging.info(msg)
+    __last_msg = msg
 
-        # Partition superset into lists of size gran
-        subsets = _partition(exprs_filtered, gran)
 
-        # Note: As soon as one of the processes was able to reduce the input
-        # file we recompute the task_list with the updated expressions and same
-        # granularity.
-        restart = True
-        while restart:
-            restart = False
+def _check_seq(gran, subsets, exprs, nexprs, mutator, stats):
+    """Sequentially check :code:`subsets` and update :code:`stats`."""
 
-            subsets = [x for x in subsets if x]
-            if not subsets:
-                break
+    outfile = options.args().outfile
 
-            task_list = [(i, exprs, x, mutator) for i, x in enumerate(subsets)]
-            with Pool(options.args().jobs) as pool:
-                for result in pool.imap_unordered(_worker, task_list):
-                    task_id, nreduced, reduced_exprs, nt = result
+    for i, subset in enumerate(subsets):
+        task = (i, exprs, subset, mutator)
+        task_id, nreduced, reduced_exprs, ntests = _worker(task)
+        stats['tests'] += ntests
 
-                    ntests += nt
+        if nreduced:
+            stats['tests_success'] += 1
+            stats['reduced'] += nreduced
+            exprs = reduced_exprs
+            nodes.write_smtlib_to_file(outfile, exprs)
+            smtlib.collect_information(exprs)
 
-                    if nreduced:
-                        pool.close()
-                        ntests_reduced += 1
-                        nreduced_total += nreduced
+        _print_progress(
+            f"[ddSMT INFO] {mutator}: granularity: {gran}, " \
+            f"subset {task_id} of {len(subsets)}, " \
+            f"expressions: {nexprs - stats['reduced']}/{nexprs}")
+
+    return exprs, gran
+
+
+def _check_par(gran, subsets, exprs, nexprs, mutator, stats):
+    """Perform :code:`subsets` checks in parallel.
+
+    If multiple workers report failed subsets there is currently no good
+    solution for merging/combining the resulting input. Instead, we remove
+    non-failing subsets from :code:`subsets` and check the remaining
+    (failed) subsets on the updated input :code:`exprs`.
+    :code:`exprs` gets updated with the first failing input reported by a
+    worker.
+    """
+    outfile = options.args().outfile
+
+    while subsets:
+        tasks = [(i, exprs, x, mutator) for i, x in enumerate(subsets)]
+        nsuccess = 0
+        with Pool(options.args().jobs) as pool:
+            for result in pool.imap_unordered(_worker, tasks):
+                task_id, nreduced, reduced_exprs, ntests = result
+                stats['tests'] += ntests
+
+                if nreduced:
+                    if nsuccess == 0:
+                        stats['tests_success'] += 1
+                        stats['reduced'] += nreduced
                         exprs = reduced_exprs
+                        nodes.write_smtlib_to_file(outfile, exprs)
                         smtlib.collect_information(exprs)
-
-                        # Print current working set to file
-                        nodes.write_smtlib_to_file(options.args().outfile,
-                                                   exprs)
-                        restart = True
-
-                    # Remove already substituted expressions
+                        subsets[task_id] = None
+                    nsuccess += 1
+                else:
                     subsets[task_id] = None
 
-                    if options.args().verbosity >= 2:
-                        _clear_msg(len(msg))
-                        msg = "[ddSMT INFO] {}: granularity: {}, subset {} of {}, " \
-                                "expressions: {}/{}\r".format(
-                                        mutator, gran, task_id, len(subsets),
-                                        nexprs - nreduced_total, nexprs)
-                        sys.stdout.write(msg)
+                _print_progress(
+                    f"[ddSMT INFO] {mutator}: granularity: {gran}, " \
+                    f"subset {task_id} of {len(subsets)}, " \
+                    f"expressions: {nexprs - stats['reduced']}/{nexprs}")
 
-                    if restart:
-                        break
+        # Remove empty subsets
+        subsets = [x for x in subsets if x]
 
+        # Heuristic: Try to avoid too many checks for lower granularity,
+        # instead try to increase granularity again.
+        if gran <= 2 and nsuccess > gran:
+            gran = gran * 4
+            break
+
+    return exprs, gran
+
+
+def _apply_mutator(mutator, exprs, max_depth=None):
+    """Apply :code:`mutator` with strategy ddmin on input :code:`exprs`.
+
+    :code:`max_depth` limits the DFS traversal when filtering nodes in
+    :code:`exprs`.
+
+    The general workflow steps are as follows:
+
+    Nodes in :code:`exprs` are filtered based on :code:`mutator`. The
+    resulting list of nodes is partitioned into subsets of size
+    :code:`gran`, which are then checked via :code:`check_func`.
+    """
+    start_time = time.time()
+    nexprs = smtlib.count_exprs(exprs)
+    filter_func = getattr(mutator, 'filter', lambda x: True)
+    filtered = list(smtlib.filter_exprs(exprs, filter_func, max_depth))
+    check_func = _check_seq if options.args().jobs == 1 else _check_par
+
+    stats = {'tests': 0, 'tests_success': 0, 'reduced': 0}
+
+    gran = len(filtered)
+    while gran > 0:
+        subsets = _partition(filtered, gran)
+        exprs, gran = check_func(gran, subsets, exprs, nexprs, mutator, stats)
+        filtered = list(smtlib.filter_exprs(exprs, filter_func, max_depth))
         gran = gran // 2
 
-    if options.args().verbosity >= 2:
-        _clear_msg(len(msg))
-        logging.info(
-            "{}: diff {:+} expressions, {} tests ({}), {:.1f}s".format(
-                mutator, -nreduced_total, ntests, ntests_reduced,
-                time.time() - start_time))
+    _print_progress(f"{mutator}: diff {-stats['reduced']:+} expressions, " \
+                    f"{stats['tests']} tests ({stats['tests_success']}), " \
+                    f"{time.time() - start_time:.1f}s", False)
 
-    return exprs, ntests, nreduced_total
-
-
-# TODO: move to core mutators
-class RemoveCommand:
-    def filter(self, node):
-        return True
-
-    def mutations(self, node):
-        return None
-
-    def max_depth(self):
-        return 1
-
-    def __str__(self):
-        return "remove command"
+    return exprs, stats['tests'], stats['reduced']
 
 
 def reduce(exprs):
+    """Reduce given :code:`exprs` until fixed-point with ddmin strategy."""
 
-    passes = []
-    passes.extend(
-        p for p in ddmin_passes() \
-                if hasattr(p, 'filter') and hasattr(p, 'mutations'))
+    smtlib.collect_information(exprs)
+
+    passes = ddmin_passes()
 
     ntests_total = 0
     while True:
         nreduced_round = 0
 
-        while True:
-            exprs, ntests, nreduced = _apply_mutator(RemoveCommand(), exprs)
-            ntests_total += ntests
-            nreduced_round += nreduced
+        # Apply top-level passes until fixed-point.
+        for mut in passes[0]:
+            assert hasattr(mut, 'mutations')
+            while True:
+                exprs, ntests, nreduced = _apply_mutator(mut, exprs, 1)
+                ntests_total += ntests
+                nreduced_round += nreduced
 
-            if nreduced == 0:
-                break
+                if nreduced == 0:
+                    break
 
-        for mut in passes:
+        for mut in passes[1]:
+            assert hasattr(mut, 'mutations')
             exprs, ntests, nreduced = _apply_mutator(mut, exprs)
             ntests_total += ntests
             nreduced_round += nreduced
