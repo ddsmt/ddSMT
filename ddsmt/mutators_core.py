@@ -1,5 +1,6 @@
 from .nodes import Node
 from .smtlib import *
+from . import options
 
 NAME = 'core'
 MUTATORS = [
