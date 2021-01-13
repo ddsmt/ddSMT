@@ -80,6 +80,28 @@ def get_variables_with_type(var_type):
     return [v for v in __type_lookup if __type_lookup[v] == var_type]
 
 
+def introduce_variables(exprs, vars):
+    """Adds new variables to a set of input expressions.
+
+    Expects :code:`vars` to contain declaration commands (like
+    :code:`declare-fun`). Inserts the variables into :code:`exprs`
+    before the first SMT-LIB command that is not `set-info`, `set-logic`
+    or a constant/function/variable declaration.
+    """
+    pos = 0
+    while pos < len(exprs):
+        e = exprs[pos]
+        if not e.has_name():
+            break
+        if not e.get_name() in [
+                'declare-const', 'declare-fun', 'define-fun', 'set-info',
+                'set-logic'
+        ]:
+            break
+        pos += 1
+    return exprs[:pos] + vars + exprs[pos:]
+
+
 ### General semantic testers and testers
 
 
