@@ -30,7 +30,6 @@ Note that a mutator can work in two ways: :code:`mutations` constructs **local**
 Below follows a list of all available mutators, grouped by their main concern: generic mutators that work on the node structure, SMT-LIB mutators that deal with certain SMT-LIB constructs, and mutators for individual SMT-LIB theories.
 
 Most mutators can be enabled or disabled using options of the form :code:`--<mutator>` or :code:`--no-<mutator>` (like :code:`--no-constants`), most are enabled by default. The same is possible for all mutators from a group with :code:`--<group>` or :code:`--no-<group>` (like :code:`--no-generic`).
-:doc:`Preconfigured modes <modes>` for common tasks are available as well.
 
 Generic mutators
 ----------------
@@ -52,18 +51,18 @@ Arithmetic mutators
 
 Bitvector mutators
 ------------------
-.. autoclass:: ddsmt.mutators_bitvectors.BVConcatToZeroExtend
-.. autoclass:: ddsmt.mutators_bitvectors.BVDoubleNegation
-.. autoclass:: ddsmt.mutators_bitvectors.BVElimBVComp
-.. autoclass:: ddsmt.mutators_bitvectors.BVEvalExtend
-.. autoclass:: ddsmt.mutators_bitvectors.BVExtractConstants
-.. autoclass:: ddsmt.mutators_bitvectors.BVExtractZeroExtend
-.. autoclass:: ddsmt.mutators_bitvectors.BVMergeReducedBW
-.. autoclass:: ddsmt.mutators_bitvectors.BVOneZeroITE
-.. autoclass:: ddsmt.mutators_bitvectors.BVReflexiveNand
-.. autoclass:: ddsmt.mutators_bitvectors.BVSimplifyConstant
-.. autoclass:: ddsmt.mutators_bitvectors.BVTransformToBool
-.. autoclass:: ddsmt.mutators_bitvectors.BVReduceBW
+.. autoclass:: ddsmt.mutators_bv.BVConcatToZeroExtend
+.. autoclass:: ddsmt.mutators_bv.BVDoubleNegation
+.. autoclass:: ddsmt.mutators_bv.BVElimBVComp
+.. autoclass:: ddsmt.mutators_bv.BVEvalExtend
+.. autoclass:: ddsmt.mutators_bv.BVExtractConstants
+.. autoclass:: ddsmt.mutators_bv.BVExtractZeroExtend
+.. autoclass:: ddsmt.mutators_bv.BVMergeReducedBW
+.. autoclass:: ddsmt.mutators_bv.BVOneZeroITE
+.. autoclass:: ddsmt.mutators_bv.BVReflexiveNand
+.. autoclass:: ddsmt.mutators_bv.BVSimplifyConstant
+.. autoclass:: ddsmt.mutators_bv.BVTransformToBool
+.. autoclass:: ddsmt.mutators_bv.BVReduceBW
 
 Boolean mutators
 ----------------

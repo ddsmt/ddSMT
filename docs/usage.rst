@@ -18,7 +18,6 @@ For such a case, ddSMT is executed as follows:
 
 ddSMT provides options that cover many common use cases. Please consult ``ddsmt --help`` for a full list.
 
-* ``--mode-*``: these commands provide predefined modes for special use cases. See :doc:`modes` for more details.
 * ``--timeout`` imposes a custom time limit (in seconds).
 * ``--memout`` imposes a memory limit (in megabytes).
 * ``--pretty-print`` and ``--wrap-lines`` post-process the output.
@@ -41,25 +40,3 @@ The exact matching works as follows:
    :language: python3
    :linenos:
    :pyobject: matches_golden
-
-Debugging unsoundness
----------------------
-
-Sometimes bugs in solvers do not make the command crash or print an error message, but simply provide an incorrect result.
-This is a particular nasty case for ddSMT, as the solver itself oftentimes can not detect this issue. Relying on annotations in the input (i.e. the SMTLIB status) is usually not a good idea, as mutating the input may very well change the correct output (i.e. flip from sat to unsat or vice-versa) but still retain the underlying error.
-
-A better approach is usually to use another solver as reference solver and employ a wrapper script that checks whether the two solvers disagree. A wrapper script for this purpose is provided in :download:`scripts/result_differs.py <../scripts/result_differs.py>`. It runs two solvers (``'A'`` and ``'B'``) and compares their outputs. Note that this script expects the solver to only output ``sat`` or ``unsat``.
-
-.. literalinclude:: ../scripts/result_differs.py
-   :language: python3
-   :linenos:
-
-Debugging performance issues
-----------------------------
-
-Similarly nasty are performance issues, and as for soundness issues it usually only makes sense to assess performance relative to another solver. Again a wrapper script for this purpose is provided in :download:`scripts/compare_time.py <../scripts/compare_time.py>`. This script runs two solvers (``'A'`` and ``'B'``) and checks whether the slower one is (still) much slower than the faster one.
-As it outputs some information about the timings, it should be used in combination with ``--ignore-output``.
-
-.. literalinclude:: ../scripts/compare_time.py
-   :language: python3
-   :linenos:

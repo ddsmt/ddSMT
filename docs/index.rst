@@ -13,5 +13,5 @@ ddSMT is free software released under the GPLv3. You should have received a copy
 
    installation
    usage
-   modes
    mutators
+   scenarios
