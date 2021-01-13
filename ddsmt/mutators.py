@@ -139,8 +139,8 @@ def get_all_mutators():
         mutators_bv: mutators_bv.get_mutators(),
         mutators_boolean: mutators_boolean.get_mutators(),
         mutators_core: mutators_core.get_mutators(),
-        mutators_smtlib: mutators_core.get_mutators(),
-        mutators_strings: mutators_core.get_mutators(),
+        mutators_smtlib: mutators_smtlib.get_mutators(),
+        mutators_strings: mutators_strings.get_mutators(),
     }
 
 

@@ -214,9 +214,9 @@ def collect_mutator_options(argparser):
                                  'remove push-pop pairs')
     options.add_mutator_argument(argparser, 'simplify-logic', True,
                                  'simplify declared logic')
-    options.add_mutator_argument(argparser, 'simplify-quoted-symbols', False,
+    options.add_mutator_argument(argparser, 'simplify-quoted-symbols', True,
                                  'simplify quoted symbols')
-    options.add_mutator_argument(argparser, 'simplify-symbol-names', False,
+    options.add_mutator_argument(argparser, 'simplify-symbol-names', True,
                                  'simplify symbol names')
 
 
