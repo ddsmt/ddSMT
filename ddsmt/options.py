@@ -41,7 +41,7 @@ def parse_options(mutators):
     ap.add_argument('--max-threads',
                     type=int,
                     metavar='n',
-                    default=1,
+                    default=-2,
                     help='number of threads to use; #processors+n if n<=0')
     ap.add_argument('--dump-config',
                     action='store_true',
