@@ -228,20 +228,15 @@ class BVMergeReducedBW:
 
     def mutations(self, node):
         name = node[1]
+        ntype = node[3]
         zext = int(get_defined_function(name)[0][-1].data)
         deffun_name = node[-1][-1]
         deffun_body = get_defined_function(deffun_name)
         deffun_zext = int(deffun_body[0][-1].data)
         decfun_name = deffun_body[-1]
         return [
-            Node('define-fun', name, (),
-                 ('zero_extend', zext + deffun_zext, decfun_name))
-        ]
-
-    def global_mutations(self, linput, ginput):
-        return [
-            nodes.substitute(ginput, {linput: rep})
-            for rep in self.mutations(linput)
+            Node('define-fun', name, (), ntype,
+                 (('_', 'zero_extend', zext + deffun_zext), decfun_name))
         ]
 
     def __str__(self):
