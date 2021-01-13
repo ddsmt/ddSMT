@@ -36,7 +36,7 @@ Generic mutators
 ----------------
 
 .. autoclass:: ddsmt.mutators_core.Constants
-.. autoclass:: ddsmt.mutators_core.EraseChildren
+.. autoclass:: ddsmt.mutators_core.EraseNode
 .. autoclass:: ddsmt.mutators_core.MergeWithChildren
 .. autoclass:: ddsmt.mutators_core.ReplaceByVariable
 .. autoclass:: ddsmt.mutators_core.SortChildren
@@ -53,10 +53,17 @@ Arithmetic mutators
 Bitvector mutators
 ------------------
 .. autoclass:: ddsmt.mutators_bitvectors.BVConcatToZeroExtend
+.. autoclass:: ddsmt.mutators_bitvectors.BVDoubleNegation
+.. autoclass:: ddsmt.mutators_bitvectors.BVElimBVComp
 .. autoclass:: ddsmt.mutators_bitvectors.BVEvalExtend
 .. autoclass:: ddsmt.mutators_bitvectors.BVExtractConstants
+.. autoclass:: ddsmt.mutators_bitvectors.BVExtractZeroExtend
+.. autoclass:: ddsmt.mutators_bitvectors.BVMergeReducedBW
 .. autoclass:: ddsmt.mutators_bitvectors.BVOneZeroITE
+.. autoclass:: ddsmt.mutators_bitvectors.BVReflexiveNand
 .. autoclass:: ddsmt.mutators_bitvectors.BVSimplifyConstant
+.. autoclass:: ddsmt.mutators_bitvectors.BVTransformToBool
+.. autoclass:: ddsmt.mutators_bitvectors.BVReduceBW
 
 Boolean mutators
 ----------------
@@ -65,8 +72,8 @@ Boolean mutators
 .. autoclass:: ddsmt.mutators_boolean.EliminateFalseEquality
 .. autoclass:: ddsmt.mutators_boolean.EliminateImplications
 .. autoclass:: ddsmt.mutators_boolean.NegatedQuantifiers
-.. autoclass:: ddsmt.mutators_boolean.XORRemoveConstants
 .. autoclass:: ddsmt.mutators_boolean.XOREliminateBinary
+.. autoclass:: ddsmt.mutators_boolean.XORRemoveConstants
 
 SMT-LIB mutators
 ----------------
@@ -82,4 +89,7 @@ SMT-LIB mutators
 
 String mutators
 ---------------
+.. autoclass:: ddsmt.mutators_strings.StringContainsToConcat
+.. autoclass:: ddsmt.mutators_strings.StringIndexOfNotFound
+.. autoclass:: ddsmt.mutators_strings.StringReplaceAll
 .. autoclass:: ddsmt.mutators_strings.StringSimplifyConstant
