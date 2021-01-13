@@ -122,6 +122,15 @@ def get_all_mutators():
     }
 
 
+def toggle_theory(namespace, theory_name, value):
+    """Enables or disables all mutators for the given theory by setting their
+    respective options in :code:`namespace`."""
+    setattr(namespace, f'mutators_{theory_name}', value)
+    _, mutators = get_all_mutators()[theory_name]
+    for _, opt in mutators.items():
+        setattr(namespace, f'mutator_{opt.replace("-", "_")}', value)
+
+
 class TheoryToggleAction(options.ToggleAction):
     """A specialization of :code:`ToggleAction` that disables (or enables) all
     mutators of a given theory."""
@@ -133,10 +142,15 @@ class TheoryToggleAction(options.ToggleAction):
     def __call__(self, parser, namespace, values, option_string=None):
         """Set the option, as well as all mutator options for this theory."""
         value = self._get_value(option_string)
-        setattr(namespace, self.dest, value)
-        theory, mutators = get_all_mutators()[self.__theory]
-        for _, opt in mutators.items():
-            setattr(namespace, f'mutator_{opt.replace("-", "_")}', value)
+        toggle_theory(namespace, self.__theory, value)
+
+
+class DisableAllTheoriesAction(argparse.Action):
+    """Disables all mutators from all theories when called."""
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, True)
+        for name in get_all_mutators():
+            toggle_theory(namespace, name, False)
 
 
 def add_mutator_group(argparser, name):
@@ -157,6 +171,10 @@ def add_mutator_group(argparser, name):
 
 def collect_mutator_options(argparser):
     """Adds all options related to mutators to the given argument parser."""
+    argparser.add_argument('--disable-all',
+                           action=DisableAllTheoriesAction,
+                           nargs=0,
+                           help='disable all mutators')
     for name, tdata in get_all_mutators().items():
         theory = tdata[0]
         # add argument group for this theory

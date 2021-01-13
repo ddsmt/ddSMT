@@ -8,12 +8,12 @@ class ToggleAction(argparse.Action):
     """A simple :code:`argparse.Action` class that is used for option pairs of
     the form :code:`--option` and :code:`--no-option`."""
     def __init__(self, opt_name, dest=None, help=None):
-        super(ToggleAction, self).__init__(
-            [f'--{opt_name}', f'--no-{opt_name}'],
-            dest=dest,
-            nargs=0,
-            help=help,
-        )
+        super(ToggleAction,
+              self).__init__([f'--{opt_name}', f'--no-{opt_name}'],
+                             dest=dest,
+                             nargs=0,
+                             help=help,
+                             default=True)
 
     def _get_value(self, option_string):
         """Figure out whether the option shall be true or false."""
