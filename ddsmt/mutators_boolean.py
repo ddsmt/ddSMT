@@ -1,4 +1,3 @@
-from . import options
 from .smtlib import *
 
 NAME = 'boolean'
@@ -113,35 +112,15 @@ class XOREliminateBinary:
         return 'eliminate binary xor'
 
 
-def collect_mutator_options(argparser):
-    options.add_mutator_argument(argparser, NAME, True, 'boolean mutators')
-    options.add_mutator_argument(argparser, 'de-morgan', True,
-                                 'apply de Morgan to push negations inside')
-    options.add_mutator_argument(argparser, 'double-negations', True,
-                                 'eliminate double negations')
-    options.add_mutator_argument(argparser, 'eliminate-binary-xor', True,
-                                 'eliminate binary xor')
-    options.add_mutator_argument(argparser, 'eliminate-false-eq', True,
-                                 'eliminate equalities with false')
-    options.add_mutator_argument(argparser, 'eliminate-implications', True,
-                                 'eliminate implications')
-    options.add_mutator_argument(argparser, 'negated-quant', True,
-                                 'push negations inside quantifiers')
-    options.add_mutator_argument(argparser, 'remove-xor-constants', True,
-                                 'remove constants from xor')
-
-
 def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
-    if not options.args().mutator_boolean:
-        return {}
     return {
-        'DeMorgan': 'de_morgan',
-        'DoubleNegation': 'double_negations',
-        'XOREliminateBinary': 'eliminate_binary_xor',
-        'EliminateFalseEquality': 'eliminate_false_eq',
-        'EliminateImplications': 'eliminate_implications',
-        'NegatedQuantifiers': 'negated_quant',
-        'XORRemoveConstants': 'remove_xor_constants',
+        'DeMorgan': 'de-morgan',
+        'DoubleNegation': 'double-negations',
+        'XOREliminateBinary': 'eliminate-binary-xor',
+        'EliminateFalseEquality': 'eliminate-false-eq',
+        'EliminateImplications': 'eliminate-implications',
+        'NegatedQuantifiers': 'negated-quant',
+        'XORRemoveConstants': 'remove-xor-constants',
     }

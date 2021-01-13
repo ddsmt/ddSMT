@@ -1,6 +1,5 @@
 import re
 
-from . import options
 from .smtlib import *
 
 NAME = 'smtlib'
@@ -198,41 +197,17 @@ class SimplifySymbolNames:
         return 'simplify symbol name'
 
 
-def collect_mutator_options(argparser):
-    options.add_mutator_argument(argparser, NAME, True, 'smtlib mutators')
-    options.add_mutator_argument(argparser, 'check-sat-assuming', True,
-                                 'replace check-sat-assuming by check-sat')
-    options.add_mutator_argument(argparser, 'eliminate-distinct', True,
-                                 'eliminate distinct by negated equalities')
-    options.add_mutator_argument(argparser, 'inline-functions', True,
-                                 'inline defined functions')
-    options.add_mutator_argument(argparser, 'let-elimination', True,
-                                 'eliminate let bindings')
-    options.add_mutator_argument(argparser, 'let-substitution', True,
-                                 'substitute bound variables in let bindings')
-    options.add_mutator_argument(argparser, 'push-pop-removal', True,
-                                 'remove push-pop pairs')
-    options.add_mutator_argument(argparser, 'simplify-logic', True,
-                                 'simplify declared logic')
-    options.add_mutator_argument(argparser, 'simplify-quoted-symbols', True,
-                                 'simplify quoted symbols')
-    options.add_mutator_argument(argparser, 'simplify-symbol-names', True,
-                                 'simplify symbol names')
-
-
 def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
-    if not options.args().mutator_smtlib:
-        return {}
     return {
-        'CheckSatAssuming': 'check_sat_assuming',
-        'EliminateDistinct': 'eliminate_distinct',
-        'InlineDefinedFuns': 'inline_functions',
-        'LetElimination': 'let_elimination',
-        'LetSubstitution': 'let_substitution',
-        'PushPopRemoval': 'push_pop_removal',
-        'SimplifyLogic': 'simplify_logic',
-        'SimplifyQuotedSymbols': 'simplify_quoted_symbols',
-        'SimplifySymbolNames': 'simplify_symbol_names',
+        'CheckSatAssuming': 'check-sat-assuming',
+        'EliminateDistinct': 'eliminate-distinct',
+        'InlineDefinedFuns': 'inline-functions',
+        'LetElimination': 'let-elimination',
+        'LetSubstitution': 'let-substitution',
+        'PushPopRemoval': 'push-pop-removal',
+        'SimplifyLogic': 'simplify-logic',
+        'SimplifyQuotedSymbols': 'simplify-quoted-symbols',
+        'SimplifySymbolNames': 'simplify-symbol_names',
     }

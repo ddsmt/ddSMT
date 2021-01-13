@@ -1,4 +1,3 @@
-from . import options
 from .smtlib import *
 
 NAME = 'arithmetic'
@@ -89,26 +88,12 @@ class ArithmeticStrengthenRelations:
         return 'strengthen relation'
 
 
-def collect_mutator_options(argparser):
-    options.add_mutator_argument(argparser, NAME, True, 'arithmetic mutators')
-    options.add_mutator_argument(argparser, 'arith-constants', True,
-                                 'replaces constants by simpler ones')
-    options.add_mutator_argument(argparser, 'arith-negate-relations', True,
-                                 'push negations inside of relations')
-    options.add_mutator_argument(argparser, 'arith-split-nary-relations', True,
-                                 'split n-ary relations')
-    options.add_mutator_argument(argparser, 'arith-strengthen-relations', True,
-                                 'strengthen relations')
-
-
 def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
-    if not options.args().mutator_arithmetic:
-        return {}
     return {
-        'ArithmeticSimplifyConstant': 'arith_constants',
-        'ArithmeticNegateRelations': 'arith_negate_relations',
-        'ArithmeticSplitNaryRelations': 'arith_split_nary_relations',
-        'ArithmeticStrengthenRelations': 'arith_strengthen_relations',
+        'ArithmeticSimplifyConstant': 'arith-constants',
+        'ArithmeticNegateRelations': 'arith-negate-relations',
+        'ArithmeticSplitNaryRelations': 'arith-split-nary-relations',
+        'ArithmeticStrengthenRelations': 'arith-strengthen-relations',
     }

@@ -1,5 +1,4 @@
 from .nodes import Node
-from . import options
 from .smtlib import *
 
 NAME = 'core'
@@ -131,40 +130,24 @@ class TopLevelBinaryReduction:
         return 'binary reduction'
 
 
-def collect_mutator_options(argparser):
-    options.add_mutator_argument(argparser, NAME, True, 'core mutators')
-    options.add_mutator_argument(argparser, 'constants', True,
-                                 'replace by theory constants')
-    options.add_mutator_argument(argparser, 'erase-node', True,
-                                 'erase single node')
-    options.add_mutator_argument(argparser, 'merge-children', True,
-                                 'merge children into nodes')
-    options.add_mutator_argument(argparser, 'replace-by-variable', True,
-                                 'replace with existing variable')
+def get_mutator_options(argparser):
+    """Add additional options to the argument parser."""
     argparser.add_argument(
         '--replace-by-variable-mode',
         choices=['inc', 'dec'],
         default='inc',
         help='replace with existing variables that are larger or smaller')
-    options.add_mutator_argument(argparser, 'sort-children', True,
-                                 'sort children of nodes')
-    options.add_mutator_argument(argparser, 'substitute-children', True,
-                                 'substitute nodes with their children')
-    options.add_mutator_argument(argparser, 'top-level-binary-reduction', True,
-                                 'use top level binary reduction')
 
 
 def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
-    if not options.args().mutator_core:
-        return {}
     return {
         'Constants': 'constants',
-        'EraseNode': 'erase_node',
-        'MergeChildren': 'merge_children',
-        'ReplaceByVariable': 'replace_by_variable',
-        'SortChildren': 'sort_children',
-        'SubstituteChildren': 'substitute_children',
-        'TopLevelBinaryReduction': 'top_level_binary_reduction',
+        'EraseNode': 'erase-node',
+        'MergeWithChildren': 'merge-children',
+        'ReplaceByVariable': 'replace-by-variable',
+        'SortChildren': 'sort-children',
+        'SubstituteChildren': 'substitute-children',
+        'TopLevelBinaryReduction': 'top-level-binary-reduction',
     }

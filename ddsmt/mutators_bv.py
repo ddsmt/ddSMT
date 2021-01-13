@@ -273,41 +273,20 @@ class BVMergeReducedBW:
         return 'merge previous bit-width reductions'
 
 
-def collect_mutator_options(argparser):
-    options.add_mutator_argument(argparser, NAME, True, 'bitvector mutators')
-    options.add_mutator_argument(argparser, 'bv-constants', True,
-                                 'replaces constants by simpler ones')
-    options.add_mutator_argument(argparser, 'bv-elim-bvcomp', True,
-                                 'replace bvcomp by a regular equality')
-    options.add_mutator_argument(argparser, 'bv-eval-extract', True,
-                                 'evaluate bit-vector extract on constants')
-    options.add_mutator_argument(argparser, 'bv-eval-extend', True,
-                                 'evaluate bit-vector extend on constants')
-    options.add_mutator_argument(argparser, 'bv-ite-to-bvcomp', True,
-                                 'replaces bv1/bv0 ites by bvcomp')
-    options.add_mutator_argument(
-        argparser, 'bv-to-bool', True,
-        'replace bvor/bvand by regular Boolean operators')
-    options.add_mutator_argument(argparser, 'bv-zero-concat', True,
-                                 'replaces concat with zero by zero_extend')
-
-
 def get_mutators():
     """Return mapping from mutator class names to the name of their config
     options."""
-    if not options.args().mutator_bitvector:
-        return {}
     return {
-        'BVDoubleNegation': 'dummy',
-        'BVReflexiveNand': 'dummy',
-        'BVSimplifyConstant': 'bv_constants',
-        'BVElimBVComp': 'bv_elim_bvcomp',
-        'BVExtractConstants': 'bv_eval_extract',
-        'BVEvalExtend': 'bv_eval_extend',
-        'BVOneZeroITE': 'bv_ite_to_bvcomp',
-        'BVTransformToBool': 'bv_to_bool',
-        'BVConcatToZeroExtend': 'bv_zero_concat',
-        'BVReduceBW': 'dummy',
-        'BVMergeReducedBW': 'dummy',
-        'BVExtractZeroExtend': 'dummy',
+        'BVDoubleNegation': 'bv-double-negation',
+        'BVReflexiveNand': 'bv-reflexive-nand',
+        'BVSimplifyConstant': 'bv-constants',
+        'BVElimBVComp': 'bv-elim-bvcomp',
+        'BVExtractConstants': 'bv-eval-extract',
+        'BVEvalExtend': 'bv-eval-extend',
+        'BVOneZeroITE': 'bv-ite-to-bvcomp',
+        'BVTransformToBool': 'bv-to-bool',
+        'BVConcatToZeroExtend': 'bv-zero-concat',
+        'BVReduceBW': 'bv-reduce-bitwidth',
+        'BVMergeReducedBW': 'bv-merge-reduced-bw',
+        'BVExtractZeroExtend': 'bv-extract-zeroextend',
     }

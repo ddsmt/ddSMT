@@ -117,31 +117,34 @@ def add_mutator_group(argparser, name):
                                         help_text='show help for {} mutators')
 
 
-def collect_mutator_options(argparser):
-    """Adds all options related to mutators to the given argument parser."""
-    mutators_core.collect_mutator_options(add_mutator_group(argparser, 'core'))
-    mutators_boolean.collect_mutator_options(
-        add_mutator_group(argparser, 'boolean'))
-    mutators_arithmetic.collect_mutator_options(
-        add_mutator_group(argparser, 'arithmetic'))
-    mutators_bv.collect_mutator_options(
-        add_mutator_group(argparser, 'bitvector'))
-    mutators_smtlib.collect_mutator_options(
-        add_mutator_group(argparser, 'smtlib'))
-    mutators_strings.collect_mutator_options(
-        add_mutator_group(argparser, 'string'))
-
-
 def get_all_mutators():
     """Return all available mutators, arranged by their theory."""
     return {
-        mutators_arithmetic: mutators_arithmetic.get_mutators(),
-        mutators_bv: mutators_bv.get_mutators(),
-        mutators_boolean: mutators_boolean.get_mutators(),
-        mutators_core: mutators_core.get_mutators(),
-        mutators_smtlib: mutators_smtlib.get_mutators(),
-        mutators_strings: mutators_strings.get_mutators(),
+        'core': (mutators_core, mutators_core.get_mutators()),
+        'arithmetic':
+        (mutators_arithmetic, mutators_arithmetic.get_mutators()),
+        'bitvector': (mutators_bv, mutators_bv.get_mutators()),
+        'boolean': (mutators_boolean, mutators_boolean.get_mutators()),
+        'smtlib': (mutators_smtlib, mutators_smtlib.get_mutators()),
+        'strings': (mutators_strings, mutators_strings.get_mutators()),
     }
+
+
+def collect_mutator_options(argparser):
+    """Adds all options related to mutators to the given argument parser."""
+    for name, tdata in get_all_mutators().items():
+        theory = tdata[0]
+        # add argument group for this theory
+        ap = add_mutator_group(argparser, name)
+        # add option to disable the whole theory
+        options.add_mutator_argument(ap, name, True, f'{name} mutators')
+        for mname, mopt in theory.get_mutators().items():
+            # add options for every individual mutator
+            mdesc = str(getattr(theory, mname)())
+            options.add_mutator_argument(ap, mopt, True, mdesc)
+        # add custom option, if the theory wants it
+        if hasattr(theory, 'get_mutator_options'):
+            theory.get_mutator_options(ap)
 
 
 def get_mutators(mutators):
@@ -151,13 +154,17 @@ def get_mutators(mutators):
     theory, checks whether the mutator is enabled and then adds an
     instance of this class to the result.
     """
-    lookups = get_all_mutators()
     res = []
     for m in mutators:
-        for theory, lookup in lookups.items():
-            if m in lookup:
-                attr = f'mutator_{lookup[m]}'
+        for name, theory in get_all_mutators().items():
+            # check if the theory is enabled
+            if not getattr(options.args(), f'mutator_{name}', True):
+                continue
+            # check if this mutator belongs to this theory
+            if m in theory[1]:
+                attr = f'mutator_{theory[1][m].replace("-", "_")}'
+                # check if this mutator is enabled
                 if getattr(options.args(), attr, True):
-                    res.append(getattr(theory, m)())
+                    res.append(getattr(theory[0], m)())
                 break
     return res

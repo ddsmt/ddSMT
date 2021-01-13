@@ -1,4 +1,3 @@
-from . import options
 from .smtlib import *
 
 NAME = 'strings'
@@ -72,20 +71,12 @@ class StringContainsToConcat:
         return 'eliminate str.contains by ++'
 
 
-def collect_mutator_options(argparser):
-    options.add_mutator_argument(argparser, NAME, True, 'strings mutators')
-    options.add_mutator_argument(argparser, 'str-constants', True,
-                                 'replaces constants by simpler ones')
-
-
 def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
-    if not options.args().mutator_strings:
-        return {}
     return {
-        'StringSimplifyConstant': 'str_constants',
-        'StringReplaceAll': 'dummy',
-        'StringIndexOfNotFound': 'dummy',
-        'StringContainsToConcat': 'dummy',
+        'StringSimplifyConstant': 'str-constants',
+        'StringReplaceAll': 'str-replace-all',
+        'StringIndexOfNotFound': 'str-index-not-found',
+        'StringContainsToConcat': 'str-contains-to-concat',
     }
