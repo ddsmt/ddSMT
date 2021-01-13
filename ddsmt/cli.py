@@ -46,12 +46,6 @@ class DDSMTException(Exception):
 
 
 def check_options():
-    if options.args().jobs != 1:
-        # configure number of threads
-        if options.args().jobs <= 0:
-            options.args().jobs = os.cpu_count() + options.args().jobs
-        logging.info('Using up to %d threads.', options.args().jobs)
-
     # check input file
     if not os.path.isfile(options.args().infile):
         raise DDSMTException('input file is not a regular file')
