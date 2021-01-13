@@ -48,6 +48,7 @@ def ddnaive_passes():
             'BVTransformToBool',
             'BVReduceBW',
             'BVMergeReducedBW',
+            'BVExtractZeroExtend',
             'DeMorgan',
             'DoubleNegation',
             'EliminateFalseEquality',

@@ -92,6 +92,36 @@ class BVExtractConstants:
         return 'evaluate bit-vector extract on constant'
 
 
+class BVExtractZeroExtend:
+    """Simplifies an :code:`extract` of a :code:`zero_extend` by pushing the
+    :code:`zero_extend` to the outside and reducing the bit-widths, if
+    possible."""
+    def filter(self, node):
+        return is_indexed_operator(node, 'extract', 2) and is_indexed_operator(
+            node[1], 'zero_extend')
+
+    def mutations(self, node):
+        var = node[1][1]
+        varwidth = get_bv_width(var)
+        upper = int(node[0][2].data)
+        lower = int(node[0][3].data)
+        # we extract upper..lower from 0*zeroes|varwidth
+        if lower >= varwidth:
+            # we only extract from the zeroes
+            return [Node('_', 'bv0', upper - lower + 1)]
+        if upper < varwidth:
+            # we only extract from the variable
+            return [Node(node[0], var)]
+        # switch extract and zero_extend, reduce lengths of extract and zero_extend
+        return [
+            Node(('_', 'zero_extend', str(upper - varwidth + 1)),
+                 (('_', 'extract', str(varwidth - 1), str(lower)), var))
+        ]
+
+    def __str__(self):
+        return 'simplify bit-vector extract on zero_extend'
+
+
 class BVOneZeroITE:
     """Replace an :code:`ite` with :code:`bv1`/:code:`bv0` cases by
     :code:`bvcomp`."""
@@ -279,4 +309,5 @@ def get_mutators():
         'BVConcatToZeroExtend': 'bv_zero_concat',
         'BVReduceBW': 'dummy',
         'BVMergeReducedBW': 'dummy',
+        'BVExtractZeroExtend': 'dummy',
     }
