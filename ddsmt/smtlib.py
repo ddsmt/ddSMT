@@ -137,7 +137,7 @@ def is_quoted_symbol(node):
 def get_quoted_symbol(node):
     """Returns the actual symbol name from a quoted symbol :code:`node`."""
     assert is_quoted_symbol(node)
-    return node[1:-1]
+    return Node(node[1:-1])
 
 
 def is_operator(node, name):
