@@ -40,18 +40,20 @@ class ModularArgumentParser(argparse.ArgumentParser):
         help_name = kwargs.pop('help_name', None)
         help_group = kwargs.pop('help_group', None)
         help_text = kwargs.pop('help_text', 'show help for {}')
+        help_argument = kwargs.pop('help_argument', False)
         grp = super().add_argument_group(*args, **kwargs)
         if help_name is not None:
             self._modular_action_groups[grp] = help_name
-            parser = self
-            if help_group is not None:
-                parser = self._modular_help_groups[help_group]
-            parser.add_argument('--help-{}'.format(help_name),
-                                action=_ModularHelpEnabler,
-                                nargs=0,
-                                default=argparse.SUPPRESS,
-                                const=grp,
-                                help=help_text.format(help_name))
+            if help_argument:
+                parser = self
+                if help_group is not None:
+                    parser = self._modular_help_groups[help_group]
+                parser.add_argument('--help-{}'.format(help_name),
+                                    action=_ModularHelpEnabler,
+                                    nargs=0,
+                                    default=argparse.SUPPRESS,
+                                    const=grp,
+                                    help=help_text.format(help_name))
         return grp
 
     def enable_modular_help(self, grp):
