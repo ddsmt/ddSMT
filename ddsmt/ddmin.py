@@ -1,6 +1,5 @@
 from multiprocessing import Pool
 import logging
-import sys
 import time
 
 from . import checker
