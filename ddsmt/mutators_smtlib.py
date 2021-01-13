@@ -202,5 +202,5 @@ def get_mutators():
         'PushPopRemoval': 'push-pop-removal',
         'SimplifyLogic': 'simplify-logic',
         'SimplifyQuotedSymbols': 'simplify-quoted-symbols',
-        'SimplifySymbolNames': 'simplify-symbol_names',
+        'SimplifySymbolNames': 'simplify-symbol-names',
     }

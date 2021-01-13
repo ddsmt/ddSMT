@@ -54,7 +54,7 @@ def toggle_theory(namespace, theory_name, value):
 def toggle_all_theories(namespace, value):
     """Enables or disables all mutators for all theories by setting their
     respective options in :code:`namespace`."""
-    for theory_name, data in get_all_mutators():
+    for theory_name, data in get_all_mutators().items():
         setattr(namespace, f'mutators_{theory_name}', value)
         for _, opt in data[1].items():
             setattr(namespace, f'mutator_{opt.replace("-", "_")}', value)
