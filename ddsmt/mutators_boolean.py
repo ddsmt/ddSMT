@@ -112,9 +112,9 @@ def get_mutators():
     return {
         'DeMorgan': 'de-morgan',
         'DoubleNegation': 'double-negations',
-        'XOREliminateBinary': 'eliminate-binary-xor',
         'EliminateFalseEquality': 'eliminate-false-eq',
         'EliminateImplications': 'eliminate-implications',
         'NegatedQuantifiers': 'negated-quant',
+        'XOREliminateBinary': 'eliminate-binary-xor',
         'XORRemoveConstants': 'remove-xor-constants',
     }

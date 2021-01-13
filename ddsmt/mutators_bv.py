@@ -272,16 +272,16 @@ def get_mutators():
     """Return mapping from mutator class names to the name of their config
     options."""
     return {
+        'BVConcatToZeroExtend': 'bv-zero-concat',
         'BVDoubleNegation': 'bv-double-negation',
+        'BVElimBVComp': 'bv-elim-bvcomp',
+        'BVEvalExtend': 'bv-eval-extend',
+        'BVExtractConstants': 'bv-eval-extract',
+        'BVExtractZeroExtend': 'bv-extract-zeroextend',
+        'BVMergeReducedBW': 'bv-merge-reduced-bw',
+        'BVOneZeroITE': 'bv-ite-to-bvcomp',
         'BVReflexiveNand': 'bv-reflexive-nand',
         'BVSimplifyConstant': 'bv-constants',
-        'BVElimBVComp': 'bv-elim-bvcomp',
-        'BVExtractConstants': 'bv-eval-extract',
-        'BVEvalExtend': 'bv-eval-extend',
-        'BVOneZeroITE': 'bv-ite-to-bvcomp',
         'BVTransformToBool': 'bv-to-bool',
-        'BVConcatToZeroExtend': 'bv-zero-concat',
         'BVReduceBW': 'bv-reduce-bitwidth',
-        'BVMergeReducedBW': 'bv-merge-reduced-bw',
-        'BVExtractZeroExtend': 'bv-extract-zeroextend',
     }
