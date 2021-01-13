@@ -128,7 +128,7 @@ class SimplifyQuotedSymbols:
     """Turns a quoted symbol into a simple symbol."""
     def filter(self, node):
         return is_quoted_symbol(node) and re.match(
-            '\\|[a-zA-Z0-9~!@$%^&*_+=<>.?/-]+\\|', node) is not None
+            '\\|[a-zA-Z0-9~!@$%^&*_+=<>.?/-]+\\|', node.data) is not None
 
     def global_mutations(self, linput, ginput):
         return [nodes.substitute(ginput, {linput: get_quoted_symbol(linput)})]
@@ -143,7 +143,7 @@ class SimplifySymbolNames:
         return has_name(node) and get_name(node) in [
             'declare-const', 'declare-datatypes', 'declare-fun',
             'declare-sort', 'exists', 'forall'
-        ]
+        ] and not is_constant(node[1])
 
     def global_mutations(self, linput, ginput):
         if get_name(linput) == 'declare-datatypes':
