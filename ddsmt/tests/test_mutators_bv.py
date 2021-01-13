@@ -27,8 +27,19 @@ def test_bv_concat_to_zero_extend():
     assert m.mutations(conc16_4) == [Node(('_', 'zero_extend', 8), 'x')]
 
 
+def test_bv_double_negation():
+    x = Node('x')
+    bvnot = Node('bvnot', Node('bvnot', x))
+    bvneg = Node('bvneg', Node('bvneg', x))
+    m = mutators_bv.BVDoubleNegation()
+    assert not m.filter(Node('bvadd', x, x))
+    assert m.filter(bvnot)
+    assert m.filter(bvneg)
+    assert m.mutations(bvnot) == [x]
+    assert m.mutations(bvneg) == [x]
+
+
 # TODO
-#class BVDoubleNegation:
 #class BVElimBVComp:
 #class BVEvalExtend:
 #class BVExtractConstants:

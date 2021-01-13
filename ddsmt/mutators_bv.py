@@ -25,7 +25,8 @@ class BVConcatToZeroExtend:
 class BVDoubleNegation:
     """Elimination double bit-vector negations."""
     def filter(self, node):
-        return is_bv_not(node) and is_bv_not(node[1])
+        return (is_bv_not(node) and is_bv_not(node[1])) \
+               or (is_bv_neg(node) and is_bv_neg(node[1]))
 
     def mutations(self, node):
         return [node[1][1]]

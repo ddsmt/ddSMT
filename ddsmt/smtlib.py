@@ -353,8 +353,13 @@ def is_bv_constant(node):
 
 
 def is_bv_not(node):
-    """Checks whether :code:`node` is a bit-vector negation."""
+    """Checks whether :code:`node` is a bit-vector bit-wise negation."""
     return has_name(node) and get_name(node) == 'bvnot'
+
+
+def is_bv_neg(node):
+    """Checks whether :code:`node` is a bit-vector negation."""
+    return has_name(node) and get_name(node) == 'bvneg'
 
 
 def get_bv_width(node):
