@@ -214,7 +214,7 @@ def reduce(exprs):
                         # trigger abort and close the pool, then process the result
                         abort_flag.set()
                         pool.close()
-                        sys.stdout.write('\n')
+                        progress.finish()
                         runtime = time.time() - start
                         logging.info(
                             'Found simplification: {} ({:.2f}s)'.format(

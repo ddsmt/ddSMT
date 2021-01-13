@@ -27,3 +27,14 @@ def update(newval=None):
             __BAR.update(min(newval, __BAR.maxval))
         else:
             __BAR.update(__BAR.currval + 1)
+
+
+def finish():
+    """Stop the current progress bar.
+
+    Delete the object and write a newline.
+    """
+    global __BAR
+    if __BAR:
+        __BAR = None
+        sys.stdout.write('\n')
