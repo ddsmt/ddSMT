@@ -27,6 +27,8 @@ def limit_resources(timeout):
 
 def execute(cmd, filename, timeout):
     """Execute the command on the file with a timeout and a memory limit."""
+    if options.args().unchecked:
+        return RunInfo(0, "unchecked", "unchecked", 0)
     proc = subprocess.Popen(cmd + [filename],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,

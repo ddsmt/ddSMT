@@ -105,6 +105,9 @@ def parse_options(mutators):
                     help='minimization strategy')
 
     apcheck = ap.add_argument_group('checker arguments')
+    apcheck.add_argument('--unchecked',
+                         action='store_true',
+                         help='assume every change is okay without checking')
     apcheck.add_argument('-j',
                          '--jobs',
                          type=int,
