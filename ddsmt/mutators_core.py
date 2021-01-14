@@ -40,26 +40,24 @@ class MergeWithChildren:
         return is_nary(node)
 
     def mutations(self, node):
-        res = []
         for cid, child in enumerate(node):
             if has_name(child) and get_name(node) == get_name(child):
-                res.append(Node(*node[:cid], *node[cid][1:], *node[cid + 1:]))
-        return res
+                yield Node(*node[:cid], *node[cid][1:], *node[cid + 1:])
 
     def __str__(self):
         return 'merge with child'
 
 
 class ReplaceByChild:
-    """Substitutes a node with one of its children."""
+    """Replace a node by one of its children."""
     def filter(self, node):
         return not is_leaf(node) and not is_operator(node, 'let')
 
     def mutations(self, node):
-        return list(node[1:])
+        yield from node[1:]
 
     def __str__(self):
-        return 'substitute with child'
+        return 'replace by a child'
 
 
 class ReplaceByVariable:
