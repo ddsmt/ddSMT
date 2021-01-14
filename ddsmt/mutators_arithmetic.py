@@ -104,7 +104,7 @@ def is_relevant(node):
         if node.get_name() in ['declare-const']:
             if node[2] in ['Int', 'Real']:
                 return True
-        elif node.get_name() in ['declare-fun']:
+        elif node.get_name() in ['declare-fun', 'define-fun', 'define-sort']:
             if node[3] in ['Int', 'Real']:
                 return True
     return False

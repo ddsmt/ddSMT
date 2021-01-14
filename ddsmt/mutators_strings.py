@@ -85,7 +85,7 @@ def is_relevant(node):
         if node.get_name() in ['declare-const']:
             if node[2] == 'String':
                 return True
-        elif node.get_name() in ['declare-fun']:
+        elif node.get_name() in ['declare-fun', 'define-fun', 'define-sort']:
             if node[3] == 'String':
                 return True
     return False

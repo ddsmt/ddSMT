@@ -306,7 +306,7 @@ def is_relevant(node):
         if node.get_name() in ['declare-const']:
             if is_bv_type(node[2]):
                 return True
-        elif node.get_name() in ['declare-fun']:
+        elif node.get_name() in ['declare-fun', 'define-fun', 'define-sort']:
             if is_bv_type(node[3]):
                 return True
     return False
