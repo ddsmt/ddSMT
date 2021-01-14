@@ -9,12 +9,18 @@ def test_get_variables_with_type():
     z = Node('z')
     r = Node('r')
     s = Node('s')
+    a = Node('a')
+    b = Node('b')
+    c = Node('c')
     exprs = [
         Node('declare-const', x, ('_', 'BitVec', 8)),
-        Node('declare-const', y, ('_', 'BitVec', 8)),
+        Node('declare-fun', y, (), ('_', 'BitVec', 8)),
         Node('declare-const', z, ('_', 'BitVec', 32)),
-        Node('declare-const', r, 'Real'),
+        Node('declare-fun', r, (), 'Real'),
         Node('declare-const', s, 'String'),
+        Node('declare-const', a, 'Float64'),
+        Node('declare-const', b, ('_', 'FloatingPoint', 11, 53)),
+        Node('declare-fun', c, (), ('_', 'FloatingPoint', 5, 11)),
         Node('bvadd', x, y),
         Node('+', r, r),
         Node('str.++', s, s),
@@ -24,6 +30,9 @@ def test_get_variables_with_type():
     assert get_variables_with_type(Node('_', 'BitVect', 8)) == []
     assert get_variables_with_type(Node('_', 'BitVec', 8)) == [x, y]
     assert get_variables_with_type(Node('_', 'BitVec', 32)) == [z]
+    assert get_variables_with_type(Node('Float64')) == [a]
+    assert get_variables_with_type(Node('_', 'FloatingPoint', 11, 53)) == [b]
+    assert get_variables_with_type(Node('_', 'FloatingPoint', 5, 11)) == [c]
     assert get_variables_with_type(Node('Real')) == [r]
     assert get_variables_with_type(Node('String')) == [s]
 
