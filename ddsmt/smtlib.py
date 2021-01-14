@@ -434,6 +434,20 @@ def get_bv_extend_index(node):
     return int(node[2].data)
 
 
+### FP
+
+
+def is_fp_sort(node):
+    """Return true if :code:`node` is a floating-point sort."""
+    if is_leaf(node) \
+       and str(node).startswith('Float') \
+       and node[5:] in ['16', '32', '64', '128']:
+        return True
+    if not has_name(node) or get_name(node) != '_' or len(node) != 4:
+        return False
+    return node[1] == 'FloatingPoint'
+
+
 ### Functions
 
 

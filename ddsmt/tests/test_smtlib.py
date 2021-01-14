@@ -96,6 +96,19 @@ def test_get_bv_extend_index():
     assert get_bv_extend_index(Node('_', 'zero_extend', 2)) == 2
 
 
+def test_is_fp_sort():
+    assert not is_fp_sort(Node('x'))
+    assert not is_fp_sort(Node('Real'))
+    assert not is_fp_sort(Node('_', 'BitVec', 3))
+    assert not is_fp_sort(Node('_', 'FloatingPoint', 3))
+    assert not is_fp_sort(Node('_', 'FloatinPoint', 3, 5))
+    assert is_fp_sort(Node('Float16'))
+    assert is_fp_sort(Node('Float32'))
+    assert is_fp_sort(Node('Float64'))
+    assert is_fp_sort(Node('Float128'))
+    assert is_fp_sort(Node('_', 'FloatingPoint', 3, 5))
+
+
 # TODO
 #def collect_information(exprs):
 #def is_leaf(node):
