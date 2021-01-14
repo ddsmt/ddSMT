@@ -25,7 +25,7 @@ def ddmin_passes():
         # Passes applied to all nodes
         mutators.get_mutators([
             'Constants',
-            'SubstituteChildren',
+            'ReplaceByChild',
             #        'TopLevelBinaryReduction',
             'LetElimination',
             'LetSubstitution',

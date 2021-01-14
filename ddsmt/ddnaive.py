@@ -21,9 +21,8 @@ def ddnaive_passes():
     """
 
     early = [  # Usually yield strong reduction / need to be done early on
-        'Constants',
         'EraseNode',
-        'SubstituteChildren',
+        'ReplaceByChild',
         'TopLevelBinaryReduction',
         'CheckSatAssuming',
         'LetElimination',
