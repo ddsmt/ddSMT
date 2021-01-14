@@ -44,7 +44,7 @@ class EliminateVariable:
             for c in ops:
                 if c == t:
                     continue
-                res.append(substitute_except_declarations(ginput, {t: c}))
+                res.append(substitute_vars_except_decl(ginput, {t: c}))
         return res
 
     def __str__(self):

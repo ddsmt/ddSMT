@@ -83,9 +83,12 @@ def introduce_variables(exprs, vars):
     return exprs[:pos] + vars + exprs[pos:]
 
 
-def substitute_except_declarations(exprs, repl):
-    """Performs the given substitution, but excludes declaration commands like
-    :code:`declare-fun`."""
+def substitute_vars_except_decl(exprs, repl):
+    """
+    Perform the given variable substitution anywhere it occurs except in
+    declaration commands :code:`declare-const`, :code:`declare-fun`,
+    :code:`define-fun`.
+    """
     res = []
     for e in exprs:
         if e.has_name() and e.get_name() in [

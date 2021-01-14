@@ -46,8 +46,8 @@ def test_introduce_variables():
     decl_x1 = Node('declare-fun', x1, (), fp64)
     decl_x2 = Node('declare-fun', x2, (), fp64)
     decl_x3 = Node('declare-fun', x3, (), fp64)
-    fpadd = Node('define-fun', 'fpadd', (), fp64, ('fp.add', x1, x2))
-    fpmul = Node('define-fun', 'fpmul', (), fp64, ('fp.mul', fpadd, x3))
+    fpadd = Node('define-fun', 'fpadd', (), fp64, ('fp.add', 'RTZ', x1, x2))
+    fpmul = Node('define-fun', 'fpmul', (), fp64, ('fp.mul', 'RTZ', fpadd, x3))
     fpass = Node('assert', ('=', 'fpmul', 'fpadd'))
 
     exprs0 = [
@@ -66,6 +66,40 @@ def test_introduce_variables():
     exprs2 = exprs0 + [decl_x1, decl_x2, decl_x3, fpadd, fpmul, fpass]
     assert introduce_variables(exprs2, [decl_x]) \
            == exprs0 + [decl_x1, decl_x2, decl_x3, fpadd, fpmul, decl_x, fpass]
+
+
+def test_substitute_vars_except_decl():
+    fp64 = Node('_', 'FloatingPoint', 11, 53)
+    x1 = Node('x1')
+    x2 = Node('x2')
+    x3 = Node('x3')
+    y1 = Node('y1')
+    y2 = Node('y2')
+    decl_x = Node('declare-const', 'x', 'Real')
+    decl_x1 = Node('declare-fun', x1, (), fp64)
+    decl_x2 = Node('declare-fun', x2, (), fp64)
+    decl_x3 = Node('declare-fun', x3, (), fp64)
+    fpadd = Node('define-fun', 'fpadd', (), fp64, ('fp.add', 'RTZ', x1, x2))
+    fpmul = Node('define-fun', 'fpmul', (), fp64, ('fp.mul', 'RTZ', fpadd, x3))
+    fpass0 = Node('assert', ('=', ('fp.rem', x1, x2), ('fp.rem', x1, x3)))
+    fpass1 = Node('assert', ('=', 'fpmul', 'fpadd'))
+
+    exprs = [decl_x1, decl_x2, decl_x3, fpadd, fpmul, fpass0, fpass1]
+
+    assert not exprs == substitute_vars_except_decl(exprs, {x1: y1})
+    assert substitute_vars_except_decl(exprs, {x1 : y1}) == \
+           [
+               decl_x1, decl_x2, decl_x3, fpadd, fpmul,
+               Node('assert', ('=', ('fp.rem', y1, x2), ('fp.rem', y1, x3))),
+               fpass1,
+           ]
+    assert not exprs == substitute_vars_except_decl(exprs, {x2: y2})
+    assert substitute_vars_except_decl(exprs, {x2 : y2}) == \
+           [
+               decl_x1, decl_x2, decl_x3, fpadd, fpmul,
+               Node('assert', ('=', ('fp.rem', x1, y2), ('fp.rem', x1, x3))),
+               fpass1,
+           ]
 
 
 def test_is_indexed_operator():
