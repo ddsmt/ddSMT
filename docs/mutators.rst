@@ -45,9 +45,9 @@ Generic mutators
 Arithmetic mutators
 -------------------
 .. autoclass:: ddsmt.mutators_arithmetic.ArithmeticSimplifyConstant
-.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticNegateRelations
-.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticSplitNaryRelations
-.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticStrengthenRelations
+.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticNegateRelation
+.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticSplitNaryRelation
+.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticStrengthenRelation
 
 Bitvector mutators
 ------------------

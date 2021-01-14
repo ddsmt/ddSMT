@@ -4,7 +4,33 @@ from .smtlib import *
 def is_arithmetic_relation(node):
     if not has_name(node):
         return False
-    return get_name(node) in ['=', '<', '>', '>=', '<=', '!=', '<>']
+    return get_name(node) in [
+        '=', '<', '>', '>=', '<=', '!=', '<>', 'distinct'
+    ]
+
+
+class ArithmeticNegateRelation:
+    """Replace a negation around a relation by the inverse relation."""
+    def filter(self, node):
+        return is_operator(node, 'not') and is_arithmetic_relation(node[1])
+
+    def mutations(self, node):
+        negator = {
+            '<': '>=',
+            '<=': '>',
+            '!=': '=',
+            '<>': '=',
+            '>=': '<',
+            '>': '<=',
+            'distinct': '=',
+            '=': 'distinct'
+        }
+        if node[1][0] in negator:
+            return [(negator[node[1][0]], ) + node[1][1:]]
+        return []
+
+    def __str__(self):
+        return 'push negation into arithmetic relation'
 
 
 class ArithmeticSimplifyConstant:
@@ -30,30 +56,8 @@ class ArithmeticSimplifyConstant:
         return 'simplify arithmetic constant'
 
 
-class ArithmeticNegateRelations:
-    """Replace a negation around a relation by the inverse relation."""
-    def filter(self, node):
-        return is_operator(node, 'not') and is_arithmetic_relation(node[1])
-
-    def mutations(self, node):
-        negator = {
-            '<': '>=',
-            '<=': '>',
-            '!=': '=',
-            '<>': '=',
-            '>=': '<',
-            '>': '<='
-        }
-        if node[1][0] in negator:
-            return [(negator[node[1][0]], ) + node[1][1:]]
-        return []
-
-    def __str__(self):
-        return 'push negation into relation'
-
-
-class ArithmeticSplitNaryRelations:
-    """Split n-ary relations using transitivity."""
+class ArithmeticSplitNaryRelation:
+    """Split n-ary relation using transitivity."""
     def filter(self, node):
         return is_arithmetic_relation(node) and len(node) > 3
 
@@ -64,13 +68,15 @@ class ArithmeticSplitNaryRelations:
         return [Node('and', *split)]
 
     def __str__(self):
-        return 'split n-ary relation'
+        return 'split arithmetic n-ary relation'
 
 
-class ArithmeticStrengthenRelations:
+class ArithmeticStrengthenRelation:
     """Replace a relation by a stronger relation."""
     def filter(self, node):
-        return is_arithmetic_relation(node)
+        return is_arithmetic_relation(node) and node.get_name() in [
+            '<', '>', '<=', '>='
+        ]
 
     def mutations(self, node):
         negator = {'<': ['='], '>': ['='], '<=': ['<', '='], '>=': ['>', '=']}
@@ -79,15 +85,15 @@ class ArithmeticStrengthenRelations:
         return []
 
     def __str__(self):
-        return 'strengthen relation'
+        return 'strengthen arithmetic relation'
 
 
 def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
     return {
+        'ArithmeticNegateRelation': 'arith-negate-relations',
         'ArithmeticSimplifyConstant': 'arith-constants',
-        'ArithmeticNegateRelations': 'arith-negate-relations',
-        'ArithmeticSplitNaryRelations': 'arith-split-nary-relations',
-        'ArithmeticStrengthenRelations': 'arith-strengthen-relations',
+        'ArithmeticSplitNaryRelation': 'arith-split-nary-relations',
+        'ArithmeticStrengthenRelation': 'arith-strengthen-relations',
     }
