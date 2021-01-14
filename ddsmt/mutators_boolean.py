@@ -78,38 +78,20 @@ class BoolEliminateImplication:
         return 'eliminate implication'
 
 
-class BoolNegatedQuantifier:
+class BoolNegateQuantifier:
     """Push negations inside quantifiers."""
     def filter(self, node):
         return is_operator(node, 'not') and is_quantifier(node[1])
 
     def mutations(self, node):
-        if get_name(node[1]) == 'exists':
+        if node[1].get_name() == 'exists':
             return [Node('forall', node[1][1], ('not', node[1][2]))]
-        if get_name(node[1]) == 'forall':
+        if node[1].get_name() == 'forall':
             return [Node('exists', node[1][1], ('not', node[1][2]))]
         return []
 
     def __str__(self):
         return 'push negation inside of quantifier'
-
-
-class BoolXORRemoveConstant:
-    """Eliminate constant children from :code:`xor`."""
-    def filter(self, node):
-        return is_operator(node, 'xor')
-
-    def mutations(self, node):
-        res = []
-        if 'false' in node:
-            res.append(Node(*[c for c in node if c != 'false']))
-        if 'true' in node:
-            res.append(Node(*[c for c in node if c != 'true']))
-            res.append(Node('not', (c for c in node if c != 'true')))
-        return res
-
-    def __str__(self):
-        return 'remove constants from xor'
 
 
 class BoolXOREliminateBinary:
@@ -124,6 +106,24 @@ class BoolXOREliminateBinary:
         return 'eliminate binary xor'
 
 
+class BoolXORRemoveConstant:
+    """Eliminate constant children from :code:`xor`."""
+    def filter(self, node):
+        return is_operator(node, 'xor')
+
+    def mutations(self, node):
+        res = []
+        if 'false' in node:
+            res.append(Node(*[c for c in node if c != 'false']))
+        if 'true' in node:
+            res.append(Node(*[c for c in node if c != 'true']))
+            res.append(Node('not', tuple(c for c in node if c != 'true')))
+        return res
+
+    def __str__(self):
+        return 'remove constants from xor'
+
+
 def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
@@ -132,7 +132,7 @@ def get_mutators():
         'BoolDoubleNegation': 'bool-double-negations',
         'BoolEliminateFalseEquality': 'bool-false-eq',
         'BoolEliminateImplication': 'bool-implications',
-        'BoolNegatedQuantifier': 'bool-negate-quants',
+        'BoolNegateQuantifier': 'bool-negate-quants',
         'BoolXOREliminateBinary': 'bool-xor-binary',
         'BoolXORRemoveConstant': 'bool-xor-constants',
     }

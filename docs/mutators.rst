@@ -70,7 +70,7 @@ Boolean mutators
 .. autoclass:: ddsmt.mutators_boolean.BoolDoubleNegation
 .. autoclass:: ddsmt.mutators_boolean.BoolEliminateFalseEquality
 .. autoclass:: ddsmt.mutators_boolean.BoolEliminateImplication
-.. autoclass:: ddsmt.mutators_boolean.BoolNegatedQuantifier
+.. autoclass:: ddsmt.mutators_boolean.BoolNegateQuantifier
 .. autoclass:: ddsmt.mutators_boolean.BoolXOREliminateBinary
 .. autoclass:: ddsmt.mutators_boolean.BoolXORRemoveConstant
 
