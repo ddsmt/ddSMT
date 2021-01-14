@@ -3,6 +3,31 @@ from ..nodes import Node
 from ..smtlib import *
 
 
+def test_get_variables_with_type():
+    x = Node('x')
+    y = Node('y')
+    z = Node('z')
+    r = Node('r')
+    s = Node('s')
+    exprs = [
+        Node('declare-const', x, ('_', 'BitVec', 8)),
+        Node('declare-const', y, ('_', 'BitVec', 8)),
+        Node('declare-const', z, ('_', 'BitVec', 32)),
+        Node('declare-const', r, 'Real'),
+        Node('declare-const', s, 'String'),
+        Node('bvadd', x, y),
+        Node('+', r, r),
+        Node('str.++', s, s),
+    ]
+    assert get_variables_with_type(Node('_', 'BitVec', 8)) == []
+    collect_information(exprs)
+    assert get_variables_with_type(Node('_', 'BitVect', 8)) == []
+    assert get_variables_with_type(Node('_', 'BitVec', 8)) == [x, y]
+    assert get_variables_with_type(Node('_', 'BitVec', 32)) == [z]
+    assert get_variables_with_type(Node('Real')) == [r]
+    assert get_variables_with_type(Node('String')) == [s]
+
+
 def test_is_indexed_operator():
     assert not is_indexed_operator(Node('x'), 'extract')
     assert not is_indexed_operator(Node('_', 'sign_extend', 2), 'extract')
@@ -33,7 +58,6 @@ def test_get_bv_extend_index():
 
 # TODO
 #def collect_information(exprs):
-#def get_variables_with_type(var_type):
 #def introduce_variables(exprs, vars):
 #def is_leaf(node):
 #def is_var(node):

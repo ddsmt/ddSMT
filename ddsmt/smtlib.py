@@ -58,6 +58,7 @@ def collect_information(exprs):
 
 def get_variables_with_type(var_type):
     """Return all variables with the type :code:`var_type`."""
+    print(__type_lookup)
     return [v for v in __type_lookup if __type_lookup[v] == var_type]
 
 
