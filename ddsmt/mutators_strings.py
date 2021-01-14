@@ -77,3 +77,15 @@ def get_mutators():
         'StringReplaceAll': 'str-replace-all',
         'StringSimplifyConstant': 'str-constants',
     }
+
+
+def is_relevant(node):
+    """Checks whether this theory might be relevant for this node."""
+    if node.has_name():
+        if node.get_name() in ['declare-const']:
+            if node[2] == 'String':
+                return True
+        elif node.get_name() in ['declare-fun']:
+            if node[3] == 'String':
+                return True
+    return False

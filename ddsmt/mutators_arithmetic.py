@@ -96,3 +96,15 @@ def get_mutators():
         'ArithmeticSplitNaryRelation': 'arith-split-nary-relations',
         'ArithmeticStrengthenRelation': 'arith-strengthen-relations',
     }
+
+
+def is_relevant(node):
+    """Checks whether this theory might be relevant for this node."""
+    if node.has_name():
+        if node.get_name() in ['declare-const']:
+            if node[2] in ['Int', 'Real']:
+                return True
+        elif node.get_name() in ['declare-fun']:
+            if node[3] in ['Int', 'Real']:
+                return True
+    return False

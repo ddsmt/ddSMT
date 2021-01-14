@@ -1,12 +1,14 @@
 import argparse
+import logging
 
-from . import options
 from . import mutators_arithmetic
 from . import mutators_bv
 from . import mutators_boolean
 from . import mutators_core
 from . import mutators_smtlib
 from . import mutators_strings
+from . import nodes
+from . import options
 
 
 def get_all_mutators():
@@ -93,7 +95,8 @@ def add_mutator_group(argparser, name):
     res._add_action(
         TheoryToggleAction(name,
                            name,
-                           f'mutators_{name}',
+                           default=None,
+                           dest=f'mutators_{name}',
                            help=f'{name} theory'))
     return res
 
@@ -118,3 +121,34 @@ def collect_mutator_options(argparser):
         # add custom option, if the theory wants it
         if hasattr(theory, 'get_mutator_options'):
             theory.get_mutator_options(ap)
+
+
+def auto_detect_theories(exprs):
+    for name, tdata in get_all_mutators().items():
+        # if a theory was explicitly enabled or disabled by the user, we don't
+        # change it.
+        optval = getattr(options.args(), f'mutators_{name}')
+        if optval is not None:
+            logging.debug(f'{name} was specified by the user: {optval}')
+            continue
+
+        theory = tdata[0]
+        # if a theory does not implement is_relevant(), it stays enabled
+        if not hasattr(theory, 'is_relevant'):
+            logging.debug(f'{name} can not be disabled')
+            continue
+
+        # now check whether theory is relevant for any of the nodes
+        enabled = False
+        for node in nodes.dfs(exprs):
+            if theory.is_relevant(node):
+                enabled = True
+                break
+
+        if not enabled:
+            logging.warn(
+                f'automatically disabling {name} mutators. Use --{name} to use it.'
+            )
+            toggle_theory(options.args(), name, False)
+        else:
+            logging.debug(f'keeping {name} mutators enabled')

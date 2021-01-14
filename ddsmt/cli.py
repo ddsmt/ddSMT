@@ -31,6 +31,7 @@ import time
 from . import checker
 from . import ddmin
 from . import ddnaive
+from . import mutators
 from . import nodes
 from . import options
 from . import tmpfiles
@@ -106,6 +107,9 @@ def ddsmt_main():
         nodes.write_smtlib_to_file(options.args().outfile, exprs)
         return
 
+    # disable unused theories
+    mutators.auto_detect_theories(exprs)
+    # copy binaries to temp folder
     tmpfiles.copy_binaries()
     checker.do_golden_runs()
 
