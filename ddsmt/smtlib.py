@@ -149,11 +149,11 @@ def is_indexed_operator(node, name, index_count=1):
     given number of indices matches :code:`index_count`."""
     if node.is_leaf() or len(node) < 2:
         return False
-    if has_name(node) or not has_name(node[0]):
+    if has_name(node) and get_name(node) != '_':
         return False
-    if node[0][0] != '_' or node[0][1] != name:
+    if node[1] != name:
         return False
-    return len(node[0]) == index_count + 2
+    return len(node) == index_count + 2
 
 
 def is_nary(node):
@@ -401,13 +401,14 @@ def get_bv_width(node):
             return get_bv_width(node[1]) + get_bv_width(node[2])
         if node.get_name() == 'bvcomp':
             return 1
-        if is_indexed_operator(node, 'extend'):
-            return int(node[0][2]) + get_bv_width(node[1])
-        if is_indexed_operator(node, 'extract', 2):
-            return int(node[0][2]) - int(node[0][3]) + 1
-        if is_indexed_operator(node, 'repeat'):
-            return int(node[0][2]) * get_bv_width(node[1])
-        if is_indexed_operator(node, 'rotate'):
+        if is_indexed_operator(node[0], 'zero_extend') \
+           or is_indexed_operator(node[1], 'sign_extend'):
+            return get_bv_extend_index(node[0]) + get_bv_width(node[1])
+        if is_indexed_operator(node[0], 'extract', 2):
+            return get_bv_extend_index(node[0]) - int(node[0][3]) + 1
+        if is_indexed_operator(node[0], 'repeat'):
+            return get_bv_extend_index(node[0]) * get_bv_width(node[1])
+        if is_indexed_operator(node[0], 'rotate'):
             return get_bv_width(node[1])
     return -1
 
@@ -425,6 +426,14 @@ def get_bv_constant_value(node):
             return (int(node[2:], 16), len(node[2:]) * 4)
         assert False
     return (int(node[1][2:]), node[2])
+
+
+def get_bv_extend_index(node):
+    """Assume that node is a bit-vector zero_extend or sign_extend and return
+    the index as integer value."""
+    assert is_indexed_operator(node, 'zero_extend') \
+           or is_indexed_operator(node, 'sign_extend')
+    return int(node[2].data)
 
 
 ### Functions

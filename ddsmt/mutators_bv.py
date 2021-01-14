@@ -98,8 +98,8 @@ class BVExtractZeroExtend:
     :code:`zero_extend` to the outside and reducing the bit-widths, if
     possible."""
     def filter(self, node):
-        return is_indexed_operator(node, 'extract', 2) and is_indexed_operator(
-            node[1], 'zero_extend')
+        return is_indexed_operator(node[0], 'extract', 2) \
+               and is_indexed_operator(node[1], 'zero_extend')
 
     def mutations(self, node):
         var = node[1][1]
@@ -252,10 +252,10 @@ class BVMergeReducedBW:
                and get_type(node[1]) is not None \
                and is_bv_type(get_type(node[1])) \
                and is_indexed_operator(
-                       get_defined_function(node[1]), 'zero_extend', 1) \
-               and is_defined_function(node[-1][-1]) \
+                       get_defined_function(node[1])[0], 'zero_extend', 1) \
+               and is_defined_function(node[-1][-1])[0] \
                and is_indexed_operator(
-                       get_defined_function(node[-1][-1]), 'zero_extend', 1)
+                       get_defined_function(node[-1][-1])[0], 'zero_extend', 1)
 
     def mutations(self, node):
         name = node[1]
