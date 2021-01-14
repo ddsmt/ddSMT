@@ -6,7 +6,7 @@ from .smtlib import *
 class BVConcatToZeroExtend:
     """Replace a :code:`concat` with zero by :code:`zero_extend`."""
     def filter(self, node):
-        if not has_name(node) or get_name(node) != 'concat':
+        if not has_ident(node) or get_ident(node) != 'concat':
             return False
         if not is_bv_constant(node[1]):
             return False
@@ -136,8 +136,8 @@ class BVOneZeroITE:
     def filter(self, node):
         if not is_operator_app(node, 'ite'):
             return False
-        if not has_name(node[1]) \
-           or get_name(node[1]) != '=' \
+        if not has_ident(node[1]) \
+           or get_ident(node[1]) != '=' \
            or len(node[1]) != 3:
             return False
         if not is_bv_constant(node[2]) \
@@ -158,7 +158,7 @@ class BVOneZeroITE:
 class BVReflexiveNand:
     """Replace a reflexive nand by bitwise negation."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == 'bvnand'
+        return has_ident(node) and get_ident(node) == 'bvnand'
 
     def mutations(self, node):
         if len(node) == 3 and node[1] == node[2]:
@@ -195,16 +195,16 @@ class BVSimplifyConstant:
 class BVTransformToBool:
     """Turn BV constructs into Boolean constructs."""
     def filter(self, node):
-        return has_name(node) \
-               and get_name(node) == '=' \
+        return has_ident(node) \
+               and get_ident(node) == '=' \
                and is_bv_constant(node[1]) \
                and get_bv_width(node[1]) == 1
 
     def mutations(self, node):
         repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
-        if has_name(node[2]) and get_name(node[2]) in repl:
+        if has_ident(node[2]) and get_ident(node[2]) in repl:
             return [
-                Node(repl[get_name(node[2])],
+                Node(repl[get_ident(node[2])],
                      *[Node('=', node[1], c) for c in node[2][1:]])
             ]
         return []
@@ -226,9 +226,9 @@ class BVReduceBW:
     This mutator generates all possible mutations for a variable.
     """
     def filter(self, node):
-        return has_name(node) \
-               and (get_name(node) == 'declare-const' or \
-                   (get_name(node) == 'declare-fun' and len(node[2]) == 0)) \
+        return has_ident(node) \
+               and (get_ident(node) == 'declare-const' or \
+                   (get_ident(node) == 'declare-fun' and len(node[2]) == 0)) \
                and get_sort(node[1]) is not None \
                and is_bv_sort(get_sort(node[1]))
 
@@ -271,8 +271,8 @@ class BVMergeReducedBW:
     Obsolete define-fun expressions will be removed later on.
     """
     def filter(self, node):
-        return has_name(node) \
-               and get_name(node) == 'define-fun' \
+        return has_ident(node) \
+               and get_ident(node) == 'define-fun' \
                and len(node[2]) == 0 \
                and get_sort(node[1]) is not None \
                and is_bv_sort(get_sort(node[1])) \
@@ -320,11 +320,11 @@ def get_mutators():
 
 def is_relevant(node):
     """Checks whether this theory might be relevant for this node."""
-    if node.has_name():
-        if node.get_name() in ['declare-const']:
+    if node.has_ident():
+        if node.get_ident() in ['declare-const']:
             if is_bv_sort(node[2]):
                 return True
-        elif node.get_name() in ['declare-fun', 'define-fun', 'define-sort']:
+        elif node.get_ident() in ['declare-fun', 'define-fun', 'define-sort']:
             if is_bv_sort(node[3]):
                 return True
     return False

@@ -128,17 +128,17 @@ def test_is_var():
     reset_information()
 
 
-def test_has_name():
-    assert not has_name(Node('x'))
-    assert has_name(Node('_', 'BitVec', 3))
-    assert has_name(Node('assert', 'x', 'x'))
+def test_has_ident():
+    assert not has_ident(Node('x'))
+    assert has_ident(Node('_', 'BitVec', 3))
+    assert has_ident(Node('assert', 'x', 'x'))
 
 
-def test_get_name():
+def test_get_ident():
     with pytest.raises(AssertionError):
-        get_name(Node('x'))
-    assert get_name(Node('_', 'BitVec', 3)) == '_'
-    assert get_name(Node('assert', 'x', 'x')) == 'assert'
+        get_ident(Node('x'))
+    assert get_ident(Node('_', 'BitVec', 3)) == '_'
+    assert get_ident(Node('assert', 'x', 'x')) == 'assert'
 
 
 def test_is_indexed_operator():

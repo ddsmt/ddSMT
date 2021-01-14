@@ -26,7 +26,7 @@ class StringSimplifyConstant:
 class StringReplaceAll:
     """Replace :code:`str.replace_all` by a simple :code:`str.replace`."""
     def filter(self, node):
-        return node.has_name() and node.get_name() == 'str.replace_all'
+        return node.has_ident() and node.get_ident() == 'str.replace_all'
 
     def mutations(self, node):
         return [Node('str.replace', *node[1:])]
@@ -38,7 +38,7 @@ class StringReplaceAll:
 class StringIndexOfNotFound:
     """Replace :code:`str.indexof` by special value :code:`(- 1)`."""
     def filter(self, node):
-        return node.has_name() and node.get_name() == 'str.indexof'
+        return node.has_ident() and node.get_ident() == 'str.indexof'
 
     def mutations(self, node):
         return [Node('-', '1')]
@@ -50,7 +50,7 @@ class StringIndexOfNotFound:
 class StringContainsToConcat:
     """Replace :code:`str.contains` by concatenation."""
     def filter(self, node):
-        return node.has_name() and node.get_name() == 'str.contains'
+        return node.has_ident() and node.get_ident() == 'str.contains'
 
     def global_mutations(self, linput, ginput):
         var = linput[1]
@@ -81,11 +81,11 @@ def get_mutators():
 
 def is_relevant(node):
     """Checks whether this theory might be relevant for this node."""
-    if node.has_name():
-        if node.get_name() in ['declare-const']:
+    if node.has_ident():
+        if node.get_ident() in ['declare-const']:
             if node[2] == 'String':
                 return True
-        elif node.get_name() in ['declare-fun', 'define-fun', 'define-sort']:
+        elif node.get_ident() in ['declare-fun', 'define-fun', 'define-sort']:
             if node[3] == 'String':
                 return True
     return False

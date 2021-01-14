@@ -6,7 +6,7 @@ from .smtlib import *
 class CheckSatAssuming:
     """Replaces a :code:`check-sat-assuming` by a regular :code:`check-sat`."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == 'check-sat-assuming'
+        return has_ident(node) and get_ident(node) == 'check-sat-assuming'
 
     def mutations(self, node):
         return [Node('check-sat')]
@@ -18,7 +18,7 @@ class CheckSatAssuming:
 class EliminateDistinct:
     """Replaces distinct by a negated equality."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == 'distinct'
+        return has_ident(node) and get_ident(node) == 'distinct'
 
     def mutations(self, node):
         return [Node('not', tuple(['='] + list(node[1:])))]
@@ -132,7 +132,7 @@ class SimplifyLogic:
     """Replaces the logic specified in :code:`(check-logic ...)` by a simpler
     one."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == 'set-logic'
+        return has_ident(node) and get_ident(node) == 'set-logic'
 
     def mutations(self, node):
         logic = node[1]
@@ -167,18 +167,18 @@ class SimplifyQuotedSymbols:
 class SimplifySymbolNames:
     """Simplify variable names."""
     def filter(self, node):
-        return has_name(node) and get_name(node) in [
+        return has_ident(node) and get_ident(node) in [
             'declare-const', 'declare-datatypes', 'declare-fun',
             'declare-sort', 'exists', 'forall'
         ] and not is_constant(node[1])
 
     def global_mutations(self, linput, ginput):
-        if get_name(linput) == 'declare-datatypes':
+        if get_ident(linput) == 'declare-datatypes':
             res = []
             for c in self.__flatten(linput[1:]):
                 res = res + self.__mutate_symbol(c, ginput)
             return res
-        if get_name(linput) in ['exists', 'forall']:
+        if get_ident(linput) in ['exists', 'forall']:
             res = []
             for v in linput[1]:
                 res = res + self.__mutate_symbol(v[0], ginput)

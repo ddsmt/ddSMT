@@ -2,7 +2,7 @@ from .smtlib import *
 
 
 def is_quantifier(node):
-    return has_name(node) and get_name(node) in ['exists', 'forall']
+    return has_ident(node) and get_ident(node) in ['exists', 'forall']
 
 
 def make_and(children):
@@ -26,9 +26,9 @@ class BoolDeMorgan:
 
     def mutations(self, node):
         negated = [Node('not', t) for t in node[1][1:]]
-        if get_name(node[1]) == 'and':
+        if get_ident(node[1]) == 'and':
             return [Node('or', *negated)]
-        if get_name(node[1]) == 'or':
+        if get_ident(node[1]) == 'or':
             return [Node('and', *negated)]
         return []
 
@@ -84,9 +84,9 @@ class BoolNegateQuantifier:
         return is_operator_app(node, 'not') and is_quantifier(node[1])
 
     def mutations(self, node):
-        if node[1].get_name() == 'exists':
+        if node[1].get_ident() == 'exists':
             return [Node('forall', node[1][1], ('not', node[1][2]))]
-        if node[1].get_name() == 'forall':
+        if node[1].get_ident() == 'forall':
             return [Node('exists', node[1][1], ('not', node[1][2]))]
         return []
 

@@ -68,12 +68,12 @@ class Node:
     def is_leaf(self):
         return isinstance(self.data, str)
 
-    def has_name(self):
+    def has_ident(self):
         return isinstance(self.data,
                           tuple) and self.data and self.data[0].is_leaf()
 
-    def get_name(self):
-        assert (self.has_name())
+    def get_ident(self):
+        assert (self.has_ident())
         return self.data[0]
 
 

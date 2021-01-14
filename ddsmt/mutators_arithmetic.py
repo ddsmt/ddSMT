@@ -2,9 +2,9 @@ from .smtlib import *
 
 
 def is_arithmetic_relation(node):
-    if not has_name(node):
+    if not has_ident(node):
         return False
-    return get_name(node) in [
+    return get_ident(node) in [
         '=', '<', '>', '>=', '<=', '!=', '<>', 'distinct'
     ]
 
@@ -61,7 +61,7 @@ class ArithmeticSplitNaryRelation:
         return is_arithmetic_relation(node) and len(node) > 3
 
     def mutations(self, node):
-        split = [(get_name(node), node[i], node[i + 1])
+        split = [(get_ident(node), node[i], node[i + 1])
                  for i in range(1,
                                 len(node) - 1)]
         return [Node('and', *split)]
@@ -73,7 +73,7 @@ class ArithmeticSplitNaryRelation:
 class ArithmeticStrengthenRelation:
     """Replace a relation by a stronger relation."""
     def filter(self, node):
-        return is_arithmetic_relation(node) and node.get_name() in [
+        return is_arithmetic_relation(node) and node.get_ident() in [
             '<', '>', '<=', '>='
         ]
 
@@ -100,11 +100,11 @@ def get_mutators():
 
 def is_relevant(node):
     """Checks whether this theory might be relevant for this node."""
-    if node.has_name():
-        if node.get_name() in ['declare-const']:
+    if node.has_ident():
+        if node.get_ident() in ['declare-const']:
             if node[2] in ['Int', 'Real']:
                 return True
-        elif node.get_name() in ['declare-fun', 'define-fun', 'define-sort']:
+        elif node.get_ident() in ['declare-fun', 'define-fun', 'define-sort']:
             if node[3] in ['Int', 'Real']:
                 return True
     return False

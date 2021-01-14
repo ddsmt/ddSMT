@@ -34,11 +34,11 @@ def get_mutators():
 
 def is_relevant(node):
     """Checks whether this theory might be relevant for this node."""
-    if node.has_name():
-        if node.get_name() in ['declare-const']:
+    if node.has_ident():
+        if node.get_ident() in ['declare-const']:
             if is_fp_sort(node[2]):
                 return True
-        elif node.get_name() in ['declare-fun', 'define-fun', 'define-sort']:
+        elif node.get_ident() in ['declare-fun', 'define-fun', 'define-sort']:
             if is_fp_sort(node[3]):
                 return True
     return False

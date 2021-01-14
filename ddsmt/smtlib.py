@@ -22,9 +22,9 @@ def collect_information(exprs):
     __sort_lookup = {}
 
     for cmd in exprs:
-        if not cmd.has_name():
+        if not cmd.has_ident():
             continue
-        name = cmd.get_name()
+        name = cmd.get_ident()
         if name == 'declare-const':
             if not len(cmd) == 3:
                 continue
@@ -85,9 +85,9 @@ def introduce_variables(exprs, vars):
     pos = 0
     while pos < len(exprs):
         e = exprs[pos]
-        if not e.has_name():
+        if not e.has_ident():
             break
-        if not e.get_name() in [
+        if not e.get_ident() in [
                 'declare-const', 'declare-fun', 'define-fun', 'set-info',
                 'set-logic'
         ]:
@@ -104,7 +104,7 @@ def substitute_vars_except_decl(exprs, repl):
     """
     res = []
     for e in exprs:
-        if e.has_name() and e.get_name() in [
+        if e.has_ident() and e.get_ident() in [
                 'declare-const', 'declare-fun', 'define-fun'
         ]:
             res.append(e)
@@ -127,16 +127,16 @@ def is_var(node):
     return node.is_leaf() and node in __constants
 
 
-def has_name(node):
+def has_ident(node):
     """Check whether the :code:`node` has a name, that is its first child is a
     leaf node."""
     return not node.is_leaf() and not node == () and is_leaf(node[0])
 
 
-def get_name(node):
+def get_ident(node):
     """Get the name of the :code:`node`, asserting that
-    :code:`has_name(node)`."""
-    assert has_name(node)
+    :code:`has_ident(node)`."""
+    assert has_ident(node)
     return node[0]
 
 
@@ -152,7 +152,7 @@ def get_quoted_symbol(node):
 
 
 def is_operator_app(node, name):
-    return has_name(node) and get_name(node) == name
+    return has_ident(node) and get_ident(node) == name
 
 
 def is_indexed_operator(node, name, index_count=1):
@@ -160,7 +160,7 @@ def is_indexed_operator(node, name, index_count=1):
     given number of indices matches :code:`index_count`."""
     if node.is_leaf() or len(node) < 2:
         return False
-    if has_name(node) and get_name(node) != '_':
+    if has_ident(node) and get_ident(node) != '_':
         return False
     if node[1] != name:
         return False
@@ -173,9 +173,9 @@ def is_indexed_operator_app(node, name, index_count=1):
 
 def is_nary(node):
     """Check whether the :code:`node` is a n-ary operator."""
-    if node.is_leaf() or not has_name(node):
+    if node.is_leaf() or not has_ident(node):
         return False
-    return get_name(node) in [
+    return get_ident(node) in [
         '=>', 'and', 'or', 'xor', '=', 'distinct', '+', '-', '*', 'div', '/',
         '<=', '<', '>=', '>', 'bvand', 'bvor', 'bvadd', 'bvmul', 'concat'
     ]
@@ -190,7 +190,7 @@ def is_constant(node):
 
 def is_eq(node):
     """Checks whether :code:`node` is an equality."""
-    return has_name(node) and get_name(node) == '='
+    return has_ident(node) and get_ident(node) == '='
 
 
 def get_constants(const_sort):
@@ -231,11 +231,11 @@ def get_sort(node):
     bvwidth = get_bv_width(node)
     if bvwidth != -1:
         return Node('_', 'BitVec', str(bvwidth))
-    if has_name(node):
+    if has_ident(node):
         if is_operator_app(node, 'ite'):
             return get_sort(node[1])
         # stuff that returns Bool
-        if get_name(node) in [
+        if get_ident(node) in [
                 # core theory
                 'not',
                 '=>',
@@ -286,10 +286,11 @@ def get_sort(node):
         ]:
             return Node('Bool')
         # int theory
-        if get_name(node) == '_' and len(node) == 3 and node[1] == 'divisible':
+        if get_ident(node) == '_' and len(
+                node) == 3 and node[1] == 'divisible':
             return Node('Bool')
         # stuff that returns Int
-        if get_name(node) in [
+        if get_ident(node) in [
                 'div',
                 'mod',
                 'abs',
@@ -304,9 +305,9 @@ def get_sort(node):
         ]:
             return Node('Int')
         # stuff that returns Real
-        if get_name(node) in ['/', 'to_real', 'fp.to_real']:
+        if get_ident(node) in ['/', 'to_real', 'fp.to_real']:
             return Node('Real')
-        if get_name(node) in ['+', '-', '*']:
+        if get_ident(node) in ['+', '-', '*']:
             if any(map(lambda n: get_sort(n) == 'Real', node[1:])):
                 return Node('Real')
             else:
@@ -349,7 +350,7 @@ def is_bv_sort(node):
     """Return true if :code:`node` is a bit-vector sort."""
     if node.is_leaf() or len(node) != 3:
         return False
-    if not has_name(node) or get_name(node) != '_':
+    if not has_ident(node) or get_ident(node) != '_':
         return False
     return node[1] == 'BitVec'
 
@@ -365,7 +366,7 @@ def is_bv_constant(node):
         return False
     if len(node) != 3:
         return False
-    if not node.has_name() or node.get_name() != '_':
+    if not node.has_ident() or node.get_ident() != '_':
         return False
     if not node.data[1].is_leaf():
         return False
@@ -374,17 +375,17 @@ def is_bv_constant(node):
 
 def is_bv_comp(node):
     """Checks whether :code:`node` is a bit-vector comparison."""
-    return has_name(node) and get_name(node) == 'bvcomp'
+    return has_ident(node) and get_ident(node) == 'bvcomp'
 
 
 def is_bv_not(node):
     """Checks whether :code:`node` is a bit-vector bit-wise negation."""
-    return has_name(node) and get_name(node) == 'bvnot'
+    return has_ident(node) and get_ident(node) == 'bvnot'
 
 
 def is_bv_neg(node):
     """Checks whether :code:`node` is a bit-vector negation."""
-    return has_name(node) and get_name(node) == 'bvneg'
+    return has_ident(node) and get_ident(node) == 'bvneg'
 
 
 def get_bv_width(node):
@@ -404,17 +405,17 @@ def get_bv_width(node):
         bvsort = __sort_lookup[node]
         assert is_bv_sort(bvsort)
         return int(bvsort[2].data)
-    if node.has_name():
-        if node.get_name() in [
+    if node.has_ident():
+        if node.get_ident() in [
                 'bvnot', 'bvand', 'bvor', 'bvneg', 'bvadd', 'bvmul', 'bvudiv',
                 'bvurem', 'bvshl', 'bvshr', 'bvnand', 'bvnor', 'bvxor',
                 'bvsub', 'bvsdiv', 'bvsrem', 'bvsmod', 'bvashr'
         ]:
             return get_bv_width(node[1])
-        if node.get_name() == 'concat':
+        if node.get_ident() == 'concat':
             assert len(node) == 3
             return get_bv_width(node[1]) + get_bv_width(node[2])
-        if node.get_name() == 'bvcomp':
+        if node.get_ident() == 'bvcomp':
             return 1
         if is_indexed_operator_app(node, 'zero_extend') \
            or is_indexed_operator_app(node, 'sign_extend'):
@@ -459,7 +460,7 @@ def is_fp_sort(node):
        and str(node).startswith('Float') \
        and node[5:] in ['16', '32', '64', '128']:
         return True
-    if not has_name(node) or get_name(node) != '_' or len(node) != 4:
+    if not has_ident(node) or get_ident(node) != '_' or len(node) != 4:
         return False
     return node[1] == 'FloatingPoint'
 
@@ -471,7 +472,7 @@ def is_defined_function(node):
     """Check whether :code:`node` is a defined function."""
     if node.is_leaf():
         return node in __defined_functions
-    return has_name(node) and get_name(node) in __defined_functions
+    return has_ident(node) and get_ident(node) in __defined_functions
 
 
 def get_defined_function(node):
@@ -483,7 +484,7 @@ def get_defined_function(node):
     assert is_defined_function(node)
     if node.is_leaf():
         return __defined_functions[node.data]([])
-    return __defined_functions[get_name(node)](node[1:])
+    return __defined_functions[get_ident(node)](node[1:])
 
 
 ### Sets
@@ -493,7 +494,7 @@ def is_set_sort(node):
     """Return true if :code:`node` is a set sort."""
     if node.is_leaf() or len(node) != 2:
         return False
-    if not has_name(node) or get_name(node) != 'Set':
+    if not has_ident(node) or get_ident(node) != 'Set':
         return False
     return True
 
