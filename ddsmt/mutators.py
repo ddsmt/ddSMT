@@ -18,7 +18,7 @@ def get_all_mutators():
         'core': (mutators_core, mutators_core.get_mutators()),
         'arithmetic':
         (mutators_arithmetic, mutators_arithmetic.get_mutators()),
-        'bitvector': (mutators_bv, mutators_bv.get_mutators()),
+        'bv': (mutators_bv, mutators_bv.get_mutators()),
         'boolean': (mutators_boolean, mutators_boolean.get_mutators()),
         'fp': (mutators_fp, mutators_fp.get_mutators()),
         'smtlib': (mutators_smtlib, mutators_smtlib.get_mutators()),
