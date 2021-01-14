@@ -215,10 +215,16 @@ class BVTransformToBool:
 
 class BVReduceBW:
     """Reduce the bit-width of a variable by introducing an extract and zero
-    extension on that variable, e.g., (declare-const v (_ BitVec 32)) is
-    transformed into (define-fun v () (_ BitVec 32) ((_ zero_extend 31) _v))
-    with (declare-const _v (_BitVec 1)) This mutator generates all possible
-    mutations for a variable."""
+    extension on that variable, e.g.,
+
+    .. code-block:: common-lisp
+
+        (declare-const v (_ BitVec 32)) is transformed into
+        (define-fun v () (_ BitVec 32) ((_ zero_extend 31) _v)) with
+        (declare-const _v (_BitVec 1))
+
+    This mutator generates all possible mutations for a variable.
+    """
     def filter(self, node):
         return has_name(node) \
                and (get_name(node) == 'declare-const' or \
@@ -246,12 +252,24 @@ class BVReduceBW:
 
 
 class BVMergeReducedBW:
-    """Merge previous bit-width reductions of the form (declare-const __w
-    (_BitVec MM)) (define-fun _w () (_ BitVec Y) ((_ zero_extend N) __w))
-    (define-fun w () (_ BitVec X) ((_ zero_extend M) _w)) into (declare-const
-    __w (_BitVec MM)) (define-fun _w () (_ BitVec Y) ((_ zero_extend N) __w))
-    (define-fun w () (_ BitVec X) ((_ zero_extend M+N) __w)) Obsolete define-
-    fun expressions will be removed later on."""
+    """Merge previous bit-width reductions of the form.
+
+    .. code-block:: common-lisp
+
+        (declare-const __w (_BitVec MM))
+        (define-fun _w () (_ BitVec Y) ((_ zero_extend N) __w))
+        (define-fun w () (_ BitVec X) ((_ zero_extend M) _w))``
+
+    into
+
+    .. code-block:: common-lisp
+
+        (declare-const __w (_BitVec MM))
+        (define-fun _w () (_ BitVec Y) ((_ zero_extend N) __w))
+        (define-fun w () (_ BitVec X) ((_ zero_extend M+N) __w))
+
+    Obsolete define-fun expressions will be removed later on.
+    """
     def filter(self, node):
         return has_name(node) \
                and get_name(node) == 'define-fun' \

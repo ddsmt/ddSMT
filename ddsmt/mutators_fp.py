@@ -6,9 +6,9 @@ from .smtlib import *
 class FPShortSort:
     """Replace long sort names with short names.
 
-    | ``(_ FloatingPoint 5 11)`   --> ``Float16`` | ``(_ FloatingPoint 8
-    24)`   --> ``Float32`` | ``(_ FloatingPoint 11 53)`  --> ``Float64``
-    | ``(_ FloatingPoint 15 113)` --> ``Float128``
+    | ``(_ FloatingPoint 5 11)``   --> ``Float16`` | ``(_ FloatingPoint
+    8 24)``   --> ``Float32`` | ``(_ FloatingPoint 11 53)``  -->
+    ``Float64`` | ``(_ FloatingPoint 15 113)`` --> ``Float128``
     """
     def filter(self, node):
         return is_fp_sort(node) and len(node) == 4
