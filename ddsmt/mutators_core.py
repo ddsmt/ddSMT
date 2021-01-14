@@ -6,11 +6,11 @@ from . import options
 class Constants:
     """Replaces any node by a constant."""
     def filter(self, node):
-        return get_type(node) is not None
+        return get_sort(node) is not None
 
     def mutations(self, node):
-        """Return :code:`get_constants(get_type(node))`."""
-        t = get_type(node)
+        """Return :code:`get_constants(get_sort(node))`."""
+        t = get_sort(node)
         if t is None:
             return []
         res = get_constants(t)
@@ -66,10 +66,10 @@ class ReplaceByVariable:
         return not is_constant(node)
 
     def mutations(self, node):
-        ret_type = get_type(node)
-        if ret_type is None:
+        ret_sort = get_sort(node)
+        if ret_sort is None:
             return []
-        variables = get_variables_with_type(ret_type)
+        variables = get_variables_with_sort(ret_sort)
         if is_leaf(node):
             if options.args().replace_by_variable_mode == 'inc':
                 return [Node(v) for v in variables if v > node.data]

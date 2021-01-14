@@ -3,23 +3,23 @@ import re
 from . import nodes
 from .nodes import Node
 
-# Stores all declared or defined (first-order) constants with their types
+# Stores all declared or defined (first-order) constants with their sorts
 __constants = {}
-# Stores all defined functions with their return types
+# Stores all defined functions with their return sorts
 __defined_functions = {}
-# Stores the types for all declared or defined symbols
-__type_lookup = {}
+# Stores the sorts for all declared or defined symbols
+__sort_lookup = {}
 
 
 def collect_information(exprs):
     """Initialize global lookups for first-order constants, defined functions
-    and types of all these symbols."""
+    and sorts of all these symbols."""
     global __constants
     global __defined_functions
-    global __type_lookup
+    global __sort_lookup
     __constants = {}
     __defined_functions = {}
-    __type_lookup = {}
+    __sort_lookup = {}
 
     for cmd in exprs:
         if not cmd.has_name():
@@ -30,7 +30,7 @@ def collect_information(exprs):
                 continue
             assert is_leaf(cmd[1])
             __constants[cmd[1].data] = cmd[2]
-            __type_lookup[cmd[1].data] = cmd[2]
+            __sort_lookup[cmd[1].data] = cmd[2]
         if name == 'declare-fun':
             if not len(cmd) == 4:
                 continue
@@ -38,7 +38,7 @@ def collect_information(exprs):
             assert not is_leaf(cmd[2])
             if cmd[2] == tuple():
                 __constants[cmd[1].data] = cmd[2]
-            __type_lookup[cmd[1].data] = cmd[3]
+            __sort_lookup[cmd[1].data] = cmd[3]
         if name == 'define-fun':
             if not len(cmd) == 5:
                 continue
@@ -50,15 +50,15 @@ def collect_information(exprs):
                 cmd[1]] = lambda args, cmd=cmd: nodes.substitute(
                     cmd[4], {cmd[2][i][0]: args[i]
                              for i in range(len(args))})
-            __type_lookup[cmd[1].data] = cmd[3]
+            __sort_lookup[cmd[1].data] = cmd[3]
 
 
 ### General utilities
 
 
-def get_variables_with_type(var_type):
-    """Return all variables with the type :code:`var_type`."""
-    return [v for v in __type_lookup if __type_lookup[v] == var_type]
+def get_variables_with_sort(var_sort):
+    """Return all variables with the sort :code:`var_sort`."""
+    return [v for v in __sort_lookup if __sort_lookup[v] == var_sort]
 
 
 def introduce_variables(exprs, vars):
@@ -177,33 +177,33 @@ def is_eq(node):
     return has_name(node) and get_name(node) == '='
 
 
-def get_constants(const_type):
-    """Return a list of constants for the given type."""
-    if const_type == 'Bool':
+def get_constants(const_sort):
+    """Return a list of constants for the given sort."""
+    if const_sort == 'Bool':
         return [Node('false'), Node('true')]
-    if const_type == 'Int':
+    if const_sort == 'Int':
         return [Node('0'), Node('1')]
-    if const_type == 'Real':
+    if const_sort == 'Real':
         return [Node('0.0'), Node('1.0')]
-    if is_bv_type(const_type):
+    if is_bv_sort(const_sort):
         return [
-            Node(Node('_'), Node(c), Node(const_type[2]))
+            Node(Node('_'), Node(c), Node(const_sort[2]))
             for c in ['bv0', 'bv1']
         ]
-    if is_set_type(const_type):
-        return [Node(Node('as'), Node('emptyset'), Node(const_type))] + [
-            Node(Node('singleton'), c) for c in get_constants(const_type[1])
+    if is_set_sort(const_sort):
+        return [Node(Node('as'), Node('emptyset'), Node(const_sort))] + [
+            Node(Node('singleton'), c) for c in get_constants(const_sort[1])
         ]
     return []
 
 
-def get_type(node):
-    """Get the return type of the given node.
+def get_sort(node):
+    """Get the return sort of the given node.
 
     Return :code:`None` if it can not be inferred.
     """
-    if node.is_leaf() and node.data in __type_lookup:
-        return __type_lookup[node.data]
+    if node.is_leaf() and node.data in __sort_lookup:
+        return __sort_lookup[node.data]
     if is_boolean_constant(node):
         return Node('Bool')
     if is_bv_constant(node):
@@ -217,7 +217,7 @@ def get_type(node):
         return Node('_', 'BitVec', str(bvwidth))
     if has_name(node):
         if is_operator_app(node, 'ite'):
-            return get_type(node[1])
+            return get_sort(node[1])
         # stuff that returns Bool
         if get_name(node) in [
                 # core theory
@@ -291,7 +291,7 @@ def get_type(node):
         if get_name(node) in ['/', 'to_real', 'fp.to_real']:
             return Node('Real')
         if get_name(node) in ['+', '-', '*']:
-            if any(map(lambda n: get_type(n) == 'Real', node[1:])):
+            if any(map(lambda n: get_sort(n) == 'Real', node[1:])):
                 return Node('Real')
             else:
                 return Node('Int')
@@ -329,7 +329,7 @@ def is_real_constant(node):
 ### BV
 
 
-def is_bv_type(node):
+def is_bv_sort(node):
     """Return true if :code:`node` is a bit-vector sort."""
     if node.is_leaf() or len(node) != 3:
         return False
@@ -384,10 +384,10 @@ def get_bv_width(node):
             if data.startswith('#x'):
                 return len(data[2:]) * 4
         return int(node[2].data)
-    if node in __type_lookup:
-        bvtype = __type_lookup[node]
-        assert is_bv_type(bvtype)
-        return int(bvtype[2].data)
+    if node in __sort_lookup:
+        bvsort = __sort_lookup[node]
+        assert is_bv_sort(bvsort)
+        return int(bvsort[2].data)
     if node.has_name():
         if node.get_name() in [
                 'bvnot', 'bvand', 'bvor', 'bvneg', 'bvadd', 'bvmul', 'bvudiv',
@@ -473,7 +473,7 @@ def get_defined_function(node):
 ### Sets
 
 
-def is_set_type(node):
+def is_set_sort(node):
     """Return true if :code:`node` is a set sort."""
     if node.is_leaf() or len(node) != 2:
         return False

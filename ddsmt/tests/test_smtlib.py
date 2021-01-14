@@ -3,7 +3,7 @@ from ..nodes import Node
 from ..smtlib import *
 
 
-def test_get_variables_with_type():
+def test_get_variables_with_sort():
     x = Node('x')
     y = Node('y')
     z = Node('z')
@@ -25,16 +25,16 @@ def test_get_variables_with_type():
         Node('+', r, r),
         Node('str.++', s, s),
     ]
-    assert get_variables_with_type(Node('_', 'BitVec', 8)) == []
+    assert get_variables_with_sort(Node('_', 'BitVec', 8)) == []
     collect_information(exprs)
-    assert get_variables_with_type(Node('_', 'BitVect', 8)) == []
-    assert get_variables_with_type(Node('_', 'BitVec', 8)) == [x, y]
-    assert get_variables_with_type(Node('_', 'BitVec', 32)) == [z]
-    assert get_variables_with_type(Node('Float64')) == [a]
-    assert get_variables_with_type(Node('_', 'FloatingPoint', 11, 53)) == [b]
-    assert get_variables_with_type(Node('_', 'FloatingPoint', 5, 11)) == [c]
-    assert get_variables_with_type(Node('Real')) == [r]
-    assert get_variables_with_type(Node('String')) == [s]
+    assert get_variables_with_sort(Node('_', 'BitVect', 8)) == []
+    assert get_variables_with_sort(Node('_', 'BitVec', 8)) == [x, y]
+    assert get_variables_with_sort(Node('_', 'BitVec', 32)) == [z]
+    assert get_variables_with_sort(Node('Float64')) == [a]
+    assert get_variables_with_sort(Node('_', 'FloatingPoint', 11, 53)) == [b]
+    assert get_variables_with_sort(Node('_', 'FloatingPoint', 5, 11)) == [c]
+    assert get_variables_with_sort(Node('Real')) == [r]
+    assert get_variables_with_sort(Node('String')) == [s]
 
 
 def test_introduce_variables():
@@ -122,12 +122,12 @@ def test_is_fp_sort():
 #def is_constant(node):
 #def is_eq(node):
 #def get_constants(const_type):
-#def get_type(node):
+#def get_sort(node):
 #def is_boolean_constant(node):
 #def is_arithmetic_constant(node):
 #def is_int_constant(node):
 #def is_real_constant(node):
-#def is_bv_type(node):
+#def is_bv_sort(node):
 #def is_bv_constant(node):
 #def is_bv_comp(node):
 #def is_bv_not(node):
@@ -135,5 +135,5 @@ def test_is_fp_sort():
 #def get_bv_width(node):
 #def is_defined_function(node):
 #def get_defined_function(node):
-#def is_set_type(node):
+#def is_set_sort(node):
 #def is_string_constant(node):

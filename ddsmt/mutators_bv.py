@@ -223,8 +223,8 @@ class BVReduceBW:
         return has_name(node) \
                and (get_name(node) == 'declare-const' or \
                    (get_name(node) == 'declare-fun' and len(node[2]) == 0)) \
-               and get_type(node[1]) is not None \
-               and is_bv_type(get_type(node[1]))
+               and get_sort(node[1]) is not None \
+               and is_bv_sort(get_sort(node[1]))
 
     def global_mutations(self, linput, ginput):
         idx = ginput.index(linput)
@@ -236,7 +236,7 @@ class BVReduceBW:
         for b in range(1, bw):
             varname = '_{}'.format(linput[1])
             var = Node('declare-const', varname, Node('_', 'BitVec', b))
-            zext = Node('define-fun', linput[1], (), get_type(linput[1]),
+            zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
                         Node(Node('_', 'zero_extend', bw - b), varname))
             res.append(gin1 + [var] + [zext] + gin2)
         return res
@@ -256,8 +256,8 @@ class BVMergeReducedBW:
         return has_name(node) \
                and get_name(node) == 'define-fun' \
                and len(node[2]) == 0 \
-               and get_type(node[1]) is not None \
-               and is_bv_type(get_type(node[1])) \
+               and get_sort(node[1]) is not None \
+               and is_bv_sort(get_sort(node[1])) \
                and is_indexed_operator_app(
                        get_defined_function(node[1]), 'zero_extend', 1) \
                and is_defined_function(node[-1][-1]) \
@@ -266,14 +266,14 @@ class BVMergeReducedBW:
 
     def mutations(self, node):
         name = node[1]
-        ntype = node[3]
+        nsort = node[3]
         zext = int(get_defined_function(name)[0][-1].data)
         deffun_name = node[-1][-1]
         deffun_body = get_defined_function(deffun_name)
         deffun_zext = int(deffun_body[0][-1].data)
         decfun_name = deffun_body[-1]
         return [
-            Node('define-fun', name, (), ntype,
+            Node('define-fun', name, (), nsort,
                  (('_', 'zero_extend', zext + deffun_zext), decfun_name))
         ]
 
