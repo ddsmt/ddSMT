@@ -88,18 +88,17 @@ class Producer:
                 if hasattr(m, 'filter') and not m.filter(linput):
                     continue
                 if hasattr(m, 'mutations'):
-                    yield from list(
-                        map(
-                            lambda x: Task(self.__node_count, str(m), gpickled,
-                                           pickle.dumps({linput.id: x}), None),
-                            m.mutations(linput)))
+                    for x in m.mutations(linput):
+                        if self.__abort.is_set():
+                            break
+                        yield Task(self.__node_count, str(m), gpickled,
+                                   pickle.dumps({linput.id: x}), None)
                 if hasattr(m, 'global_mutations'):
-                    yield from list(
-                        map(
-                            lambda x: Task(self.__node_count,
-                                           "(global) " + str(m), None,
-                                           pickle.dumps(x), None),
-                            m.global_mutations(linput, ginput)))
+                    for x in m.global_mutations(linput, ginput):
+                        if self.__abort.is_set():
+                            break
+                        yield Task(self.__node_count, f'(global) {m}', None,
+                                   pickle.dumps(x), None)
             except Exception as e:
                 logging.info(f'{type(e)} in application of {m}: {e}')
 
