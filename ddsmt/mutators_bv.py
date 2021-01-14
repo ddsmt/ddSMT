@@ -260,7 +260,7 @@ class BVMergeReducedBW:
                and is_bv_type(get_type(node[1])) \
                and is_indexed_operator_app(
                        get_defined_function(node[1]), 'zero_extend', 1) \
-               and is_defined_function(node[-1][-1])[0] \
+               and is_defined_function(node[-1][-1]) \
                and is_indexed_operator_app(
                        get_defined_function(node[-1][-1]), 'zero_extend', 1)
 
