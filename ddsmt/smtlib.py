@@ -83,6 +83,20 @@ def introduce_variables(exprs, vars):
     return exprs[:pos] + vars + exprs[pos:]
 
 
+def substitute_except_declarations(exprs, repl):
+    """Performs the given substitution, but excludes declaration commands like
+    :code:`declare-fun`."""
+    res = []
+    for e in exprs:
+        if e.has_name() and e.get_name() in [
+                'declare-const', 'declare-fun', 'define-fun'
+        ]:
+            res.append(e)
+        else:
+            res.append(nodes.substitute(e, repl))
+    return res
+
+
 ### General semantic testers and testers
 
 
