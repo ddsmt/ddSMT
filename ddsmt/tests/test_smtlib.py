@@ -41,7 +41,7 @@ def test_get_bv_extend_index():
 #def get_name(node):
 #def is_quoted_symbol(node):
 #def get_quoted_symbol(node):
-#def is_operator(node, name):
+#def is_operator_app(node, name):
 #def is_nary(node):
 #def is_constant(node):
 #def is_eq(node):

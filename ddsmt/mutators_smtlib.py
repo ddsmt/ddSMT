@@ -66,7 +66,7 @@ class InlineDefinedFuns:
 class LetElimination:
     """Substitutes a :code:`let` expression with its body."""
     def filter(self, node):
-        return is_operator(node, 'let')
+        return is_operator_app(node, 'let')
 
     def mutations(self, node):
         return [node[2]]
@@ -79,7 +79,7 @@ class LetSubstitution:
     """Substitutes a variable bound by a :code:`let` binder into the nested
     term."""
     def filter(self, node):
-        return is_operator(node, 'let')
+        return is_operator_app(node, 'let')
 
     def mutations(self, node):
         res = []

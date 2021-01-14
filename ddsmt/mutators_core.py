@@ -51,7 +51,7 @@ class MergeWithChildren:
 class ReplaceByChild:
     """Replace a node by one of its children."""
     def filter(self, node):
-        return not is_leaf(node) and not is_operator(node, 'let')
+        return not is_leaf(node) and not is_operator_app(node, 'let')
 
     def mutations(self, node):
         yield from node[1:]

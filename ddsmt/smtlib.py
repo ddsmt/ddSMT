@@ -135,7 +135,7 @@ def get_quoted_symbol(node):
     return Node(node[1:-1])
 
 
-def is_operator(node, name):
+def is_operator_app(node, name):
     return has_name(node) and get_name(node) == name
 
 
@@ -216,7 +216,7 @@ def get_type(node):
     if bvwidth != -1:
         return Node('_', 'BitVec', str(bvwidth))
     if has_name(node):
-        if is_operator(node, 'ite'):
+        if is_operator_app(node, 'ite'):
             return get_type(node[1])
         # stuff that returns Bool
         if get_name(node) in [

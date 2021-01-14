@@ -134,7 +134,7 @@ class BVOneZeroITE:
     """Replace an :code:`ite` with :code:`bv1`/:code:`bv0` cases by
     :code:`bvcomp`."""
     def filter(self, node):
-        if not is_operator(node, 'ite'):
+        if not is_operator_app(node, 'ite'):
             return False
         if not has_name(node[1]) \
            or get_name(node[1]) != '=' \

@@ -21,8 +21,8 @@ def make_and(children):
 class BoolDeMorgan:
     """Use de Morgans rules to push negations inside."""
     def filter(self, node):
-        return is_operator(node, 'not') and (is_operator(node[1], 'and')
-                                             or is_operator(node[1], 'or'))
+        return is_operator_app(node, 'not') and (is_operator_app(
+            node[1], 'and') or is_operator_app(node[1], 'or'))
 
     def mutations(self, node):
         negated = [Node('not', t) for t in node[1][1:]]
@@ -39,7 +39,7 @@ class BoolDeMorgan:
 class BoolDoubleNegation:
     """Eliminate double negations."""
     def filter(self, node):
-        return is_operator(node, 'not') and is_operator(node[1], 'not')
+        return is_operator_app(node, 'not') and is_operator_app(node[1], 'not')
 
     def mutations(self, node):
         return [node[1][1]]
@@ -64,7 +64,7 @@ class BoolEliminateFalseEquality:
 class BoolEliminateImplication:
     """Replace (possibly n-ary) implications by disjunctions."""
     def filter(self, node):
-        return is_operator(node, '=>')
+        return is_operator_app(node, '=>')
 
     def mutations(self, node):
         split = [
@@ -81,7 +81,7 @@ class BoolEliminateImplication:
 class BoolNegateQuantifier:
     """Push negations inside quantifiers."""
     def filter(self, node):
-        return is_operator(node, 'not') and is_quantifier(node[1])
+        return is_operator_app(node, 'not') and is_quantifier(node[1])
 
     def mutations(self, node):
         if node[1].get_name() == 'exists':
@@ -97,7 +97,7 @@ class BoolNegateQuantifier:
 class BoolXOREliminateBinary:
     """Eliminate binary :code:`xor` by :code:`distinct`."""
     def filter(self, node):
-        return is_operator(node, 'xor') and len(node) == 3
+        return is_operator_app(node, 'xor') and len(node) == 3
 
     def mutations(self, node):
         return [Node('distinct', node[1], node[2])]
@@ -109,7 +109,7 @@ class BoolXOREliminateBinary:
 class BoolXORRemoveConstant:
     """Eliminate constant children from :code:`xor`."""
     def filter(self, node):
-        return is_operator(node, 'xor')
+        return is_operator_app(node, 'xor')
 
     def mutations(self, node):
         res = []
