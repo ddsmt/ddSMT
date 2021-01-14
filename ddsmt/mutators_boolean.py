@@ -38,11 +38,15 @@ class BoolDoubleNegation:
 class BoolEliminateFalseEquality:
     """Replace an equality with :code:`false` by a negation."""
     def filter(self, node):
-        return not is_leaf(node) and len(node) == 3 and has_name(
-            node) and get_name(node) == '=' and node[1] == 'false'
+        return is_eq(node) and Node('false') in node
 
     def mutations(self, node):
-        return [('not', node[2])]
+        negated = [Node('not', n) for n in node[1:] if n != 'false']
+        if len(negated) == 0:
+            return []
+        if len(negated) == 1:
+            return negated
+        return [Node('and', *negated)]
 
     def __str__(self):
         return 'replace equality with false by negation'
