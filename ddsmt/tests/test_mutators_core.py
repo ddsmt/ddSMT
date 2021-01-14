@@ -19,6 +19,6 @@ def test_merge_with_children():
     node = Node(Node('+'), Node('x'), Node(Node('+'), Node('x'), Node('y')))
     m = mutators_core.MergeWithChildren()
     assert m.filter(node)
-    assert m.mutations(node) == [
+    assert list(m.mutations(node)) == [
         Node(Node('+'), Node('x'), Node('x'), Node('y'))
     ]
