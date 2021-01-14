@@ -125,6 +125,20 @@ def test_is_var():
     collect_information(exprs)
     assert not is_var(Node('x'))
     assert is_var(Node('y'))
+    reset_information()
+
+
+def test_has_name():
+    assert not has_name(Node('x'))
+    assert has_name(Node('_', 'BitVec', 3))
+    assert has_name(Node('assert', 'x', 'x'))
+
+
+def test_get_name():
+    with pytest.raises(AssertionError):
+        get_name(Node('x'))
+    assert get_name(Node('_', 'BitVec', 3)) == '_'
+    assert get_name(Node('assert', 'x', 'x')) == 'assert'
 
 
 def test_is_indexed_operator():
@@ -170,8 +184,6 @@ def test_is_fp_sort():
 
 # TODO
 #def collect_information(exprs):
-#def has_name(node):
-#def get_name(node):
 #def is_quoted_symbol(node):
 #def get_quoted_symbol(node):
 #def is_operator_app(node, name):
