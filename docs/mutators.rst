@@ -49,7 +49,7 @@ Arithmetic mutators
 .. autoclass:: ddsmt.mutators_arithmetic.ArithmeticSplitNaryRelation
 .. autoclass:: ddsmt.mutators_arithmetic.ArithmeticStrengthenRelation
 
-Bitvector mutators
+Bit-vector mutators
 ------------------
 .. autoclass:: ddsmt.mutators_bv.BVConcatToZeroExtend
 .. autoclass:: ddsmt.mutators_bv.BVDoubleNegation
@@ -73,6 +73,10 @@ Boolean mutators
 .. autoclass:: ddsmt.mutators_boolean.BoolNegateQuantifier
 .. autoclass:: ddsmt.mutators_boolean.BoolXOREliminateBinary
 .. autoclass:: ddsmt.mutators_boolean.BoolXORRemoveConstant
+
+Floating-Point mutators
+-----------------------
+.. autoclass:: ddsmt.mutators_fp.FPShortSort
 
 SMT-LIB mutators
 ----------------
