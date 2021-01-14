@@ -165,8 +165,8 @@ class MutatorStats:
         d['tests'] += 1
         if success:
             d['success'] += 1
-            d['diff'] += smtlib.count_exprs(
-                task.exprs) - smtlib.count_exprs(original)
+            d['diff'] += nodes.count_exprs(
+                task.exprs) - nodes.count_exprs(original)
         d['runtime'] += task.runtime
 
     def print(self):
@@ -195,7 +195,7 @@ def reduce(exprs):
             start = time.time()
             smtlib.collect_information(exprs)
             reduction = False
-            cnt = smtlib.count_nodes(exprs)
+            cnt = nodes.count_nodes(exprs)
             progress.start(cnt)
             progress.update(min(cnt, skip))
 

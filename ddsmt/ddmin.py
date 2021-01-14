@@ -105,7 +105,7 @@ def _worker(task):
     for mexprs in mutated_exprs:
         ntests += 1
         if checker.check_exprs(mexprs):
-            nreduced = smtlib.count_exprs(exprs) - smtlib.count_exprs(mexprs)
+            nreduced = nodes.count_exprs(exprs) - nodes.count_exprs(mexprs)
             return task_id, nreduced, mexprs, ntests
     return task_id, 0, [], ntests
 
@@ -223,9 +223,9 @@ def _apply_mutator(mutator, exprs, max_depth=None):
     :code:`gran`, which are then checked via :code:`check_func`.
     """
     start_time = time.time()
-    nexprs = smtlib.count_exprs(exprs)
+    nexprs = nodes.count_exprs(exprs)
     filter_func = getattr(mutator, 'filter', lambda x: True)
-    filtered = list(smtlib.filter_exprs(exprs, filter_func, max_depth))
+    filtered = list(nodes.filter_nodes(exprs, filter_func, max_depth))
     check_func = _check_seq if options.args().jobs == 1 else _check_par
 
     stats = {'tests': 0, 'tests_success': 0, 'reduced': 0}
@@ -234,7 +234,7 @@ def _apply_mutator(mutator, exprs, max_depth=None):
     while gran > 0:
         subsets = _partition(filtered, gran)
         exprs, gran = check_func(gran, subsets, exprs, nexprs, mutator, stats)
-        filtered = list(smtlib.filter_exprs(exprs, filter_func, max_depth))
+        filtered = list(nodes.filter_nodes(exprs, filter_func, max_depth))
         gran = gran // 2
 
     _print_progress(f"{mutator}: diff {-stats['reduced']:+} expressions, " \

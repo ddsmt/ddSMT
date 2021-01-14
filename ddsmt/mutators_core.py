@@ -1,4 +1,4 @@
-from .nodes import Node
+from .nodes import Node, count_nodes
 from .smtlib import *
 from . import options
 

@@ -56,25 +56,6 @@ def collect_information(exprs):
 ### General utilities
 
 
-def count_nodes(node):
-    """Return the number of expressions yielded when traversing :code:`node` in
-    DFS manner."""
-    return len(list(nodes.dfs(node)))
-
-
-def count_exprs(node):
-    """Return the number of tuples yielded when traversing :code:`node` in DFS
-    manner."""
-    return len([x for x in nodes.dfs(node) if not x.is_leaf()])
-
-
-def filter_exprs(exprs, filter_func, max_depth=-1):
-    """Filter s-expressions based on filter_func."""
-    for expr in nodes.dfs(exprs, max_depth):
-        if filter_func(expr):
-            yield expr
-
-
 def get_variables_with_type(var_type):
     """Return all variables with the type :code:`var_type`."""
     return [v for v in __type_lookup if __type_lookup[v] == var_type]

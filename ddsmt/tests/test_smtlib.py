@@ -33,9 +33,6 @@ def test_get_bv_extend_index():
 
 # TODO
 #def collect_information(exprs):
-#def count_nodes(node):
-#def count_exprs(node):
-#def filter_exprs(exprs, filter_func, max_depth=-1):
 #def get_variables_with_type(var_type):
 #def introduce_variables(exprs, vars):
 #def is_leaf(node):
