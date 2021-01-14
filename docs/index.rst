@@ -15,3 +15,4 @@ ddSMT is free software released under the GPLv3. You should have received a copy
    usage
    mutators
    scenarios
+   references

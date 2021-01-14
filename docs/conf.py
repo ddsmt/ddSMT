@@ -23,7 +23,10 @@ release = ddsmt.version.VERSION
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx_rtd_theme',
+    'sphinxcontrib.bibtex',
 ]
+
+bibtex_bibfiles = ['literature.bib']
 
 autodoc_default_options = {
     'members': None,

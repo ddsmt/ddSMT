@@ -1,3 +1,4 @@
 progressbar>=2.5
 sphinx-rtd-theme>=0.4.3
+sphinxcontrib-bibtex==2.1.0
 importlib-metadata>=1.7 ; python_version<"3.8"
