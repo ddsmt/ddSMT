@@ -30,7 +30,7 @@ class EliminateDistinct:
 class EliminateVariable:
     """Eliminate a variable using an equality.
 
-    Tries to globaly replace every leaf node from an equality by every
+    Tries to globally replace every leaf node from an equality by every
     other node from the same equality.
     """
     def filter(self, node):
@@ -153,6 +153,9 @@ class SimplifyQuotedSymbols:
     def filter(self, node):
         return is_quoted_symbol(node) and re.match(
             '\\|[a-zA-Z0-9~!@$%^&*_+=<>.?/-]+\\|', node.data) is not None
+
+    def mutations(self, node):
+        return [get_quoted_symbol(node)]
 
     def global_mutations(self, linput, ginput):
         return [nodes.substitute(ginput, {linput: get_quoted_symbol(linput)})]
