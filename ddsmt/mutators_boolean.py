@@ -5,6 +5,19 @@ def is_quantifier(node):
     return has_name(node) and get_name(node) in ['exists', 'forall']
 
 
+def make_and(children):
+    """Return an and from arbitrary many children.
+
+    Returns node as a list so that we can return the empty list if there
+    are no children.
+    """
+    if len(children) == 0:
+        return []
+    if len(children) == 1:
+        return children
+    return [Node('and', *children)]
+
+
 class BoolDeMorgan:
     """Use de Morgans rules to push negations inside."""
     def filter(self, node):
@@ -42,23 +55,24 @@ class BoolEliminateFalseEquality:
 
     def mutations(self, node):
         negated = [Node('not', n) for n in node[1:] if n != 'false']
-        if len(negated) == 0:
-            return []
-        if len(negated) == 1:
-            return negated
-        return [Node('and', *negated)]
+        return make_and(negated)
 
     def __str__(self):
         return 'replace equality with false by negation'
 
 
 class BoolEliminateImplication:
-    """Replace implications by disjunctions."""
+    """Replace (possibly n-ary) implications by disjunctions."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == '=>' and len(node) == 3
+        return is_operator(node, '=>')
 
     def mutations(self, node):
-        return [Node('or', ('not', node[1]), node[2])]
+        split = [
+            Node('or', ('not', node[i]), node[i + 1])
+            for i in range(1,
+                           len(node) - 1)
+        ]
+        return make_and(split)
 
     def __str__(self):
         return 'eliminate implication'

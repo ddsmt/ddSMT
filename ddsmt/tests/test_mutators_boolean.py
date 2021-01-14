@@ -58,3 +58,22 @@ def test_bool_eliminate_false_equality():
     for k, v in exprs.items():
         assert m.filter(k)
         assert m.mutations(k) == v
+
+
+def test_bool_eliminate_implication():
+    m = mutators_boolean.BoolEliminateImplication()
+    notfilter = [
+        Node('or', 'true', 'y'),
+        Node('not', ('=>', 'false', 'y')),
+    ]
+    exprs = {
+        Node('=>', 'x'): [],
+        Node('=>', 'x', 'y'): [Node('or', ('not', 'x'), 'y')],
+        Node('=>', 'x', 'y', 'z'):
+        [Node('and', ('or', ('not', 'x'), 'y'), ('or', ('not', 'y'), 'z'))],
+    }
+    for e in notfilter:
+        assert not m.filter(e)
+    for k, v in exprs.items():
+        assert m.filter(k)
+        assert m.mutations(k) == v
