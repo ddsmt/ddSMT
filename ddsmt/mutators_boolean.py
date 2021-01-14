@@ -8,15 +8,15 @@ def is_quantifier(node):
 class DeMorgan:
     """Uses de Morgans rules to push negations inside."""
     def filter(self, node):
-        return is_operator(node, 'not') and is_operator(node[1], 'not')
+        return is_operator(node, 'not') and (is_operator(node[1], 'and')
+                                             or is_operator(node[1], 'or'))
 
     def mutations(self, node):
+        negated = [Node('not', t) for t in node[1][1:]]
         if get_name(node[1]) == 'and':
-            res = [('not', t) for t in node[1][1:]]
-            return [('or', *res)]
+            return [Node('or', *negated)]
         if get_name(node[1]) == 'or':
-            res = [('not', t) for t in node[1][1:]]
-            return [('and', *res)]
+            return [Node('and', *negated)]
         return []
 
     def __str__(self):
