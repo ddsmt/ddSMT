@@ -23,11 +23,23 @@ class Constants:
 
 
 class EraseNode:
+    """Erase nodes optionally with name :code:`name`."""
+    def __init__(self, name=None):
+        self.name = name
+
+    def filter(self, node):
+        if not self.name:
+            return True
+        return has_name(node) and get_name(node) == self.name
+
     """Erases the given node."""
+
     def mutations(self, node):
         return [None]
 
     def __str__(self):
+        if self.name:
+            return f'erase node ({self.name})'
         return 'erase node'
 
 

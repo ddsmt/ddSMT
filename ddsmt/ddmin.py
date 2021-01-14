@@ -15,12 +15,19 @@ def ddmin_passes():
     Mutators that apply global_mutations only are disabled since this is
     not supported by ddmin.
     """
-    return [
-        # Passes applied to top-level nodes (DFS max-depth 1)
+
+    # Passes applied to top-level nodes (DFS max-depth 1)
+    toplevel_passes = mutators.get_mutators(['EraseNode'])
+    if toplevel_passes:
+        toplevel_passes[0].name = 'assert'
+    toplevel_passes.extend(
         mutators.get_mutators([
             'EraseNode',
             'CheckSatAssuming',
-        ]),
+        ]))
+
+    return [
+        toplevel_passes,
 
         # Passes applied to all nodes
         mutators.get_mutators([
