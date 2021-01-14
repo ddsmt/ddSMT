@@ -63,13 +63,19 @@ class BVEvalExtend:
     """Evaluates a bit-vector :code:`(sign|zero)_extend` if it is applied to a
     constant or another :code:`(sign|zero)_extend`."""
     def filter(self, node):
-        return is_indexed_operator(node, 'extend')
+        return (is_indexed_operator_app(node, 'zero_extend') \
+                or is_indexed_operator_app(node, 'sign_extend')) \
+               and is_bv_constant(node[1])
 
     def mutations(self, node):
-        if is_bv_constant(node[1]):
-            (val, width) = get_bv_constant_value(node[1])
-            return [Node('_', f'bv{val}', width + node[0][2])]
-        return []
+        (val, width) = get_bv_constant_value(node[1])
+        index = get_bv_extend_index(node[0])
+        if is_indexed_operator_app(node, 'sign_extend'):
+            val_bin = bin(val)
+            if len(val_bin[2:]) == width and val_bin[2] == '1':
+                ones = '1' * index
+                return [Node(f'#b{ones}{val_bin[2:]}')]
+        return [Node('_', f'bv{val}', width + index)]
 
     def __str__(self):
         return 'evaluate bit-vector extend'

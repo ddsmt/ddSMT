@@ -76,8 +76,43 @@ def test_bv_elim_bvcomp():
     ]
 
 
+def test_bv_eval_extend():
+    x = Node('x')
+    const0_1 = Node('#b011')
+    const0_2 = Node('_', 'bv3', 3)
+    const1_1 = Node('#b101')
+    const1_2 = Node('_', 'bv5', 3)
+    zext0_1 = Node(('_', 'zero_extend', 2), const0_1)
+    zext0_2 = Node(('_', 'zero_extend', 2), const0_2)
+    zext1_1 = Node(('_', 'zero_extend', 2), const1_1)
+    zext1_2 = Node(('_', 'zero_extend', 2), const1_2)
+    sext0_1 = Node(('_', 'sign_extend', 2), const0_1)
+    sext0_2 = Node(('_', 'sign_extend', 2), const0_2)
+    sext1_1 = Node(('_', 'sign_extend', 2), const1_1)
+    sext1_2 = Node(('_', 'sign_extend', 2), const1_2)
+    m = mutators_bv.BVEvalExtend()
+    assert not m.filter(Node('bvand', x, x))
+    assert not m.filter(Node(('_', 'zero_extend', 2), x))
+    assert not m.filter(Node(('zero_extend', 2), const0_1))
+    assert m.filter(zext0_1)
+    assert m.filter(zext0_2)
+    assert m.filter(zext1_1)
+    assert m.filter(zext1_2)
+    assert m.filter(sext0_1)
+    assert m.filter(sext0_2)
+    assert m.filter(sext1_1)
+    assert m.filter(sext1_2)
+    assert m.mutations(zext0_1) == [Node('_', 'bv3', 5)]
+    assert m.mutations(zext0_2) == [Node('_', 'bv3', 5)]
+    assert m.mutations(zext1_1) == [Node('_', 'bv5', 5)]
+    assert m.mutations(zext1_2) == [Node('_', 'bv5', 5)]
+    assert m.mutations(sext0_1) == [Node('_', 'bv3', 5)]
+    assert m.mutations(sext0_2) == [Node('_', 'bv3', 5)]
+    assert m.mutations(sext1_1) == [Node('#b11101')]
+    assert m.mutations(sext1_2) == [Node('#b11101')]
+
+
 # TODO
-#class BVEvalExtend:
 #class BVExtractConstants:
 #class BVOneZeroITE:
 #class BVReflexiveNand:
