@@ -304,9 +304,9 @@ def is_relevant(node):
     """Checks whether this theory might be relevant for this node."""
     if node.has_name():
         if node.get_name() in ['declare-const']:
-            if is_bv_type(node[2]):
+            if is_bv_sort(node[2]):
                 return True
         elif node.get_name() in ['declare-fun', 'define-fun', 'define-sort']:
-            if is_bv_type(node[3]):
+            if is_bv_sort(node[3]):
                 return True
     return False
