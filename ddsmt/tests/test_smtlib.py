@@ -35,6 +35,7 @@ def test_get_variables_with_sort():
     assert get_variables_with_sort(Node('_', 'FloatingPoint', 5, 11)) == [c]
     assert get_variables_with_sort(Node('Real')) == [r]
     assert get_variables_with_sort(Node('String')) == [s]
+    reset_information()
 
 
 def test_introduce_variables():
@@ -102,6 +103,30 @@ def test_substitute_vars_except_decl():
            ]
 
 
+def test_is_leaf():
+    assert not is_leaf(Node('declare-const', 'x', 'Real'))
+    assert not is_leaf(Node('declare-fun', 'x', (), ('_', 'BitVec', 8)))
+    assert not is_leaf(Node('define-fun', 'f', (), 'Int', ('+', 'x', 'x')))
+    assert not is_leaf(Node('assert', ('=', 'x', 'x')))
+    assert not is_leaf(Node('_', 'BitVec', 2))
+    assert is_leaf(Node('x'))
+    assert is_leaf(Node('Real'))
+
+
+def test_is_var():
+    assert not is_var(Node('declare-const', 'x', 'Real'))
+    assert not is_var(Node('declare-fun', 'x', (), ('_', 'BitVec', 8)))
+    assert not is_var(Node('define-fun', 'f', (), 'Int', ('+', 'x', 'x')))
+    assert not is_var(Node('assert', ('=', 'x', 'x')))
+    assert not is_var(Node('_', 'BitVec', 2))
+    assert not is_var(Node('Real'))
+    assert not is_var(Node('x'))
+    exprs = [Node('x'), Node('declare-const', 'y', 'Real')]
+    collect_information(exprs)
+    assert not is_var(Node('x'))
+    assert is_var(Node('y'))
+
+
 def test_is_indexed_operator():
     assert not is_indexed_operator(Node('x'), 'extract')
     assert not is_indexed_operator(Node('_', 'sign_extend', 2), 'extract')
@@ -145,8 +170,6 @@ def test_is_fp_sort():
 
 # TODO
 #def collect_information(exprs):
-#def is_leaf(node):
-#def is_var(node):
 #def has_name(node):
 #def get_name(node):
 #def is_quoted_symbol(node):

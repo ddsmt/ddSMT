@@ -53,6 +53,19 @@ def collect_information(exprs):
             __sort_lookup[cmd[1].data] = cmd[3]
 
 
+def reset_information():
+    """Reset global information gathered via collect_information.
+
+    This is mainly to be used in the unit tests.
+    """
+    global __constants
+    global __defined_functions
+    global __sort_lookup
+    __constants = {}
+    __defined_functions = {}
+    __sort_lookup = {}
+
+
 ### General utilities
 
 
