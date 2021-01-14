@@ -66,13 +66,13 @@ Bitvector mutators
 
 Boolean mutators
 ----------------
-.. autoclass:: ddsmt.mutators_boolean.DeMorgan
-.. autoclass:: ddsmt.mutators_boolean.DoubleNegation
-.. autoclass:: ddsmt.mutators_boolean.EliminateFalseEquality
-.. autoclass:: ddsmt.mutators_boolean.EliminateImplications
-.. autoclass:: ddsmt.mutators_boolean.NegatedQuantifiers
-.. autoclass:: ddsmt.mutators_boolean.XOREliminateBinary
-.. autoclass:: ddsmt.mutators_boolean.XORRemoveConstants
+.. autoclass:: ddsmt.mutators_boolean.BoolDeMorgan
+.. autoclass:: ddsmt.mutators_boolean.BoolDoubleNegation
+.. autoclass:: ddsmt.mutators_boolean.BoolEliminateFalseEquality
+.. autoclass:: ddsmt.mutators_boolean.BoolEliminateImplication
+.. autoclass:: ddsmt.mutators_boolean.BoolNegatedQuantifier
+.. autoclass:: ddsmt.mutators_boolean.BoolXOREliminateBinary
+.. autoclass:: ddsmt.mutators_boolean.BoolXORRemoveConstant
 
 SMT-LIB mutators
 ----------------

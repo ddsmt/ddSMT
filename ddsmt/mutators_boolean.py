@@ -5,8 +5,8 @@ def is_quantifier(node):
     return has_name(node) and get_name(node) in ['exists', 'forall']
 
 
-class DeMorgan:
-    """Uses de Morgans rules to push negations inside."""
+class BoolDeMorgan:
+    """Use de Morgans rules to push negations inside."""
     def filter(self, node):
         return is_operator(node, 'not') and (is_operator(node[1], 'and')
                                              or is_operator(node[1], 'or'))
@@ -23,8 +23,8 @@ class DeMorgan:
         return 'push negation inside'
 
 
-class DoubleNegation:
-    """Elimination double negations."""
+class BoolDoubleNegation:
+    """Eliminate double negations."""
     def filter(self, node):
         return is_operator(node, 'not') and is_operator(node[1], 'not')
 
@@ -35,8 +35,8 @@ class DoubleNegation:
         return 'eliminate double negation'
 
 
-class EliminateFalseEquality:
-    """Replaces an equality with :code:`false` by a negation."""
+class BoolEliminateFalseEquality:
+    """Replace an equality with :code:`false` by a negation."""
     def filter(self, node):
         return not is_leaf(node) and len(node) == 3 and has_name(
             node) and get_name(node) == '=' and node[1] == 'false'
@@ -48,8 +48,8 @@ class EliminateFalseEquality:
         return 'replace equality with false by negation'
 
 
-class EliminateImplications:
-    """Replaces implications by disjunctions."""
+class BoolEliminateImplication:
+    """Replace implications by disjunctions."""
     def filter(self, node):
         return has_name(node) and get_name(node) == '=>' and len(node) == 3
 
@@ -60,8 +60,8 @@ class EliminateImplications:
         return 'eliminate implication'
 
 
-class NegatedQuantifiers:
-    """Pushes negation inside quantifiers."""
+class BoolNegatedQuantifier:
+    """Push negations inside quantifiers."""
     def filter(self, node):
         return is_operator(node, 'not') and is_quantifier(node[1])
 
@@ -76,10 +76,10 @@ class NegatedQuantifiers:
         return 'push negation inside of quantifier'
 
 
-class XORRemoveConstants:
-    """Eliminates constant children from :code:`xor`."""
+class BoolXORRemoveConstant:
+    """Eliminate constant children from :code:`xor`."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == 'xor'
+        return is_operator(node, 'xor')
 
     def mutations(self, node):
         res = []
@@ -87,20 +87,20 @@ class XORRemoveConstants:
             res.append(Node(*[c for c in node if c != 'false']))
         if 'true' in node:
             res.append(Node(*[c for c in node if c != 'true']))
-            res.append(Node('not', tuple(c for c in node if c != 'true')))
+            res.append(Node('not', (c for c in node if c != 'true')))
         return res
 
     def __str__(self):
         return 'remove constants from xor'
 
 
-class XOREliminateBinary:
-    """Eliminates binary :code:`xor` by :code:`distinct`."""
+class BoolXOREliminateBinary:
+    """Eliminate binary :code:`xor` by :code:`distinct`."""
     def filter(self, node):
-        return has_name(node) and get_name(node) == 'xor' and len(node) == 3
+        return is_operator(node, 'xor') and len(node) == 3
 
     def mutations(self, node):
-        return [('distinct', node[1], node[2])]
+        return [Node('distinct', node[1], node[2])]
 
     def __str__(self):
         return 'eliminate binary xor'
@@ -110,11 +110,11 @@ def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
     return {
-        'DeMorgan': 'de-morgan',
-        'DoubleNegation': 'double-negations',
-        'EliminateFalseEquality': 'eliminate-false-eq',
-        'EliminateImplications': 'eliminate-implications',
-        'NegatedQuantifiers': 'negated-quant',
-        'XOREliminateBinary': 'eliminate-binary-xor',
-        'XORRemoveConstants': 'remove-xor-constants',
+        'BoolDeMorgan': 'bool-de-morgan',
+        'BoolDoubleNegation': 'bool-double-negations',
+        'BoolEliminateFalseEquality': 'bool-false-eq',
+        'BoolEliminateImplication': 'bool-implications',
+        'BoolNegatedQuantifier': 'bool-negate-quants',
+        'BoolXOREliminateBinary': 'bool-xor-binary',
+        'BoolXORRemoveConstant': 'bool-xor-constants',
     }
