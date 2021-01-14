@@ -27,6 +27,30 @@ class EliminateDistinct:
         return 'eliminate distinct'
 
 
+class EliminateVariable:
+    """Eliminate a variable using an equality.
+
+    Tries to globaly replace every leaf node from an equality by every
+    other node from the same equality.
+    """
+    def filter(self, node):
+        return is_eq(node) and any(map(lambda n: n.is_leaf(), node[1:]))
+
+    def global_mutations(self, linput, ginput):
+        res = []
+        ops = linput[1:]
+        targets = list(filter(lambda n: n.is_leaf(), ops))
+        for t in targets:
+            for c in ops:
+                if c == t:
+                    continue
+                res.append(substitute_except_declarations(ginput, {t: c}))
+        return res
+
+    def __str__(self):
+        return 'eliminate variable from equality'
+
+
 class InlineDefinedFuns:
     """Explicitly inlines a defined function."""
     def filter(self, node):
@@ -196,6 +220,7 @@ def get_mutators():
     return {
         'CheckSatAssuming': 'check-sat-assuming',
         'EliminateDistinct': 'eliminate-distinct',
+        'EliminateVariable': 'eliminate-variables',
         'InlineDefinedFuns': 'inline-functions',
         'LetElimination': 'let-elimination',
         'LetSubstitution': 'let-substitution',
