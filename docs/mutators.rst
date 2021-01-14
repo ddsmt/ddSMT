@@ -50,7 +50,7 @@ Arithmetic mutators
 .. autoclass:: ddsmt.mutators_arithmetic.ArithmeticStrengthenRelation
 
 Bit-vector mutators
-------------------
+-------------------
 .. autoclass:: ddsmt.mutators_bv.BVConcatToZeroExtend
 .. autoclass:: ddsmt.mutators_bv.BVDoubleNegation
 .. autoclass:: ddsmt.mutators_bv.BVElimBVComp
