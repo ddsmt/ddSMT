@@ -422,10 +422,9 @@ def get_bv_constant_value(node):
     if node.is_leaf():
         if node.data.startswith('#b'):
             return (int(node[2:], 2), len(node[2:]))
-        if node.data.startswith('#x'):
-            return (int(node[2:], 16), len(node[2:]) * 4)
-        assert False
-    return (int(node[1][2:]), node[2])
+        assert node.data.startswith('#x')
+        return (int(node[2:], 16), len(node[2:]) * 4)
+    return (int(node[1][2:]), int(node[2].data))
 
 
 def get_bv_extend_index(node):

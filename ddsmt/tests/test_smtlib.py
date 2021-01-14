@@ -13,11 +13,21 @@ def test_is_indexed_operator():
     assert is_indexed_operator(Node('_', 'extract', 2), 'extract')
 
 
+def test_get_bv_constant_value():
+    with pytest.raises(AssertionError):
+        get_bv_constant_value(Node('x'))
+    with pytest.raises(AssertionError):
+        get_bv_constant_value(Node('#c3'))
+    assert get_bv_constant_value(Node('_', 'bv3', 3)) == (3, 3)
+    assert get_bv_constant_value(Node('#b011')) == (3, 3)
+    assert get_bv_constant_value(Node('#x3')) == (3, 4)
+
+
 def test_get_bv_extend_index():
     with pytest.raises(AssertionError):
-        assert get_bv_extend_index(Node('_', 'extend', 2))
+        get_bv_extend_index(Node('_', 'extend', 2))
     with pytest.raises(ValueError):
-        assert get_bv_extend_index(Node('_', 'zero_extend', 'asdf'))
+        get_bv_extend_index(Node('_', 'zero_extend', 'asdf'))
     assert get_bv_extend_index(Node('_', 'zero_extend', 2)) == 2
 
 
@@ -50,7 +60,6 @@ def test_get_bv_extend_index():
 #def is_bv_not(node):
 #def is_bv_neg(node):
 #def get_bv_width(node):
-#def get_bv_constant_value(node):
 #def is_defined_function(node):
 #def get_defined_function(node):
 #def is_set_type(node):
