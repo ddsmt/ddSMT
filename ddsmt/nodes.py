@@ -201,6 +201,7 @@ def substitute(exprs, repl):
         visit = [(x, False) for x in reversed(exprs.data)]
     else:
         visit = [(x, False) for x in reversed(exprs)]
+    changed = False
     args = [[]]
     while visit:
         expr, visited = visit.pop()
@@ -214,6 +215,7 @@ def substitute(exprs, repl):
             expr = repl[expr]
             didrepl = True
         if didrepl:
+            changed = True
             if expr is None:
                 continue
             args[-1].append(expr)
@@ -234,10 +236,11 @@ def substitute(exprs, repl):
                 visit.append((expr, True))
                 visit.extend((x, False) for x in reversed(expr.data))
                 args.append([])
+    if not changed:
+        return exprs
     if isinstance(exprs, Node):
         return Node(*args[0])
-    else:
-        return args[0]
+    return args[0]
 
 
 def __render_smtlib_expression_pretty(children, visit):
