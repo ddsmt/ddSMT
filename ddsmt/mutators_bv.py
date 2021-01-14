@@ -79,7 +79,8 @@ class BVExtractConstants:
     """Evaluates a bit-vector :code:`extract` if it is applied to a
     constant."""
     def filter(self, node):
-        return is_indexed_operator(node, 'extract') and is_bv_constant(node[1])
+        return is_indexed_operator_app(node, 'extract') \
+               and is_bv_constant(node[1])
 
     def mutations(self, node):
         upper = int(node[0][2])
@@ -98,8 +99,8 @@ class BVExtractZeroExtend:
     :code:`zero_extend` to the outside and reducing the bit-widths, if
     possible."""
     def filter(self, node):
-        return is_indexed_operator(node[0], 'extract', 2) \
-               and is_indexed_operator(node[1], 'zero_extend')
+        return is_indexed_operator_app(node, 'extract', 2) \
+               and is_indexed_operator_app(node[1], 'zero_extend')
 
     def mutations(self, node):
         var = node[1][1]
@@ -251,11 +252,11 @@ class BVMergeReducedBW:
                and len(node[2]) == 0 \
                and get_type(node[1]) is not None \
                and is_bv_type(get_type(node[1])) \
-               and is_indexed_operator(
-                       get_defined_function(node[1])[0], 'zero_extend', 1) \
+               and is_indexed_operator_app(
+                       get_defined_function(node[1]), 'zero_extend', 1) \
                and is_defined_function(node[-1][-1])[0] \
-               and is_indexed_operator(
-                       get_defined_function(node[-1][-1])[0], 'zero_extend', 1)
+               and is_indexed_operator_app(
+                       get_defined_function(node[-1][-1]), 'zero_extend', 1)
 
     def mutations(self, node):
         name = node[1]

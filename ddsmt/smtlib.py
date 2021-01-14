@@ -156,6 +156,10 @@ def is_indexed_operator(node, name, index_count=1):
     return len(node) == index_count + 2
 
 
+def is_indexed_operator_app(node, name, index_count=1):
+    return len(node) > 0 and is_indexed_operator(node[0], name, index_count)
+
+
 def is_nary(node):
     """Check whether the :code:`node` is a n-ary operator."""
     if node.is_leaf() or not has_name(node):
@@ -401,14 +405,14 @@ def get_bv_width(node):
             return get_bv_width(node[1]) + get_bv_width(node[2])
         if node.get_name() == 'bvcomp':
             return 1
-        if is_indexed_operator(node[0], 'zero_extend') \
-           or is_indexed_operator(node[1], 'sign_extend'):
+        if is_indexed_operator_app(node, 'zero_extend') \
+           or is_indexed_operator_app(node, 'sign_extend'):
             return get_bv_extend_index(node[0]) + get_bv_width(node[1])
-        if is_indexed_operator(node[0], 'extract', 2):
+        if is_indexed_operator_app(node, 'extract', 2):
             return get_bv_extend_index(node[0]) - int(node[0][3]) + 1
-        if is_indexed_operator(node[0], 'repeat'):
+        if is_indexed_operator_app(node, 'repeat'):
             return get_bv_extend_index(node[0]) * get_bv_width(node[1])
-        if is_indexed_operator(node[0], 'rotate'):
+        if is_indexed_operator_app(node, 'rotate'):
             return get_bv_width(node[1])
     return -1
 
