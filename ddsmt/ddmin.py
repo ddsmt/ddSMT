@@ -65,7 +65,7 @@ def ddmin_passes():
             'InlineDefinedFuns',
             'SimplifyLogic',
             'StringSimplifyConstant',
-            #        'SimplifyQuotedSymbols',
+            'SimplifyQuotedSymbols',
             #        'SimplifySymbolNames',
         ])
     ]
@@ -85,7 +85,10 @@ def _subst(exprs, subset, mutator):
     if len(subset) == 1:
         node = subset[0]
         mutations = mutator.mutations(node)
-        res.extend(nodes.substitute(exprs, {node.id: x}) for x in mutations)
+        for x in mutations:
+            mexprs = nodes.substitute(exprs, {node.id: x})
+            if mexprs is not exprs:  # Only perform checks if exprs changed
+                res.append(mexprs)
     # Granularity > 1: Pick first mutation and perform parallel substitution of
     # nodes in `subset`.
     else:
@@ -95,8 +98,10 @@ def _subst(exprs, subset, mutator):
                 substs[node.id] = next(iter(mutator.mutations(node)))
             except StopIteration:
                 continue
-        if substs:
-            res.append(nodes.substitute(exprs, substs))
+
+        mexprs = nodes.substitute(exprs, substs)
+        if mexprs is not exprs:  # Only perform checks if exprs changed
+            res.append(mexprs)
 
     return res
 
@@ -116,8 +121,8 @@ def _worker(task):
         ntests += 1
         if checker.check_exprs(mexprs):
             nreduced = nodes.count_exprs(exprs) - nodes.count_exprs(mexprs)
-            return task_id, nreduced, mexprs, ntests
-    return task_id, 0, [], ntests
+            return task_id, True, nreduced, mexprs, ntests
+    return task_id, False, 0, [], ntests
 
 
 def _partition(exprs, gran):
@@ -153,10 +158,10 @@ def _check_seq(gran, subsets, exprs, nexprs, mutator, stats):
 
     for i, subset in enumerate(subsets):
         task = (i, exprs, subset, mutator)
-        task_id, nreduced, reduced_exprs, ntests = _worker(task)
+        task_id, success, nreduced, reduced_exprs, ntests = _worker(task)
         stats['tests'] += ntests
 
-        if nreduced:
+        if success:
             stats['tests_success'] += 1
             stats['reduced'] += nreduced
             exprs = reduced_exprs
@@ -188,10 +193,10 @@ def _check_par(gran, subsets, exprs, nexprs, mutator, stats):
         nsuccess = 0
         with Pool(options.args().jobs) as pool:
             for result in pool.imap_unordered(_worker, tasks):
-                task_id, nreduced, reduced_exprs, ntests = result
+                task_id, success, nreduced, reduced_exprs, ntests = result
                 stats['tests'] += ntests
 
-                if nreduced:
+                if success:
                     if nsuccess == 0:
                         stats['tests_success'] += 1
                         stats['reduced'] += nreduced
