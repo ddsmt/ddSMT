@@ -22,8 +22,7 @@ class ArithmeticNegateRelation:
             '<>': '=',
             '>=': '<',
             '>': '<=',
-            'distinct': '=',
-            '=': 'distinct'
+            'distinct': '='
         }
         if node[1][0] in negator:
             return [(negator[node[1][0]], ) + node[1][1:]]
