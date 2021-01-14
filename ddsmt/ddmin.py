@@ -237,9 +237,10 @@ def _apply_mutator(mutator, exprs, max_depth=None):
         filtered = list(nodes.filter_nodes(exprs, filter_func, max_depth))
         gran = gran // 2
 
-    _print_progress(f"{mutator}: diff {-stats['reduced']:+} expressions, " \
-                    f"{stats['tests']} tests ({stats['tests_success']}), " \
-                    f"{time.time() - start_time:.1f}s", False)
+    if stats['tests'] > 0 or options.args().verbosity >= 2:
+        _print_progress(f"{mutator}: diff {-stats['reduced']:+} expressions, " \
+                        f"{stats['tests']} tests ({stats['tests_success']}), " \
+                        f"{time.time() - start_time:.1f}s", False)
 
     return exprs, stats['tests'], stats['reduced']
 
