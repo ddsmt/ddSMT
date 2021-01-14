@@ -11,7 +11,7 @@ def test_arith_negate_relation():
         Node('not', ('and', 'y', 'x')),
     ]
     exprs = {
-        Node('not', ('=', 'x', 'y')): [Node('distinct', 'x', 'y')],
+        Node('not', ('=', 'x', 'y')): [],
         Node('not', ('>', '1', 'y')): [Node('<=', '1', 'y')],
         Node('not', ('distinct', 'x', 'y')): [Node('=', 'x', 'y')],
         Node('not', ('<>', 'x', 'y')): [Node('=', 'x', 'y')],
