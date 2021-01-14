@@ -37,6 +37,37 @@ def test_get_variables_with_type():
     assert get_variables_with_type(Node('String')) == [s]
 
 
+def test_introduce_variables():
+    fp64 = Node('_', 'FloatingPoint', 11, 53)
+    x1 = Node('x1')
+    x2 = Node('x2')
+    x3 = Node('x3')
+    decl_x = Node('declare-const', 'x', 'Real')
+    decl_x1 = Node('declare-fun', x1, (), fp64)
+    decl_x2 = Node('declare-fun', x2, (), fp64)
+    decl_x3 = Node('declare-fun', x3, (), fp64)
+    fpadd = Node('define-fun', 'fpadd', (), fp64, ('fp.add', x1, x2))
+    fpmul = Node('define-fun', 'fpmul', (), fp64, ('fp.mul', fpadd, x3))
+    fpass = Node('assert', ('=', 'fpmul', 'fpadd'))
+
+    exprs0 = [
+        Node('set-info', ':smt-lib-version', '2.6'),
+        Node('set-logic', 'QF_FP'),
+        Node('set-info', ':category', '"crafted"'),
+        Node('set-info', ':status', 'unknown'),
+    ]
+    assert introduce_variables(exprs0, [decl_x]) \
+           == exprs0 + [Node('declare-const', 'x', 'Real')]
+
+    exprs1 = exprs0 + [Node('assert', 'true')]
+    assert introduce_variables(exprs1, [decl_x]) \
+           == exprs0 + [decl_x, Node('assert', 'true')]
+
+    exprs2 = exprs0 + [decl_x1, decl_x2, decl_x3, fpadd, fpmul, fpass]
+    assert introduce_variables(exprs2, [decl_x]) \
+           == exprs0 + [decl_x1, decl_x2, decl_x3, fpadd, fpmul, decl_x, fpass]
+
+
 def test_is_indexed_operator():
     assert not is_indexed_operator(Node('x'), 'extract')
     assert not is_indexed_operator(Node('_', 'sign_extend', 2), 'extract')
@@ -67,7 +98,6 @@ def test_get_bv_extend_index():
 
 # TODO
 #def collect_information(exprs):
-#def introduce_variables(exprs, vars):
 #def is_leaf(node):
 #def is_var(node):
 #def has_name(node):
