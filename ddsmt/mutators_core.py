@@ -113,7 +113,7 @@ class TopLevelBinaryReduction:
         # let num be the numerator within the current tree level
         res = []
         den = 2
-        while den < len(ginput):
+        while den * 4 < len(ginput):
             for num in range(0, den):
                 start = int(num / den * len(ginput))
                 end = int((num + 1) / den * len(ginput))
