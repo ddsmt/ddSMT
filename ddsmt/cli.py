@@ -81,9 +81,11 @@ def setup_logging():
 
 def ddsmt_main():
     start_time_process = time.process_time()
+    # general setup
     setup_logging()
     check_options()
 
+    # show what we are going to do
     logging.info("input file:   '{}'".format(options.args().infile))
     logging.info("output file:  '{}'".format(options.args().outfile))
     logging.info("command:      '{}'".format(" ".join(
@@ -92,8 +94,7 @@ def ddsmt_main():
     if options.args().cmd_cc:
         logging.info("command (cc): '{}'".format(options.args().cmd_cc))
 
-    ifilesize = os.path.getsize(options.args().infile)
-
+    # parse the input
     start_time = time.time()
     with open(options.args().infile, 'r') as infile:
         exprs = list(nodes.parse_smtlib(infile.read()))
@@ -111,14 +112,19 @@ def ddsmt_main():
     mutators.auto_detect_theories(exprs)
     # copy binaries to temp folder
     tmpfiles.copy_binaries()
+    # perform golden runs to see what the solver is doing
     checker.do_golden_runs()
 
+    # do the reduction
     if options.args().strategy == 'ddmin':
         reduced_exprs, ntests = ddmin.reduce(exprs)
     elif options.args().strategy == 'naive':
         reduced_exprs, ntests = ddnaive.reduce(exprs)
     end_time = time.time()
+
+    # show the results
     if reduced_exprs != exprs:
+        ifilesize = os.path.getsize(options.args().infile)
         ofilesize = os.path.getsize(options.args().outfile)
         nreduced_exprs = nodes.count_exprs(reduced_exprs)
 
