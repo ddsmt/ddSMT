@@ -84,7 +84,7 @@ def _subst(exprs, subset, mutator):
     else:
         substs = dict()
         for node in subset:
-            mutations = mutator.mutations(node)
+            mutations = list(mutator.mutations(node))
             substs[node.id] = mutations[0] if mutations else None
         res.append(nodes.substitute(exprs, substs))
 
