@@ -13,11 +13,6 @@ from . import progress
 from . import smtlib
 
 
-def get_named(mutator, name):
-    mutator.name = name
-    return mutator
-
-
 def get_initialized_mutator(name, properties):
     res = mutators.get_mutators([name])
     if res:

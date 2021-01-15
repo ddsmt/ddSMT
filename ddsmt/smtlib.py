@@ -45,7 +45,7 @@ def collect_information(exprs):
             assert is_leaf(cmd[1])
             assert not is_leaf(cmd[2])
             if cmd[2] == tuple():
-                __constants[cmd[1].data] = cmd[2]
+                __constants[cmd[1]] = cmd[2]
             __defined_functions[
                 cmd[1]] = lambda args, cmd=cmd: nodes.substitute(
                     cmd[4], {cmd[2][i][0]: args[i]
