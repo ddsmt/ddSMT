@@ -233,6 +233,13 @@ def test_is_const():
     assert is_const(Node('"asdf"'))
 
 
+def test_is_eq():
+    assert not is_eq(Node('x'))
+    assert not is_eq(Node('>', 'x', 'x'))
+    assert is_eq(Node('=', 'x', 'y'))
+    assert is_eq(Node('=', 'x', 'y', 'z'))
+
+
 def test_get_bv_constant_value():
     with pytest.raises(AssertionError):
         get_bv_constant_value(Node('x'))
@@ -325,7 +332,6 @@ def test_is_string_const():
 
 # TODO
 #def collect_information(exprs):
-#def is_eq(node):
 #def get_constants(const_type):
 #def get_sort(node):
 #def is_bv_sort(node):
