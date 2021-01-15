@@ -16,8 +16,7 @@ The ``ddnaive`` strategy
 
 At its core, this strategy uses a depth-first traversal of the input and applies all mutators locally to the current node. This allows for multiple mutators to work simultaneously on the same node and thus a fast collaboration of multiple mutators.
 
-``ddnaive`` splits the set of all mutators into three groups: the ``early`` group contains a few mutators that usually yield large reductions, the ``late`` group contains mutators that usually only have cosmetic effects, and the ``mid`` group contains all remaining mutators.
-It first performs a full run with only ``early`` enabled, then continues with ``early`` and ``mid`` and finally uses all three mutator groups.
+``ddnaive`` proceeds in multiple stages: the first stages perform aggressive minimization using binary reduction or only a small set of selected mutators; the penulatimate state employs all but a few mutators that usually only have cosmetic effects; the final stage includes all available mutators.
 This approach aims to be reasonably fast in reducing the input initially, but then allowing for more complex and more detailed simplfications once the input is smaller.
 
 Within a single run, ``ddnaive`` employs a fixed-point loop and only terminates when no simplification was successfull for a whole input traversal.

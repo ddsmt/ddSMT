@@ -14,6 +14,7 @@ from . import smtlib
 
 
 def get_initialized_mutator(name, properties):
+    """Obtain a mutator by name and set the given properties."""
     res = mutators.get_mutators([name])
     if res:
         for p, v in properties.items():
@@ -27,7 +28,6 @@ def ddnaive_passes():
     The list is ordered so that earlier passes are more promising for a
     quick reduction.
     """
-
     prelude = [
         (get_initialized_mutator('TopLevelBinaryReduction',
                                  {'name': 'assert'}), {
