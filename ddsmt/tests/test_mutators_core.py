@@ -38,3 +38,29 @@ def test_replace_by_child():
     assert m.filter(node)
     assert not m.filter(x)
     assert list(m.mutations(node)) == [x, y]
+
+
+def test_replace_by_variable():
+    exprs = [
+        Node(Node('declare-const'), Node('v1'), Node('Int')),
+        Node(Node('declare-const'), Node('__x'), Node('Int')),
+        Node(Node('declare-const'), Node('v2'), Node('Bool')),
+        Node(Node('declare-const'), Node('__v3'), Node('Int'))
+    ]
+    smtlib.collect_information(exprs)
+
+    x = Node('__x')
+    c = Node('42')
+    node = Node(Node('+'), x, c)
+
+    m = mutators_core.ReplaceByVariable()
+    m.repl_mode = 'inc'
+    assert m.filter(node)
+    assert m.filter(x)
+    assert not m.filter(c)
+    assert list(m.mutations(node)) == [Node('v1'), Node('__x'), Node('__v3')]
+    assert list(m.mutations(x)) == [Node('__v3')]
+
+    m.repl_mode = 'dec'
+    assert list(m.mutations(node)) == [Node('v1'), Node('__x'), Node('__v3')]
+    assert list(m.mutations(x)) == [Node('v1')]

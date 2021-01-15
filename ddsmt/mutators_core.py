@@ -75,19 +75,22 @@ class ReplaceByVariable:
         return not is_const(node)
 
     def mutations(self, node):
+        if not hasattr(self, 'repl_mode'):
+            self.repl_mode = options.args().replace_by_variable_mode
+
         ret_sort = get_sort(node)
         if ret_sort is None:
             return []
         variables = get_variables_with_sort(ret_sort)
         if is_leaf(node):
-            if options.args().replace_by_variable_mode == 'inc':
-                return [Node(v) for v in variables if v > node.data]
-            return [Node(v) for v in variables if v < node.data]
-        return [
-            Node(v) for v in variables if count_nodes(v) < count_nodes(node)
-        ]
+            if self.repl_mode == 'inc':
+                return [Node(v) for v in variables if len(v) > len(node.data)]
+            return [Node(v) for v in variables if len(v) < len(node.data)]
+        return [Node(v) for v in variables]
 
     def __str__(self):
+        if hasattr(self, 'repl_mode'):
+            return f'substitute by existing variable ({self.repl_mode})'
         return 'substitute by existing variable'
 
 
