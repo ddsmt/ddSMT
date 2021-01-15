@@ -24,11 +24,8 @@ class Constants:
 
 class EraseNode:
     """Erase nodes optionally with name :code:`name`."""
-    def __init__(self, name=None):
-        self.name = name
-
     def filter(self, node):
-        if not self.name:
+        if not hasattr(self, 'name'):
             return True
         return has_ident(node) and get_ident(node) == self.name
 
@@ -38,7 +35,7 @@ class EraseNode:
         return [None]
 
     def __str__(self):
-        if self.name:
+        if hasattr(self, 'name'):
             return f'erase node ({self.name})'
         return 'erase node'
 
@@ -132,6 +129,8 @@ class TopLevelBinaryReduction:
             den *= 4
 
     def __str__(self):
+        if hasattr(self, 'name'):
+            return f'binary reduction ({self.name})'
         return 'binary reduction'
 
 
