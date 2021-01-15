@@ -140,14 +140,14 @@ def get_ident(node):
     return node[0]
 
 
-def is_quoted_symbol(node):
+def is_piped_symbol(node):
     """Checks whether the :code:`node` is a quoted symbol."""
     return node.is_leaf() and node[0] == '|' and node[-1] == '|'
 
 
-def get_quoted_symbol(node):
+def get_piped_symbol(node):
     """Returns the actual symbol name from a quoted symbol :code:`node`."""
-    assert is_quoted_symbol(node)
+    assert is_piped_symbol(node)
     return Node(node[1:-1])
 
 

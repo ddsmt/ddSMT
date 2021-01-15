@@ -151,14 +151,14 @@ class SimplifyLogic:
 class SimplifyQuotedSymbols:
     """Turns a quoted symbol into a simple symbol."""
     def filter(self, node):
-        return is_quoted_symbol(node) and re.match(
+        return is_piped_symbol(node) and re.match(
             '\\|[a-zA-Z0-9~!@$%^&*_+=<>.?/-]+\\|', node.data) is not None
 
     def mutations(self, node):
-        return [get_quoted_symbol(node)]
+        return [get_piped_symbol(node)]
 
     def global_mutations(self, linput, ginput):
-        return [nodes.substitute(ginput, {linput: get_quoted_symbol(linput)})]
+        return [nodes.substitute(ginput, {linput: get_piped_symbol(linput)})]
 
     def __str__(self):
         return 'simplify quoted symbol'
@@ -196,10 +196,10 @@ class SimplifySymbolNames:
     def __mutate_symbol(self, symbol, ginput):
         """Return a list of mutations of ginput based on simpler versions of
         symbol."""
-        if is_quoted_symbol(symbol):
+        if is_piped_symbol(symbol):
             return [
                 nodes.substitute(ginput, {symbol: Node('|' + s + '|')})
-                for s in self.__simpler(get_quoted_symbol(symbol))
+                for s in self.__simpler(get_piped_symbol(symbol))
             ]
         return [
             nodes.substitute(ginput, {symbol: Node(s)})

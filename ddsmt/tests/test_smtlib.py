@@ -184,8 +184,8 @@ def test_is_fp_sort():
 
 # TODO
 #def collect_information(exprs):
-#def is_quoted_symbol(node):
-#def get_quoted_symbol(node):
+#def is_piped_symbol(node):
+#def get_piped_symbol(node):
 #def is_operator_app(node, name):
 #def is_nary(node):
 #def is_constant(node):
