@@ -209,7 +209,7 @@ def test_has_nary_operator():
     assert has_nary_operator(Node('fp.geq', x, x))
 
 
-def is_const(node):
+def test_is_const():
     assert not is_const(Node('x'))
     assert not is_const(Node('declare-const', 'x', 'Bool'))
     assert not is_const(Node('declare-const', 'x', 'Int'))
@@ -217,16 +217,19 @@ def is_const(node):
     assert not is_const(Node('declare-const', 'x', ('_', 'BitVec', 4)))
     assert not is_const(Node('declare-const', 'x', 'String'))
     assert not is_const(Node('asdf'))
+    assert not is_const(Node('1/2'))
+    assert not is_const(Node('/', 'x', 2))
+    assert not is_const(Node('/', 1, 'x'))
     assert is_const(Node('false'))
     assert is_const(Node('true'))
+    assert is_const(Node('/', 1, 2))
     assert is_const(Node('1.0'))
-    assert is_const(Node('1/2'))
     assert is_const(Node('2'))
     assert is_const(Node('2345'))
     assert is_const(Node('0101'))
     assert is_const(Node('#b0101'))
     assert is_const(Node('#x1af'))
-    assert is_const(Node('_', 'b5', 3))
+    assert is_const(Node('_', 'bv5', 3))
     assert is_const(Node('"asdf"'))
 
 
@@ -272,8 +275,10 @@ def test_is_arith_const():
     assert not is_arith_const(Node('x'))
     assert not is_arith_const(Node('declare-const', 'x', 'Int'))
     assert not is_arith_const(Node('declare-const', 'x', 'Real'))
-    assert not is_arith_const(Node('/', 1, 2))
     assert not is_arith_const(Node('1/2'))
+    assert not is_const(Node('/', 'x', 2))
+    assert not is_const(Node('/', 1, 'x'))
+    assert is_arith_const(Node('/', 1, 2))
     assert is_arith_const(Node('1.0'))
     assert is_arith_const(Node('2'))
     assert is_arith_const(Node('2345'))
@@ -292,7 +297,9 @@ def test_is_real_const():
     assert not is_real_const(Node('x'))
     assert not is_real_const(Node('declare-const', 'x', 'Real'))
     assert not is_real_const(Node('1/2'))
-    assert not is_real_const(Node('/', 1, 2))
+    assert not is_const(Node('/', 'x', 2))
+    assert not is_const(Node('/', 1, 'x'))
+    assert is_real_const(Node('/', 1, 2))
     assert is_real_const(Node('2'))
     assert is_real_const(Node('2345'))
     assert is_real_const(Node('1.0'))

@@ -341,7 +341,7 @@ def get_sort(node):
 
 
 def is_bool_const(node):
-    """Check whether the :code:`node` is a Boolean constant."""
+    """Return true if :code:`node` is a Boolean constant."""
     return node.is_leaf() and node.data in ['false', 'true']
 
 
@@ -349,20 +349,24 @@ def is_bool_const(node):
 
 
 def is_arith_const(node):
-    """Check whether the :code:`node` is an arithmetic constant."""
+    """Return true if :code:`node` is an arithmetic constant."""
+    if has_ident(node) and get_ident(node) == '/' and len(node) == 3:
+        return is_int_const(node[1]) and is_int_const(node[2])
     return node.is_leaf() \
            and re.match('[0-9]+(\\.[0-9]*)?$', node.data) is not None
 
 
 def is_int_const(node):
-    """Check whether the :code:`node` is an int constant."""
+    """Return true if :code:`node` is an int constant."""
     return node.is_leaf() and re.match('^[0-9]+$', node.data) is not None
 
 
 def is_real_const(node):
-    """Check whether the :code:`node` is a real constant."""
-    return node.is_leaf() and re.match('^[0-9]+(\\.[0-9]*)?$',
-                                       node.data) is not None
+    """Return true if :code:`node` is a real constant."""
+    if has_ident(node) and get_ident(node) == '/' and len(node) == 3:
+        return is_int_const(node[1]) and is_int_const(node[2])
+    return node.is_leaf() \
+           and re.match('^[0-9]+(\\.[0-9]*)?$', node.data) is not None
 
 
 ### BV
