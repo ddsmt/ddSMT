@@ -407,6 +407,15 @@ def test_get_sort():
     reset_information()
 
 
+def test_get_indices():
+    with pytest.raises(AssertionError):
+        get_indices(Node('x'), 'x')
+    with pytest.raises(ValueError):
+        get_indices(Node('_', 'zero_extend', 'asdf'), 'zero_extend')
+    assert get_indices(Node('_', 'zero_extend', 2), 'zero_extend') == [2]
+    assert get_indices(Node('_', 'extract', 2, 1), 'extract', 2) == [2, 1]
+
+
 def test_get_bv_constant_value():
     with pytest.raises(AssertionError):
         get_bv_constant_value(Node('x'))
@@ -415,14 +424,6 @@ def test_get_bv_constant_value():
     assert get_bv_constant_value(Node('_', 'bv3', 3)) == (3, 3)
     assert get_bv_constant_value(Node('#b011')) == (3, 3)
     assert get_bv_constant_value(Node('#x3')) == (3, 4)
-
-
-def test_get_bv_extend_index():
-    with pytest.raises(AssertionError):
-        get_bv_extend_index(Node('_', 'extend', 2))
-    with pytest.raises(ValueError):
-        get_bv_extend_index(Node('_', 'zero_extend', 'asdf'))
-    assert get_bv_extend_index(Node('_', 'zero_extend', 2)) == 2
 
 
 def test_is_fp_sort():

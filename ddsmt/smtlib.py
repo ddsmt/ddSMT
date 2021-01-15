@@ -347,6 +347,12 @@ def get_sort(node):
     return None
 
 
+def get_indices(node, name, index_count=1):
+    """Return a list with the indices of the given indexed operator."""
+    assert is_indexed_operator(node, name, index_count)
+    return [int(n.data) for n in node[2:]]
+
+
 ### Boolean
 
 
@@ -441,6 +447,16 @@ def get_bv_width(node):
         bvsort = __sort_lookup[node]
         assert is_bv_sort(bvsort)
         return int(bvsort[2].data)
+    if is_indexed_operator_app(node, 'zero_extend') \
+       or is_indexed_operator_app(node, 'sign_extend'):
+        return get_indices(node[0], node[0][1])[0] + get_bv_width(node[1])
+    if is_indexed_operator_app(node, 'extract', 2):
+        idx = get_indices(node[0], 'extract', 2)
+        return idx[0] - idx[1] + 1
+    if is_indexed_operator_app(node, 'repeat'):
+        return get_indices(node[0], 'repeat')[0] * get_bv_width(node[1])
+    if is_indexed_operator_app(node, 'rotate'):
+        return get_bv_width(node[1])
     if node.has_ident():
         if node.get_ident() in [
                 'bvnot', 'bvand', 'bvor', 'bvneg', 'bvadd', 'bvmul', 'bvudiv',
@@ -453,15 +469,6 @@ def get_bv_width(node):
             return get_bv_width(node[1]) + get_bv_width(node[2])
         if node.get_ident() == 'bvcomp':
             return 1
-        if is_indexed_operator_app(node, 'zero_extend') \
-           or is_indexed_operator_app(node, 'sign_extend'):
-            return get_bv_extend_index(node[0]) + get_bv_width(node[1])
-        if is_indexed_operator_app(node, 'extract', 2):
-            return get_bv_extend_index(node[0]) - int(node[0][3]) + 1
-        if is_indexed_operator_app(node, 'repeat'):
-            return get_bv_extend_index(node[0]) * get_bv_width(node[1])
-        if is_indexed_operator_app(node, 'rotate'):
-            return get_bv_width(node[1])
     return -1
 
 
@@ -477,14 +484,6 @@ def get_bv_constant_value(node):
         assert node.data.startswith('#x')
         return (int(node[2:], 16), len(node[2:]) * 4)
     return (int(node[1][2:]), int(node[2].data))
-
-
-def get_bv_extend_index(node):
-    """Assume that node is a bit-vector zero_extend or sign_extend and return
-    the index as integer value."""
-    assert is_indexed_operator(node, 'zero_extend') \
-           or is_indexed_operator(node, 'sign_extend')
-    return int(node[2].data)
 
 
 ### FP

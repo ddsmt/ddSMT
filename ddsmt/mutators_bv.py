@@ -69,7 +69,7 @@ class BVEvalExtend:
 
     def mutations(self, node):
         (val, width) = get_bv_constant_value(node[1])
-        index = get_bv_extend_index(node[0])
+        index = get_indices(node[0], node[0][1])[0]
         if is_indexed_operator_app(node, 'sign_extend'):
             val_bin = bin(val)
             if len(val_bin[2:]) == width and val_bin[2] == '1':
