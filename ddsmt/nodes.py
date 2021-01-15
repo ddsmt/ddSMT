@@ -324,17 +324,20 @@ def write_smtlib_to_file(filename, exprs):
 def count_nodes(node):
     """Return the number of expressions yielded when traversing :code:`node` in
     DFS manner."""
+    assert isinstance(node, (Node, list))
     return len(list(dfs(node)))
 
 
 def count_exprs(node):
     """Return the number of tuples yielded when traversing :code:`node` in DFS
     manner."""
+    assert isinstance(node, (Node, list))
     return len([x for x in dfs(node) if not x.is_leaf()])
 
 
 def filter_nodes(exprs, filter_func, max_depth=-1):
     """Filter s-expressions based on filter_func."""
+    assert isinstance(exprs, (Node, list))
     for expr in dfs(exprs, max_depth):
         if filter_func(expr):
             yield expr

@@ -64,3 +64,23 @@ def test_replace_by_variable():
     m.repl_mode = 'dec'
     assert list(m.mutations(node)) == [Node('v1'), Node('__x'), Node('__v3')]
     assert list(m.mutations(x)) == [Node('v1')]
+
+
+def test_sort_children():
+
+    node = Node(Node('+'), Node('123'), Node(Node('*'), Node('y'), Node('2')),
+                Node('x'))
+    expected = Node(Node('+'), Node('123'), Node('x'),
+                    Node(Node('*'), Node('y'), Node('2')))
+
+    m = mutators_core.SortChildren()
+    assert not m.filter(Node('x'))
+    assert not m.filter(Node('123'))
+    assert m.filter(node)
+    assert m.filter(expected)
+    assert list(m.mutations(node)) == [expected]
+    assert list(m.mutations(expected)) == []
+
+
+# TODO
+#def test_top_level_binary_reduction():
