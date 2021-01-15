@@ -273,8 +273,8 @@ def test_is_arith_const():
     assert not is_arith_const(Node('declare-const', 'x', 'Int'))
     assert not is_arith_const(Node('declare-const', 'x', 'Real'))
     assert not is_arith_const(Node('/', 1, 2))
+    assert not is_arith_const(Node('1/2'))
     assert is_arith_const(Node('1.0'))
-    assert is_arith_const(Node('1/2'))
     assert is_arith_const(Node('2'))
     assert is_arith_const(Node('2345'))
 

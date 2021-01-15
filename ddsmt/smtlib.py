@@ -350,8 +350,8 @@ def is_bool_const(node):
 
 def is_arith_const(node):
     """Check whether the :code:`node` is an arithmetic constant."""
-    return node.is_leaf() and re.match('[0-9]+(\\.[0-9]*)?',
-                                       node.data) is not None
+    return node.is_leaf() \
+           and re.match('[0-9]+(\\.[0-9]*)?$', node.data) is not None
 
 
 def is_int_const(node):
