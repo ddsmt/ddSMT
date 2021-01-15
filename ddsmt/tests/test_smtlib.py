@@ -209,6 +209,27 @@ def test_has_nary_operator():
     assert has_nary_operator(Node('fp.geq', x, x))
 
 
+def is_constant(node):
+    assert not is_constant(Node('x'))
+    assert not is_constant(Node('declare-const', 'x', 'Bool'))
+    assert not is_constant(Node('declare-const', 'x', 'Int'))
+    assert not is_constant(Node('declare-const', 'x', 'Real'))
+    assert not is_constant(Node('declare-const', 'x', ('_', 'BitVec', 4)))
+    assert not is_constant(Node('declare-const', 'x', 'String'))
+    assert not is_constant(Node('asdf'))
+    assert is_constant(Node('false'))
+    assert is_constant(Node('true'))
+    assert is_constant(Node('1.0'))
+    assert is_constant(Node('1/2'))
+    assert is_constant(Node('2'))
+    assert is_constant(Node('2345'))
+    assert is_constant(Node('0101'))
+    assert is_constant(Node('#b0101'))
+    assert is_constant(Node('#x1af'))
+    assert is_constant(Node('_', 'b5', 3))
+    assert is_constant(Node('"asdf"'))
+
+
 def test_get_bv_constant_value():
     with pytest.raises(AssertionError):
         get_bv_constant_value(Node('x'))
@@ -240,18 +261,65 @@ def test_is_fp_sort():
     assert is_fp_sort(Node('_', 'FloatingPoint', 3, 5))
 
 
+def test_is_boolean_constant():
+    assert not is_boolean_constant(Node('x'))
+    assert not is_boolean_constant(Node('declare-const', 'x', 'Bool'))
+    assert is_boolean_constant(Node('false'))
+    assert is_boolean_constant(Node('true'))
+
+
+def test_is_arithmetic_constant():
+    assert not is_arithmetic_constant(Node('x'))
+    assert not is_arithmetic_constant(Node('declare-const', 'x', 'Int'))
+    assert not is_arithmetic_constant(Node('declare-const', 'x', 'Real'))
+    assert is_arithmetic_constant(Node('1.0'))
+    assert is_arithmetic_constant(Node('1/2'))
+    assert is_arithmetic_constant(Node('2'))
+    assert is_arithmetic_constant(Node('2345'))
+
+
+def test_is_int_constant():
+    assert not is_int_constant(Node('x'))
+    assert not is_int_constant(Node('declare-const', 'x', 'Int'))
+    assert not is_int_constant(Node('1.0'))
+    assert not is_int_constant(Node('1/2'))
+    assert is_int_constant(Node('2'))
+    assert is_int_constant(Node('2345'))
+
+
+def test_is_real_constant():
+    assert not is_real_constant(Node('x'))
+    assert not is_real_constant(Node('declare-const', 'x', 'Real'))
+    assert not is_real_constant(Node('1/2'))
+    assert is_real_constant(Node('2'))
+    assert is_real_constant(Node('2345'))
+    assert is_real_constant(Node('1.0'))
+
+
+def test_is_bv_constant():
+    assert not is_bv_constant(Node('x'))
+    assert not is_bv_constant(Node('declare-const', 'x', ('_', 'BitVec', 4)))
+    assert not is_bv_constant(Node('2'))
+    assert not is_bv_constant(Node('0101'))
+    assert is_bv_constant(Node('#b0101'))
+    assert is_bv_constant(Node('#x1af'))
+    assert is_bv_constant(Node('_', 'bv5', 3))
+
+
+def test_is_string_constant():
+    assert not is_string_constant(Node('x'))
+    assert not is_string_constant(Node('declare-const', 'x', 'String'))
+    assert not is_string_constant(Node('2'))
+    assert not is_string_constant(Node('asdf'))
+    assert is_string_constant(Node('"asdf"'))
+
+
 # TODO
 #def collect_information(exprs):
-#def is_constant(node):
 #def is_eq(node):
 #def get_constants(const_type):
 #def get_sort(node):
-#def is_boolean_constant(node):
-#def is_arithmetic_constant(node):
-#def is_int_constant(node):
-#def is_real_constant(node):
 #def is_bv_sort(node):
-#def is_bv_constant(node):
 #def is_bv_comp(node):
 #def is_bv_not(node):
 #def is_bv_neg(node):
@@ -259,4 +327,3 @@ def test_is_fp_sort():
 #def is_defined_function(node):
 #def get_defined_function(node):
 #def is_set_sort(node):
-#def is_string_constant(node):
