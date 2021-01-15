@@ -29,10 +29,19 @@ def ddnaive_passes():
     """
 
     prelude = [
-        get_initialized_mutator('TopLevelBinaryReduction', {'name': 'assert'}),
-        mutators.get_mutators(['TopLevelBinaryReduction']),
-        get_initialized_mutator('EraseNode', {'name': 'assert'}),
-        mutators.get_mutators(['EraseNode']),
+        (get_initialized_mutator('TopLevelBinaryReduction',
+                                 {'name': 'assert'}), {
+                                     'max_depth': 1
+                                 }),
+        (mutators.get_mutators(['TopLevelBinaryReduction']), {
+            'max_depth': 1
+        }),
+        (get_initialized_mutator('EraseNode', {'name': 'assert'}), {
+            'max_depth': 1
+        }),
+        (mutators.get_mutators(['EraseNode']), {
+            'max_depth': 1
+        }),
         mutators.get_mutators([
             'EraseNode',
             'ReplaceByChild',
@@ -120,11 +129,11 @@ class Producer:
             except Exception as e:
                 logging.info(f'{type(e)} in application of {m}: {e}')
 
-    def generate(self, original):
+    def generate(self, original, params):
         """A generator that produces all possible mutations as :code:`Task`
         from the given original."""
         pickled = pickle.dumps(original)
-        for node in nodes.dfs(original):
+        for node in nodes.dfs(original, params.get('max_depth', None)):
             self.__node_count += 1
             if self.__node_skip < self.__node_count:
                 yield from self.__mutate_node(node, original, pickled)
@@ -223,10 +232,11 @@ def reduce(exprs):
 
     while cur_pool < len(passes):
         cur_passes = passes[cur_pool]
+        params = {}
         if isinstance(cur_passes, tuple):
-            cur_passes, properties = cur_passes
+            cur_passes, params = cur_passes
         cur_pool += 1
-        logging.info(f'Stage {cur_pool} / {len(passes)}')
+        logging.info(f'stage {cur_pool} / {len(passes)}')
         skip = 0
         fresh_run = True
         while True:
@@ -243,7 +253,8 @@ def reduce(exprs):
                 prod = Producer(skip, cur_passes, abort_flag)
                 cons = Consumer(abort_flag)
                 for result in pool.imap_unordered(cons.check,
-                                                  prod.generate(exprs)):
+                                                  prod.generate(exprs,
+                                                                params)):
                     nchecks += 1
                     success, task = pickle.loads(result)
                     progress.update(task.nodeid)
