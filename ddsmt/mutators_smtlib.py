@@ -169,7 +169,7 @@ class SimplifySymbolNames:
     def filter(self, node):
         return has_ident(node) and get_ident(node) in [
             'declare-const', 'declare-datatypes', 'declare-fun',
-            'declare-sort', 'exists', 'forall'
+            'declare-sort', 'define-fun', 'exists', 'forall'
         ] and not is_constant(node[1])
 
     def global_mutations(self, linput, ginput):
