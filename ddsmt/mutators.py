@@ -46,6 +46,15 @@ def get_mutators(mutators):
     return res
 
 
+def get_initialized_mutator(name, properties):
+    """Obtain a mutator by name and set the given properties."""
+    res = get_mutators([name])
+    if res:
+        for p, v in properties.items():
+            setattr(res[0], p, v)
+    return res
+
+
 def toggle_theory(namespace, theory_name, value):
     """Enables or disables all mutators for the given theory by setting their
     respective options in :code:`namespace`."""

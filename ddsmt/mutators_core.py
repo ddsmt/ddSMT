@@ -23,11 +23,11 @@ class Constants:
 
 
 class EraseNode:
-    """Erase nodes optionally with name :code:`name`."""
+    """Erase nodes optionally with a specified identifier :code:`ident`."""
     def filter(self, node):
-        if not hasattr(self, 'name'):
+        if not hasattr(self, 'ident'):
             return True
-        return has_ident(node) and get_ident(node) == self.name
+        return has_ident(node) and get_ident(node) == self.ident
 
     """Erases the given node."""
 
@@ -35,8 +35,8 @@ class EraseNode:
         return [None]
 
     def __str__(self):
-        if hasattr(self, 'name'):
-            return f'erase node ({self.name})'
+        if hasattr(self, 'ident'):
+            return f'erase node ({self.ident})'
         return 'erase node'
 
 
@@ -120,9 +120,10 @@ class TopLevelBinaryReduction:
         # let num be the numerator within the current tree level
         # to avoid checking to many cases, we skip every second level (den *= 4)
         # and already stop when den*8 >= length.
-        if hasattr(self, 'name'):
+        if hasattr(self, 'ident'):
             ids = [
-                node.id for node in ginput if is_operator_app(node, self.name)
+                node.id for node in ginput
+                if is_operator_app(node, self.ident)
             ]
         else:
             ids = [node.id for node in ginput]
@@ -135,8 +136,8 @@ class TopLevelBinaryReduction:
             den *= 2
 
     def __str__(self):
-        if hasattr(self, 'name'):
-            return f'binary reduction ({self.name})'
+        if hasattr(self, 'ident'):
+            return f'binary reduction ({self.ident})'
         return 'binary reduction'
 
 

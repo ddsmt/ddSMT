@@ -13,15 +13,6 @@ from . import progress
 from . import smtlib
 
 
-def get_initialized_mutator(name, properties):
-    """Obtain a mutator by name and set the given properties."""
-    res = mutators.get_mutators([name])
-    if res:
-        for p, v in properties.items():
-            setattr(res[0], p, v)
-    return res
-
-
 def ddnaive_passes():
     """Returns a list of passes, each pass being a list of mutators.
 
@@ -29,10 +20,10 @@ def ddnaive_passes():
     quick reduction.
     """
     prelude = [
-        (get_initialized_mutator('TopLevelBinaryReduction',
-                                 {'name': 'assert'}), {
-                                     'max_depth': 1
-                                 }),
+        (mutators.get_initialized_mutator('TopLevelBinaryReduction',
+                                          {'ident': 'assert'}), {
+                                              'max_depth': 1
+                                          }),
         (mutators.get_mutators(['TopLevelBinaryReduction']), {
             'max_depth': 1
         }),

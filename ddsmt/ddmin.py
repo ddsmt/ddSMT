@@ -17,9 +17,8 @@ def ddmin_passes():
     """
 
     # Passes applied to top-level nodes (DFS max-depth 1)
-    toplevel_passes = mutators.get_mutators(['EraseNode'])
-    if toplevel_passes:
-        toplevel_passes[0].name = 'assert'
+    toplevel_passes = mutators.get_initialized_mutator('EraseNode',
+                                                       {'ident': 'assert'})
     toplevel_passes.extend(
         mutators.get_mutators([
             'EraseNode',
