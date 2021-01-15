@@ -153,6 +153,13 @@ def test_get_piped_symbol():
     assert get_piped_symbol(Node('|declare-const|')) == 'declare-const'
 
 
+def test_is_operator_app():
+    assert not is_operator_app(Node('bvadd'), 'bvadd')
+    assert not is_operator_app(Node('bvad', 'x', 'x'), 'bvadd')
+    assert is_operator_app(Node('_', 'BitVec', 3), '_')
+    assert is_operator_app(Node('bvadd', 'x', 'x'), 'bvadd')
+
+
 def test_is_indexed_operator():
     assert not is_indexed_operator(Node('x'), 'extract')
     assert not is_indexed_operator(Node('_', 'sign_extend', 2), 'extract')
@@ -161,6 +168,16 @@ def test_is_indexed_operator():
     assert not is_indexed_operator(Node('_', 'extract', 2, 2), 'extract')
     assert not is_indexed_operator(Node('_', 'extract', 2), 'extract', 2)
     assert is_indexed_operator(Node('_', 'extract', 2), 'extract')
+
+
+def test_is_indexed_operator_app():
+    assert not is_indexed_operator_app(Node('x'), 'extract')
+    assert not is_indexed_operator_app(Node('_', 'sign_extend', 2), 'extract')
+    assert not is_indexed_operator_app(Node('extract', 2), 'extract')
+    assert not is_indexed_operator_app(Node('_', 'extract', 2, 2), 'extract')
+    assert not is_indexed_operator_app(Node('_', 'extract', 2), 'extract', 2)
+    assert not is_indexed_operator_app(Node('_', 'extract', 2), 'extract')
+    assert is_indexed_operator_app(Node(('_', 'extract', 2), 'x'), 'extract')
 
 
 def test_get_bv_constant_value():
@@ -196,7 +213,6 @@ def test_is_fp_sort():
 
 # TODO
 #def collect_information(exprs):
-#def is_operator_app(node, name):
 #def is_nary(node):
 #def is_constant(node):
 #def is_eq(node):
