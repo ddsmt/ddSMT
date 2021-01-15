@@ -16,7 +16,8 @@ def test_erase_node():
 
 
 def test_erase_named_node():
-    m = mutators_core.EraseNode('assert')
+    m = mutators_core.EraseNode()
+    m.ident = 'assert'
     assert m.mutations(Node(Node('assert'), Node('true'))) == [None]
 
 
