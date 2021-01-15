@@ -13,6 +13,19 @@ from . import progress
 from . import smtlib
 
 
+def get_named(mutator, name):
+    mutator.name = name
+    return mutator
+
+
+def get_initialized_mutator(name, properties):
+    res = mutators.get_mutators([name])
+    if res:
+        for p, v in properties.items():
+            setattr(res[0], p, v)
+    return res
+
+
 def ddnaive_passes():
     """Returns a list of passes, each pass being a list of mutators.
 
@@ -20,30 +33,36 @@ def ddnaive_passes():
     quick reduction.
     """
 
-    early = [  # Usually yield strong reduction / need to be done early on
-        'EraseNode',
-        'ReplaceByChild',
-        'TopLevelBinaryReduction',
-        'CheckSatAssuming',
-        'LetElimination',
-        'LetSubstitution',
-        'PushPopRemoval',
+    prelude = [
+        get_initialized_mutator('TopLevelBinaryReduction', {'name': 'assert'}),
+        mutators.get_mutators(['TopLevelBinaryReduction']),
+        get_initialized_mutator('EraseNode', {'name': 'assert'}),
+        mutators.get_mutators(['EraseNode']),
+        mutators.get_mutators([
+            'EraseNode',
+            'ReplaceByChild',
+            'TopLevelBinaryReduction',
+            'CheckSatAssuming',
+            'LetElimination',
+            'LetSubstitution',
+            'PushPopRemoval',
+        ]),
     ]
+
     late = [  # Usually only have cosmetic impact
         'SimplifyQuotedSymbols',
         'SimplifySymbolNames',
         'StringSimplifyConstant',
     ]
-    mid = []
+    main = []
     for _, theory in mutators.get_all_mutators().items():
         for mname in theory[1]:
-            if mname not in early and mname not in late:
-                mid.append(mname)
+            if mname not in late:
+                main.append(mname)
 
-    return [
-        mutators.get_mutators(early),
-        mutators.get_mutators(mid),
-        mutators.get_mutators(late)
+    return prelude + [
+        mutators.get_mutators(main),
+        mutators.get_mutators(late + main),
     ]
 
 
@@ -202,13 +221,17 @@ def reduce(exprs):
     """Reduces the input given in :code:`exprs` as good as possible in a fixed-
     point loop."""
     passes = ddnaive_passes()
-    cur_pool = 1
-    cur_passes = passes[0]
+    cur_pool = 0
 
     nchecks = 0
     stats = MutatorStats()
 
-    while True:
+    while cur_pool < len(passes):
+        cur_passes = passes[cur_pool]
+        if isinstance(cur_passes, tuple):
+            cur_passes, properties = cur_passes
+        cur_pool += 1
+        logging.info(f'Stage {cur_pool} / {len(passes)}')
         skip = 0
         fresh_run = True
         while True:
@@ -256,15 +279,6 @@ def reduce(exprs):
                 logging.info('Starting over')
                 skip = 0
                 fresh_run = True
-
-        if cur_pool < len(passes):
-            cur_passes.extend(passes[cur_pool])
-            cur_pool += 1
-            logging.info(
-                f'Adding additional mutators (pass {cur_pool} / {len(passes)})'
-            )
-        else:
-            break
 
     stats.print()
 

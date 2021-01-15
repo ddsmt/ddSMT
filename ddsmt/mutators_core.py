@@ -120,13 +120,19 @@ class TopLevelBinaryReduction:
         # let num be the numerator within the current tree level
         # to avoid checking to many cases, we skip every second level (den *= 4)
         # and already stop when den*8 >= length.
+        if hasattr(self, 'name'):
+            ids = [
+                node.id for node in ginput if is_operator_app(node, self.name)
+            ]
+        else:
+            ids = [node.id for node in ginput]
         den = 2
-        while den * 8 < len(ginput):
-            for num in range(0, den):
-                start = int(num / den * len(ginput))
-                end = int((num + 1) / den * len(ginput))
-                yield ginput[:start] + ginput[end:]
-            den *= 4
+        while den * 2 < len(ids):
+            for num in reversed(range(0, den)):
+                start = int(num / den * len(ids))
+                end = int((num + 1) / den * len(ids))
+                yield {nodeid: None for nodeid in ids[start:end]}
+            den *= 2
 
     def __str__(self):
         if hasattr(self, 'name'):
