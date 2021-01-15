@@ -36,12 +36,6 @@ def ddnaive_passes():
         (mutators.get_mutators(['TopLevelBinaryReduction']), {
             'max_depth': 1
         }),
-        (get_initialized_mutator('EraseNode', {'name': 'assert'}), {
-            'max_depth': 1
-        }),
-        (mutators.get_mutators(['EraseNode']), {
-            'max_depth': 1
-        }),
         mutators.get_mutators([
             'EraseNode',
             'ReplaceByChild',
