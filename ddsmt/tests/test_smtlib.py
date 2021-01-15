@@ -383,6 +383,9 @@ def test_get_sort():
     assert get_sort(Node('to_real', ix)) == sort_real
     assert get_sort(Node('fp.to_real', fpfma)) == sort_real
 
+    assert get_sort(Node('bvcomp', Node('bvcomp', vx, vx), vx)) \
+           == Node('_', 'BitVec', 1)
+
     collect_information(exprs)
     assert get_sort(Node('Fx')) == None
     assert get_sort(bx) == sort_bool
@@ -404,6 +407,39 @@ def test_get_sort():
     assert get_sort(Node('+', rx, rx)) == sort_real
     assert get_sort(Node('*', rx, rx)) == sort_real
     assert get_sort(Node('-', rx, rx)) == sort_real
+
+    assert get_sort(Node('bvadd', Node('bvadd', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvand', Node('bvand', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvashr', vx, vx)) == sort_bv
+    assert get_sort(Node('bvlshr', vx, vx)) == sort_bv
+    assert get_sort(Node('bvmul', Node('bvmul', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvnand', vx, vx)) == sort_bv
+    assert get_sort(Node('bvneg', Node('bvnand', vx, vx))) == sort_bv
+    assert get_sort(Node('bvnor', vx, vx)) == sort_bv
+    assert get_sort(Node('bvnot', Node('bvnand', vx, vx))) == sort_bv
+    assert get_sort(Node('bvor', vx, vx)) == sort_bv
+    assert get_sort(Node('bvsdiv', Node('bvand', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvshl', vx, vx)) == sort_bv
+    assert get_sort(Node('bvsmod', Node('bvlshr', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvsrem', vx, vx)) == sort_bv
+    assert get_sort(Node('bvsub', Node('bvmul', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvudiv', vx, vx)) == sort_bv
+    assert get_sort(Node('bvurem', Node('bvmul', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvxnor', vx, vx))
+    assert get_sort(Node('bvxor', Node('bvlshr', vx, vx), vx)) == sort_bv
+
+    assert get_sort(Node('concat', vx, vx)) == Node('_', 'BitVec', 16)
+    assert get_sort(Node('concat', Node('concat', vx, vx), vx)) \
+           == Node('_', 'BitVec', 24)
+
+    assert get_sort(Node(('_', 'extract', 3, 1), vx)) == Node('_', 'BitVec', 3)
+    assert get_sort(Node(('_', 'repeat', 3), vx)) == Node('_', 'BitVec', 24)
+    assert get_sort(Node(('_', 'rotate_left', 3), vx)) == sort_bv
+    assert get_sort(Node(('_', 'rotate_right', 3), vx)) == sort_bv
+    assert get_sort(Node(('_', 'sign_extend', 3), vx)) \
+           == Node('_', 'BitVec', 11)
+    assert get_sort(Node(('_', 'zero_extend', 3), vx)) \
+           == Node('_', 'BitVec', 11)
     reset_information()
 
 
