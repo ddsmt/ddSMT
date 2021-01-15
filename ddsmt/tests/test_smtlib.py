@@ -241,16 +241,17 @@ def test_is_eq():
 
 
 def test_get_constants():
+    sort_bool = Node('Bool')
     sort_bv8 = Node('_', 'BitVec', 8)
     sort_bv32 = Node('_', 'BitVec', 32)
     sort_int = Node('Int')
     sort_real = Node('Real')
+    sort_fp16 = Node('_', 'FloatingPoint', 5, 11)
     sort_fp64 = Node('Float64')
     sort_fp64_1 = Node('_', 'FloatingPoint', 11, 53)
-    sort_fp16 = Node('_', 'FloatingPoint', 5, 11)
     sort_set = Node('Set', 'Int')
     sort_string = Node('String')
-    assert get_constants(Node('Bool')) == [Node('false'), Node('true')]
+    assert get_constants(sort_bool) == [Node('false'), Node('true')]
     assert get_constants(sort_bv8) == [
         Node('_', 'bv0', 8), Node('_', 'bv1', 8)
     ]
@@ -268,6 +269,142 @@ def test_get_constants():
         Node('singleton', 1)
     ]
     assert get_constants(sort_string) == []
+
+
+def test_get_sort():
+    bx = Node('bx')
+    vx = Node('vx')
+    ix = Node('ix')
+    rx = Node('rx')
+    fx = Node('fx')
+    gx = Node('gx')
+    rm = Node('rm')
+    sx = Node('sx')
+    tx = Node('tx')
+    sort_bool = Node('Bool')
+    sort_bv = Node('_', 'BitVec', 8)
+    sort_int = Node('Int')
+    sort_real = Node('Real')
+    sort_fp16 = Node('_', 'FloatingPoint', 5, 11)
+    sort_fp64 = Node('Float64')
+    sort_rm = Node('RoundingMode')
+    sort_set = Node('Set', 'Int')
+    sort_string = Node('String')
+    fprem = Node('fp.rem', 'Fx', 'Fx')
+    fpfma = Node('fp.fma', rm, fx, fx, fx)
+
+    exprs = [
+        Node('declare-const', bx, sort_bool),
+        Node('declare-const', vx, sort_bv),
+        Node('declare-const', ix, sort_int),
+        Node('declare-fun', rx, (), sort_real),
+        Node('declare-const', rm, sort_rm),
+        Node('define-fun', fx, (sort_bool, ), sort_fp16, fprem),
+        Node('define-fun', gx, (), sort_fp64, fpfma),
+        Node('declare-const', sx, sort_set),
+        Node('declare-const', tx, sort_string),
+    ]
+
+    assert get_sort(sort_bool) == None
+    assert get_sort(sort_bv) == None
+    assert get_sort(sort_int) == None
+    assert get_sort(sort_real) == None
+    assert get_sort(sort_fp16) == None
+    assert get_sort(sort_fp64) == None
+    assert get_sort(sort_rm) == None
+    assert get_sort(sort_set) == None
+    assert get_sort(sort_string) == None
+    assert get_sort(fpfma) == None
+
+    assert get_sort(Node('true')) == sort_bool
+    assert get_sort(Node('false')) == sort_bool
+    assert get_sort(Node('#b01011111')) == sort_bv
+    assert get_sort(Node('_', 'bv4', 8)) == sort_bv
+    assert get_sort(Node(2)) == sort_int
+    assert get_sort(Node('2.0')) == sort_real
+
+    assert get_sort(Node('not', bx)) == sort_bool
+    assert get_sort(Node('=>', bx, 'true')) == sort_bool
+    assert get_sort(Node('and', bx, bx)) == sort_bool
+    assert get_sort(Node('or', bx, bx, bx)) == sort_bool
+    assert get_sort(Node('xor', bx, bx)) == sort_bool
+    assert get_sort(Node('=', fprem, fprem)) == sort_bool
+    assert get_sort(Node('distinct', ix, ix)) == sort_bool
+    assert get_sort(Node('bvult', vx, vx)) == sort_bool
+    assert get_sort(Node('bvule', vx, vx)) == sort_bool
+    assert get_sort(Node('bvugt', vx, vx)) == sort_bool
+    assert get_sort(Node('bvuge', vx, vx)) == sort_bool
+    assert get_sort(Node('bvslt', vx, vx)) == sort_bool
+    assert get_sort(Node('bvsle', vx, vx)) == sort_bool
+    assert get_sort(Node('bvsgt', vx, vx)) == sort_bool
+    assert get_sort(Node('bvsge', vx, vx)) == sort_bool
+    assert get_sort(Node('fp.leq', fprem, fprem)) == sort_bool
+    assert get_sort(Node('fp.lt', fprem, fprem)) == sort_bool
+    assert get_sort(Node('fp.geq', fprem, fprem)) == sort_bool
+    assert get_sort(Node('fp.gt', fprem, fprem)) == sort_bool
+    assert get_sort(Node('fp.eq', fprem, fprem)) == sort_bool
+    assert get_sort(Node('fp.isNormal', fprem)) == sort_bool
+    assert get_sort(Node('fp.isSubnormal', fprem)) == sort_bool
+    assert get_sort(Node('fp.isZero', fprem)) == sort_bool
+    assert get_sort(Node('fp.isInfinite', fprem)) == sort_bool
+    assert get_sort(Node('fp.isNaN', fprem)) == sort_bool
+    assert get_sort(Node('fp.isNegative', fprem)) == sort_bool
+    assert get_sort(Node('fp.isPositive', fprem)) == sort_bool
+    assert get_sort(Node('<=', ix, rx)) == sort_bool
+    assert get_sort(Node('<', ix, rx)) == sort_bool
+    assert get_sort(Node('>>', ix, rx)) == sort_bool
+    assert get_sort(Node('>', ix, rx)) == sort_bool
+    assert get_sort(Node('is_int', ix)) == sort_bool
+    assert get_sort(Node('member', ix, sx)) == sort_bool
+    assert get_sort(Node('subset', sx, sx)) == sort_bool
+    assert get_sort(Node('str.<', tx, tx)) == sort_bool
+    assert get_sort(Node('str.in_re', tx, tx)) == sort_bool
+    assert get_sort(Node('str.<=', tx, tx)) == sort_bool
+    assert get_sort(Node('str.prefixof', tx, tx)) == sort_bool
+    assert get_sort(Node('str.suffixof', tx, tx)) == sort_bool
+    assert get_sort(Node('str.contains', tx, tx)) == sort_bool
+    assert get_sort(Node('str.is_digit', tx)) == sort_bool
+    assert get_sort(Node(('_', 'divisible', 3), ix)) == sort_bool
+
+    assert get_sort(Node('div', ix, ix)) == sort_int
+    assert get_sort(Node('mod', ix, ix)) == sort_int
+    assert get_sort(Node('abs', ix)) == sort_int
+    assert get_sort(Node('to_int', rx)) == sort_int
+    assert get_sort(Node('str.len', tx)) == sort_int
+    assert get_sort(Node('str.indexof', tx)) == sort_int
+    assert get_sort(Node('str.to_code', tx)) == sort_int
+    assert get_sort(Node('str.to_int', tx)) == sort_int
+    assert get_sort(Node('card', sx)) == sort_int
+
+    assert get_sort(Node('/', rx, rx)) == sort_real
+    assert get_sort(Node('+', rx, rx)) == None
+    assert get_sort(Node('*', rx, rx)) == None
+    assert get_sort(Node('-', rx, rx)) == None
+    assert get_sort(Node('to_real', ix)) == sort_real
+    assert get_sort(Node('fp.to_real', fpfma)) == sort_real
+
+    collect_information(exprs)
+    assert get_sort(Node('Fx')) == None
+    assert get_sort(bx) == sort_bool
+    assert get_sort(vx) == sort_bv
+    assert get_sort(ix) == sort_int
+    assert get_sort(rx) == sort_real
+    assert get_sort(rm) == sort_rm
+    assert get_sort(fx) == sort_fp16
+    assert get_sort(gx) == sort_fp64
+    assert get_sort(sx) == sort_set
+    assert get_sort(tx) == sort_string
+
+    assert get_sort(Node('ite', 'true', vx, vx)) == sort_bv
+
+    assert get_sort(Node('+', ix, ix)) == sort_int
+    assert get_sort(Node('*', ix, ix)) == sort_int
+    assert get_sort(Node('-', ix, ix)) == sort_int
+
+    assert get_sort(Node('+', rx, rx)) == sort_real
+    assert get_sort(Node('*', rx, rx)) == sort_real
+    assert get_sort(Node('-', rx, rx)) == sort_real
+    reset_information()
 
 
 def test_get_bv_constant_value():
@@ -362,7 +499,6 @@ def test_is_string_const():
 
 # TODO
 #def collect_information(exprs):
-#def get_sort(node):
 #def is_bv_sort(node):
 #def is_bv_comp(node):
 #def is_bv_not(node):

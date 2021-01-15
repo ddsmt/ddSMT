@@ -70,7 +70,11 @@ def reset_information():
 
 
 def get_variables_with_sort(var_sort):
-    """Return all variables with the sort :code:`var_sort`."""
+    """Return all variables with the sort :code:`var_sort`.
+
+    Requires that global information has been populated via
+    :code:`collect_information`.
+    """
     return [v for v in __sort_lookup if __sort_lookup[v] == var_sort]
 
 
@@ -122,8 +126,11 @@ def is_leaf(node):
 
 
 def is_var(node):
-    """Return true if :code:`node` is a variable (first order constant)
-    node."""
+    """Return true if :code:`node` is a variable (first order constant) node.
+
+    Requires that global information has been populated via
+    :code:`collect_information`.
+    """
     return node.is_leaf() and node in __constants
 
 
@@ -232,9 +239,11 @@ def get_constants(sort):
 
 
 def get_sort(node):
-    """Get the return sort of the given node.
+    """Get the sort of the given node.
 
     Return :code:`None` if it can not be inferred.
+    Requires that global information has been populated via
+    :code:`collect_information`.
     """
     if node.is_leaf() and node.data in __sort_lookup:
         return __sort_lookup[node.data]
@@ -251,7 +260,7 @@ def get_sort(node):
         return Node('_', 'BitVec', str(bvwidth))
     if has_ident(node):
         if is_operator_app(node, 'ite'):
-            return get_sort(node[1])
+            return get_sort(node[2])
         # stuff that returns Bool
         if get_ident(node) in [
                 # core theory
@@ -303,10 +312,6 @@ def get_sort(node):
                 'str.is_digit',
         ]:
             return Node('Bool')
-        # int theory
-        if get_ident(node) == '_' and len(
-                node) == 3 and node[1] == 'divisible':
-            return Node('Bool')
         # stuff that returns Int
         if get_ident(node) in [
                 'div',
@@ -328,8 +333,17 @@ def get_sort(node):
         if get_ident(node) in ['+', '-', '*']:
             if any(map(lambda n: get_sort(n) == 'Real', node[1:])):
                 return Node('Real')
-            else:
+            elif get_sort(node[1]) == 'Int':
                 return Node('Int')
+            else:
+                return None
+    # int theory
+    if len(node) == 2 \
+       and has_ident(node[0]) \
+       and get_ident(node[0]) == '_' \
+       and len(node[0]) == 3 \
+       and node[0][1] == 'divisible':
+        return Node('Bool')
     return None
 
 
