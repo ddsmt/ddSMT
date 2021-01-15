@@ -141,6 +141,18 @@ def test_get_ident():
     assert get_ident(Node('assert', 'x', 'x')) == 'assert'
 
 
+def test_is_piped_symbol():
+    assert not is_piped_symbol(Node('declare-const', 'x', 'Real'))
+    assert not is_piped_symbol(Node('declare-const'))
+    assert is_piped_symbol(Node('|declare-const|'))
+
+
+def test_get_piped_symbol():
+    with pytest.raises(AssertionError):
+        get_piped_symbol(Node('declare-const', 'x', 'Real'))
+    assert get_piped_symbol(Node('|declare-const|')) == 'declare-const'
+
+
 def test_is_indexed_operator():
     assert not is_indexed_operator(Node('x'), 'extract')
     assert not is_indexed_operator(Node('_', 'sign_extend', 2), 'extract')
@@ -184,8 +196,6 @@ def test_is_fp_sort():
 
 # TODO
 #def collect_information(exprs):
-#def is_piped_symbol(node):
-#def get_piped_symbol(node):
 #def is_operator_app(node, name):
 #def is_nary(node):
 #def is_constant(node):
