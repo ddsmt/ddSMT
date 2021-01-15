@@ -84,8 +84,8 @@ class ReplaceByVariable:
         variables = get_variables_with_sort(ret_sort)
         if is_leaf(node):
             if self.repl_mode == 'inc':
-                return [Node(v) for v in variables if len(v) > len(node.data)]
-            return [Node(v) for v in variables if len(v) < len(node.data)]
+                return [Node(v) for v in variables if v > node.data]
+            return [Node(v) for v in variables if v < node.data]
         return [Node(v) for v in variables]
 
     def __str__(self):

@@ -41,15 +41,17 @@ def test_replace_by_child():
 
 
 def test_replace_by_variable():
+    v1 = Node('v1')
+    x = Node('x')
+    v3 = Node('v3')
     exprs = [
-        Node(Node('declare-const'), Node('v1'), Node('Int')),
-        Node(Node('declare-const'), Node('__x'), Node('Int')),
+        Node(Node('declare-const'), v1, Node('Int')),
+        Node(Node('declare-const'), x, Node('Int')),
         Node(Node('declare-const'), Node('v2'), Node('Bool')),
-        Node(Node('declare-const'), Node('__v3'), Node('Int'))
+        Node(Node('declare-const'), v3, Node('Int'))
     ]
     smtlib.collect_information(exprs)
 
-    x = Node('__x')
     c = Node('42')
     node = Node(Node('+'), x, c)
 
@@ -58,12 +60,16 @@ def test_replace_by_variable():
     assert m.filter(node)
     assert m.filter(x)
     assert not m.filter(c)
-    assert list(m.mutations(node)) == [Node('v1'), Node('__x'), Node('__v3')]
-    assert list(m.mutations(x)) == [Node('__v3')]
+    assert list(m.mutations(node)) == [v1, x, v3]
+    assert list(m.mutations(x)) == []
+    assert list(m.mutations(v1)) == [x, v3]
+    assert list(m.mutations(v3)) == [x]
 
     m.repl_mode = 'dec'
-    assert list(m.mutations(node)) == [Node('v1'), Node('__x'), Node('__v3')]
-    assert list(m.mutations(x)) == [Node('v1')]
+    assert list(m.mutations(node)) == [v1, x, v3]
+    assert list(m.mutations(x)) == [v1, v3]
+    assert list(m.mutations(v1)) == []
+    assert list(m.mutations(v3)) == [v1]
 
 
 def test_sort_children():
