@@ -240,6 +240,36 @@ def test_is_eq():
     assert is_eq(Node('=', 'x', 'y', 'z'))
 
 
+def test_get_constants():
+    sort_bv8 = Node('_', 'BitVec', 8)
+    sort_bv32 = Node('_', 'BitVec', 32)
+    sort_int = Node('Int')
+    sort_real = Node('Real')
+    sort_fp64 = Node('Float64')
+    sort_fp64_1 = Node('_', 'FloatingPoint', 11, 53)
+    sort_fp16 = Node('_', 'FloatingPoint', 5, 11)
+    sort_set = Node('Set', 'Int')
+    sort_string = Node('String')
+    assert get_constants(Node('Bool')) == [Node('false'), Node('true')]
+    assert get_constants(sort_bv8) == [
+        Node('_', 'bv0', 8), Node('_', 'bv1', 8)
+    ]
+    assert get_constants(sort_bv32) == [
+        Node('_', 'bv0', 32), Node('_', 'bv1', 32)
+    ]
+    assert get_constants(sort_int) == [Node(0), Node(1)]
+    assert get_constants(sort_real) == [Node('0.0'), Node('1.0')]
+    assert get_constants(sort_fp16) == []
+    assert get_constants(sort_fp64) == []
+    assert get_constants(sort_fp64_1) == []
+    assert get_constants(sort_set) == [
+        Node('as', 'emptyset', ('Set', 'Int')),
+        Node('singleton', 0),
+        Node('singleton', 1)
+    ]
+    assert get_constants(sort_string) == []
+
+
 def test_get_bv_constant_value():
     with pytest.raises(AssertionError):
         get_bv_constant_value(Node('x'))
@@ -332,7 +362,6 @@ def test_is_string_const():
 
 # TODO
 #def collect_information(exprs):
-#def get_constants(const_type):
 #def get_sort(node):
 #def is_bv_sort(node):
 #def is_bv_comp(node):

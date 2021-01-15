@@ -215,23 +215,19 @@ def is_eq(node):
     return has_ident(node) and get_ident(node) == '='
 
 
-def get_constants(const_sort):
-    """Return a list of constants for the given sort."""
-    if const_sort == 'Bool':
+def get_constants(sort):
+    """Return a list of default constants for the given :code:`sort`."""
+    if sort == 'Bool':
         return [Node('false'), Node('true')]
-    if const_sort == 'Int':
+    if sort == 'Int':
         return [Node('0'), Node('1')]
-    if const_sort == 'Real':
+    if sort == 'Real':
         return [Node('0.0'), Node('1.0')]
-    if is_bv_sort(const_sort):
-        return [
-            Node(Node('_'), Node(c), Node(const_sort[2]))
-            for c in ['bv0', 'bv1']
-        ]
-    if is_set_sort(const_sort):
-        return [Node(Node('as'), Node('emptyset'), Node(const_sort))] + [
-            Node(Node('singleton'), c) for c in get_constants(const_sort[1])
-        ]
+    if is_bv_sort(sort):
+        return [Node('_', c, sort[2]) for c in ['bv0', 'bv1']]
+    if is_set_sort(sort):
+        return [Node('as', 'emptyset', sort)] \
+               + [Node('singleton', c) for c in get_constants(sort[1])]
     return []
 
 

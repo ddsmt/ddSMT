@@ -18,8 +18,9 @@ class Node:
 
     def __init__(self, *args):
         self.id = self.__get_id()
-        if len(args) == 1 and isinstance(args[0], str):
-            self.data = args[0]
+        if len(args) == 1 \
+           and (isinstance(args[0], str) or isinstance(args[0], int)):
+            self.data = str(args[0])
         else:
             self.data = tuple(
                 map(lambda a: self.__ensure_is_node(a), list(args)))
