@@ -180,6 +180,35 @@ def test_is_indexed_operator_app():
     assert is_indexed_operator_app(Node(('_', 'extract', 2), 'x'), 'extract')
 
 
+def test_has_nary_operator():
+    x = Node('x')
+    assert not has_nary_operator(Node(x))
+    assert has_nary_operator(Node('=>', x, x))
+    assert has_nary_operator(Node('and', x, x))
+    assert has_nary_operator(Node('or', x, x))
+    assert has_nary_operator(Node('xor', x, x))
+    assert has_nary_operator(Node('=', x, x))
+    assert has_nary_operator(Node('distinct', x, x))
+    assert has_nary_operator(Node('+', x, x))
+    assert has_nary_operator(Node('-', x, x))
+    assert has_nary_operator(Node('*', x, x))
+    assert has_nary_operator(Node('div', x, x))
+    assert has_nary_operator(Node('/', x, x))
+    assert has_nary_operator(Node('<=', x, x))
+    assert has_nary_operator(Node('<', x, x))
+    assert has_nary_operator(Node('>=', x, x))
+    assert has_nary_operator(Node('>', x, x))
+    assert has_nary_operator(Node('bvand', x, x))
+    assert has_nary_operator(Node('bvor', x, x))
+    assert has_nary_operator(Node('bvadd', x, x))
+    assert has_nary_operator(Node('bvmul', x, x))
+    assert has_nary_operator(Node('concat', x, x))
+    assert has_nary_operator(Node('fp.lt', x, x))
+    assert has_nary_operator(Node('fp.gt', x, x))
+    assert has_nary_operator(Node('fp.leq', x, x))
+    assert has_nary_operator(Node('fp.geq', x, x))
+
+
 def test_get_bv_constant_value():
     with pytest.raises(AssertionError):
         get_bv_constant_value(Node('x'))
@@ -213,7 +242,6 @@ def test_is_fp_sort():
 
 # TODO
 #def collect_information(exprs):
-#def is_nary(node):
 #def is_constant(node):
 #def is_eq(node):
 #def get_constants(const_type):

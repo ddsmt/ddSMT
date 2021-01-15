@@ -171,13 +171,35 @@ def is_indexed_operator_app(node, name, index_count=1):
     return len(node) > 0 and is_indexed_operator(node[0], name, index_count)
 
 
-def is_nary(node):
-    """Check whether the :code:`node` is a n-ary operator."""
+def has_nary_operator(node):
+    """Check whether :code:`node` is an application of an n-ary operator."""
     if node.is_leaf() or not has_ident(node):
         return False
     return get_ident(node) in [
-        '=>', 'and', 'or', 'xor', '=', 'distinct', '+', '-', '*', 'div', '/',
-        '<=', '<', '>=', '>', 'bvand', 'bvor', 'bvadd', 'bvmul', 'concat'
+        '=>',
+        'and',
+        'or',
+        'xor',
+        '=',
+        'distinct',
+        '+',
+        '-',
+        '*',
+        'div',
+        '/',
+        '<=',
+        '<',
+        '>=',
+        '>',
+        'bvand',
+        'bvor',
+        'bvadd',
+        'bvmul',
+        'concat',
+        'fp.lt',
+        'fp.gt',
+        'fp.leq',
+        'fp.geq',
     ]
 
 

@@ -49,7 +49,7 @@ class MergeWithChildren:
     This is possible for n-ary operators like :code:`and` or :code:`+`.
     """
     def filter(self, node):
-        return is_nary(node)
+        return has_nary_operator(node)
 
     def mutations(self, node):
         for cid, child in enumerate(node):
