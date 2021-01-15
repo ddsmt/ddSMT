@@ -8,7 +8,7 @@ class BVConcatToZeroExtend:
     def filter(self, node):
         if not has_ident(node) or get_ident(node) != 'concat':
             return False
-        if not is_bv_constant(node[1]):
+        if not is_bv_const(node[1]):
             return False
         return get_bv_constant_value(node[1])[0] == 0
 
@@ -39,7 +39,7 @@ class BVElimBVComp:
     """Replace bvcomp by a regular equality."""
     def filter(self, node):
         return is_eq(node) \
-               and is_bv_constant(node[1]) \
+               and is_bv_const(node[1]) \
                and get_bv_width(node[1]) == 1 \
                and any(is_bv_comp(n) for n in node[2:])
 
@@ -65,7 +65,7 @@ class BVEvalExtend:
     def filter(self, node):
         return (is_indexed_operator_app(node, 'zero_extend') \
                 or is_indexed_operator_app(node, 'sign_extend')) \
-               and is_bv_constant(node[1])
+               and is_bv_const(node[1])
 
     def mutations(self, node):
         (val, width) = get_bv_constant_value(node[1])
@@ -86,7 +86,7 @@ class BVExtractConstants:
     constant."""
     def filter(self, node):
         return is_indexed_operator_app(node, 'extract') \
-               and is_bv_constant(node[1])
+               and is_bv_const(node[1])
 
     def mutations(self, node):
         upper = int(node[0][2])
@@ -140,10 +140,10 @@ class BVOneZeroITE:
            or get_ident(node[1]) != '=' \
            or len(node[1]) != 3:
             return False
-        if not is_bv_constant(node[2]) \
+        if not is_bv_const(node[2]) \
            or get_bv_constant_value(node[2]) != (1, '1'):
             return False
-        if not is_bv_constant(node[3]) \
+        if not is_bv_const(node[3]) \
            or get_bv_constant_value(node[3]) != (0, '1'):
             return False
         return True
@@ -172,7 +172,7 @@ class BVReflexiveNand:
 class BVSimplifyConstant:
     """Replace a constant by a simpler version (smaller value)."""
     def filter(self, node):
-        return is_bv_constant(node) \
+        return is_bv_const(node) \
                and get_bv_constant_value(node)[0] not in [0, 1]
 
     def mutations(self, node):
@@ -197,7 +197,7 @@ class BVTransformToBool:
     def filter(self, node):
         return has_ident(node) \
                and get_ident(node) == '=' \
-               and is_bv_constant(node[1]) \
+               and is_bv_const(node[1]) \
                and get_bv_width(node[1]) == 1
 
     def mutations(self, node):

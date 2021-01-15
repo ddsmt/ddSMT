@@ -4,7 +4,7 @@ from .smtlib import *
 class StringSimplifyConstant:
     """Replace a string constant by a shorter version."""
     def filter(self, node):
-        return is_string_constant(node) and node != '""'
+        return is_string_const(node) and node != '""'
 
     def mutations(self, node):
         content = node[1:-1]

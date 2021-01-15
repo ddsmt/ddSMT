@@ -203,11 +203,11 @@ def has_nary_operator(node):
     ]
 
 
-def is_constant(node):
+def is_const(node):
     """Return true if :code:`node` is a constant value."""
-    return is_boolean_constant(node) or is_arithmetic_constant(
-        node) or is_int_constant(node) or is_real_constant(
-            node) or is_string_constant(node) or is_bv_constant(node)
+    return is_bool_const(node) or is_arith_const(node) or is_int_const(
+        node) or is_real_const(node) or is_string_const(node) or is_bv_const(
+            node)
 
 
 def is_eq(node):
@@ -242,13 +242,13 @@ def get_sort(node):
     """
     if node.is_leaf() and node.data in __sort_lookup:
         return __sort_lookup[node.data]
-    if is_boolean_constant(node):
+    if is_bool_const(node):
         return Node('Bool')
-    if is_bv_constant(node):
+    if is_bv_const(node):
         return Node('_', 'BitVec', str(get_bv_width(node)))
-    if is_int_constant(node):
+    if is_int_const(node):
         return Node('Int')
-    if is_real_constant(node):
+    if is_real_const(node):
         return Node('Real')
     bvwidth = get_bv_width(node)
     if bvwidth != -1:
@@ -340,7 +340,7 @@ def get_sort(node):
 ### Boolean
 
 
-def is_boolean_constant(node):
+def is_bool_const(node):
     """Check whether the :code:`node` is a Boolean constant."""
     return node.is_leaf() and node.data in ['false', 'true']
 
@@ -348,18 +348,18 @@ def is_boolean_constant(node):
 ### Arithmetic
 
 
-def is_arithmetic_constant(node):
+def is_arith_const(node):
     """Check whether the :code:`node` is an arithmetic constant."""
     return node.is_leaf() and re.match('[0-9]+(\\.[0-9]*)?',
                                        node.data) is not None
 
 
-def is_int_constant(node):
+def is_int_const(node):
     """Check whether the :code:`node` is an int constant."""
     return node.is_leaf() and re.match('^[0-9]+$', node.data) is not None
 
 
-def is_real_constant(node):
+def is_real_const(node):
     """Check whether the :code:`node` is a real constant."""
     return node.is_leaf() and re.match('^[0-9]+(\\.[0-9]*)?$',
                                        node.data) is not None
@@ -377,7 +377,7 @@ def is_bv_sort(node):
     return node[1] == 'BitVec'
 
 
-def is_bv_constant(node):
+def is_bv_const(node):
     """Return true if :code:`node` is a bit-vector constant."""
     if node.is_leaf():
         s = node.data
@@ -415,7 +415,7 @@ def get_bv_width(node):
 
     Asserts that :code:`node` is a bit-vector node.
     """
-    if is_bv_constant(node):
+    if is_bv_const(node):
         if node.is_leaf():
             data = node.data
             if data.startswith('#b'):
@@ -456,7 +456,7 @@ def get_bv_constant_value(node):
     Assume that node is a bit-vector constant and return
     :code:`(value, bit-width)`.
     """
-    assert is_bv_constant(node)
+    assert is_bv_const(node)
     if node.is_leaf():
         if node.data.startswith('#b'):
             return (int(node[2:], 2), len(node[2:]))
@@ -524,6 +524,6 @@ def is_set_sort(node):
 ### Strings
 
 
-def is_string_constant(node):
+def is_string_const(node):
     """Checks whether the :code:`node` is a string constant."""
     return node.is_leaf() and re.match('^\"[^\"]*\"$', node.data) is not None

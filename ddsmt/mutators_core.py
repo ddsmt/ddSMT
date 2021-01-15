@@ -72,7 +72,7 @@ class ReplaceByChild:
 class ReplaceByVariable:
     """Replaces a node by a variable."""
     def filter(self, node):
-        return not is_constant(node)
+        return not is_const(node)
 
     def mutations(self, node):
         ret_sort = get_sort(node)

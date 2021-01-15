@@ -36,7 +36,7 @@ class ArithmeticSimplifyConstant:
     """Replace a constant by a simpler version (smaller or fewer decimal
     places)."""
     def filter(self, node):
-        return is_arithmetic_constant(node) and float(node.data) not in [0, 1]
+        return is_arith_const(node) and float(node.data) not in [0, 1]
 
     def mutations(self, node):
         f = float(node.data)

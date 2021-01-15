@@ -209,25 +209,25 @@ def test_has_nary_operator():
     assert has_nary_operator(Node('fp.geq', x, x))
 
 
-def is_constant(node):
-    assert not is_constant(Node('x'))
-    assert not is_constant(Node('declare-const', 'x', 'Bool'))
-    assert not is_constant(Node('declare-const', 'x', 'Int'))
-    assert not is_constant(Node('declare-const', 'x', 'Real'))
-    assert not is_constant(Node('declare-const', 'x', ('_', 'BitVec', 4)))
-    assert not is_constant(Node('declare-const', 'x', 'String'))
-    assert not is_constant(Node('asdf'))
-    assert is_constant(Node('false'))
-    assert is_constant(Node('true'))
-    assert is_constant(Node('1.0'))
-    assert is_constant(Node('1/2'))
-    assert is_constant(Node('2'))
-    assert is_constant(Node('2345'))
-    assert is_constant(Node('0101'))
-    assert is_constant(Node('#b0101'))
-    assert is_constant(Node('#x1af'))
-    assert is_constant(Node('_', 'b5', 3))
-    assert is_constant(Node('"asdf"'))
+def is_const(node):
+    assert not is_const(Node('x'))
+    assert not is_const(Node('declare-const', 'x', 'Bool'))
+    assert not is_const(Node('declare-const', 'x', 'Int'))
+    assert not is_const(Node('declare-const', 'x', 'Real'))
+    assert not is_const(Node('declare-const', 'x', ('_', 'BitVec', 4)))
+    assert not is_const(Node('declare-const', 'x', 'String'))
+    assert not is_const(Node('asdf'))
+    assert is_const(Node('false'))
+    assert is_const(Node('true'))
+    assert is_const(Node('1.0'))
+    assert is_const(Node('1/2'))
+    assert is_const(Node('2'))
+    assert is_const(Node('2345'))
+    assert is_const(Node('0101'))
+    assert is_const(Node('#b0101'))
+    assert is_const(Node('#x1af'))
+    assert is_const(Node('_', 'b5', 3))
+    assert is_const(Node('"asdf"'))
 
 
 def test_get_bv_constant_value():
@@ -261,57 +261,57 @@ def test_is_fp_sort():
     assert is_fp_sort(Node('_', 'FloatingPoint', 3, 5))
 
 
-def test_is_boolean_constant():
-    assert not is_boolean_constant(Node('x'))
-    assert not is_boolean_constant(Node('declare-const', 'x', 'Bool'))
-    assert is_boolean_constant(Node('false'))
-    assert is_boolean_constant(Node('true'))
+def test_is_bool_const():
+    assert not is_bool_const(Node('x'))
+    assert not is_bool_const(Node('declare-const', 'x', 'Bool'))
+    assert is_bool_const(Node('false'))
+    assert is_bool_const(Node('true'))
 
 
-def test_is_arithmetic_constant():
-    assert not is_arithmetic_constant(Node('x'))
-    assert not is_arithmetic_constant(Node('declare-const', 'x', 'Int'))
-    assert not is_arithmetic_constant(Node('declare-const', 'x', 'Real'))
-    assert is_arithmetic_constant(Node('1.0'))
-    assert is_arithmetic_constant(Node('1/2'))
-    assert is_arithmetic_constant(Node('2'))
-    assert is_arithmetic_constant(Node('2345'))
+def test_is_arith_const():
+    assert not is_arith_const(Node('x'))
+    assert not is_arith_const(Node('declare-const', 'x', 'Int'))
+    assert not is_arith_const(Node('declare-const', 'x', 'Real'))
+    assert is_arith_const(Node('1.0'))
+    assert is_arith_const(Node('1/2'))
+    assert is_arith_const(Node('2'))
+    assert is_arith_const(Node('2345'))
 
 
-def test_is_int_constant():
-    assert not is_int_constant(Node('x'))
-    assert not is_int_constant(Node('declare-const', 'x', 'Int'))
-    assert not is_int_constant(Node('1.0'))
-    assert not is_int_constant(Node('1/2'))
-    assert is_int_constant(Node('2'))
-    assert is_int_constant(Node('2345'))
+def test_is_int_const():
+    assert not is_int_const(Node('x'))
+    assert not is_int_const(Node('declare-const', 'x', 'Int'))
+    assert not is_int_const(Node('1.0'))
+    assert not is_int_const(Node('1/2'))
+    assert is_int_const(Node('2'))
+    assert is_int_const(Node('2345'))
 
 
-def test_is_real_constant():
-    assert not is_real_constant(Node('x'))
-    assert not is_real_constant(Node('declare-const', 'x', 'Real'))
-    assert not is_real_constant(Node('1/2'))
-    assert is_real_constant(Node('2'))
-    assert is_real_constant(Node('2345'))
-    assert is_real_constant(Node('1.0'))
+def test_is_real_const():
+    assert not is_real_const(Node('x'))
+    assert not is_real_const(Node('declare-const', 'x', 'Real'))
+    assert not is_real_const(Node('1/2'))
+    assert is_real_const(Node('2'))
+    assert is_real_const(Node('2345'))
+    assert is_real_const(Node('1.0'))
 
 
-def test_is_bv_constant():
-    assert not is_bv_constant(Node('x'))
-    assert not is_bv_constant(Node('declare-const', 'x', ('_', 'BitVec', 4)))
-    assert not is_bv_constant(Node('2'))
-    assert not is_bv_constant(Node('0101'))
-    assert is_bv_constant(Node('#b0101'))
-    assert is_bv_constant(Node('#x1af'))
-    assert is_bv_constant(Node('_', 'bv5', 3))
+def test_is_bv_const():
+    assert not is_bv_const(Node('x'))
+    assert not is_bv_const(Node('declare-const', 'x', ('_', 'BitVec', 4)))
+    assert not is_bv_const(Node('2'))
+    assert not is_bv_const(Node('0101'))
+    assert is_bv_const(Node('#b0101'))
+    assert is_bv_const(Node('#x1af'))
+    assert is_bv_const(Node('_', 'bv5', 3))
 
 
-def test_is_string_constant():
-    assert not is_string_constant(Node('x'))
-    assert not is_string_constant(Node('declare-const', 'x', 'String'))
-    assert not is_string_constant(Node('2'))
-    assert not is_string_constant(Node('asdf'))
-    assert is_string_constant(Node('"asdf"'))
+def test_is_string_const():
+    assert not is_string_const(Node('x'))
+    assert not is_string_const(Node('declare-const', 'x', 'String'))
+    assert not is_string_const(Node('2'))
+    assert not is_string_const(Node('asdf'))
+    assert is_string_const(Node('"asdf"'))
 
 
 # TODO
