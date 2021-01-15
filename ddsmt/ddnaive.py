@@ -56,8 +56,8 @@ def ddnaive_passes():
 #   exprs: the current input
 #   repl: the substitution to be checked
 # runtime: time needed to check this task
-Task = collections.namedtuple('Task',
-                              ['nodeid', 'name', 'exprs', 'repl', 'runtime'])
+Task = collections.namedtuple(
+    'Task', ['nodeid', 'name', 'local', 'exprs', 'repl', 'runtime'])
 
 
 class Producer:
@@ -90,14 +90,19 @@ class Producer:
                     for x in m.mutations(linput):
                         if self.__abort.is_set():
                             break
-                        yield Task(self.__node_count, str(m), gpickled,
+                        yield Task(self.__node_count, str(m), True, gpickled,
                                    pickle.dumps({linput.id: x}), None)
                 if hasattr(m, 'global_mutations'):
                     for x in m.global_mutations(linput, ginput):
                         if self.__abort.is_set():
                             break
-                        yield Task(self.__node_count, f'(global) {m}', None,
-                                   pickle.dumps(x), None)
+                        if isinstance(x, dict):
+                            # is a substitution
+                            yield Task(self.__node_count, f'(global) {m}',
+                                       False, gpickled, pickle.dumps(x), None)
+                        else:
+                            yield Task(self.__node_count, f'(global) {m}',
+                                       False, None, pickle.dumps(x), None)
             except Exception as e:
                 logging.info(f'{type(e)} in application of {m}: {e}')
 
@@ -124,24 +129,41 @@ class Consumer:
         self.__abort = abort_flag
 
     def check(self, task):
+        abortres = pickle.dumps(
+            (False, Task(task.nodeid, task.name, task.local, None, None,
+                         None)))
         if self.__abort.is_set():
-            return False, Task(task.nodeid, task.name, None, None, None)
+            return abortres
         try:
             start = time.time()
-            if task.exprs is None:
-                # global
-                exprs = pickle.loads(task.repl)
-            else:
+            if task.local:
                 # local
                 exprs = nodes.substitute(pickle.loads(task.exprs),
                                          pickle.loads(task.repl))
+            else:
+                # global
+                exprs = pickle.loads(task.repl)
+                if isinstance(exprs, dict):
+                    original = pickle.loads(task.exprs)
+                    if self.__abort.is_set():
+                        return abortres
+                    exprs = nodes.substitute(original, exprs)
+            if self.__abort.is_set():
+                return abortres
             res = checker.check_exprs(exprs)
             runtime = time.time() - start
+            if self.__abort.is_set():
+                return abortres
             if res:
-                return True, Task(task.nodeid, task.name, exprs, None, runtime)
-            return False, Task(task.nodeid, task.name, None, None, runtime)
+                return pickle.dumps((True,
+                                     Task(task.nodeid, task.name, task.local,
+                                          exprs, None, runtime)))
+            return pickle.dumps((False,
+                                 Task(task.nodeid, task.name, task.local, None,
+                                      None, runtime)))
         except Exception as e:
             logging.info(f'{type(e)} in check of {task.name}: {e}')
+        return abortres
 
 
 class MutatorStats:
@@ -205,7 +227,7 @@ def reduce(exprs):
                 for result in pool.imap_unordered(cons.check,
                                                   prod.generate(exprs)):
                     nchecks += 1
-                    success, task = result
+                    success, task = pickle.loads(result)
                     progress.update(task.nodeid)
                     stats.add(success, task, exprs)
                     if success:
