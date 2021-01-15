@@ -1,5 +1,6 @@
 from multiprocessing import Pool
 import logging
+import sys
 import time
 
 from . import checker
@@ -142,9 +143,9 @@ def _print_progress(msg, update=True):
     if options.args().verbosity < 1:
         return
 
-    print(' ' * len(__last_msg), end='\r', flush=True)
+    print(' ' * len(__last_msg), end='\r', flush=True, file=sys.stderr)
     if update:
-        print(msg, end='\r', flush=True)
+        print(msg, end='\r', flush=True, file=sys.stderr)
     else:
         logging.info(msg)
     __last_msg = msg
