@@ -563,7 +563,7 @@ def is_fp_sort(node):
 ### Functions
 
 
-def is_defined_function(node):
+def is_defined_fun(node):
     """Check whether :code:`node` is a defined function.
 
     Requires that global information has been populated via
@@ -574,15 +574,15 @@ def is_defined_function(node):
     return has_ident(node) and get_ident(node) in __defined_functions
 
 
-def get_defined_function(node):
+def get_defined_fun(node):
     """Return the defined function :code:`node`, instantiated with the
     arguments of :code:`node` if necessary.
 
-    Assumes :code:`is_defined_function(node)`.
+    Assumes :code:`is_defined_fun(node)`.
     Requires that global information has been populated via
     :code:`collect_information`.
     """
-    assert is_defined_function(node)
+    assert is_defined_fun(node)
     if node.is_leaf():
         return __defined_functions[node.data]([])
     return __defined_functions[get_ident(node)](node[1:])

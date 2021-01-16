@@ -777,7 +777,7 @@ def test_get_bv_width():
     reset_information()
 
 
-def test_is_defined_function():
+def test_is_defined_fun():
     x1 = Node('x1')
     x2 = Node('x2')
     x3 = Node('x3')
@@ -804,30 +804,30 @@ def test_is_defined_function():
         Node('declare-fun', 'y', 'Int'),
     ]
     collect_information(exprs)
-    assert not is_defined_function(x1)
-    assert not is_defined_function(x2)
-    assert not is_defined_function(x3)
-    assert not is_defined_function(fpadd)
-    assert not is_defined_function(fpmul)
-    assert not is_defined_function(fprem)
-    assert not is_defined_function(fpfma)
-    assert not is_defined_function(fadd)
-    assert not is_defined_function(fmul)
-    assert not is_defined_function(fx)
-    assert not is_defined_function(gx)
-    assert not is_defined_function(f)
-    assert is_defined_function(Node('fadd'))
-    assert is_defined_function(Node('fmul'))
-    assert is_defined_function(Node('fx'))
-    assert is_defined_function(Node('gx'))
-    assert is_defined_function(Node('f'))
-    assert is_defined_function(Node('fx', 'true'))
-    assert is_defined_function(Node('gx', 'true', 2))
-    assert is_defined_function(Node('f', 15))
+    assert not is_defined_fun(x1)
+    assert not is_defined_fun(x2)
+    assert not is_defined_fun(x3)
+    assert not is_defined_fun(fpadd)
+    assert not is_defined_fun(fpmul)
+    assert not is_defined_fun(fprem)
+    assert not is_defined_fun(fpfma)
+    assert not is_defined_fun(fadd)
+    assert not is_defined_fun(fmul)
+    assert not is_defined_fun(fx)
+    assert not is_defined_fun(gx)
+    assert not is_defined_fun(f)
+    assert is_defined_fun(Node('fadd'))
+    assert is_defined_fun(Node('fmul'))
+    assert is_defined_fun(Node('fx'))
+    assert is_defined_fun(Node('gx'))
+    assert is_defined_fun(Node('f'))
+    assert is_defined_fun(Node('fx', 'true'))
+    assert is_defined_fun(Node('gx', 'true', 2))
+    assert is_defined_fun(Node('f', 15))
     reset_information()
 
 
-def test_get_defined_function():
+def test_get_defined_fun():
     x1 = Node('x1')
     x2 = Node('x2')
     x3 = Node('x3')
@@ -855,39 +855,39 @@ def test_get_defined_function():
     ]
     collect_information(exprs)
     with pytest.raises(AssertionError):
-        get_defined_function(x1)
+        get_defined_fun(x1)
     with pytest.raises(AssertionError):
-        get_defined_function(x2)
+        get_defined_fun(x2)
     with pytest.raises(AssertionError):
-        get_defined_function(x3)
+        get_defined_fun(x3)
     with pytest.raises(AssertionError):
-        get_defined_function(fpadd)
+        get_defined_fun(fpadd)
     with pytest.raises(AssertionError):
-        get_defined_function(fpmul)
+        get_defined_fun(fpmul)
     with pytest.raises(AssertionError):
-        get_defined_function(fprem)
+        get_defined_fun(fprem)
     with pytest.raises(AssertionError):
-        get_defined_function(fpfma)
+        get_defined_fun(fpfma)
     with pytest.raises(AssertionError):
-        get_defined_function(fadd)
+        get_defined_fun(fadd)
     with pytest.raises(AssertionError):
-        get_defined_function(fmul)
+        get_defined_fun(fmul)
     with pytest.raises(AssertionError):
-        get_defined_function(fx)
+        get_defined_fun(fx)
     with pytest.raises(AssertionError):
-        get_defined_function(gx)
+        get_defined_fun(gx)
     with pytest.raises(AssertionError):
-        get_defined_function(f)
-    assert get_defined_function(Node('fadd')) == fpadd
-    assert get_defined_function(Node('fmul')) == fpmul
-    assert get_defined_function(Node('fx')) == fprem
-    assert get_defined_function(Node('gx')) == fpfma
-    assert get_defined_function(Node('f')) == Node('+', 'x', 'x')
-    assert get_defined_function(Node('fx', 'true')) \
+        get_defined_fun(f)
+    assert get_defined_fun(Node('fadd')) == fpadd
+    assert get_defined_fun(Node('fmul')) == fpmul
+    assert get_defined_fun(Node('fx')) == fprem
+    assert get_defined_fun(Node('gx')) == fpfma
+    assert get_defined_fun(Node('f')) == Node('+', 'x', 'x')
+    assert get_defined_fun(Node('fx', 'true')) \
            == Node('fp.rem', 'true', 'true')
-    assert get_defined_function(Node('gx', 'true', 2)) \
+    assert get_defined_fun(Node('gx', 'true', 2)) \
            == Node('fp.fma', 2, 'fx', 'fx', 'fx')
-    assert get_defined_function(Node('f', 15)) == Node('+', 15, 15)
+    assert get_defined_fun(Node('f', 15)) == Node('+', 15, 15)
     reset_information()
 
 

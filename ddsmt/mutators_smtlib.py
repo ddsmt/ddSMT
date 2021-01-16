@@ -54,10 +54,10 @@ class EliminateVariable:
 class InlineDefinedFuns:
     """Explicitly inlines a defined function."""
     def filter(self, node):
-        return is_defined_function(node)
+        return is_defined_fun(node)
 
     def mutations(self, node):
-        return [get_defined_function(node)]
+        return [get_defined_fun(node)]
 
     def __str__(self):
         return 'inline defined function'

@@ -277,17 +277,17 @@ class BVMergeReducedBW:
                and get_sort(node[1]) is not None \
                and is_bv_sort(get_sort(node[1])) \
                and is_indexed_operator_app(
-                       get_defined_function(node[1]), 'zero_extend', 1) \
-               and is_defined_function(node[-1][-1]) \
+                       get_defined_fun(node[1]), 'zero_extend', 1) \
+               and is_defined_fun(node[-1][-1]) \
                and is_indexed_operator_app(
-                       get_defined_function(node[-1][-1]), 'zero_extend', 1)
+                       get_defined_fun(node[-1][-1]), 'zero_extend', 1)
 
     def mutations(self, node):
         name = node[1]
         nsort = node[3]
-        zext = int(get_defined_function(name)[0][-1].data)
+        zext = int(get_defined_fun(name)[0][-1].data)
         deffun_name = node[-1][-1]
-        deffun_body = get_defined_function(deffun_name)
+        deffun_body = get_defined_fun(deffun_name)
         deffun_zext = int(deffun_body[0][-1].data)
         decfun_name = deffun_body[-1]
         return [
