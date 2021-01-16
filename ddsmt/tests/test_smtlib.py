@@ -557,9 +557,16 @@ def test_is_string_const():
     assert is_string_const(Node('"asdf"'))
 
 
+def test_is_bv_sort():
+    assert not is_bv_sort(Node('declare-const', 'x', ('_', 'BitVec', 8)))
+    assert not is_bv_sort(Node('_', 'BitVec'))
+    assert not is_bv_sort(Node('BitVec', 8))
+    assert not is_bv_sort(Node('_', 'BitVe', 8))
+    assert is_bv_sort(Node('_', 'BitVec', 8))
+
+
 # TODO
 #def collect_information(exprs):
-#def is_bv_sort(node):
 #def is_bv_comp(node):
 #def is_bv_not(node):
 #def is_bv_neg(node):
