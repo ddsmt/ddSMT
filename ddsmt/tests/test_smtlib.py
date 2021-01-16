@@ -891,4 +891,9 @@ def test_get_defined_fun():
     reset_information()
 
 
-#def is_set_sort(node):
+def test_is_set_sort():
+    assert not is_set_sort(
+        Node('declare-const', 'x', ('Set', ('_', 'BitVec', 8))))
+    assert not is_set_sort(Node('Set'))
+    assert is_set_sort(Node('Set', 'Int'))
+    assert is_set_sort(Node('Set', ('_', 'BitVec', 8)))
