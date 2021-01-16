@@ -564,7 +564,11 @@ def is_fp_sort(node):
 
 
 def is_defined_function(node):
-    """Check whether :code:`node` is a defined function."""
+    """Check whether :code:`node` is a defined function.
+
+    Requires that global information has been populated via
+    :code:`collect_information`.
+    """
     if node.is_leaf():
         return node in __defined_functions
     return has_ident(node) and get_ident(node) in __defined_functions

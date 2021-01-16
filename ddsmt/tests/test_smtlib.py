@@ -777,7 +777,53 @@ def test_get_bv_width():
     reset_information()
 
 
+def test_is_defined_function():
+    x1 = Node('x1')
+    x2 = Node('x2')
+    x3 = Node('x3')
+    fp64 = Node('_', 'FloatingPoint', 11, 53)
+    fpadd = Node('define-fun', 'fpadd', (), fp64, ('fp.add', 'RTZ', x1, x2))
+    fpmul = Node('define-fun', 'fpmul', (), fp64, ('fp.mul', 'RTZ', fpadd, x3))
+    fprem = Node('fp.rem', 'Fx', 'Fx')
+    fx = Node('define-fun', 'fx', (Node('Bool'), ), fp64, fprem)
+    fpfma = Node('fp.fma', 'RNE', fx, fx, fx)
+    gx = Node('define-fun', 'gx', (
+        Node('Bool'),
+        Node('Int'),
+    ), fp64, fpfma)
+    f = Node('define-fun', 'f', (Node('Int'), ), 'Int', ('+', 'x', 'x'))
+    exprs = [
+        fpadd,
+        fpmul,
+        fpfma,
+        fx,
+        gx,
+        f,
+        Node('declare-const', 'x', 'Bool'),
+        Node('declare-fun', 'y', 'Int'),
+    ]
+    collect_information(exprs)
+    assert not is_defined_function(x1)
+    assert not is_defined_function(x2)
+    assert not is_defined_function(x3)
+    assert not is_defined_function(fpadd)
+    assert not is_defined_function(fpmul)
+    assert not is_defined_function(fprem)
+    assert not is_defined_function(fx)
+    assert not is_defined_function(fpfma)
+    assert not is_defined_function(gx)
+    assert not is_defined_function(f)
+    assert is_defined_function(Node('fpadd'))
+    assert is_defined_function(Node('fpmul'))
+    assert is_defined_function(Node('fx'))
+    assert is_defined_function(Node('gx'))
+    assert is_defined_function(Node('f'))
+    assert is_defined_function(Node('fx', 'true'))
+    assert is_defined_function(Node('gx', 'true', 2))
+    assert is_defined_function(Node('f', 15))
+    reset_information()
+
+
 #def collect_information(exprs):
-#def is_defined_function(node):
 #def get_defined_function(node):
 #def is_set_sort(node):
