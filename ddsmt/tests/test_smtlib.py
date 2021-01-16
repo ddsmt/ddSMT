@@ -565,11 +565,29 @@ def test_is_bv_sort():
     assert is_bv_sort(Node('_', 'BitVec', 8))
 
 
+def test_is_bv_comp():
+    assert not is_bv_comp(
+        Node('define-fun', 'x', (), ('_', 'BitVec', 8), ('bvcomp', 'x', 'x')))
+    assert not is_bv_comp(Node('=', 'x', 'x'))
+    assert is_bv_comp(Node('bvcomp', 'x', 'x'))
+
+
+def test_is_bv_not():
+    assert not is_bv_not(
+        Node('define-fun', 'x', (), ('_', 'BitVec', 8), ('bvnot', 'x', 'x')))
+    assert not is_bv_not(Node('not', 'x', 'x'))
+    assert is_bv_not(Node('bvnot', 'x', 'x'))
+
+
+def test_is_bv_neg():
+    assert not is_bv_neg(
+        Node('define-fun', 'x', (), ('_', 'BitVec', 8), ('bvneg', 'x', 'x')))
+    assert not is_bv_neg(Node('-', 'x', 'x'))
+    assert is_bv_neg(Node('bvneg', 'x', 'x'))
+
+
 # TODO
 #def collect_information(exprs):
-#def is_bv_comp(node):
-#def is_bv_not(node):
-#def is_bv_neg(node):
 #def get_bv_width(node):
 #def is_defined_function(node):
 #def get_defined_function(node):
