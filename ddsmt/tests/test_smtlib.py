@@ -411,7 +411,7 @@ def test_get_sort():
     assert get_sort(Node('bvadd', Node('bvadd', vx, vx), vx)) == sort_bv
     assert get_sort(Node('bvand', Node('bvand', vx, vx), vx)) == sort_bv
     assert get_sort(Node('bvashr', vx, vx)) == sort_bv
-    assert get_sort(Node('bvlshr', vx, vx)) == sort_bv
+    assert get_sort(Node('bvshr', vx, vx)) == sort_bv
     assert get_sort(Node('bvmul', Node('bvmul', vx, vx), vx)) == sort_bv
     assert get_sort(Node('bvnand', vx, vx)) == sort_bv
     assert get_sort(Node('bvneg', Node('bvnand', vx, vx))) == sort_bv
@@ -420,17 +420,31 @@ def test_get_sort():
     assert get_sort(Node('bvor', vx, vx)) == sort_bv
     assert get_sort(Node('bvsdiv', Node('bvand', vx, vx), vx)) == sort_bv
     assert get_sort(Node('bvshl', vx, vx)) == sort_bv
-    assert get_sort(Node('bvsmod', Node('bvlshr', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvsmod', Node('bvshr', vx, vx), vx)) == sort_bv
     assert get_sort(Node('bvsrem', vx, vx)) == sort_bv
     assert get_sort(Node('bvsub', Node('bvmul', vx, vx), vx)) == sort_bv
     assert get_sort(Node('bvudiv', vx, vx)) == sort_bv
     assert get_sort(Node('bvurem', Node('bvmul', vx, vx), vx)) == sort_bv
     assert get_sort(Node('bvxnor', vx, vx))
-    assert get_sort(Node('bvxor', Node('bvlshr', vx, vx), vx)) == sort_bv
+    assert get_sort(Node('bvxor', Node('bvshr', vx, vx), vx)) == sort_bv
 
     assert get_sort(Node('concat', vx, vx)) == Node('_', 'BitVec', 16)
     assert get_sort(Node('concat', Node('concat', vx, vx), vx)) \
            == Node('_', 'BitVec', 24)
+
+    assert get_sort(Node('fp.abs', fx)) == sort_fp16
+    assert get_sort(Node('fp.max', gx, gx)) == sort_fp64
+    assert get_sort(Node('fp.min', gx, gx)) == sort_fp64
+    assert get_sort(Node('fp.neg', fx)) == sort_fp16
+    assert get_sort(Node('fp.rem', fx, fx)) == sort_fp16
+    assert get_sort(Node('fp.add', rm, gx, gx)) == sort_fp64
+    assert get_sort(Node('fp.div', rm, gx, gx)) == sort_fp64
+    assert get_sort(Node('fp.fma', rm, gx, gx)) == sort_fp64
+    assert get_sort(Node('fp.mul', rm, gx, gx, gx)) == sort_fp64
+    assert get_sort(Node('fp.roundToIntegral', rm, fx)) == sort_fp16
+    assert get_sort(Node('fp.sqrt', rm, fx)) == sort_fp16
+    assert get_sort(Node('fp.sub', rm, fx, fx)) == sort_fp16
+    assert get_sort(Node('fp', '#b1', '#b11011', '#b1011011010')) == sort_fp16
 
     assert get_sort(Node(('_', 'extract', 3, 1), vx)) == Node('_', 'BitVec', 3)
     assert get_sort(Node(('_', 'repeat', 3), vx)) == Node('_', 'BitVec', 24)
@@ -440,6 +454,15 @@ def test_get_sort():
            == Node('_', 'BitVec', 11)
     assert get_sort(Node(('_', 'zero_extend', 3), vx)) \
            == Node('_', 'BitVec', 11)
+
+    assert get_sort(Node(('_', 'fp.to_sbv', 8), fx)) == sort_bv
+    assert get_sort(Node(('_', 'fp.to_ubv', 8), fx)) == sort_bv
+
+    assert get_sort(Node(('_', 'to_fp', 5, 11), rm, rx)) == sort_fp16
+    assert get_sort(Node(('_', 'to_fp', 5, 11), rm, fx)) == sort_fp16
+    assert get_sort(Node(('_', 'to_fp', 5, 11), vx)) == sort_fp16
+    assert get_sort(Node(('_', 'to_fp', 5, 11), rm, vx)) == sort_fp16
+    assert get_sort(Node(('_', 'to_fp_unsigned', 5, 11), rm, vx)) == sort_fp16
     reset_information()
 
 

@@ -256,13 +256,16 @@ def get_sort(node):
     if is_real_const(node):
         return Node('Real')
     bvwidth = get_bv_width(node)
+    # operators the return bit-vectors handled via get_bv_width
     if bvwidth != -1:
         return Node('_', 'BitVec', str(bvwidth))
+    # non-indexed operators
     if has_ident(node) and len(node) > 1:
         if is_operator_app(node, 'ite') and len(node) > 2:
             return get_sort(node[2])
+        ident = get_ident(node)
         # operators that return Bool
-        if get_ident(node) in [
+        if ident in [
                 # core theory
                 'not',
                 '=>',
@@ -313,7 +316,7 @@ def get_sort(node):
         ]:
             return Node('Bool')
         # operators that return Int
-        if get_ident(node) in [
+        if ident in [
                 'div',
                 'mod',
                 'abs',
@@ -328,61 +331,49 @@ def get_sort(node):
         ]:
             return Node('Int')
         # operators that return Real
-        if get_ident(node) in ['/', 'to_real', 'fp.to_real']:
+        if ident in ['/', 'to_real', 'fp.to_real']:
             return Node('Real')
-        if get_ident(node) in ['+', '-', '*']:
+        if ident in ['+', '-', '*']:
             if any(map(lambda n: get_sort(n) == 'Real', node[1:])):
                 return Node('Real')
             elif get_sort(node[1]) == 'Int':
                 return Node('Int')
             else:
                 return None
-        # operators that return bit-vectors
-        if get_ident(node) in [
-                'bvadd',
-                'bvand',
-                'bvashr',
-                'bvlshr',
-                'bvmul',
-                'bvnand',
-                'bvneg',
-                'bvnor',
-                'bvnot',
-                'bvor',
-                'bvsdiv',
-                'bvshl',
-                'bvsmod',
-                'bvsrem',
-                'bvsub',
-                'bvudiv',
-                'bvurem',
-                'bvxnor',
-                'bvxor',
+        # operators that return floating-points
+        if ident in [
+                'fp.abs',
+                'fp.max',
+                'fp.min',
+                'fp.neg',
+                'fp.rem',
         ]:
             return get_sort(node[1])
-        if get_ident(node) == 'concat' and len(node) > 2:
-            bw = get_bv_width(node[1]) + get_bv_width(node[2])
-            return Node('_', 'BitVec', bw)
-        if get_ident(node) == 'bvcomp':
-            return Node('_', 'BitVec', 1)
+        if ident in [
+                'fp.add',
+                'fp.div',
+                'fp.fma',
+                'fp.mul',
+                'fp.roundToIntegral',
+                'fp.sqrt',
+                'fp.sub',
+        ]:
+            return get_sort(node[2])
+        if ident == 'fp':
+            ew = get_bv_width(node[2])
+            sw = 1 + get_bv_width(node[3])
+            return Node('_', 'FloatingPoint', ew, sw)
 
     ## indexed operators
     if is_indexed_operator_app(node, 'divisible'):
         return Node('Bool')
-    if is_indexed_operator_app(node, 'repeat'):
-        bw = get_bv_width(node[1]) * int(node[0][2].data)
-        return Node('_', 'BitVec', bw)
-    if is_indexed_operator_app(node, 'rotate_left') \
-       or is_indexed_operator_app(node, 'rotate_right'):
-        return get_sort(node[1])
-    if is_indexed_operator_app(node, 'sign_extend') \
-       or is_indexed_operator_app(node, 'zero_extend'):
-        bw = get_bv_width(node[1]) + get_indices(node[0], node[0][1])[0]
-        return Node('_', 'BitVec', bw)
-    if is_indexed_operator_app(node, 'extract', 2):
-        idx = get_indices(node[0], node[0][1])[0]
-        bw = idx[0] - idx[1] + 1
-        return Node('_', 'BitVec', bw)
+    if is_indexed_operator_app(node, 'to_fp', 2) \
+       or is_indexed_operator_app(node, 'to_fp_unsigned', 2):
+        idx = get_indices(node[0], node[0][1], 2)
+        return Node('_', 'FloatingPoint', idx[0], idx[1])
+    if is_indexed_operator_app(node, 'fp.to_sbv', 1) \
+       or is_indexed_operator_app(node, 'fp.to_ubv', 1):
+        return Node('_', 'BitVec', get_indices(node[0], node[0][1], 1)[0])
 
     return None
 
@@ -495,13 +486,30 @@ def get_bv_width(node):
         return idx[0] - idx[1] + 1
     if is_indexed_operator_app(node, 'repeat'):
         return get_indices(node[0], 'repeat')[0] * get_bv_width(node[1])
-    if is_indexed_operator_app(node, 'rotate'):
+    if is_indexed_operator_app(node, 'rotate_left') \
+       or is_indexed_operator_app(node, 'rotate_right'):
         return get_bv_width(node[1])
     if node.has_ident():
         if node.get_ident() in [
-                'bvnot', 'bvand', 'bvor', 'bvneg', 'bvadd', 'bvmul', 'bvudiv',
-                'bvurem', 'bvshl', 'bvshr', 'bvnand', 'bvnor', 'bvxor',
-                'bvsub', 'bvsdiv', 'bvsrem', 'bvsmod', 'bvashr'
+                'bvadd',
+                'bvand',
+                'bvashr',
+                'bvmul',
+                'bvnand',
+                'bvneg',
+                'bvnor',
+                'bvnot',
+                'bvor',
+                'bvsdiv',
+                'bvshl',
+                'bvshr',
+                'bvsmod',
+                'bvsrem',
+                'bvsub',
+                'bvudiv',
+                'bvurem',
+                'bvxnor',
+                'bvxor',
         ]:
             return get_bv_width(node[1])
         if node.get_ident() == 'concat':
