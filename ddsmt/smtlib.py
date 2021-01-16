@@ -465,6 +465,8 @@ def get_bv_width(node):
     """Return the bit-width of a bit-vector node.
 
     Asserts that :code:`node` is a bit-vector node.
+    Requires that global information has been populated via
+    :code:`collect_information`.
     """
     if is_bv_const(node):
         if node.is_leaf():
@@ -476,8 +478,10 @@ def get_bv_width(node):
         return int(node[2].data)
     if node in __sort_lookup:
         bvsort = __sort_lookup[node]
-        assert is_bv_sort(bvsort)
-        return int(bvsort[2].data)
+        if is_bv_sort(bvsort):
+            return int(bvsort[2].data)
+        else:
+            return -1
     if is_indexed_operator_app(node, 'zero_extend') \
        or is_indexed_operator_app(node, 'sign_extend'):
         return get_indices(node[0], node[0][1])[0] + get_bv_width(node[1])
@@ -489,8 +493,12 @@ def get_bv_width(node):
     if is_indexed_operator_app(node, 'rotate_left') \
        or is_indexed_operator_app(node, 'rotate_right'):
         return get_bv_width(node[1])
+    if is_indexed_operator_app(node, 'fp.to_ubv') \
+       or is_indexed_operator_app(node, 'fp.to_sbv'):
+        return get_indices(node[0], node[0][1])[0]
     if node.has_ident():
-        if node.get_ident() in [
+        ident = node.get_ident()
+        if ident in [
                 'bvadd',
                 'bvand',
                 'bvashr',
@@ -512,11 +520,15 @@ def get_bv_width(node):
                 'bvxor',
         ]:
             return get_bv_width(node[1])
-        if node.get_ident() == 'concat':
+        if ident == 'concat':
             assert len(node) == 3
             return get_bv_width(node[1]) + get_bv_width(node[2])
-        if node.get_ident() == 'bvcomp':
+        if ident == 'bvcomp':
             return 1
+        if ident == 'ite':
+            bw = get_bv_width(node[2])
+            if bw > 0:
+                return bw
     return -1
 
 

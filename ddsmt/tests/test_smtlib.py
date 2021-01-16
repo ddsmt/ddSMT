@@ -586,9 +586,198 @@ def test_is_bv_neg():
     assert is_bv_neg(Node('bvneg', 'x', 'x'))
 
 
-# TODO
+def test_get_bv_width():
+    bx = Node('bx')
+    vx = Node('vx')
+    ix = Node('ix')
+    rx = Node('rx')
+    fx = Node('fx')
+    gx = Node('gx')
+    rm = Node('rm')
+    sx = Node('sx')
+    tx = Node('tx')
+    sort_bool = Node('Bool')
+    sort_bv = Node('_', 'BitVec', 8)
+    sort_int = Node('Int')
+    sort_real = Node('Real')
+    sort_fp16 = Node('_', 'FloatingPoint', 5, 11)
+    sort_fp64 = Node('Float64')
+    sort_rm = Node('RoundingMode')
+    sort_set = Node('Set', 'Int')
+    sort_string = Node('String')
+    fprem = Node('fp.rem', 'Fx', 'Fx')
+    fpfma = Node('fp.fma', rm, fx, fx, fx)
+
+    exprs = [
+        Node('declare-const', bx, sort_bool),
+        Node('declare-const', vx, sort_bv),
+        Node('declare-const', ix, sort_int),
+        Node('declare-fun', rx, (), sort_real),
+        Node('declare-const', rm, sort_rm),
+        Node('define-fun', fx, (sort_bool, ), sort_fp16, fprem),
+        Node('define-fun', gx, (), sort_fp64, fpfma),
+        Node('declare-const', sx, sort_set),
+        Node('declare-const', tx, sort_string),
+    ]
+
+    assert get_bv_width(sort_bool) == -1
+    assert get_bv_width(sort_bv) == -1
+    assert get_bv_width(sort_int) == -1
+    assert get_bv_width(sort_real) == -1
+    assert get_bv_width(sort_fp16) == -1
+    assert get_bv_width(sort_fp64) == -1
+    assert get_bv_width(sort_rm) == -1
+    assert get_bv_width(sort_set) == -1
+    assert get_bv_width(sort_string) == -1
+    assert get_bv_width(fpfma) == -1
+
+    assert get_bv_width(Node('true')) == -1
+    assert get_bv_width(Node('false')) == -1
+    assert get_bv_width(Node('#b01011111')) == 8
+    assert get_bv_width(Node('_', 'bv4', 8)) == 8
+    assert get_bv_width(Node(2)) == -1
+    assert get_bv_width(Node('2.0')) == -1
+
+    assert get_bv_width(Node('not', bx)) == -1
+    assert get_bv_width(Node('=>', bx, 'true')) == -1
+    assert get_bv_width(Node('and', bx, bx)) == -1
+    assert get_bv_width(Node('or', bx, bx, bx)) == -1
+    assert get_bv_width(Node('xor', bx, bx)) == -1
+    assert get_bv_width(Node('=', fprem, fprem)) == -1
+    assert get_bv_width(Node('distinct', ix, ix)) == -1
+    assert get_bv_width(Node('bvult', vx, vx)) == -1
+    assert get_bv_width(Node('bvule', vx, vx)) == -1
+    assert get_bv_width(Node('bvugt', vx, vx)) == -1
+    assert get_bv_width(Node('bvuge', vx, vx)) == -1
+    assert get_bv_width(Node('bvslt', vx, vx)) == -1
+    assert get_bv_width(Node('bvsle', vx, vx)) == -1
+    assert get_bv_width(Node('bvsgt', vx, vx)) == -1
+    assert get_bv_width(Node('bvsge', vx, vx)) == -1
+    assert get_bv_width(Node('fp.leq', fprem, fprem)) == -1
+    assert get_bv_width(Node('fp.lt', fprem, fprem)) == -1
+    assert get_bv_width(Node('fp.geq', fprem, fprem)) == -1
+    assert get_bv_width(Node('fp.gt', fprem, fprem)) == -1
+    assert get_bv_width(Node('fp.eq', fprem, fprem)) == -1
+    assert get_bv_width(Node('fp.isNormal', fprem)) == -1
+    assert get_bv_width(Node('fp.isSubnormal', fprem)) == -1
+    assert get_bv_width(Node('fp.isZero', fprem)) == -1
+    assert get_bv_width(Node('fp.isInfinite', fprem)) == -1
+    assert get_bv_width(Node('fp.isNaN', fprem)) == -1
+    assert get_bv_width(Node('fp.isNegative', fprem)) == -1
+    assert get_bv_width(Node('fp.isPositive', fprem)) == -1
+    assert get_bv_width(Node('<=', ix, rx)) == -1
+    assert get_bv_width(Node('<', ix, rx)) == -1
+    assert get_bv_width(Node('>>', ix, rx)) == -1
+    assert get_bv_width(Node('>', ix, rx)) == -1
+    assert get_bv_width(Node('is_int', ix)) == -1
+    assert get_bv_width(Node('member', ix, sx)) == -1
+    assert get_bv_width(Node('subset', sx, sx)) == -1
+    assert get_bv_width(Node('str.<', tx, tx)) == -1
+    assert get_bv_width(Node('str.in_re', tx, tx)) == -1
+    assert get_bv_width(Node('str.<=', tx, tx)) == -1
+    assert get_bv_width(Node('str.prefixof', tx, tx)) == -1
+    assert get_bv_width(Node('str.suffixof', tx, tx)) == -1
+    assert get_bv_width(Node('str.contains', tx, tx)) == -1
+    assert get_bv_width(Node('str.is_digit', tx)) == -1
+    assert get_bv_width(Node(('_', 'divisible', 3), ix)) == -1
+
+    assert get_bv_width(Node('div', ix, ix)) == -1
+    assert get_bv_width(Node('mod', ix, ix)) == -1
+    assert get_bv_width(Node('abs', ix)) == -1
+    assert get_bv_width(Node('to_int', rx)) == -1
+    assert get_bv_width(Node('str.len', tx)) == -1
+    assert get_bv_width(Node('str.indexof', tx)) == -1
+    assert get_bv_width(Node('str.to_code', tx)) == -1
+    assert get_bv_width(Node('str.to_int', tx)) == -1
+    assert get_bv_width(Node('card', sx)) == -1
+
+    assert get_bv_width(Node('/', rx, rx)) == -1
+    assert get_bv_width(Node('+', rx, rx)) == -1
+    assert get_bv_width(Node('*', rx, rx)) == -1
+    assert get_bv_width(Node('-', rx, rx)) == -1
+    assert get_bv_width(Node('to_real', ix)) == -1
+    assert get_bv_width(Node('fp.to_real', fpfma)) == -1
+
+    assert get_bv_width(Node('bvcomp', Node('bvcomp', vx, vx), vx)) == 1
+
+    collect_information(exprs)
+    assert get_bv_width(Node('Fx')) == -1
+    assert get_bv_width(bx) == -1
+    assert get_bv_width(vx) == 8
+    assert get_bv_width(ix) == -1
+    assert get_bv_width(rx) == -1
+    assert get_bv_width(rm) == -1
+    assert get_bv_width(fx) == -1
+    assert get_bv_width(gx) == -1
+    assert get_bv_width(sx) == -1
+    assert get_bv_width(tx) == -1
+
+    assert get_bv_width(Node('ite', 'true', vx, vx)) == 8
+
+    assert get_bv_width(Node('+', ix, ix)) == -1
+    assert get_bv_width(Node('*', ix, ix)) == -1
+    assert get_bv_width(Node('-', ix, ix)) == -1
+
+    assert get_bv_width(Node('+', rx, rx)) == -1
+    assert get_bv_width(Node('*', rx, rx)) == -1
+    assert get_bv_width(Node('-', rx, rx)) == -1
+
+    assert get_bv_width(Node('bvadd', Node('bvadd', vx, vx), vx)) == 8
+    assert get_bv_width(Node('bvand', Node('bvand', vx, vx), vx)) == 8
+    assert get_bv_width(Node('bvashr', vx, vx)) == 8
+    assert get_bv_width(Node('bvshr', vx, vx)) == 8
+    assert get_bv_width(Node('bvmul', Node('bvmul', vx, vx), vx)) == 8
+    assert get_bv_width(Node('bvnand', vx, vx)) == 8
+    assert get_bv_width(Node('bvneg', Node('bvnand', vx, vx))) == 8
+    assert get_bv_width(Node('bvnor', vx, vx)) == 8
+    assert get_bv_width(Node('bvnot', Node('bvnand', vx, vx))) == 8
+    assert get_bv_width(Node('bvor', vx, vx)) == 8
+    assert get_bv_width(Node('bvsdiv', Node('bvand', vx, vx), vx)) == 8
+    assert get_bv_width(Node('bvshl', vx, vx)) == 8
+    assert get_bv_width(Node('bvsmod', Node('bvshr', vx, vx), vx)) == 8
+    assert get_bv_width(Node('bvsrem', vx, vx)) == 8
+    assert get_bv_width(Node('bvsub', Node('bvmul', vx, vx), vx)) == 8
+    assert get_bv_width(Node('bvudiv', vx, vx)) == 8
+    assert get_bv_width(Node('bvurem', Node('bvmul', vx, vx), vx)) == 8
+    assert get_bv_width(Node('bvxnor', vx, vx))
+    assert get_bv_width(Node('bvxor', Node('bvshr', vx, vx), vx)) == 8
+
+    assert get_bv_width(Node('concat', vx, vx)) == 16
+    assert get_bv_width(Node('concat', Node('concat', vx, vx), vx)) == 24
+
+    assert get_bv_width(Node('fp.abs', fx)) == -1
+    assert get_bv_width(Node('fp.max', gx, gx)) == -1
+    assert get_bv_width(Node('fp.min', gx, gx)) == -1
+    assert get_bv_width(Node('fp.neg', fx)) == -1
+    assert get_bv_width(Node('fp.rem', fx, fx)) == -1
+    assert get_bv_width(Node('fp.add', rm, gx, gx)) == -1
+    assert get_bv_width(Node('fp.div', rm, gx, gx)) == -1
+    assert get_bv_width(Node('fp.fma', rm, gx, gx)) == -1
+    assert get_bv_width(Node('fp.mul', rm, gx, gx, gx)) == -1
+    assert get_bv_width(Node('fp.roundToIntegral', rm, fx)) == -1
+    assert get_bv_width(Node('fp.sqrt', rm, fx)) == -1
+    assert get_bv_width(Node('fp.sub', rm, fx, fx)) == -1
+    assert get_bv_width(Node('fp', '#b1', '#b11011', '#b1011011010')) == -1
+
+    assert get_bv_width(Node(('_', 'extract', 3, 1), vx)) == 3
+    assert get_bv_width(Node(('_', 'repeat', 3), vx)) == 24
+    assert get_bv_width(Node(('_', 'rotate_left', 3), vx)) == 8
+    assert get_bv_width(Node(('_', 'rotate_right', 3), vx)) == 8
+    assert get_bv_width(Node(('_', 'sign_extend', 3), vx)) == 11
+    assert get_bv_width(Node(('_', 'zero_extend', 3), vx)) == 11
+
+    assert get_bv_width(Node(('_', 'fp.to_sbv', 8), fx)) == 8
+    assert get_bv_width(Node(('_', 'fp.to_ubv', 8), fx)) == 8
+
+    assert get_bv_width(Node(('_', 'to_fp', 5, 11), rm, rx)) == -1
+    assert get_bv_width(Node(('_', 'to_fp', 5, 11), rm, fx)) == -1
+    assert get_bv_width(Node(('_', 'to_fp', 5, 11), vx)) == -1
+    assert get_bv_width(Node(('_', 'to_fp', 5, 11), rm, vx)) == -1
+    assert get_bv_width(Node(('_', 'to_fp_unsigned', 5, 11), rm, vx)) == -1
+    reset_information()
+
+
 #def collect_information(exprs):
-#def get_bv_width(node):
 #def is_defined_function(node):
 #def get_defined_function(node):
 #def is_set_sort(node):
