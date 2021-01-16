@@ -299,7 +299,7 @@ def test_get_sort():
         Node('declare-const', ix, sort_int),
         Node('declare-fun', rx, (), sort_real),
         Node('declare-const', rm, sort_rm),
-        Node('define-fun', fx, (sort_bool, ), sort_fp16, fprem),
+        Node('define-fun', fx, (Node('x', sort_bool), ), sort_fp16, fprem),
         Node('define-fun', gx, (), sort_fp64, fpfma),
         Node('declare-const', sx, sort_set),
         Node('declare-const', tx, sort_string),
@@ -614,7 +614,7 @@ def test_get_bv_width():
         Node('declare-const', ix, sort_int),
         Node('declare-fun', rx, (), sort_real),
         Node('declare-const', rm, sort_rm),
-        Node('define-fun', fx, (sort_bool, ), sort_fp16, fprem),
+        Node('define-fun', fx, (Node('x', sort_bool), ), sort_fp16, fprem),
         Node('define-fun', gx, (), sort_fp64, fpfma),
         Node('declare-const', sx, sort_set),
         Node('declare-const', tx, sort_string),
@@ -782,20 +782,21 @@ def test_is_defined_function():
     x2 = Node('x2')
     x3 = Node('x3')
     fp64 = Node('_', 'FloatingPoint', 11, 53)
-    fpadd = Node('define-fun', 'fpadd', (), fp64, ('fp.add', 'RTZ', x1, x2))
-    fpmul = Node('define-fun', 'fpmul', (), fp64, ('fp.mul', 'RTZ', fpadd, x3))
-    fprem = Node('fp.rem', 'Fx', 'Fx')
-    fx = Node('define-fun', 'fx', (Node('Bool'), ), fp64, fprem)
-    fpfma = Node('fp.fma', 'RNE', fx, fx, fx)
+    fpadd = Node('fp.add', 'RTZ', x1, x2)
+    fpmul = Node('fp.mul', 'RTZ', fpadd, x3)
+    fprem = Node('fp.rem', 'x', 'x')
+    fadd = Node('define-fun', 'fadd', (), fp64, fpadd)
+    fmul = Node('define-fun', 'fmul', (), fp64, fpmul)
+    fx = Node('define-fun', 'fx', (Node('x', 'Bool'), ), fp64, fprem)
+    fpfma = Node('fp.fma', 'RNE', 'fx', 'fx', 'fx')
     gx = Node('define-fun', 'gx', (
-        Node('Bool'),
-        Node('Int'),
+        Node('x', 'Bool'),
+        Node('y', 'Int'),
     ), fp64, fpfma)
-    f = Node('define-fun', 'f', (Node('Int'), ), 'Int', ('+', 'x', 'x'))
+    f = Node('define-fun', 'f', (Node('x', 'Int'), ), 'Int', ('+', 'x', 'x'))
     exprs = [
-        fpadd,
-        fpmul,
-        fpfma,
+        fadd,
+        fmul,
         fx,
         gx,
         f,
@@ -809,12 +810,14 @@ def test_is_defined_function():
     assert not is_defined_function(fpadd)
     assert not is_defined_function(fpmul)
     assert not is_defined_function(fprem)
-    assert not is_defined_function(fx)
     assert not is_defined_function(fpfma)
+    assert not is_defined_function(fadd)
+    assert not is_defined_function(fmul)
+    assert not is_defined_function(fx)
     assert not is_defined_function(gx)
     assert not is_defined_function(f)
-    assert is_defined_function(Node('fpadd'))
-    assert is_defined_function(Node('fpmul'))
+    assert is_defined_function(Node('fadd'))
+    assert is_defined_function(Node('fmul'))
     assert is_defined_function(Node('fx'))
     assert is_defined_function(Node('gx'))
     assert is_defined_function(Node('f'))
@@ -824,6 +827,68 @@ def test_is_defined_function():
     reset_information()
 
 
-#def collect_information(exprs):
-#def get_defined_function(node):
+def test_get_defined_function():
+    x1 = Node('x1')
+    x2 = Node('x2')
+    x3 = Node('x3')
+    fp64 = Node('_', 'FloatingPoint', 11, 53)
+    fpadd = Node('fp.add', 'RTZ', x1, x2)
+    fpmul = Node('fp.mul', 'RTZ', fpadd, x3)
+    fprem = Node('fp.rem', 'x', 'x')
+    fadd = Node('define-fun', 'fadd', (), fp64, fpadd)
+    fmul = Node('define-fun', 'fmul', (), fp64, fpmul)
+    fx = Node('define-fun', 'fx', (Node('x', 'Bool'), ), fp64, fprem)
+    fpfma = Node('fp.fma', 'y', 'fx', 'fx', 'fx')
+    gx = Node('define-fun', 'gx', (
+        Node('x', 'Bool'),
+        Node('y', 'Int'),
+    ), fp64, fpfma)
+    f = Node('define-fun', 'f', (Node('x', 'Int'), ), 'Int', ('+', 'x', 'x'))
+    exprs = [
+        fadd,
+        fmul,
+        fx,
+        gx,
+        f,
+        Node('declare-const', 'x', 'Bool'),
+        Node('declare-fun', 'y', 'Int'),
+    ]
+    collect_information(exprs)
+    with pytest.raises(AssertionError):
+        get_defined_function(x1)
+    with pytest.raises(AssertionError):
+        get_defined_function(x2)
+    with pytest.raises(AssertionError):
+        get_defined_function(x3)
+    with pytest.raises(AssertionError):
+        get_defined_function(fpadd)
+    with pytest.raises(AssertionError):
+        get_defined_function(fpmul)
+    with pytest.raises(AssertionError):
+        get_defined_function(fprem)
+    with pytest.raises(AssertionError):
+        get_defined_function(fpfma)
+    with pytest.raises(AssertionError):
+        get_defined_function(fadd)
+    with pytest.raises(AssertionError):
+        get_defined_function(fmul)
+    with pytest.raises(AssertionError):
+        get_defined_function(fx)
+    with pytest.raises(AssertionError):
+        get_defined_function(gx)
+    with pytest.raises(AssertionError):
+        get_defined_function(f)
+    assert get_defined_function(Node('fadd')) == fpadd
+    assert get_defined_function(Node('fmul')) == fpmul
+    assert get_defined_function(Node('fx')) == fprem
+    assert get_defined_function(Node('gx')) == fpfma
+    assert get_defined_function(Node('f')) == Node('+', 'x', 'x')
+    assert get_defined_function(Node('fx', 'true')) \
+           == Node('fp.rem', 'true', 'true')
+    assert get_defined_function(Node('gx', 'true', 2)) \
+           == Node('fp.fma', 2, 'fx', 'fx', 'fx')
+    assert get_defined_function(Node('f', 15)) == Node('+', 15, 15)
+    reset_information()
+
+
 #def is_set_sort(node):

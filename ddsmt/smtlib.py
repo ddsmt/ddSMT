@@ -579,6 +579,8 @@ def get_defined_function(node):
     arguments of :code:`node` if necessary.
 
     Assumes :code:`is_defined_function(node)`.
+    Requires that global information has been populated via
+    :code:`collect_information`.
     """
     assert is_defined_function(node)
     if node.is_leaf():
