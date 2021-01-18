@@ -47,7 +47,9 @@ class EliminateVariable:
                 if t in nodes.dfs(c):
                     # Avoid cycles (for example with core.ReplaceByChild)
                     continue
-                res.append(substitute_vars_except_decl(ginput, {t: c}))
+                subst = substitute_vars_except_decl(ginput, {t: c})
+                if subst:
+                    res.append(subst)
         return res
 
     def __str__(self):

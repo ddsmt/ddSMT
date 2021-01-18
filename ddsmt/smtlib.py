@@ -105,8 +105,11 @@ def substitute_vars_except_decl(exprs, repl):
     Perform the given variable substitution anywhere it occurs except in
     declaration commands :code:`declare-const`, :code:`declare-fun`,
     :code:`define-fun`.
+    If there was no substitution to be done (i.e. the result is still `exprs`),
+    return `None`.
     """
     res = []
+    did_change = False
     for e in exprs:
         if e.has_ident() and e.get_ident() in [
                 'declare-const', 'declare-fun', 'define-fun'
@@ -114,6 +117,10 @@ def substitute_vars_except_decl(exprs, repl):
             res.append(e)
         else:
             res.append(nodes.substitute(e, repl))
+            if res[-1] != e:
+                did_change = True
+    if not did_change:
+        return None
     return res
 
 
