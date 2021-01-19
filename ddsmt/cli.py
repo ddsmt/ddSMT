@@ -29,8 +29,8 @@ import sys
 import time
 
 from . import checker
-from . import ddmin
-from . import ddnaive
+from . import strategy_ddmin
+from . import strategy_hierarchical
 from . import mutators
 from . import nodes
 from . import options
@@ -117,9 +117,9 @@ def ddsmt_main():
 
     # do the reduction
     if options.args().strategy == 'ddmin':
-        reduced_exprs, ntests = ddmin.reduce(exprs)
-    elif options.args().strategy == 'naive':
-        reduced_exprs, ntests = ddnaive.reduce(exprs)
+        reduced_exprs, ntests = strategy_ddmin.reduce(exprs)
+    elif options.args().strategy == 'hierarchical':
+        reduced_exprs, ntests = strategy_hierarchical.reduce(exprs)
     end_time = time.time()
 
     # show the results

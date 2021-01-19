@@ -14,7 +14,7 @@ from . import progress
 from . import smtlib
 
 
-def ddnaive_passes():
+def get_passes():
     """Returns a list of passes, each pass being a list of mutators.
 
     The list is ordered so that earlier passes are more promising for a
@@ -214,7 +214,7 @@ class MutatorStats:
 def reduce(exprs):
     """Reduces the input given in :code:`exprs` as good as possible in a fixed-
     point loop."""
-    passes = ddnaive_passes()
+    passes = get_passes()
     cur_pool = 0
 
     nchecks = 0

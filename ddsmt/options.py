@@ -100,7 +100,7 @@ def parse_options(mutators):
                     default=False,
                     help='wrap lines in output file')
     ap.add_argument('--strategy',
-                    choices=['ddmin', 'naive'],
+                    choices=['ddmin', 'hierarchical'],
                     default='ddmin',
                     help='minimization strategy')
 
