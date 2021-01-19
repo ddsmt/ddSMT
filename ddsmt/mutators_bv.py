@@ -110,27 +110,33 @@ class BVExtractConstants:
 
 class BVExtractZeroExtend:
     """Simplifies an ``extract`` of a ``zero_extend`` by pushing the
-    ``zero_extend`` to the outside and reducing the bit-widths, if possible."""
+    ``zero_extend`` to the outside and reducing the bit-width, if possible.
+
+    Requires that global information has been populated via
+    ``collect_information``.
+    """
     def filter(self, node):
         return is_indexed_operator_app(node, 'extract', 2) \
                and is_indexed_operator_app(node[1], 'zero_extend')
 
     def mutations(self, node):
-        var = node[1][1]
-        varwidth = get_bv_width(var)
-        upper = int(node[0][2].data)
-        lower = int(node[0][3].data)
+        term = node[1][1]
+        bw = get_bv_width(term)
+        if bw <= 0: return []
+        idx = get_indices(node[0], 'extract', 2)
+        upper = idx[0]
+        lower = idx[1]
         # we extract upper..lower from 0|varwidth
-        if lower >= varwidth:
+        if lower >= bw:
             # we only extract from the zeroes
             return [Node('_', 'bv0', upper - lower + 1)]
-        if upper < varwidth:
+        if upper < bw:
             # we only extract from the variable
-            return [Node(node[0], var)]
+            return [Node(node[0], term)]
         # switch extract and zero_extend, reduce lengths of extract and zero_extend
         return [
-            Node(('_', 'zero_extend', str(upper - varwidth + 1)),
-                 (('_', 'extract', str(varwidth - 1), str(lower)), var))
+            Node(('_', 'zero_extend', str(upper - bw + 1)),
+                 (('_', 'extract', str(bw - 1), str(lower)), term))
         ]
 
     def __str__(self):

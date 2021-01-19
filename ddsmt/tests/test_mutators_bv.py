@@ -138,6 +138,27 @@ def test_bv_extract_constants():
     assert m.mutations(ext1_3) == [Node('#b0')]
 
 
+def test_bv_extract_zero_extend():
+    x = Node('x')
+    ext1 = Node(('_', 'extract', 7, 5), (('_', 'zero_extend', 4), x))
+    ext2 = Node(('_', 'extract', 1, 0), (('_', 'zero_extend', 4), x))
+    ext3 = Node(('_', 'extract', 5, 3), (('_', 'zero_extend', 4), x))
+    exprs = [Node('declare-const', x, ('_', 'BitVec', 4)), ext1, ext2, ext3]
+    m = mutators_bv.BVExtractZeroExtend()
+    assert not m.filter(Node(('_', 'extract', 7, 5), x))
+    assert m.filter(ext1)
+    assert m.filter(ext2)
+    assert m.filter(ext3)
+    assert m.mutations(ext1) == []
+    smtlib.collect_information(exprs)
+    assert m.mutations(ext1) == [Node('_', 'bv0', 3)]
+    assert m.mutations(ext2) == [Node(('_', 'extract', 1, 0), x)]
+    assert m.mutations(ext3) == [
+        Node(('_', 'zero_extend', 2), (('_', 'extract', 3, 3), x))
+    ]
+    smtlib.reset_information()
+
+
 # TODO
 #class BVOneZeroITE:
 #class BVReflexiveNand:
