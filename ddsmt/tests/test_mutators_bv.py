@@ -179,8 +179,16 @@ def test_bv_ite_to_bvcomp():
     smtlib.reset_information()
 
 
+def test_reflexive_nand():
+    m = mutators_bv.BVReflexiveNand()
+    assert not m.filter(Node('x'))
+    assert not m.filter(Node('bvor', 'x', 'y'))
+    assert not m.filter(Node('bvnand', 'x', 'y'))
+    assert m.filter(Node('bvnand', 'x', 'x'))
+    assert m.mutations(Node('bvnand', 'x', 'x')) == [Node('bvnot', 'x')]
+
+
 # TODO
-#class BVReflexiveNand:
 #class BVSimplifyConstant:
 #class BVTransformToBool:
 #class BVReduceBW:

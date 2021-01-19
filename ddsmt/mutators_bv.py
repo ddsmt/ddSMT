@@ -176,12 +176,13 @@ class BVIteToBVComp:
 class BVReflexiveNand:
     """Replace a reflexive nand by bitwise negation."""
     def filter(self, node):
-        return has_ident(node) and get_ident(node) == 'bvnand'
+        return node.has_ident() \
+               and node.get_ident() == 'bvnand' \
+               and len(node) == 3 \
+               and node[1] == node[2]
 
     def mutations(self, node):
-        if len(node) == 3 and node[1] == node[2]:
-            return [Node('bvnot', node[1])]
-        return []
+        return [Node('bvnot', node[1])]
 
     def __str__(self):
         return 'replace bvnand by bvnot'
