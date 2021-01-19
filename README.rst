@@ -31,7 +31,7 @@ ddSMT is implemented in Python 3 and developed on a Linux OS. ddSMT requires
 Python version 3.6 or later.
 
 ddSMT is free software released under the GPLv3. You should have received a
-copy of the GNU General Public License along with ddSMT (see file LICENSE).
+copy of the GNU General Public License along with ddSMT (see file `LICENSE <https://github.com/aniemetz/ddSMT/blob/master/README.md>`_).
 If not, see http://www.gnu.org/licenses/.
 
 Documentation for ddSMT is available at https://ddsmt.readthedocs.io.
