@@ -29,7 +29,7 @@ Note that a mutator can work in two ways: ``mutations`` constructs **local** rep
 
 Below follows a list of all available mutators, grouped by their main concern: generic mutators that work on the node structure, SMT-LIB mutators that deal with certain SMT-LIB constructs, and mutators for individual SMT-LIB theories.
 
-Most mutators can be enabled or disabled using options of the form ``--<mutator>`` or ``--no-<mutator>`` (like ``--no-constants``), most are enabled by default. The same is possible for all mutators from a group with ``--<group>`` or ``--no-<group>`` (like ``--no-generic``).
+All mutators can be enabled or disabled using options of the form ``--<mutator>`` or ``--no-<mutator>`` (like ``--no-constants``), all are enabled by default. The same is possible for all mutators from a group with ``--<group>`` or ``--no-<group>`` (like ``--no-strings``). To only use a specific mutator or mutator group, combine disabling all (``--disable-all``) with enabling a single mutator (``--strings`` or ``--bool-de-morgan``).
 
 Generic mutators
 ----------------

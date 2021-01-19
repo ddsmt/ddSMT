@@ -9,7 +9,7 @@ Debugging unsoundness
 ---------------------
 
 Sometimes bugs in solvers do not make the command crash or print an error message, but simply provide an incorrect result.
-This is a particular nasty case for ddSMT, as the solver itself oftentimes can not detect this issue. Relying on annotations in the input (i.e. the SMTLIB status) is usually not a good idea, as mutating the input may very well change the correct output (i.e. flip from sat to unsat or vice-versa) but still retain the underlying error.
+This is a particular nasty case for delta-debuggin, as the solver itself oftentimes can not detect this issue. Relying on annotations in the input (i.e. the SMT-LIB status) is usually not a good idea, as mutating the input may very well change the correct output (i.e. flip from sat to unsat or vice-versa) but still retain the underlying error.
 
 A better approach is usually to use another solver as reference solver and employ a wrapper script that checks whether the two solvers disagree. A wrapper script for this purpose is provided in :download:`scripts/result_differs.py <../scripts/result_differs.py>`. It runs two solvers (``'A'`` and ``'B'``) and compares their outputs. Note that this script expects the solver to only output ``sat`` or ``unsat``.
 
