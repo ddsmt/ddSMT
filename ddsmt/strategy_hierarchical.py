@@ -73,9 +73,9 @@ class Producer:
     """Manages the generation of candidates that shall be checked.
 
     Performs a walk through the current input and applies the
-    :code:`mutators` to every node. Supports skipping the first
-    :code:`skip` nodes. As soon as :code:`abort_flag` is triggered,
-    stops generation as soon as possible.
+    ``mutators`` to every node. Supports skipping the first ``skip``
+    nodes. As soon as ``abort_flag`` is triggered, stops generation as
+    soon as possible.
     """
     def __init__(self, skip, mutators, abort_flag):
         self.__node_count = 0
@@ -86,8 +86,7 @@ class Producer:
     def __mutate_node(self, linput, ginput, gpickled):
         """Apply all mutators to the given node.
 
-        Returns a list of all possible mutations as :code:`Task`
-        objects.
+        Returns a list of all possible mutations as ``Task`` objects.
         """
         for m in self.__mutators:
             if self.__abort.is_set():
@@ -118,8 +117,8 @@ class Producer:
                 traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
 
     def generate(self, original, params):
-        """A generator that produces all possible mutations as :code:`Task`
-        from the given original."""
+        """A generator that produces all possible mutations as ``Task`` from
+        the given original."""
         pickled = pickle.dumps(original)
         for node in nodes.dfs(original, params.get('max_depth', None)):
             self.__node_count += 1
@@ -130,11 +129,11 @@ class Producer:
 
 
 class Consumer:
-    """Calls the :code:`checker` on individual tasks to figure out whether they
-    are valid simplifications.
+    """Calls the ``checker`` on individual tasks to figure out whether they are
+    valid simplifications.
 
-    Uses the :code:`abort_flag` to stop as soon as a valid
-    simplification has been found.
+    Uses the ``abort_flag`` to stop as soon as a valid simplification
+    has been found.
     """
     def __init__(self, abort_flag):
         self.__abort = abort_flag
@@ -212,7 +211,7 @@ class MutatorStats:
 
 
 def reduce(exprs):
-    """Reduces the input given in :code:`exprs` as good as possible in a fixed-
+    """Reduces the input given in ``exprs`` as good as possible in a fixed-
     point loop."""
     passes = get_passes()
     cur_pool = 0

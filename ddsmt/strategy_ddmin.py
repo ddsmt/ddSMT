@@ -74,10 +74,9 @@ def ddmin_passes():
 def _subst(exprs, subset, mutator):
     """Return list of mutated formulas.
 
-    Apply :code:`mutator` to nodes in :code:`subset` and substitute the
-    nodes in :code:`exprs`. At granularity 1 try all mutations returned
-    by :code:`mutator`, for all other granularities pick the first
-    mutation.
+    Apply ``mutator`` to nodes in ``subset`` and substitute the nodes in
+    ``exprs``. At granularity 1 try all mutations returned by
+    ``mutator``, for all other granularities pick the first mutation.
     """
 
     res = []
@@ -107,7 +106,7 @@ def _subst(exprs, subset, mutator):
 
 
 def _worker(task):
-    """Perform mutations on given :code:`subset` and check mutated input.
+    """Perform mutations on given ``subset`` and check mutated input.
 
     A worker process takes a task and performs mutations on the input
     and checks whether the input fails.
@@ -126,7 +125,7 @@ def _worker(task):
 
 
 def _partition(exprs, gran):
-    """Partition :code:`exprs` into a list of subsets of size :code:`gran`."""
+    """Partition ``exprs`` into a list of subsets of size ``gran``."""
     return [exprs[s:s + gran] for s in range(0, len(exprs), gran)]
 
 
@@ -134,9 +133,9 @@ __last_msg = ""
 
 
 def _print_progress(msg, update=True):
-    """Print progress :code:`msg`.
+    """Print progress ``msg``.
 
-    If :code:`update` is True the previous line will be overwritten.
+    If ``update`` is True the previous line will be overwritten.
     """
     global __last_msg
 
@@ -152,7 +151,7 @@ def _print_progress(msg, update=True):
 
 
 def _check_seq(gran, subsets, exprs, nexprs, mutator, stats):
-    """Sequentially check :code:`subsets` and update :code:`stats`."""
+    """Sequentially check ``subsets`` and update ``stats``."""
 
     outfile = options.args().outfile
 
@@ -177,14 +176,13 @@ def _check_seq(gran, subsets, exprs, nexprs, mutator, stats):
 
 
 def _check_par(gran, subsets, exprs, nexprs, mutator, stats):
-    """Perform :code:`subsets` checks in parallel.
+    """Perform ``subsets`` checks in parallel.
 
     If multiple workers report failed subsets there is currently no good
-    solution for merging/combining the resulting input. Instead, we remove
-    non-failing subsets from :code:`subsets` and check the remaining
-    (failed) subsets on the updated input :code:`exprs`.
-    :code:`exprs` gets updated with the first failing input reported by a
-    worker.
+    solution for merging/combining the resulting input. Instead, we
+    remove non-failing subsets from ``subsets`` and check the remaining
+    (failed) subsets on the updated input ``exprs``. ``exprs`` gets
+    updated with the first failing input reported by a worker.
     """
     outfile = options.args().outfile
 
@@ -226,16 +224,16 @@ def _check_par(gran, subsets, exprs, nexprs, mutator, stats):
 
 
 def _apply_mutator(mutator, exprs, max_depth=None):
-    """Apply :code:`mutator` with strategy ddmin on input :code:`exprs`.
+    """Apply ``mutator`` with strategy ddmin on input ``exprs``.
 
-    :code:`max_depth` limits the DFS traversal when filtering nodes in
-    :code:`exprs`.
+    ``max_depth`` limits the DFS traversal when filtering nodes in
+    ``exprs``.
 
     The general workflow steps are as follows:
 
-    Nodes in :code:`exprs` are filtered based on :code:`mutator`. The
+    Nodes in ``exprs`` are filtered based on ``mutator``. The
     resulting list of nodes is partitioned into subsets of size
-    :code:`gran`, which are then checked via :code:`check_func`.
+    ``gran``, which are then checked via ``check_func``.
     """
     start_time = time.time()
     nexprs = nodes.count_exprs(exprs)
@@ -261,7 +259,7 @@ def _apply_mutator(mutator, exprs, max_depth=None):
 
 
 def reduce(exprs):
-    """Reduce given :code:`exprs` until fixed-point with ddmin strategy."""
+    """Reduce given ``exprs`` until fixed-point with ddmin strategy."""
 
     smtlib.collect_information(exprs)
 

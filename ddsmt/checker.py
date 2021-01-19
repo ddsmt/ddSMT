@@ -16,7 +16,7 @@ __GOLDEN_CC = None
 
 
 def limit_resources(timeout):
-    """Apply resource limit given by :code:`--memout` and timeout arguments."""
+    """Apply resource limit given by ``--memout`` and timeout arguments."""
     if options.args().memout:
         resource.setrlimit(
             resource.RLIMIT_AS,
@@ -45,13 +45,12 @@ def execute(cmd, filename, timeout):
 
 
 def matches_golden(golden, run, ignore_out, match_out, match_err):
-    """Checks whether the :code:`run` result matches the golden run,
-    considering :code:`ignore_out`, :code:`match_out` and :code:`match_err`.
+    """Checks whether the ``run`` result matches the golden run, considering
+    ``ignore_out``, ``match_out`` and ``match_err``.
 
-    If :code:`ignore_out` is true, only the exit code is compared.
-    Otherwise, if either :code:`match_out` or :code:`match_err` are
-    given, they need to match. Otherwise, both stdout and stderr must be
-    the same.
+    If ``ignore_out`` is true, only the exit code is compared.
+    Otherwise, if either ``match_out`` or ``match_err`` are given, they
+    need to match. Otherwise, both stdout and stderr must be the same.
     """
     if run.exit != golden.exit:
         return False
@@ -77,7 +76,7 @@ def matches_golden(golden, run, ignore_out, match_out, match_err):
 def check(filename):
     """Check whether the given file behaves as the original input.
 
-    First execute the command and then call :code:`matches_golden`. If a
+    First execute the command and then call ``matches_golden``. If a
     cross-check command is specified, do the same for that one as well.
     """
     ri = execute(options.args().cmd, filename, options.args().timeout)

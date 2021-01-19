@@ -4,12 +4,13 @@ from . import options
 
 
 class Constants:
-    """Replaces any node by a constant."""
+    """Replaces any node by a constant (which depends on the type of
+    ``code``)."""
     def filter(self, node):
         return get_sort(node) is not None
 
     def mutations(self, node):
-        """Return :code:`get_constants(get_sort(node))`."""
+        """Return ``get_constants(get_sort(node))``."""
         t = get_sort(node)
         if t is None:
             return []
@@ -23,7 +24,7 @@ class Constants:
 
 
 class EraseNode:
-    """Erase nodes optionally with a specified identifier :code:`ident`."""
+    """Erase nodes optionally with a specified identifier ``ident``."""
     def filter(self, node):
         if not hasattr(self, 'ident'):
             return True
@@ -43,7 +44,7 @@ class EraseNode:
 class MergeWithChildren:
     """Merges a node with one of its children.
 
-    This is possible for n-ary operators like :code:`and` or :code:`+`.
+    This is possible for n-ary operators like ``and`` or ``+``.
     """
     def filter(self, node):
         return has_nary_operator(node)
@@ -100,7 +101,7 @@ class SortChildren:
         return not is_leaf(node)
 
     def mutations(self, node):
-        """Return :code:`sorted(node, key = count_nodes)`."""
+        """Return ``sorted(node, key = count_nodes)``."""
         s = nodes.Node(*sorted(node, key=count_nodes))
         if s != node:
             return [s]

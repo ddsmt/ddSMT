@@ -4,7 +4,7 @@ from .smtlib import *
 
 
 class CheckSatAssuming:
-    """Replaces a :code:`check-sat-assuming` by a regular :code:`check-sat`."""
+    """Replaces a ``check-sat-assuming`` by a regular ``check-sat``."""
     def filter(self, node):
         return has_ident(node) and get_ident(node) == 'check-sat-assuming'
 
@@ -72,7 +72,7 @@ class InlineDefinedFuns:
 
 
 class LetElimination:
-    """Substitutes a :code:`let` expression with its body."""
+    """Substitutes a ``let`` expression with its body."""
     def filter(self, node):
         return is_operator_app(node, 'let')
 
@@ -84,7 +84,7 @@ class LetElimination:
 
 
 class LetSubstitution:
-    """Substitutes a variable bound by a :code:`let` binder into the nested
+    """Substitutes a variable bound by a ``let`` binder into the nested
     term."""
     def filter(self, node):
         return is_operator_app(node, 'let')
@@ -102,7 +102,7 @@ class LetSubstitution:
 
 
 class PushPopRemoval:
-    """Removes matching :code:`(push)(pop)` pairs.
+    """Removes matching ``(push)(pop)`` pairs.
 
     First tries successive pairs, distant ones later.
     """
@@ -137,7 +137,7 @@ class PushPopRemoval:
 
 
 class SimplifyLogic:
-    """Replaces the logic specified in :code:`(check-logic ...)` by a simpler
+    """Replaces the logic specified in ``(check-logic ...)`` by a simpler
     one."""
     def filter(self, node):
         return has_ident(node) and get_ident(node) == 'set-logic'

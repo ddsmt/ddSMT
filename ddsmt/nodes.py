@@ -5,9 +5,9 @@ import textwrap
 class Node:
     """Represents a node in the input, consisting of an id and some data.
 
-    The :code:`data` can either be a string or a tuple of nodes. The
-    :code:`id` is automatically set to a unique integer that can be used
-    for local substitutions.
+    The ``data`` can either be a string or a tuple of nodes. The ``id``
+    is automatically set to a unique integer that can be used for local
+    substitutions.
     """
     __slots__ = 'id', 'data'
     __ID_COUNTER = 0
@@ -134,7 +134,7 @@ class Node:
 
 
 def parse_smtlib(text):  # noqa: C901
-    """Parse SMT-LIB input to list of :code:`Node` objects.
+    """Parse SMT-LIB input to list of ``Node`` objects.
 
     Every node represents an s-expression. This generator yields top-
     level s-expressions (commands) or comments.
@@ -320,7 +320,7 @@ def __render_smtlib_expression_pretty(children, visit):
 
 
 def __render_smtlib_expression(expr: Node, pretty: bool = False):
-    """Convert a single :code:`Node expr` to an SMT-LIBv2 compliant string."""
+    """Convert a single ``Node expr`` to an SMT-LIBv2 compliant string."""
     visit = [(expr, False)]
     args = []
     while visit:
@@ -350,7 +350,7 @@ def __render_smtlib_expression(expr: Node, pretty: bool = False):
 
 
 def __render_smtlib(exprs):
-    """Convert :code:`exprs` to an SMT-LIBv2 compliant string."""
+    """Convert ``exprs`` to an SMT-LIBv2 compliant string."""
     return map(__render_smtlib_expression, exprs)
 
 
@@ -377,14 +377,14 @@ def write_smtlib_to_file(filename, exprs):
 
 
 def count_nodes(node):
-    """Return the number of expressions yielded when traversing :code:`node` in
-    DFS manner."""
+    """Return the number of expressions yielded when traversing ``node`` in DFS
+    manner."""
     assert isinstance(node, (Node, list))
     return len(list(dfs(node)))
 
 
 def count_exprs(node):
-    """Return the number of tuples yielded when traversing :code:`node` in DFS
+    """Return the number of tuples yielded when traversing ``node`` in DFS
     manner."""
     assert isinstance(node, (Node, list))
     return len([x for x in dfs(node) if not x.is_leaf()])

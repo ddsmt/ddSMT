@@ -4,7 +4,7 @@ from .smtlib import *
 
 
 class BVConcatToZeroExtend:
-    """Replace a :code:`concat` with zero by :code:`zero_extend`."""
+    """Replace a ``concat`` with zero by ``zero_extend``."""
     def filter(self, node):
         if not has_ident(node) or get_ident(node) != 'concat':
             return False
@@ -60,8 +60,8 @@ class BVElimBVComp:
 
 
 class BVEvalExtend:
-    """Evaluates a bit-vector :code:`(sign|zero)_extend` if it is applied to a
-    constant or another :code:`(sign|zero)_extend`."""
+    """Evaluates a bit-vector ``(sign|zero)_extend`` if it is applied to a
+    constant or another ``(sign|zero)_extend``."""
     def filter(self, node):
         return (is_indexed_operator_app(node, 'zero_extend') \
                 or is_indexed_operator_app(node, 'sign_extend')) \
@@ -82,8 +82,7 @@ class BVEvalExtend:
 
 
 class BVExtractConstants:
-    """Evaluates a bit-vector :code:`extract` if it is applied to a
-    constant."""
+    """Evaluates a bit-vector ``extract`` if it is applied to a constant."""
     def filter(self, node):
         return is_indexed_operator_app(node, 'extract') \
                and is_bv_const(node[1])
@@ -101,9 +100,8 @@ class BVExtractConstants:
 
 
 class BVExtractZeroExtend:
-    """Simplifies an :code:`extract` of a :code:`zero_extend` by pushing the
-    :code:`zero_extend` to the outside and reducing the bit-widths, if
-    possible."""
+    """Simplifies an ``extract`` of a ``zero_extend`` by pushing the
+    ``zero_extend`` to the outside and reducing the bit-widths, if possible."""
     def filter(self, node):
         return is_indexed_operator_app(node, 'extract', 2) \
                and is_indexed_operator_app(node[1], 'zero_extend')
@@ -131,8 +129,7 @@ class BVExtractZeroExtend:
 
 
 class BVOneZeroITE:
-    """Replace an :code:`ite` with :code:`bv1`/:code:`bv0` cases by
-    :code:`bvcomp`."""
+    """Replace an ``ite`` with ``bv1``/``bv0`` cases by ``bvcomp``."""
     def filter(self, node):
         if not is_operator_app(node, 'ite'):
             return False

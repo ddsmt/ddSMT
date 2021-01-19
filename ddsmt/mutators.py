@@ -29,7 +29,7 @@ def get_all_mutators():
 def get_mutators(mutators):
     """Return mutator instances from a list of names.
 
-    For each mutator class name in :code:`mutators` retrieves the proper
+    For each mutator class name in ``mutators`` retrieves the proper
     theory, checks whether the mutator is enabled and then adds an
     instance of this class to the result.
     """
@@ -57,7 +57,7 @@ def get_initialized_mutator(name, properties):
 
 def toggle_theory(namespace, theory_name, value):
     """Enables or disables all mutators for the given theory by setting their
-    respective options in :code:`namespace`."""
+    respective options in ``namespace``."""
     setattr(namespace, f'mutators_{theory_name}', value)
     _, mutators = get_all_mutators()[theory_name]
     for _, opt in mutators.items():
@@ -66,7 +66,7 @@ def toggle_theory(namespace, theory_name, value):
 
 def toggle_all_theories(namespace, value):
     """Enables or disables all mutators for all theories by setting their
-    respective options in :code:`namespace`."""
+    respective options in ``namespace``."""
     for theory_name, data in get_all_mutators().items():
         setattr(namespace, f'mutators_{theory_name}', value)
         for _, opt in data[1].items():
@@ -74,7 +74,7 @@ def toggle_all_theories(namespace, value):
 
 
 class TheoryToggleAction(options.ToggleAction):
-    """A specialization of :code:`ToggleAction` that disables (or enables) all
+    """A specialization of ``ToggleAction`` that disables (or enables) all
     mutators of a given theory."""
     def __init__(self, theory, *args, **kwargs):
         """Expects an additional option with the name of the theory."""

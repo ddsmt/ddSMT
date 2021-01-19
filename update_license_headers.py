@@ -31,7 +31,7 @@ along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
 
 def parse_options():
-    """Parse command line options into :code:`global ARGS`."""
+    """Parse command line options into ``global ARGS``."""
     global ARGS
     ap = argparse.ArgumentParser(
         usage='update_license_headers.py [<options>] <basedir>')

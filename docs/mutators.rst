@@ -25,11 +25,11 @@ A mutator class should roughly look like this:
             """Returns a description of this mutator."""
             return "dummy"
 
-Note that a mutator can work in two ways: :code:`mutations` constructs **local** replacements for a given node. :code:`global_mutations` on the other hand constructs **global** replacements for the whole input, given both a specific node and the current input. The idea for the latter is that some node (:code:`linput`) triggers a simplification that needs to be applied to the whole input (:code:`ginput`) at once, for example variable renaming or simplification of constants that occur multiple times.
+Note that a mutator can work in two ways: ``mutations`` constructs **local** replacements for a given node. ``global_mutations`` on the other hand constructs **global** replacements for the whole input, given both a specific node and the current input. The idea for the latter is that some node (``linput``) triggers a simplification that needs to be applied to the whole input (``ginput``) at once, for example variable renaming or simplification of constants that occur multiple times.
 
 Below follows a list of all available mutators, grouped by their main concern: generic mutators that work on the node structure, SMT-LIB mutators that deal with certain SMT-LIB constructs, and mutators for individual SMT-LIB theories.
 
-Most mutators can be enabled or disabled using options of the form :code:`--<mutator>` or :code:`--no-<mutator>` (like :code:`--no-constants`), most are enabled by default. The same is possible for all mutators from a group with :code:`--<group>` or :code:`--no-<group>` (like :code:`--no-generic`).
+Most mutators can be enabled or disabled using options of the form ``--<mutator>`` or ``--no-<mutator>`` (like ``--no-constants``), most are enabled by default. The same is possible for all mutators from a group with ``--<group>`` or ``--no-<group>`` (like ``--no-generic``).
 
 Generic mutators
 ----------------
@@ -72,10 +72,10 @@ If you need a certain simplification that is not covered by the existing mutator
 
 Some guidelines for the implementation:
 
-- Use the above :code:`Dummy` class as a template.
-- Add your code to the corresponding :code:`mutators_<theory>.py` file.
-- Register your mutator in the :code:`get_mutators` function towards the end of the file.
+- Use the above ``Dummy`` class as a template.
+- Add your code to the corresponding ``mutators_<theory>.py`` file.
+- Register your mutator in the ``get_mutators`` function towards the end of the file.
 - Make sure your mutator is reasonably fast.
-- Make sure to return a list of :code:`nodes.Node` objects.
-- If your mutator returns a large number of candidates, avoid returning them as a list from :code:`mutations` and :code:`global_mutations`. Instead use :code:`yield` to turn your mutator into a generator.
-- Add some unit tests (in ``ddsmt/tests/``). For your own sanity, test at least that it does what you expect and does not apply to unrelated nodes (i.e. :code:`filter` returns :code:`False`).
+- Make sure to return a list of ``nodes.Node`` objects.
+- If your mutator returns a large number of candidates, avoid returning them as a list from ``mutations`` and ``global_mutations``. Instead use ``yield`` to turn your mutator into a generator.
+- Add some unit tests (in ``ddsmt/tests/``). For your own sanity, test at least that it does what you expect and does not apply to unrelated nodes (i.e. ``filter`` returns ``False``).

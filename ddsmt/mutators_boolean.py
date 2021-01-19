@@ -49,7 +49,7 @@ class BoolDoubleNegation:
 
 
 class BoolEliminateFalseEquality:
-    """Replace an equality with :code:`false` by a negation."""
+    """Replace an equality with ``false`` by a negation."""
     def filter(self, node):
         return is_eq(node) and Node('false') in node
 
@@ -95,7 +95,7 @@ class BoolNegateQuantifier:
 
 
 class BoolXOREliminateBinary:
-    """Eliminate binary :code:`xor` by :code:`distinct`."""
+    """Eliminate binary ``xor`` by ``distinct``."""
     def filter(self, node):
         return is_operator_app(node, 'xor') and len(node) == 3
 
@@ -107,7 +107,7 @@ class BoolXOREliminateBinary:
 
 
 class BoolXORRemoveConstant:
-    """Eliminate constant children from :code:`xor`."""
+    """Eliminate constant children from ``xor``."""
     def filter(self, node):
         return is_operator_app(node, 'xor')
 

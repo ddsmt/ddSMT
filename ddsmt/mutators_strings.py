@@ -24,7 +24,7 @@ class StringSimplifyConstant:
 
 
 class StringReplaceAll:
-    """Replace :code:`str.replace_all` by a simple :code:`str.replace`."""
+    """Replace ``str.replace_all`` by a simple ``str.replace``."""
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.replace_all'
 
@@ -36,7 +36,7 @@ class StringReplaceAll:
 
 
 class StringIndexOfNotFound:
-    """Replace :code:`str.indexof` by special value :code:`(- 1)`."""
+    """Replace ``str.indexof`` by special value ``(- 1)``."""
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.indexof'
 
@@ -48,7 +48,7 @@ class StringIndexOfNotFound:
 
 
 class StringContainsToConcat:
-    """Replace :code:`str.contains` by concatenation."""
+    """Replace ``str.contains`` by concatenation."""
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.contains'
 

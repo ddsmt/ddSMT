@@ -6,8 +6,8 @@ from . import version
 
 
 class ToggleAction(argparse.Action):
-    """A simple :code:`argparse.Action` class that is used for option pairs of
-    the form :code:`--option` and :code:`--no-option`."""
+    """A simple ``argparse.Action`` class that is used for option pairs of the
+    form ``--option`` and ``--no-option``."""
     def __init__(self, opt_name, default=True, dest=None, help=None):
         super(ToggleAction,
               self).__init__([f'--{opt_name}', f'--no-{opt_name}'],
@@ -29,11 +29,10 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
                       argparse.HelpFormatter):
     """A custom formatter for printing the commandline help.
 
-    Uses :code:`argparse.ArgumentDefaultsHelpFormatter` to print default
-    values, but avoids printing for :code:`ToggleAction` options and
-    :code:`None` defaults. Furthermore uses the
-    :code:`argparse.HelpFormatter`, to slightly increase the width
-    reserved for the options.
+    Uses ``argparse.ArgumentDefaultsHelpFormatter`` to print default
+    values, but avoids printing for ``ToggleAction`` options and
+    ``None`` defaults. Furthermore uses the ``argparse.HelpFormatter``,
+    to slightly increase the width reserved for the options.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, max_help_position=35)
@@ -49,7 +48,7 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
 
     def _format_action_invocation(self, action):
         """Formats the options for the help page, uses a special formatting for
-        :code:`ToggleAction` options."""
+        ``ToggleAction`` options."""
         if isinstance(action, ToggleAction):
             name = action.option_strings[0][2:]
             return ', '.join([f'--[no-]{name}'] + action.option_strings[2:])
@@ -57,7 +56,7 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
 
 
 class DumpConfigAction(argparse.Action):
-    """Dump the current config using :code:`pprint`."""
+    """Dump the current config using ``pprint``."""
     def __call__(self, parser, namespace, values, option_string=None):
         import pprint
         pprint.pprint(vars(namespace))
@@ -181,7 +180,7 @@ __PARSED_ARGS = None
 def args():
     """Returns the commandline options.
 
-    Calls :code:`parse_options()` if parsing has not yet happened.
+    Calls ``parse_options()`` if parsing has not yet happened.
     """
     global __PARSED_ARGS
     if __PARSED_ARGS is None:

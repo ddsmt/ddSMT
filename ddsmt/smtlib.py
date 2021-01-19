@@ -70,10 +70,10 @@ def reset_information():
 
 
 def get_variables_with_sort(var_sort):
-    """Return all variables with the sort :code:`var_sort`.
+    """Return all variables with the sort ``var_sort``.
 
     Requires that global information has been populated via
-    :code:`collect_information`.
+    ``collect_information``.
     """
     return [v for v in __sort_lookup if __sort_lookup[v] == var_sort]
 
@@ -81,10 +81,10 @@ def get_variables_with_sort(var_sort):
 def introduce_variables(exprs, vars):
     """Adds new variables to a set of input expressions.
 
-    Expects :code:`vars` to contain declaration commands (like
-    :code:`declare-fun`). Inserts the variables into :code:`exprs`
-    before the first SMT-LIB command that is not `set-info`, `set-logic`
-    or a constant/function/variable declaration.
+    Expects ``vars`` to contain declaration commands (like ``declare-
+    fun``). Inserts the variables into ``exprs`` before the first SMT-
+    LIB command that is not `set-info`, `set-logic` or a
+    constant/function/variable declaration.
     """
     pos = 0
     while pos < len(exprs):
@@ -101,12 +101,11 @@ def introduce_variables(exprs, vars):
 
 
 def substitute_vars_except_decl(exprs, repl):
-    """
-    Perform the given variable substitution anywhere it occurs except in
-    declaration commands :code:`declare-const`, :code:`declare-fun`,
-    :code:`define-fun`.
-    If there was no substitution to be done (i.e. the result is still `exprs`),
-    return `None`.
+    """Perform the given variable substitution anywhere it occurs except in
+    declaration commands ``declare-const``, ``declare-fun``, ``define-fun``.
+
+    If there was no substitution to be done (i.e. the result is still
+    `exprs`), return `None`.
     """
     res = []
     did_change = False
@@ -128,39 +127,38 @@ def substitute_vars_except_decl(exprs, repl):
 
 
 def is_leaf(node):
-    """Check whether the :code:`node` is a leaf node."""
+    """Check whether the ``node`` is a leaf node."""
     return node.is_leaf()
 
 
 def is_var(node):
-    """Return true if :code:`node` is a variable (first order constant) node.
+    """Return true if ``node`` is a variable (first order constant) node.
 
     Requires that global information has been populated via
-    :code:`collect_information`.
+    ``collect_information``.
     """
     return node.is_leaf() and node in __constants
 
 
 def has_ident(node):
-    """Check whether the :code:`node` has a name, that is its first child is a
-    leaf node."""
+    """Check whether the ``node`` has a name, that is its first child is a leaf
+    node."""
     return not node.is_leaf() and not node == () and is_leaf(node[0])
 
 
 def get_ident(node):
-    """Get the name of the :code:`node`, asserting that
-    :code:`has_ident(node)`."""
+    """Get the name of the ``node``, asserting that ``has_ident(node)``."""
     assert has_ident(node)
     return node[0]
 
 
 def is_piped_symbol(node):
-    """Checks whether the :code:`node` is a quoted symbol."""
+    """Checks whether the ``node`` is a quoted symbol."""
     return node.is_leaf() and node[0] == '|' and node[-1] == '|'
 
 
 def get_piped_symbol(node):
-    """Returns the actual symbol name from a quoted symbol :code:`node`."""
+    """Returns the actual symbol name from a quoted symbol ``node``."""
     assert is_piped_symbol(node)
     return Node(node[1:-1])
 
@@ -170,8 +168,8 @@ def is_operator_app(node, name):
 
 
 def is_indexed_operator(node, name, index_count=1):
-    """Return true if :code:`node` is an indexed operator :code:`name` and the
-    given number of indices matches :code:`index_count`."""
+    """Return true if ``node`` is an indexed operator ``name`` and the given
+    number of indices matches ``index_count``."""
     if node.is_leaf() or len(node) < 2:
         return False
     if has_ident(node) and get_ident(node) != '_':
@@ -186,7 +184,7 @@ def is_indexed_operator_app(node, name, index_count=1):
 
 
 def has_nary_operator(node):
-    """Check whether :code:`node` is an application of an n-ary operator."""
+    """Check whether ``node`` is an application of an n-ary operator."""
     if node.is_leaf() or not has_ident(node):
         return False
     return get_ident(node) in [
@@ -218,19 +216,19 @@ def has_nary_operator(node):
 
 
 def is_const(node):
-    """Return true if :code:`node` is a constant value."""
+    """Return true if ``node`` is a constant value."""
     return is_bool_const(node) or is_arith_const(node) or is_int_const(
         node) or is_real_const(node) or is_string_const(node) or is_bv_const(
             node)
 
 
 def is_eq(node):
-    """Checks whether :code:`node` is an equality."""
+    """Checks whether ``node`` is an equality."""
     return has_ident(node) and get_ident(node) == '='
 
 
 def get_constants(sort):
-    """Return a list of default constants for the given :code:`sort`."""
+    """Return a list of default constants for the given ``sort``."""
     if sort == 'Bool':
         return [Node('false'), Node('true')]
     if sort == 'Int':
@@ -248,9 +246,8 @@ def get_constants(sort):
 def get_sort(node):
     """Get the sort of the given node.
 
-    Return :code:`None` if it can not be inferred.
-    Requires that global information has been populated via
-    :code:`collect_information`.
+    Return ``None`` if it can not be inferred. Requires that global
+    information has been populated via ``collect_information``.
     """
     if node.is_leaf() and node.data in __sort_lookup:
         return __sort_lookup[node.data]
@@ -395,7 +392,7 @@ def get_indices(node, name, index_count=1):
 
 
 def is_bool_const(node):
-    """Return true if :code:`node` is a Boolean constant."""
+    """Return true if ``node`` is a Boolean constant."""
     return node.is_leaf() and node.data in ['false', 'true']
 
 
@@ -403,7 +400,7 @@ def is_bool_const(node):
 
 
 def is_arith_const(node):
-    """Return true if :code:`node` is an arithmetic constant."""
+    """Return true if ``node`` is an arithmetic constant."""
     if has_ident(node) and get_ident(node) == '/' and len(node) == 3:
         return is_int_const(node[1]) and is_int_const(node[2])
     return node.is_leaf() \
@@ -411,12 +408,12 @@ def is_arith_const(node):
 
 
 def is_int_const(node):
-    """Return true if :code:`node` is an int constant."""
+    """Return true if ``node`` is an int constant."""
     return node.is_leaf() and re.match('^[0-9]+$', node.data) is not None
 
 
 def is_real_const(node):
-    """Return true if :code:`node` is a real constant."""
+    """Return true if ``node`` is a real constant."""
     if has_ident(node) and get_ident(node) == '/' and len(node) == 3:
         return is_int_const(node[1]) and is_int_const(node[2])
     return node.is_leaf() \
@@ -427,7 +424,7 @@ def is_real_const(node):
 
 
 def is_bv_sort(node):
-    """Return true if :code:`node` is a bit-vector sort."""
+    """Return true if ``node`` is a bit-vector sort."""
     if node.is_leaf() or len(node) != 3:
         return False
     if not has_ident(node) or get_ident(node) != '_':
@@ -436,7 +433,7 @@ def is_bv_sort(node):
 
 
 def is_bv_const(node):
-    """Return true if :code:`node` is a bit-vector constant."""
+    """Return true if ``node`` is a bit-vector constant."""
     if node.is_leaf():
         s = node.data
         if s.startswith('#b'):
@@ -454,26 +451,25 @@ def is_bv_const(node):
 
 
 def is_bv_comp(node):
-    """Checks whether :code:`node` is a bit-vector comparison."""
+    """Checks whether ``node`` is a bit-vector comparison."""
     return has_ident(node) and get_ident(node) == 'bvcomp'
 
 
 def is_bv_not(node):
-    """Checks whether :code:`node` is a bit-vector bit-wise negation."""
+    """Checks whether ``node`` is a bit-vector bit-wise negation."""
     return has_ident(node) and get_ident(node) == 'bvnot'
 
 
 def is_bv_neg(node):
-    """Checks whether :code:`node` is a bit-vector negation."""
+    """Checks whether ``node`` is a bit-vector negation."""
     return has_ident(node) and get_ident(node) == 'bvneg'
 
 
 def get_bv_width(node):
     """Return the bit-width of a bit-vector node.
 
-    Asserts that :code:`node` is a bit-vector node.
-    Requires that global information has been populated via
-    :code:`collect_information`.
+    Asserts that ``node`` is a bit-vector node. Requires that global
+    information has been populated via ``collect_information``.
     """
     if is_bv_const(node):
         if node.is_leaf():
@@ -540,10 +536,8 @@ def get_bv_width(node):
 
 
 def get_bv_constant_value(node):
-    """
-    Assume that node is a bit-vector constant and return
-    :code:`(value, bit-width)`.
-    """
+    """Assume that node is a bit-vector constant and return ``(value, bit-
+    width)``."""
     assert is_bv_const(node)
     if node.is_leaf():
         if node.data.startswith('#b'):
@@ -557,7 +551,7 @@ def get_bv_constant_value(node):
 
 
 def is_fp_sort(node):
-    """Return true if :code:`node` is a floating-point sort."""
+    """Return true if ``node`` is a floating-point sort."""
     if is_leaf(node) \
        and str(node).startswith('Float') \
        and node[5:] in ['16', '32', '64', '128']:
@@ -571,10 +565,10 @@ def is_fp_sort(node):
 
 
 def is_defined_fun(node):
-    """Check whether :code:`node` is a defined function.
+    """Check whether ``node`` is a defined function.
 
     Requires that global information has been populated via
-    :code:`collect_information`.
+    ``collect_information``.
     """
     if node.is_leaf():
         return node in __defined_functions
@@ -582,12 +576,11 @@ def is_defined_fun(node):
 
 
 def get_defined_fun(node):
-    """Return the defined function :code:`node`, instantiated with the
-    arguments of :code:`node` if necessary.
+    """Return the defined function ``node``, instantiated with the arguments of
+    ``node`` if necessary.
 
-    Assumes :code:`is_defined_fun(node)`.
-    Requires that global information has been populated via
-    :code:`collect_information`.
+    Assumes ``is_defined_fun(node)``. Requires that global information
+    has been populated via ``collect_information``.
     """
     assert is_defined_fun(node)
     if node.is_leaf():
@@ -599,7 +592,7 @@ def get_defined_fun(node):
 
 
 def is_set_sort(node):
-    """Return true if :code:`node` is a set sort."""
+    """Return true if ``node`` is a set sort."""
     if node.is_leaf() or len(node) != 2:
         return False
     if not has_ident(node) or get_ident(node) != 'Set':
@@ -611,5 +604,5 @@ def is_set_sort(node):
 
 
 def is_string_const(node):
-    """Checks whether the :code:`node` is a string constant."""
+    """Checks whether the ``node`` is a string constant."""
     return node.is_leaf() and re.match('^\"[^\"]*\"$', node.data) is not None
