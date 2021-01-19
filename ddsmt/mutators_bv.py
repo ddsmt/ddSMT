@@ -36,7 +36,7 @@ class BVDoubleNegation:
 
 
 class BVElimBVComp:
-    """Replace bvcomp by a regular equality."""
+    """Replace ``bvcomp`` with a constant by a regular equality."""
     def filter(self, node):
         return is_eq(node) \
                and is_bv_const(node[1]) \
@@ -167,7 +167,7 @@ class BVReflexiveNand:
 
 
 class BVSimplifyConstant:
-    """Replace a constant by a simpler version (smaller value)."""
+    """Replace a bit-vector constant by a simpler constant of smaller value."""
     def filter(self, node):
         return is_bv_const(node) \
                and get_bv_constant_value(node)[0] not in [0, 1]
@@ -190,7 +190,11 @@ class BVSimplifyConstant:
 
 
 class BVTransformToBool:
-    """Turn BV constructs into Boolean constructs."""
+    """Turn bit-vector operators into Boolean operators.
+
+    For example, transform ``(= bv1 (bvor X Y))`` into ``(or (= bv1 X)
+    (= bv1 Y))``.
+    """
     def filter(self, node):
         return has_ident(node) \
                and get_ident(node) == '=' \
@@ -265,7 +269,7 @@ class BVMergeReducedBW:
         (define-fun _w () (_ BitVec Y) ((_ zero_extend N) __w))
         (define-fun w () (_ BitVec X) ((_ zero_extend M+N) __w))
 
-    Obsolete define-fun expressions will be removed later on.
+    Obsolete ``define-fun`` expressions will be removed later on.
     """
     def filter(self, node):
         return has_ident(node) \

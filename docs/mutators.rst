@@ -13,7 +13,7 @@ A mutator class should roughly look like this:
     class Dummy:
         def filter(self, node):
             """Check whether this mutators can be applied to the given node.
-            If not specified, we use `True`"""
+            If not specified, we use ``True``"""
             return True
         def mutations(self, node):
             """Create a list of mutations of the given node."""

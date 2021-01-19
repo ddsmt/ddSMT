@@ -34,7 +34,7 @@ class ArithmeticNegateRelation:
 
 
 class ArithmeticSimplifyConstant:
-    """Replace a constant by a simpler version (smaller or fewer decimal
+    """Replace a constant by a simpler constant (smaller or fewer decimal
     places)."""
     def filter(self, node):
         return is_arith_const(node) and float(node.data) not in [0, 1]
@@ -57,7 +57,8 @@ class ArithmeticSimplifyConstant:
 
 
 class ArithmeticSplitNaryRelation:
-    """Split n-ary relation using transitivity."""
+    """Split an n-ary relation into the conjunction of multiple relations,
+    assuming the relation symbol is transitive."""
     def filter(self, node):
         return is_arithmetic_relation(node) and len(node) > 3
 
@@ -72,7 +73,8 @@ class ArithmeticSplitNaryRelation:
 
 
 class ArithmeticStrengthenRelation:
-    """Replace a relation by a stronger relation."""
+    """Replace a relation by a stronger relation, for example transform ``>=``
+    to ``>``."""
     def filter(self, node):
         return is_arithmetic_relation(node) and node.get_ident() in [
             '<', '>', '<=', '>='

@@ -49,7 +49,10 @@ class BoolDoubleNegation:
 
 
 class BoolEliminateFalseEquality:
-    """Replace an equality with ``false`` by a negation."""
+    """Replace an equality with ``false`` by a negation.
+
+    For example, transform ``(= false X)`` into ``(not X)``.
+    """
     def filter(self, node):
         return is_eq(node) and Node('false') in node
 

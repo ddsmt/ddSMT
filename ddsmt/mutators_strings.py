@@ -2,7 +2,7 @@ from .smtlib import *
 
 
 class StringSimplifyConstant:
-    """Replace a string constant by a shorter version."""
+    """Replace a string constant by a shorter constant."""
     def filter(self, node):
         return is_string_const(node) and node != '""'
 
@@ -24,7 +24,7 @@ class StringSimplifyConstant:
 
 
 class StringReplaceAll:
-    """Replace ``str.replace_all`` by a simple ``str.replace``."""
+    """Replace ``str.replace_all`` by ``str.replace``."""
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.replace_all'
 
@@ -36,7 +36,8 @@ class StringReplaceAll:
 
 
 class StringIndexOfNotFound:
-    """Replace ``str.indexof`` by special value ``(- 1)``."""
+    """Replace ``str.indexof`` by special value ``(- 1)`` indicating that the
+    substring was not found."""
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.indexof'
 

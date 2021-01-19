@@ -83,7 +83,7 @@ def introduce_variables(exprs, vars):
 
     Expects ``vars`` to contain declaration commands (like ``declare-
     fun``). Inserts the variables into ``exprs`` before the first SMT-
-    LIB command that is not `set-info`, `set-logic` or a
+    LIB command that is not ``set-info``, ``set-logic`` or a
     constant/function/variable declaration.
     """
     pos = 0
@@ -105,7 +105,7 @@ def substitute_vars_except_decl(exprs, repl):
     declaration commands ``declare-const``, ``declare-fun``, ``define-fun``.
 
     If there was no substitution to be done (i.e. the result is still
-    `exprs`), return `None`.
+    ``exprs``), return ``None``.
     """
     res = []
     did_change = False

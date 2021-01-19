@@ -4,7 +4,8 @@ from .smtlib import *
 
 
 class CheckSatAssuming:
-    """Replaces a ``check-sat-assuming`` by a regular ``check-sat``."""
+    """Replaces a ``check-sat-assuming`` by a regular ``check-sat``, discarding
+    the assumption."""
     def filter(self, node):
         return has_ident(node) and get_ident(node) == 'check-sat-assuming'
 
@@ -16,10 +17,12 @@ class CheckSatAssuming:
 
 
 class EliminateVariable:
-    """Eliminate a variable using an equality.
+    """Eliminate a variable using an equality with this variable.
 
     Tries to globally replace every leaf node from an equality by every
-    other node from the same equality.
+    other node from the same equality. For example, for ``(= x (* a b)
+    (+ c d))`` the variable ``x`` is replaced by either ``(* a b)`` or
+    ``(+ c d)``.
     """
     def filter(self, node):
         return is_eq(node) and any(map(lambda n: n.is_leaf(), node[1:]))
@@ -90,9 +93,10 @@ class LetSubstitution:
 
 
 class PushPopRemoval:
-    """Removes matching ``(push)(pop)`` pairs.
+    """Remove matching ``(push)(pop)`` pairs.
 
-    First tries successive pairs, distant ones later.
+    Start with directly consecutive pairs, then attempt to remove more
+    distant ones.
     """
     def global_mutations(self, linput, ginput):
         if linput != ginput[0]:
@@ -133,7 +137,19 @@ class SimplifyLogic:
     def mutations(self, node):
         logic = node[1]
         cands = []
-        repls = {'BV': '', 'FP': '', 'UF': '', 'S': '', 'T': '', 'NRA': 'LRA'}
+        repls = {
+            'BV': '',
+            'FP': '',
+            'UF': '',
+            'S': '',
+            'T': '',
+            'NRA': 'LRA',
+            'LRA': '',
+            'NIA': 'LIA',
+            'LIA': '',
+            'NIRA': 'LIRA',
+            'LIRA': 'LRA'
+        }
         for r in repls:
             if r in logic:
                 assert logic.is_leaf()
@@ -161,7 +177,11 @@ class SimplifyQuotedSymbols:
 
 
 class SimplifySymbolNames:
-    """Simplify variable names."""
+    """Simplify variable names by making them smaller.
+
+    Should only have cosmetic impact, unless two variable names change
+    their order enabling :class:`ddsmt.mutators_core.ReplaceByVariable`.
+    """
     def filter(self, node):
         return has_ident(node) and get_ident(node) in [
             'declare-const', 'declare-datatypes', 'declare-fun',

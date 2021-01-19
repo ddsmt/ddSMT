@@ -24,7 +24,11 @@ class Constants:
 
 
 class EraseNode:
-    """Erase nodes optionally with a specified identifier ``ident``."""
+    """Erase any given node.
+
+    If additionally ``self.ident`` is set, only erases nodes with this
+    identifier.
+    """
     def filter(self, node):
         if not hasattr(self, 'ident'):
             return True
@@ -71,7 +75,15 @@ class ReplaceByChild:
 
 
 class ReplaceByVariable:
-    """Replaces a node by a variable."""
+    """Replace a node by another variable of the same type.
+
+    Note that replacing variables by other variables potentially
+    introduces cycles. To avoid this, we only substitute non-leaf nodes
+    (and thus the input shrinks) or we substitute with variables that
+    are lexicographically smaller than the current node. If ``--replace-
+    by-variable-mode=dec`` is given (the default is ``inc``), we instead
+    replace with lexicograpically larger variables.
+    """
     def filter(self, node):
         return not is_const(node)
 
@@ -96,7 +108,7 @@ class ReplaceByVariable:
 
 
 class SortChildren:
-    """Sorts the children of a node."""
+    """Sort the children of a node by their size (the count of sub-nodes)."""
     def filter(self, node):
         return not is_leaf(node)
 
@@ -112,10 +124,11 @@ class SortChildren:
 
 
 class TopLevelBinaryReduction:
-    """Performs binary reduction on the top level node.
-
-    Essentially mimics line based reduction.
-    """
+    """Performs binary reduction on the top level node, essentially mimicing
+    what the ``ddmin`` strategy would do with
+    :class:`ddsmt.mutators_core.EraseNode`.
+    If additionally ``self.ident`` is set, only nodes with the specified
+    identifier are considered."""
     def global_mutations(self, linput, ginput):
         if linput != ginput[0]:
             return []

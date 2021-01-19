@@ -88,7 +88,7 @@ def _subst(exprs, subset, mutator):
             if mexprs is not exprs:  # Only perform checks if exprs changed
                 res.append(mexprs)
     # Granularity > 1: Pick first mutation and perform parallel substitution of
-    # nodes in `subset`.
+    # nodes in ``subset``.
     else:
         substs = dict()
         for node in subset:
