@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 #
+import inspect
 import os
 import subprocess
 import sys
@@ -96,3 +97,16 @@ html_static_path = []
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'pydoc'
+
+
+def autodoc_mutators_skip_member(app, what, name, obj, skip, options):
+    if what == 'module':
+        if hasattr(
+                obj,
+                '__module__') and obj.__module__.startswith('ddsmt.mutators_'):
+            return not inspect.isclass(obj)
+    return skip
+
+
+def setup(app):
+    app.connect('autodoc-skip-member', autodoc_mutators_skip_member)

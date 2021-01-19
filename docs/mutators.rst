@@ -33,69 +33,32 @@ Most mutators can be enabled or disabled using options of the form :code:`--<mut
 
 Generic mutators
 ----------------
-
-.. autoclass:: ddsmt.mutators_core.Constants
-.. autoclass:: ddsmt.mutators_core.EraseNode
-.. autoclass:: ddsmt.mutators_core.MergeWithChildren
-.. autoclass:: ddsmt.mutators_core.ReplaceByVariable
-.. autoclass:: ddsmt.mutators_core.SortChildren
-.. autoclass:: ddsmt.mutators_core.ReplaceByChild
-.. autoclass:: ddsmt.mutators_core.TopLevelBinaryReduction
+.. automodule:: ddsmt.mutators_core
 
 Arithmetic mutators
 -------------------
-.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticSimplifyConstant
-.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticNegateRelation
-.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticSplitNaryRelation
-.. autoclass:: ddsmt.mutators_arithmetic.ArithmeticStrengthenRelation
+.. automodule:: ddsmt.mutators_arithmetic
+
 
 Bit-vector mutators
 -------------------
-.. autoclass:: ddsmt.mutators_bv.BVConcatToZeroExtend
-.. autoclass:: ddsmt.mutators_bv.BVDoubleNegation
-.. autoclass:: ddsmt.mutators_bv.BVElimBVComp
-.. autoclass:: ddsmt.mutators_bv.BVEvalExtend
-.. autoclass:: ddsmt.mutators_bv.BVExtractConstants
-.. autoclass:: ddsmt.mutators_bv.BVExtractZeroExtend
-.. autoclass:: ddsmt.mutators_bv.BVMergeReducedBW
-.. autoclass:: ddsmt.mutators_bv.BVOneZeroITE
-.. autoclass:: ddsmt.mutators_bv.BVReflexiveNand
-.. autoclass:: ddsmt.mutators_bv.BVSimplifyConstant
-.. autoclass:: ddsmt.mutators_bv.BVTransformToBool
-.. autoclass:: ddsmt.mutators_bv.BVReduceBW
+.. automodule:: ddsmt.mutators_bv
 
 Boolean mutators
 ----------------
-.. autoclass:: ddsmt.mutators_boolean.BoolDeMorgan
-.. autoclass:: ddsmt.mutators_boolean.BoolDoubleNegation
-.. autoclass:: ddsmt.mutators_boolean.BoolEliminateFalseEquality
-.. autoclass:: ddsmt.mutators_boolean.BoolEliminateImplication
-.. autoclass:: ddsmt.mutators_boolean.BoolNegateQuantifier
-.. autoclass:: ddsmt.mutators_boolean.BoolXOREliminateBinary
-.. autoclass:: ddsmt.mutators_boolean.BoolXORRemoveConstant
+.. automodule:: ddsmt.mutators_boolean
 
 Floating-Point mutators
 -----------------------
-.. autoclass:: ddsmt.mutators_fp.FPShortSort
+.. automodule:: ddsmt.mutators_fp
 
 SMT-LIB mutators
 ----------------
-.. autoclass:: ddsmt.mutators_smtlib.CheckSatAssuming
-.. autoclass:: ddsmt.mutators_smtlib.EliminateDistinct
-.. autoclass:: ddsmt.mutators_smtlib.InlineDefinedFuns
-.. autoclass:: ddsmt.mutators_smtlib.LetElimination
-.. autoclass:: ddsmt.mutators_smtlib.LetSubstitution
-.. autoclass:: ddsmt.mutators_smtlib.PushPopRemoval
-.. autoclass:: ddsmt.mutators_smtlib.SimplifyLogic
-.. autoclass:: ddsmt.mutators_smtlib.SimplifyQuotedSymbols
-.. autoclass:: ddsmt.mutators_smtlib.SimplifySymbolNames
+.. automodule:: ddsmt.mutators_smtlib
 
 String mutators
 ---------------
-.. autoclass:: ddsmt.mutators_strings.StringContainsToConcat
-.. autoclass:: ddsmt.mutators_strings.StringIndexOfNotFound
-.. autoclass:: ddsmt.mutators_strings.StringReplaceAll
-.. autoclass:: ddsmt.mutators_strings.StringSimplifyConstant
+.. automodule:: ddsmt.mutators_strings
 
 
 Writing new mutators
