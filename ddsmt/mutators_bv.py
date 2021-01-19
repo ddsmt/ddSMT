@@ -143,20 +143,26 @@ class BVExtractZeroExtend:
         return 'simplify bit-vector extract on zero_extend'
 
 
-class BVOneZeroITE:
-    """Replace an ``ite`` with ``bv1``/``bv0`` cases by ``bvcomp``."""
+class BVIteToBVComp:
+    """Replace an ``ite`` of bit-width one with ``bvcomp``.
+
+    Requires that global information has been populated via
+    ``collect_information``.
+    """
     def filter(self, node):
         if not is_operator_app(node, 'ite'):
             return False
         if not has_ident(node[1]) \
            or get_ident(node[1]) != '=' \
-           or len(node[1]) != 3:
+           or len(node[1]) != 3 \
+           or get_sort(node[1][1]) == None \
+           or not is_bv_sort(get_sort(node[1][1])):
             return False
         if not is_bv_const(node[2]) \
-           or get_bv_constant_value(node[2]) != (1, '1'):
+           or get_bv_constant_value(node[2]) != (1, 1):
             return False
         if not is_bv_const(node[3]) \
-           or get_bv_constant_value(node[3]) != (0, '1'):
+           or get_bv_constant_value(node[3]) != (0, 1):
             return False
         return True
 
@@ -326,7 +332,7 @@ def get_mutators():
         'BVExtractConstants': 'bv-eval-extract',
         'BVExtractZeroExtend': 'bv-extract-zeroextend',
         'BVMergeReducedBW': 'bv-merge-reduced-bw',
-        'BVOneZeroITE': 'bv-ite-to-bvcomp',
+        'BVIteToBVComp': 'bv-ite-to-bvcomp',
         'BVReflexiveNand': 'bv-reflexive-nand',
         'BVSimplifyConstant': 'bv-constants',
         'BVTransformToBool': 'bv-to-bool',

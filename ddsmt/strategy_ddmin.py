@@ -46,7 +46,7 @@ def ddmin_passes():
             'BVElimBVComp',
             'BVEvalExtend',
             'BVExtractConstants',
-            'BVOneZeroITE',
+            'BVIteToBVComp',
             'BVReflexiveNand',
             'BVSimplifyConstant',
             'BVTransformToBool',

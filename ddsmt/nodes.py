@@ -62,7 +62,7 @@ class Node:
             return self.is_leaf() and self.data == other
         if isinstance(other, tuple):
             return not self.is_leaf() and self.data == other
-        return self.data == other.data
+        return isinstance(other, Node) and self.data == other.data
 
     def __hash__(self):
         return hash(self.data)

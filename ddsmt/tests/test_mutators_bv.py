@@ -159,8 +159,27 @@ def test_bv_extract_zero_extend():
     smtlib.reset_information()
 
 
+def test_bv_ite_to_bvcomp():
+    m = mutators_bv.BVIteToBVComp()
+    assert not m.filter(Node('x'))
+    assert not m.filter(Node('=', 'x', 'y'))
+    assert not m.filter(Node('ite', 'c', 'x', 'y'))
+    assert not m.filter(Node('ite', ('=', 'z', 'z'), '#b1', '#b0'))
+    assert not m.filter(Node('ite', ('=', 'x', 'y'), '#b1', '#b0'))
+    declx = Node('declare-const', 'x', ('_', 'BitVec', 4))
+    decly = Node('declare-const', 'y', ('_', 'BitVec', 4))
+    declz = Node('declare-const', 'z', 'Int')
+    ite = Node('ite', ('=', 'x', 'y'), '#b1', '#b0')
+    exprs = [declx, decly, declz, ite]
+    smtlib.collect_information(exprs)
+    assert not m.filter(Node('ite', ('=', 'z', 'z'), '#b1', '#b0'))
+    assert not m.filter(Node('ite', ('=', 'x', 'y'), '#b11', '#b01'))
+    assert m.filter(ite)
+    assert m.mutations(ite) == [Node('bvcomp', 'x', 'y')]
+    smtlib.reset_information()
+
+
 # TODO
-#class BVOneZeroITE:
 #class BVReflexiveNand:
 #class BVSimplifyConstant:
 #class BVTransformToBool:
