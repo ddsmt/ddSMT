@@ -28,22 +28,27 @@ def collect_information(exprs):
         if name == 'declare-const':
             if not len(cmd) == 3:
                 continue
-            assert is_leaf(cmd[1])
+            if not cmd[1].is_leaf():
+                continue
             __constants[cmd[1].data] = cmd[2]
             __sort_lookup[cmd[1].data] = cmd[2]
         if name == 'declare-fun':
             if not len(cmd) == 4:
                 continue
-            assert cmd[1].is_leaf()
-            assert not is_leaf(cmd[2])
+            if not cmd[1].is_leaf():
+                continue
+            if cmd[2].is_leaf():
+                continue
             if cmd[2] == tuple():
                 __constants[cmd[1].data] = cmd[2]
             __sort_lookup[cmd[1].data] = cmd[3]
         if name == 'define-fun':
             if not len(cmd) == 5:
                 continue
-            assert is_leaf(cmd[1])
-            assert not is_leaf(cmd[2])
+            if not cmd[1].is_leaf():
+                continue
+            if cmd[2].is_leaf():
+                continue
             if cmd[2] == tuple():
                 __constants[cmd[1]] = cmd[2]
             __defined_functions[
