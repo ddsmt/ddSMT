@@ -12,7 +12,7 @@ The ``ddmin`` strategy
 
 
 The ``hierarchical`` strategy
-------------------------
+-----------------------------
 
 At its core, this strategy uses a depth-first traversal of the input and applies all mutators locally to the current node. This allows for multiple mutators to work simultaneously on the same node and thus a fast collaboration of multiple mutators.
 

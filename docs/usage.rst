@@ -16,22 +16,18 @@ For such a case, ddSMT is executed as follows:
 
     $ ddsmt input.smt2 bin/solver --option
 
-ddSMT provides options that cover many common use cases. Please consult ``ddsmt --help`` for a full list.
+ddSMT provides many options that cover common use cases, consult :ref:`Full option listing` for an exhaustive list. The following is a list of the most commonly used options:
 
-* ``--timeout`` imposes a custom time limit (in seconds).
+* ``--jobs`` (or ``-j``) sets the number of processes allows to run in parallel.
 * ``--memout`` imposes a memory limit (in megabytes).
-* ``--pretty-print`` and ``--wrap-lines`` post-process the output.
-* ``--ignore-exitcode``, ``--ignore-output``, ``--match-out`` and ``--match-err`` allow to change how the comparison with the golden run is performed. See :ref:`lbl-comparison` for more details.
-* ``--no-<group>`` disables all mutators from some group (like ``smtlib`` or ``arithmetic``).
-* ``--no-<mutator>`` disables one particular mutator (like ``--no-replace-by-variable``. See :doc:`mutators` for more details.
-
-.. _lbl-comparison:
+* ``--timeout`` imposes a custom time limit (in seconds).
+* ``--strategy`` selects between the ``ddmin`` strategy and the ``hierarchical`` strategy (see :doc:`strategies`).
+* ``--ignore-output``, ``--match-out`` and ``--match-err`` allow to change how the comparison with the golden run is performed. See :ref:`Comparison with golden run` for more details.
 
 Comparison with golden run
 -----------------------------
 
 If no arguments are given, a run is considered equivalent to the golden run if the exit code, the standard output and the error output are the same.
-With ``--ignore-exitcode`` the exit code is ignored and only the (standard and error) outputs are considered.
 With ``--ignore-output`` the (standard and error) outputs are ignored and only the exit code is considered.
 If at least one of ``--match-out`` and ``--match-err`` are given, the outputs are not compared for equality but instead matched against the given regular expressions. Initially, ddSMT ensures that the golden run matches the given regular expressions.
 The exact matching works as follows:
@@ -40,3 +36,9 @@ The exact matching works as follows:
    :language: python3
    :linenos:
    :pyobject: matches_golden
+
+
+Full option listing
+-------------------
+
+.. command-output:: ../bin/ddsmt --help-all

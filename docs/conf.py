@@ -22,9 +22,11 @@ version = ddsmt.version.VERSION
 release = ddsmt.version.VERSION
 
 extensions = [
-    'sphinx.ext.autodoc',
     'sphinx_rtd_theme',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosectionlabel',
     'sphinxcontrib.bibtex',
+    'sphinxcontrib.programoutput',
 ]
 
 bibtex_bibfiles = ['literature.bib']
