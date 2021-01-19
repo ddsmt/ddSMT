@@ -1,3 +1,4 @@
+import logging
 import re
 
 from . import nodes
@@ -27,27 +28,38 @@ def collect_information(exprs):
         name = cmd.get_ident()
         if name == 'declare-const':
             if not len(cmd) == 3:
+                logging.trace(
+                    f'Ignored command: "{cmd}" should have three children.')
                 continue
             if not cmd[1].is_leaf():
+                logging.trace(f'Ignored command: "{cmd[1]}" is not a leaf')
                 continue
             __constants[cmd[1].data] = cmd[2]
             __sort_lookup[cmd[1].data] = cmd[2]
         if name == 'declare-fun':
             if not len(cmd) == 4:
+                logging.trace(
+                    f'Ignored command: "{cmd}" should have four children.')
                 continue
             if not cmd[1].is_leaf():
+                logging.trace(f'Ignored command: "{cmd[1]}" is not a leaf')
                 continue
             if cmd[2].is_leaf():
+                logging.trace(f'Ignored command: "{cmd[2]}" is a leaf')
                 continue
             if cmd[2] == tuple():
                 __constants[cmd[1].data] = cmd[2]
             __sort_lookup[cmd[1].data] = cmd[3]
         if name == 'define-fun':
             if not len(cmd) == 5:
+                logging.trace(
+                    f'Ignored command: "{cmd}" should have five children.')
                 continue
             if not cmd[1].is_leaf():
+                logging.trace(f'Ignored command: "{cmd[1]}" is not a leaf')
                 continue
             if cmd[2].is_leaf():
+                logging.trace(f'Ignored command: "{cmd[2]}" is a leaf')
                 continue
             if cmd[2] == tuple():
                 __constants[cmd[1]] = cmd[2]

@@ -69,11 +69,16 @@ def check_options():
 
 
 def setup_logging():
+    logging.TRACE = 5
+    logging.addLevelName(logging.TRACE, "TRACE")
+    logging.trace = lambda msg, *args, **kwargs: logging.log(
+        logging.TRACE, msg, *args, **kwargs)
     logging.basicConfig(format='[ddSMT %(levelname)s] %(message)s')
     verbositymap = {
         0: logging.WARN,
         1: logging.INFO,
         2: logging.DEBUG,
+        3: logging.TRACE,
     }
     logging.getLogger().setLevel(
         level=verbositymap.get(options.args().verbosity, logging.DEBUG))
