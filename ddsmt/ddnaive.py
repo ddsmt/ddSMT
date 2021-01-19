@@ -4,6 +4,7 @@ import multiprocessing
 import pickle
 import sys
 import time
+import traceback
 
 from . import checker
 from . import mutators
@@ -113,6 +114,8 @@ class Producer:
                                        False, None, pickle.dumps(x), None)
             except Exception as e:
                 logging.info(f'{type(e)} in application of {m}: {e}')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
 
     def generate(self, original, params):
         """A generator that produces all possible mutations as :code:`Task`
@@ -171,6 +174,8 @@ class Consumer:
                                       None, runtime)))
         except Exception as e:
             logging.info(f'{type(e)} in check of {task.name}: {e}')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
         return abortres
 
 
