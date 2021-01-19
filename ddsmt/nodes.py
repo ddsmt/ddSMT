@@ -1,3 +1,4 @@
+import struct
 import textwrap
 
 
@@ -65,6 +66,60 @@ class Node:
 
     def __hash__(self):
         return hash(self.data)
+
+    def __getstate__(self):
+        """Callback method for custom (non-recursive) pickling."""
+        res = []
+        visit = [self]
+        while visit:
+            expr = visit.pop()
+            if isinstance(expr, str):
+                assert expr == ')'
+                res.append(b')')
+                continue
+            assert isinstance(expr, Node)
+            if expr.is_leaf():
+                res.append(b'L')
+                res.append(struct.pack("i", expr.id))
+                res.append(struct.pack("i", len(expr.data)))
+                res.append(expr.data.encode())
+            else:
+                res.append(b'(')
+                res.append(struct.pack("i", expr.id))
+                visit.append(')')
+                visit.extend(reversed(expr.data))
+
+        return b''.join(res)
+
+    def __setstate__(self, state):
+        """Callback method for custom (non-recursive) unpickling."""
+        exprs = [[]]
+        i = 0
+        smax = len(state)
+        while i < smax:
+            if state[i] == 40:  # b'('
+                exprs.append([struct.unpack('i', state[i + 1:i + 5])[0]])
+                i += 5
+                continue
+            if state[i] == 41:  # b')'
+                i += 1
+                children = exprs.pop()
+                id = children.pop(0)
+                node = Node(*children)
+                node.id = id
+                exprs[-1].append(node)
+                continue
+            if state[i] == 76:  # b'L'
+                id = struct.unpack('i', state[i + 1:i + 5])[0]
+                leaflen = struct.unpack('i', state[i + 5:i + 9])[0]
+                node = Node(state[i + 9:i + leaflen + 9].decode())
+                node.id = id
+                exprs[-1].append(node)
+                i += leaflen + 9
+                continue
+            break
+        self.id = exprs[0][0].id
+        self.data = exprs[0][0].data
 
     def is_leaf(self):
         return isinstance(self.data, str)
