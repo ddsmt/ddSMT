@@ -15,18 +15,6 @@ class CheckSatAssuming:
         return 'substitute check-sat-assuming by check-sat'
 
 
-class EliminateDistinct:
-    """Replaces distinct by a negated equality."""
-    def filter(self, node):
-        return has_ident(node) and get_ident(node) == 'distinct'
-
-    def mutations(self, node):
-        return [Node('not', tuple(['='] + list(node[1:])))]
-
-    def __str__(self):
-        return 'eliminate distinct'
-
-
 class EliminateVariable:
     """Eliminate a variable using an equality.
 
@@ -230,7 +218,6 @@ def get_mutators():
     options."""
     return {
         'CheckSatAssuming': 'check-sat-assuming',
-        'EliminateDistinct': 'eliminate-distinct',
         'EliminateVariable': 'eliminate-variables',
         'InlineDefinedFuns': 'inline-functions',
         'LetElimination': 'let-elimination',

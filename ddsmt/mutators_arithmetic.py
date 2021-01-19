@@ -10,7 +10,7 @@ def is_arithmetic_relation(node):
 
 
 class ArithmeticNegateRelation:
-    """Replace a negation around a relation by the inverse relation."""
+    """Replace a negated relation by the inverse relation."""
     def filter(self, node):
         return is_operator_app(node, 'not') and is_arithmetic_relation(node[1])
 
@@ -22,7 +22,8 @@ class ArithmeticNegateRelation:
             '<>': '=',
             '>=': '<',
             '>': '<=',
-            'distinct': '='
+            'distinct': '=',
+            '=': 'distinct'
         }
         if node[1][0] in negator:
             return [(negator[node[1][0]], ) + node[1][1:]]

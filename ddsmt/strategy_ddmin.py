@@ -61,7 +61,6 @@ def ddmin_passes():
             'MergeWithChildren',
             'ReplaceByVariable',
             'SortChildren',
-            'EliminateDistinct',
             'InlineDefinedFuns',
             'SimplifyLogic',
             'StringSimplifyConstant',
