@@ -84,16 +84,25 @@ class BVEvalExtend:
 class BVExtractConstants:
     """Evaluates a bit-vector ``extract`` if it is applied to a constant."""
     def filter(self, node):
-        return is_indexed_operator_app(node, 'extract') \
+        return is_indexed_operator_app(node, 'extract', 2) \
                and is_bv_const(node[1])
 
     def mutations(self, node):
-        upper = int(node[0][2])
-        lower = int(node[0][3])
-        constant = get_bv_constant_value(node[1])[0]
-        constant = constant % (2**(upper + 1))
-        constant -= constant % (2**lower)
-        return [Node('_', 'bv{constant}', upper - lower + 1)]
+        if node[1].has_ident():
+            assert node[1][0] == '_'
+            val, bw = get_bv_constant_value(node[1])
+            constant = bin(val)[2:]
+            diff = bw - len(constant)
+            if diff > 0:
+                constant = f"{'0' * diff}{constant}"
+        else:
+            assert node[1].data.startswith('#b')
+            constant = node[1][2:]
+        n = len(constant)
+        idx = get_indices(node[0], 'extract', 2)
+        upper = n - idx[0] - 1
+        lower = n - idx[1] - 1
+        return [Node(f'#b{constant[upper:lower+1]}')]
 
     def __str__(self):
         return 'evaluate bit-vector extract on constant'

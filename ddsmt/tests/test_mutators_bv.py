@@ -112,8 +112,33 @@ def test_bv_eval_extend():
     assert m.mutations(sext1_2) == [Node('#b11101')]
 
 
+def test_bv_extract_constants():
+    x = Node('x')
+    const1 = Node('#b011')
+    const2 = Node('_', 'bv3', 3)
+    ext0_1 = Node(('_', 'extract', 0, 0), const1)
+    ext0_2 = Node(('_', 'extract', 1, 0), const1)
+    ext0_3 = Node(('_', 'extract', 2, 0), const1)
+    ext1_1 = Node(('_', 'extract', 0, 0), const2)
+    ext1_2 = Node(('_', 'extract', 1, 1), const2)
+    ext1_3 = Node(('_', 'extract', 2, 2), const2)
+    m = mutators_bv.BVExtractConstants()
+    assert not m.filter(Node(('_', 'extract', 0, 0), ('bvadd', 'x', 'y')))
+    assert m.filter(ext0_1)
+    assert m.filter(ext0_2)
+    assert m.filter(ext0_3)
+    assert m.filter(ext1_1)
+    assert m.filter(ext1_2)
+    assert m.filter(ext1_3)
+    assert m.mutations(ext0_1) == [Node('#b1')]
+    assert m.mutations(ext0_2) == [Node('#b11')]
+    assert m.mutations(ext0_3) == [Node('#b011')]
+    assert m.mutations(ext1_1) == [Node('#b1')]
+    assert m.mutations(ext1_2) == [Node('#b1')]
+    assert m.mutations(ext1_3) == [Node('#b0')]
+
+
 # TODO
-#class BVExtractConstants:
 #class BVOneZeroITE:
 #class BVReflexiveNand:
 #class BVSimplifyConstant:
