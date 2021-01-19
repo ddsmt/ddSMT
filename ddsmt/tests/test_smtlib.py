@@ -128,19 +128,6 @@ def test_is_var():
     reset_information()
 
 
-def test_has_ident():
-    assert not has_ident(Node('x'))
-    assert has_ident(Node('_', 'BitVec', 3))
-    assert has_ident(Node('assert', 'x', 'x'))
-
-
-def test_get_ident():
-    with pytest.raises(AssertionError):
-        get_ident(Node('x'))
-    assert get_ident(Node('_', 'BitVec', 3)) == '_'
-    assert get_ident(Node('assert', 'x', 'x')) == 'assert'
-
-
 def test_is_piped_symbol():
     assert not is_piped_symbol(Node('declare-const', 'x', 'Real'))
     assert not is_piped_symbol(Node('declare-const'))

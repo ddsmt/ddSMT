@@ -125,10 +125,14 @@ class Node:
         return isinstance(self.data, str)
 
     def has_ident(self):
-        return isinstance(self.data,
-                          tuple) and self.data and self.data[0].is_leaf()
+        """Return true if this node has an identifier, i.e., it has children
+        and its first child is a leaf node."""
+        return isinstance(self.data, tuple) \
+               and self.data \
+               and self.data[0].is_leaf()
 
     def get_ident(self):
+        """Get the identifier of this, asserting that ``node.has_ident()``."""
         assert (self.has_ident())
         return self.data[0]
 

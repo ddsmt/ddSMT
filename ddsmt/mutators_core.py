@@ -32,7 +32,7 @@ class EraseNode:
     def filter(self, node):
         if not hasattr(self, 'ident'):
             return True
-        return has_ident(node) and get_ident(node) == self.ident
+        return node.has_ident() and node.get_ident() == self.ident
 
     """Erases the given node."""
 
@@ -55,7 +55,7 @@ class MergeWithChildren:
 
     def mutations(self, node):
         for cid, child in enumerate(node):
-            if has_ident(child) and get_ident(node) == get_ident(child):
+            if child.has_ident() and node.get_ident() == child.get_ident():
                 yield Node(*node[:cid], *node[cid][1:], *node[cid + 1:])
 
     def __str__(self):

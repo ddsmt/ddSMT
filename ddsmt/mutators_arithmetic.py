@@ -2,9 +2,9 @@ from .smtlib import *
 
 
 def is_arithmetic_relation(node):
-    if not has_ident(node):
+    if not node.has_ident():
         return False
-    return get_ident(node) in [
+    return node.get_ident() in [
         '=', '<', '>', '>=', '<=', '!=', '<>', 'distinct'
     ]
 
@@ -63,7 +63,7 @@ class ArithmeticSplitNaryRelation:
         return is_arithmetic_relation(node) and len(node) > 3
 
     def mutations(self, node):
-        split = [(get_ident(node), node[i], node[i + 1])
+        split = [(node.get_ident(), node[i], node[i + 1])
                  for i in range(1,
                                 len(node) - 1)]
         return [Node('and', *split)]

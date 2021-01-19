@@ -157,18 +157,6 @@ def is_var(node):
     return node.is_leaf() and node in __constants
 
 
-def has_ident(node):
-    """Check whether the ``node`` has a name, that is its first child is a leaf
-    node."""
-    return not node.is_leaf() and not node == () and is_leaf(node[0])
-
-
-def get_ident(node):
-    """Get the name of the ``node``, asserting that ``has_ident(node)``."""
-    assert has_ident(node)
-    return node[0]
-
-
 def is_piped_symbol(node):
     """Checks whether the ``node`` is a quoted symbol."""
     return node.is_leaf() and node[0] == '|' and node[-1] == '|'
@@ -181,7 +169,7 @@ def get_piped_symbol(node):
 
 
 def is_operator_app(node, name):
-    return has_ident(node) and get_ident(node) == name
+    return node.has_ident() and node.get_ident() == name
 
 
 def is_indexed_operator(node, name, index_count=1):
@@ -189,7 +177,7 @@ def is_indexed_operator(node, name, index_count=1):
     number of indices matches ``index_count``."""
     if node.is_leaf() or len(node) < 2:
         return False
-    if has_ident(node) and get_ident(node) != '_':
+    if node.has_ident() and node.get_ident() != '_':
         return False
     if node[1] != name:
         return False
@@ -202,9 +190,9 @@ def is_indexed_operator_app(node, name, index_count=1):
 
 def has_nary_operator(node):
     """Check whether ``node`` is an application of an n-ary operator."""
-    if node.is_leaf() or not has_ident(node):
+    if node.is_leaf() or not node.has_ident():
         return False
-    return get_ident(node) in [
+    return node.get_ident() in [
         '=>',
         'and',
         'or',
@@ -241,7 +229,7 @@ def is_const(node):
 
 def is_eq(node):
     """Checks whether ``node`` is an equality."""
-    return has_ident(node) and get_ident(node) == '='
+    return node.has_ident() and node.get_ident() == '='
 
 
 def get_constants(sort):
@@ -281,10 +269,10 @@ def get_sort(node):
     if bvwidth != -1:
         return Node('_', 'BitVec', str(bvwidth))
     # non-indexed operators
-    if has_ident(node) and len(node) > 1:
+    if node.has_ident() and len(node) > 1:
         if is_operator_app(node, 'ite') and len(node) > 2:
             return get_sort(node[2])
-        ident = get_ident(node)
+        ident = node.get_ident()
         # operators that return Bool
         if ident in [
                 # core theory
@@ -418,7 +406,7 @@ def is_bool_const(node):
 
 def is_arith_const(node):
     """Return true if ``node`` is an arithmetic constant."""
-    if has_ident(node) and get_ident(node) == '/' and len(node) == 3:
+    if node.has_ident() and node.get_ident() == '/' and len(node) == 3:
         return is_int_const(node[1]) and is_int_const(node[2])
     return node.is_leaf() \
            and re.match('[0-9]+(\\.[0-9]*)?$', node.data) is not None
@@ -431,7 +419,7 @@ def is_int_const(node):
 
 def is_real_const(node):
     """Return true if ``node`` is a real constant."""
-    if has_ident(node) and get_ident(node) == '/' and len(node) == 3:
+    if node.has_ident() and node.get_ident() == '/' and len(node) == 3:
         return is_int_const(node[1]) and is_int_const(node[2])
     return node.is_leaf() \
            and re.match('^[0-9]+(\\.[0-9]*)?$', node.data) is not None
@@ -444,7 +432,7 @@ def is_bv_sort(node):
     """Return true if ``node`` is a bit-vector sort."""
     if node.is_leaf() or len(node) != 3:
         return False
-    if not has_ident(node) or get_ident(node) != '_':
+    if not node.has_ident() or node.get_ident() != '_':
         return False
     return node[1] == 'BitVec'
 
@@ -469,17 +457,17 @@ def is_bv_const(node):
 
 def is_bv_comp(node):
     """Checks whether ``node`` is a bit-vector comparison."""
-    return has_ident(node) and get_ident(node) == 'bvcomp'
+    return node.has_ident() and node.get_ident() == 'bvcomp'
 
 
 def is_bv_not(node):
     """Checks whether ``node`` is a bit-vector bit-wise negation."""
-    return has_ident(node) and get_ident(node) == 'bvnot'
+    return node.has_ident() and node.get_ident() == 'bvnot'
 
 
 def is_bv_neg(node):
     """Checks whether ``node`` is a bit-vector negation."""
-    return has_ident(node) and get_ident(node) == 'bvneg'
+    return node.has_ident() and node.get_ident() == 'bvneg'
 
 
 def get_bv_width(node):
@@ -573,7 +561,7 @@ def is_fp_sort(node):
        and str(node).startswith('Float') \
        and node[5:] in ['16', '32', '64', '128']:
         return True
-    if not has_ident(node) or get_ident(node) != '_' or len(node) != 4:
+    if not node.has_ident() or node.get_ident() != '_' or len(node) != 4:
         return False
     return node[1] == 'FloatingPoint'
 
@@ -589,7 +577,7 @@ def is_defined_fun(node):
     """
     if node.is_leaf():
         return node in __defined_functions
-    return has_ident(node) and get_ident(node) in __defined_functions
+    return node.has_ident() and node.get_ident() in __defined_functions
 
 
 def get_defined_fun(node):
@@ -602,7 +590,7 @@ def get_defined_fun(node):
     assert is_defined_fun(node)
     if node.is_leaf():
         return __defined_functions[node.data]([])
-    return __defined_functions[get_ident(node)](node[1:])
+    return __defined_functions[node.get_ident()](node[1:])
 
 
 ### Sets
@@ -612,7 +600,7 @@ def is_set_sort(node):
     """Return true if ``node`` is a set sort."""
     if node.is_leaf() or len(node) != 2:
         return False
-    if not has_ident(node) or get_ident(node) != 'Set':
+    if not node.has_ident() or node.get_ident() != 'Set':
         return False
     return True
 

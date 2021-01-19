@@ -6,7 +6,7 @@ from .smtlib import *
 class BVConcatToZeroExtend:
     """Replace a ``concat`` with zero by ``zero_extend``."""
     def filter(self, node):
-        if not has_ident(node) or get_ident(node) != 'concat':
+        if not node.has_ident() or node.get_ident() != 'concat':
             return False
         if not is_bv_const(node[1]):
             return False
@@ -152,8 +152,8 @@ class BVIteToBVComp:
     def filter(self, node):
         if not is_operator_app(node, 'ite'):
             return False
-        if not has_ident(node[1]) \
-           or get_ident(node[1]) != '=' \
+        if not node[1].has_ident() \
+           or node[1].get_ident() != '=' \
            or len(node[1]) != 3 \
            or get_sort(node[1][1]) == None \
            or not is_bv_sort(get_sort(node[1][1])):
@@ -218,14 +218,14 @@ class BVTransformToBool:
     (= bv1 Y))``.
     """
     def filter(self, node):
-        return has_ident(node) \
-               and get_ident(node) == '=' \
+        return node.has_ident() \
+               and node.get_ident() == '=' \
                and is_bv_const(node[1]) \
                and get_bv_width(node[1]) == 1
 
     def mutations(self, node):
         repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
-        if has_ident(node[2]) and get_ident(node[2]) in repl:
+        if node[2].has_ident() and node[2].get_ident() in repl:
             return [
                 Node(repl[get_ident(node[2])],
                      *[Node('=', node[1], c) for c in node[2][1:]])
@@ -249,7 +249,7 @@ class BVReduceBW:
     This mutator generates all possible mutations for a variable.
     """
     def filter(self, node):
-        return has_ident(node) \
+        return node.has_ident() \
                and (get_ident(node) == 'declare-const' or \
                    (get_ident(node) == 'declare-fun' and len(node[2]) == 0)) \
                and get_sort(node[1]) is not None \
@@ -294,8 +294,8 @@ class BVMergeReducedBW:
     Obsolete ``define-fun`` expressions will be removed later on.
     """
     def filter(self, node):
-        return has_ident(node) \
-               and get_ident(node) == 'define-fun' \
+        return node.has_ident() \
+               and node.get_ident() == 'define-fun' \
                and len(node[2]) == 0 \
                and get_sort(node[1]) is not None \
                and is_bv_sort(get_sort(node[1])) \

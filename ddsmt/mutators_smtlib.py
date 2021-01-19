@@ -7,7 +7,7 @@ class CheckSatAssuming:
     """Replaces a ``check-sat-assuming`` by a regular ``check-sat``, discarding
     the assumption."""
     def filter(self, node):
-        return has_ident(node) and get_ident(node) == 'check-sat-assuming'
+        return node.has_ident() and node.get_ident() == 'check-sat-assuming'
 
     def mutations(self, node):
         return [Node('check-sat')]
@@ -132,7 +132,7 @@ class SimplifyLogic:
     """Replaces the logic specified in ``(check-logic ...)`` by a simpler
     one."""
     def filter(self, node):
-        return has_ident(node) and get_ident(node) == 'set-logic'
+        return node.has_ident() and node.get_ident() == 'set-logic'
 
     def mutations(self, node):
         logic = node[1]
@@ -183,18 +183,18 @@ class SimplifySymbolNames:
     their order enabling :class:`ddsmt.mutators_core.ReplaceByVariable`.
     """
     def filter(self, node):
-        return has_ident(node) and get_ident(node) in [
+        return node.has_ident() and node.get_ident() in [
             'declare-const', 'declare-datatypes', 'declare-fun',
             'declare-sort', 'define-fun', 'exists', 'forall'
         ] and not is_const(node[1])
 
     def global_mutations(self, linput, ginput):
-        if get_ident(linput) == 'declare-datatypes':
+        if linput.get_ident() == 'declare-datatypes':
             res = []
             for c in self.__flatten(linput[1:]):
                 res = res + self.__mutate_symbol(c, ginput)
             return res
-        if get_ident(linput) in ['exists', 'forall']:
+        if linput.get_ident() in ['exists', 'forall']:
             res = []
             for v in linput[1]:
                 res = res + self.__mutate_symbol(v[0], ginput)
