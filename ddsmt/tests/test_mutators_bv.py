@@ -357,5 +357,38 @@ def test_bv_reduce_bw():
     smtlib.reset_information()
 
 
-# TODO
-#class BVMergeReducedBW:
+def test_bv_merge_reduced_bw():
+    m = mutators_bv.BVMergeReducedBW()
+    assert isinstance(str(m), str)
+    bvsort1 = Node('_', 'BitVec', 1)
+    bvsort4 = Node('_', 'BitVec', 4)
+    bvsort8 = Node('_', 'BitVec', 8)
+
+    assert not m.filter(Node('bvadd', 'x', 'y'))
+    assert not m.filter(Node('declare-const', 'x', 'Int'))
+    assert not m.filter(Node('declare-fun', 'y', (), bvsort8))
+    assert not m.filter(
+        Node('define-fun', 'y', ('Int', ), bvsort8,
+             (('_', 'zero_extend', 2), '_y')))
+
+    dec_x__ = Node('declare-const', '__x', bvsort1)
+    def_x_ = Node('define-fun', '_x', (), bvsort4,
+                  (('_', 'zero_extend', 3), '__x'))
+    def_x = Node('define-fun', 'x', (), bvsort8,
+                 (('_', 'zero_extend', 4), '_x'))
+    def_y = Node('define-fun', 'y', (), bvsort8,
+                 (('_', 'zero_extend', 2), '__x'))
+    assert not m.filter(def_y)
+    assert not m.filter(def_x)
+
+    exprs = [dec_x__, def_x_, def_x, def_y]
+    smtlib.collect_information(exprs)
+    assert not m.filter(dec_x__)
+    assert not m.filter(def_x_)
+    assert not m.filter(def_y)
+    assert m.filter(exprs[2])
+    assert m.filter(def_x)
+    assert m.mutations(def_x) == [
+        Node('define-fun', 'x', (), bvsort8, (('_', 'zero_extend', 7), '__x'))
+    ]
+    smtlib.reset_information()
