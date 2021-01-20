@@ -3,6 +3,19 @@ from .. import mutators_fp
 from .. import smtlib
 
 
+def test_fp_get_mutators():
+    d = mutators_fp.get_mutators()
+    assert isinstance(d, dict)
+    assert len(d) == 1
+
+
+def test_fp_is_relevant():
+    assert mutators_fp.is_relevant(Node('declare-const', 'x', 'Float16'))
+    assert mutators_fp.is_relevant(
+        Node('declare-fun', 'x', (), ('_', 'FloatingPoint', '5', '11')))
+    assert not mutators_fp.is_relevant(Node('declare-fun', 'x', (), 'Bool'))
+
+
 def test_fp_short_sort():
     m = mutators_fp.FPShortSort()
     assert isinstance(str(m), str)
