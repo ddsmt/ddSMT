@@ -147,8 +147,8 @@ class SimplifyLogic:
             'LIRA': 'LRA'
         }
         for r in repls:
-            if r in logic:
-                assert logic.is_leaf()
+            assert logic.is_leaf()
+            if r in logic.data:
                 cands.append(logic.data.replace(r, repls[r]))
         return [Node('set-logic', c) for c in cands]
 
@@ -166,7 +166,7 @@ class SimplifyQuotedSymbols:
         return [get_piped_symbol(node)]
 
     def global_mutations(self, linput, ginput):
-        return [nodes.substitute(ginput, {linput: get_piped_symbol(linput)})]
+        return [{linput: get_piped_symbol(linput)}]
 
     def __str__(self):
         return 'simplify quoted symbol'
@@ -179,6 +179,8 @@ class SimplifySymbolNames:
     their order enabling :class:`ddsmt.mutators_core.ReplaceByVariable`.
     """
     def filter(self, node):
+        # check for is_const(node[1]) to avoid x -> false -> fals -> false
+        # if the variable is irrelevant, false may be accepted by the solver
         return node.has_ident() and node.get_ident() in [
             'declare-const', 'declare-datatypes', 'declare-fun',
             'declare-sort', 'define-fun', 'exists', 'forall'
@@ -186,16 +188,14 @@ class SimplifySymbolNames:
 
     def global_mutations(self, linput, ginput):
         if linput.get_ident() == 'declare-datatypes':
-            res = []
             for c in self.__flatten(linput[1:]):
-                res = res + self.__mutate_symbol(c, ginput)
-            return res
+                yield from self.__mutate_symbol(c, ginput)
+            return
         if linput.get_ident() in ['exists', 'forall']:
-            res = []
             for v in linput[1]:
-                res = res + self.__mutate_symbol(v[0], ginput)
-            return res
-        return self.__mutate_symbol(linput[1], ginput)
+                yield from self.__mutate_symbol(v[0], ginput)
+            return
+        yield from self.__mutate_symbol(linput[1], ginput)
 
     def __flatten(self, n):
         """Yield given node as flattened sequence."""
@@ -209,21 +209,20 @@ class SimplifySymbolNames:
         """Return a list of mutations of ginput based on simpler versions of
         symbol."""
         if is_piped_symbol(symbol):
-            return [
-                nodes.substitute(ginput, {symbol: Node('|' + s + '|')})
-                for s in self.__simpler(get_piped_symbol(symbol))
-            ]
-        return [
-            nodes.substitute(ginput, {symbol: Node(s)})
-            for s in self.__simpler(symbol)
-        ]
+            for s in self.__simpler(get_piped_symbol(symbol)):
+                yield {symbol: Node('|' + s + '|')}
+        else:
+            for s in self.__simpler(symbol):
+                yield {symbol: Node(s)}
 
     def __simpler(self, symbol):
         """Return a list of simpler versions of the given symbol."""
         sym = symbol.data
-        if len(sym) < 2:
-            return []
-        return [sym[:len(sym) // 2], sym[1:], sym[:-1]]
+        if len(sym) > 3:
+            yield sym[:len(sym) // 2]
+        if len(sym) > 1:
+            yield sym[:-1]
+            yield sym[1:]
 
     def __str__(self):
         return 'simplify symbol name'

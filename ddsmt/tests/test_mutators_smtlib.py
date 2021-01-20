@@ -77,6 +77,7 @@ def test_smtlib_pushpop_removal():
         Node('assert', 'z'),
         Node(Node('pop')),
     ]
+    assert list(m.global_mutations(exprs[1], exprs)) == []
     assert list(m.global_mutations(exprs[0],
                                    exprs)) == [[
                                        Node('set-logic', 'QF_NRA'),
@@ -94,3 +95,63 @@ def test_smtlib_pushpop_removal():
                                                    Node('assert', 'y'),
                                                    Node('assert', 'z'),
                                                ]]
+
+
+def test_smtlib_simplify_logic():
+    m = mutators_smtlib.SimplifyLogic()
+    assert isinstance(str(m), str)
+
+    assert not m.filter(Node('assert', 'x'))
+    assert m.filter(Node('set-logic', 'QF_NRA'))
+    assert m.mutations(Node('set-logic',
+                            'QF_NRA')) == [('set-logic', 'QF_LRA')]
+    assert m.mutations(Node('set-logic', 'QF_BVFPLRAS')) == [
+        ('set-logic', 'QF_FPLRAS'),
+        ('set-logic', 'QF_BVLRAS'),
+        ('set-logic', 'QF_BVFPLRA'),
+        ('set-logic', 'QF_BVFPS'),
+    ]
+
+
+def test_smtlib_quoted_symbols():
+    m = mutators_smtlib.SimplifyQuotedSymbols()
+    assert isinstance(str(m), str)
+    assert not m.filter(Node('x'))
+    assert m.filter(Node('|x|'))
+    assert not m.filter(Node('|"x|'))
+    assert not m.filter(Node('and', 'x', 'y'))
+    assert not m.filter(Node('and', '|x|', 'y'))
+    assert m.mutations(Node('|x|')) == ['x']
+    assert m.global_mutations(Node('|x|'), Node('assert', '|x|')) == [{
+        Node('|x|'):
+        Node('x')
+    }]
+
+
+def test_smtlib_simplify_symbol_names():
+    m = mutators_smtlib.SimplifySymbolNames()
+    assert isinstance(str(m), str)
+    assert m.filter(Node('declare-const', 'x', 'Real'))
+    assert not m.filter(Node('declare-const', 'false', 'Real'))
+    assert m.filter(Node('declare-const', 'x', 'Real'))
+    exprs = [
+        Node('declare-const', 'abcdef', 'Bool'),
+        Node('assert', 'abcdef'),
+        Node('assert',
+             ('exists', (('xy', 'Bool'), ('z', 'Bool')), ('and', 'xy', 'z'))),
+    ]
+    assert list(m.global_mutations(exprs[0], exprs)) == [{
+        Node('abcdef'):
+        Node('abc')
+    }, {
+        Node('abcdef'):
+        Node('abcde')
+    }, {
+        Node('abcdef'):
+        Node('bcdef')
+    }]
+    assert list(m.global_mutations(exprs[2][1], exprs)) == [{
+        Node('xy'): 'x'
+    }, {
+        Node('xy'): 'y'
+    }]
