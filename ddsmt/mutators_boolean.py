@@ -28,9 +28,8 @@ class BoolDeMorgan:
         negated = [Node('not', t) for t in node[1][1:]]
         if node[1].get_ident() == 'and':
             return [Node('or', *negated)]
-        if node[1].get_ident() == 'or':
-            return [Node('and', *negated)]
-        return []
+        assert node[1].get_ident() == 'or'
+        return [Node('and', *negated)]
 
     def __str__(self):
         return 'push negation inside'
@@ -89,9 +88,8 @@ class BoolNegateQuantifier:
     def mutations(self, node):
         if node[1].get_ident() == 'exists':
             return [Node('forall', node[1][1], ('not', node[1][2]))]
-        if node[1].get_ident() == 'forall':
-            return [Node('exists', node[1][1], ('not', node[1][2]))]
-        return []
+        assert node[1].get_ident() == 'forall'
+        return [Node('exists', node[1][1], ('not', node[1][2]))]
 
     def __str__(self):
         return 'push negation inside of quantifier'

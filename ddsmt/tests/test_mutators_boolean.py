@@ -17,8 +17,8 @@ def test_bool_de_morgan():
         Node('or', 'x', 'y'),
     ]
     exprs = {
-        Node('not', ('and', 'x', 'y')):
-        [Node('or', ('not', 'x'), ('not', 'y'))],
+        Node('not', ('and', 'x', 'y', 'z')):
+        [Node('or', ('not', 'x'), ('not', 'y'), ('not', 'z'))],
         Node('not', ('or', 'x', 'y')):
         [Node('and', ('not', 'x'), ('not', 'y'))],
     }
