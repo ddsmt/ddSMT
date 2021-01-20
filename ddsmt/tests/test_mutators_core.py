@@ -7,6 +7,7 @@ def test_constants():
     exprs = [Node('declare-const', 'x', 'Real')]
     smtlib.collect_information(exprs)
     m = mutators_core.Constants()
+    assert isinstance(str(m), str)
     assert m.filter(Node('x'))
     assert m.filter(Node('=', 'x', '1'))
     assert not m.filter(Node('y'))
@@ -16,6 +17,7 @@ def test_constants():
 
 def test_erase_node():
     m = mutators_core.EraseNode()
+    assert isinstance(str(m), str)
     assert m.filter(Node('x'))
     assert m.mutations(Node('x')) == [None]
 
@@ -23,6 +25,7 @@ def test_erase_node():
 def test_erase_named_node():
     m = mutators_core.EraseNode()
     m.ident = 'assert'
+    assert isinstance(str(m), str)
     assert m.filter(Node('assert', 'x'))
     assert not m.filter(Node('x'))
     assert m.mutations(Node(Node('assert'), Node('true'))) == [None]
@@ -31,6 +34,7 @@ def test_erase_named_node():
 def test_merge_with_children():
     node = Node(Node('+'), Node('x'), Node(Node('+'), Node('x'), Node('y')))
     m = mutators_core.MergeWithChildren()
+    assert isinstance(str(m), str)
     assert m.filter(node)
     assert list(m.mutations(node)) == [
         Node(Node('+'), Node('x'), Node('x'), Node('y'))
@@ -42,6 +46,7 @@ def test_replace_by_child():
     y = Node('y')
     node = Node(Node('+'), x, y)
     m = mutators_core.ReplaceByChild()
+    assert isinstance(str(m), str)
     assert m.filter(node)
     assert not m.filter(x)
     assert list(m.mutations(node)) == [x, y]
@@ -63,6 +68,7 @@ def test_replace_by_variable():
     node = Node(Node('+'), x, c)
 
     m = mutators_core.ReplaceByVariable()
+    assert isinstance(str(m), str)
     m.repl_mode = 'inc'
     assert m.filter(node)
     assert m.filter(x)
@@ -86,6 +92,7 @@ def test_sort_children():
                     Node(Node('*'), Node('y'), Node('2')))
 
     m = mutators_core.SortChildren()
+    assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
     assert not m.filter(Node('123'))
     assert m.filter(node)
@@ -96,6 +103,7 @@ def test_sort_children():
 
 def test_top_level_binary_reduction():
     m = mutators_core.TopLevelBinaryReduction()
+    assert isinstance(str(m), str)
     assert not hasattr(m, 'filter')
     a = Node('a')
     b = Node('b')
@@ -145,6 +153,7 @@ def test_top_level_binary_reduction():
 def test_top_level_binary_reduction_named():
     m = mutators_core.TopLevelBinaryReduction()
     m.ident = 'assert'
+    assert isinstance(str(m), str)
     assert not hasattr(m, 'filter')
     a = Node('a')
     b = Node('assert', 'b')

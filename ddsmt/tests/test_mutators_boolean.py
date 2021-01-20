@@ -2,8 +2,15 @@ from ..nodes import Node
 from .. import mutators_boolean
 
 
+def test_bool_get_mutators():
+    d = mutators_boolean.get_mutators()
+    assert isinstance(d, dict)
+    assert len(d) == 7
+
+
 def test_bool_de_morgan():
     m = mutators_boolean.BoolDeMorgan()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('=', '1', 'y'),
         Node('and', 'x', 'y'),
@@ -24,6 +31,7 @@ def test_bool_de_morgan():
 
 def test_bool_double_negation():
     m = mutators_boolean.BoolDoubleNegation()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('not', ('=', '1', 'y')),
         Node('not', ('and', 'x', 'y')),
@@ -42,6 +50,7 @@ def test_bool_double_negation():
 
 def test_bool_eliminate_false_equality():
     m = mutators_boolean.BoolEliminateFalseEquality()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('not', ('=', '1', 'y')),
         Node('=', 'true', 'x', 'y'),
@@ -62,6 +71,7 @@ def test_bool_eliminate_false_equality():
 
 def test_bool_eliminate_implication():
     m = mutators_boolean.BoolEliminateImplication()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('or', 'true', 'y'),
         Node('not', ('=>', 'false', 'y')),
@@ -81,6 +91,7 @@ def test_bool_eliminate_implication():
 
 def test_bool_negate_quantifier():
     m = mutators_boolean.BoolNegateQuantifier()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('forall', ('Real', 'x'), 'y'),
         Node('not', ('or', 'x', 'y')),
@@ -100,6 +111,7 @@ def test_bool_negate_quantifier():
 
 def test_bool_xor_eliminate_binary():
     m = mutators_boolean.BoolXOREliminateBinary()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('or', 'x', 'y'),
         Node('xor', 'x', 'y', 'z'),
@@ -116,6 +128,7 @@ def test_bool_xor_eliminate_binary():
 
 def test_bool_xor_remove_constant():
     m = mutators_boolean.BoolXORRemoveConstant()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('or', 'x', 'y', 'false'),
         Node('and', 'true', 'z'),

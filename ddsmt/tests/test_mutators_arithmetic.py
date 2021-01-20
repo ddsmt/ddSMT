@@ -4,6 +4,7 @@ from .. import mutators_arithmetic
 
 def test_arith_negate_relation():
     m = mutators_arithmetic.ArithmeticNegateRelation()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('>', 'x', 'y'),
         Node('=', '1', 'y'),
@@ -26,6 +27,7 @@ def test_arith_negate_relation():
 
 def test_arith_simplify_constant():
     m = mutators_arithmetic.ArithmeticSimplifyConstant()
+    assert isinstance(str(m), str)
     notfilter = [
         Node('x'),
         Node('+', '1.0', 'x'),
@@ -51,6 +53,7 @@ def test_arith_simplify_constant():
 
 def test_arith_split_nary_relations():
     m = mutators_arithmetic.ArithmeticSplitNaryRelation()
+    assert isinstance(str(m), str)
     notfilter = [Node('>'), Node('>', 'x', 'y'), Node('+', 'x', 'y')]
     exprs = {
         Node('=', 'a', 'b', 'c'):
@@ -69,6 +72,7 @@ def test_arith_split_nary_relations():
 
 def test_arith_strengthen_relations():
     m = mutators_arithmetic.ArithmeticStrengthenRelation()
+    assert isinstance(str(m), str)
     notfilter = [Node('=', 'x', 'y'), Node('distinct', 'x', 'y')]
     exprs = {
         Node('<', 'a', 'b'): [Node('=', 'a', 'b')],

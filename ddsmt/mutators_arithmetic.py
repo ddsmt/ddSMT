@@ -16,18 +16,17 @@ class ArithmeticNegateRelation:
 
     def mutations(self, node):
         negator = {
+            '=': 'distinct',
             '<': '>=',
+            '>': '<=',
+            '>=': '<',
             '<=': '>',
             '!=': '=',
             '<>': '=',
-            '>=': '<',
-            '>': '<=',
-            'distinct': '=',
-            '=': 'distinct'
+            'distinct': '='
         }
-        if node[1][0] in negator:
-            return [(negator[node[1][0]], ) + node[1][1:]]
-        return []
+        assert node[1][0] in negator
+        return [(negator[node[1][0]], ) + node[1][1:]]
 
     def __str__(self):
         return 'push negation into arithmetic relation'

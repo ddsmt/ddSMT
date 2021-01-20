@@ -18,6 +18,7 @@ def test_bv_concat_to_zero_extend():
     exprs = [conc16_0, conc16_1, conc16_2, conc16_3, conc16_4]
     smtlib.collect_information(exprs)
     m = mutators_bv.BVConcatToZeroExtend()
+    assert isinstance(str(m), str)
     assert not m.filter(const)
     assert not m.filter(conc16_0)
     assert not m.filter(conc16_1)
@@ -32,6 +33,7 @@ def test_bv_double_negation():
     bvnot = Node('bvnot', Node('bvnot', x))
     bvneg = Node('bvneg', Node('bvneg', x))
     m = mutators_bv.BVDoubleNegation()
+    assert isinstance(str(m), str)
     assert not m.filter(Node('bvadd', x, x))
     assert m.filter(bvnot)
     assert m.filter(bvneg)
@@ -54,6 +56,7 @@ def test_bv_elim_bvcomp():
     eq_x = Node('=', x, x)
     ne_x = Node('not', eq_x)
     m = mutators_bv.BVElimBVComp()
+    assert isinstance(str(m), str)
     assert not m.filter(x)
     assert not m.filter(Node('=', x, x))
     assert not m.filter(Node('=', const0, x, x))
@@ -91,6 +94,7 @@ def test_bv_eval_extend():
     sext1_1 = Node(('_', 'sign_extend', 2), const1_1)
     sext1_2 = Node(('_', 'sign_extend', 2), const1_2)
     m = mutators_bv.BVEvalExtend()
+    assert isinstance(str(m), str)
     assert not m.filter(Node('bvand', x, x))
     assert not m.filter(Node(('_', 'zero_extend', 2), x))
     assert not m.filter(Node(('zero_extend', 2), const0_1))
@@ -123,6 +127,7 @@ def test_bv_extract_constants():
     ext1_2 = Node(('_', 'extract', 1, 1), const2)
     ext1_3 = Node(('_', 'extract', 2, 2), const2)
     m = mutators_bv.BVExtractConstants()
+    assert isinstance(str(m), str)
     assert not m.filter(Node(('_', 'extract', 0, 0), ('bvadd', 'x', 'y')))
     assert m.filter(ext0_1)
     assert m.filter(ext0_2)
@@ -145,6 +150,7 @@ def test_bv_extract_zero_extend():
     ext3 = Node(('_', 'extract', 5, 3), (('_', 'zero_extend', 4), x))
     exprs = [Node('declare-const', x, ('_', 'BitVec', 4)), ext1, ext2, ext3]
     m = mutators_bv.BVExtractZeroExtend()
+    assert isinstance(str(m), str)
     assert not m.filter(Node(('_', 'extract', 7, 5), x))
     assert m.filter(ext1)
     assert m.filter(ext2)
@@ -161,6 +167,7 @@ def test_bv_extract_zero_extend():
 
 def test_bv_ite_to_bvcomp():
     m = mutators_bv.BVIteToBVComp()
+    assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
     assert not m.filter(Node('=', 'x', 'y'))
     assert not m.filter(Node('ite', 'c', 'x', 'y'))
@@ -181,6 +188,7 @@ def test_bv_ite_to_bvcomp():
 
 def test_reflexive_nand():
     m = mutators_bv.BVReflexiveNand()
+    assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
     assert not m.filter(Node('bvor', 'x', 'y'))
     assert not m.filter(Node('bvnand', 'x', 'y'))
@@ -190,6 +198,7 @@ def test_reflexive_nand():
 
 def test_simplify_constant():
     m = mutators_bv.BVSimplifyConstant()
+    assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
     assert not m.filter(Node('declare-const', 'x', ('_', 'BitVec', 4)))
     assert not m.filter(Node('0'))
@@ -215,6 +224,7 @@ def test_simplify_constant():
 
 def test_transform_to_bool():
     m = mutators_bv.BVTransformToBool()
+    assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
     assert not m.filter(Node('=', 'x', 'y'))
     assert not m.filter(Node('=', '#b11', 'x'))

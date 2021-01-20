@@ -5,6 +5,7 @@ from .. import smtlib
 
 def test_fp_short_sort():
     m = mutators_fp.FPShortSort()
+    assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
     assert not m.filter(
         Node('declare-const', 'x', ('_', 'FloatingPoint', 3, 5)))
