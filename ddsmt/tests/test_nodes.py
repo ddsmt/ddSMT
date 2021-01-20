@@ -106,3 +106,29 @@ def test_substitute():
         Node('assert', ('>', 'y')),
         Node('assert', ('=', ('*', 'x', 'y'), 'y')),
     ]
+
+
+def test_render_smtlib_expression():
+    expr = Node('x')
+    assert nodes.__render_smtlib_expression(expr, False) == 'x'
+    assert nodes.__render_smtlib_expression(expr, True) == 'x'
+
+    expr = Node('; foo')
+    assert nodes.__render_smtlib_expression(expr, False) == '\n; foo\n'
+    assert nodes.__render_smtlib_expression(expr, True) == '\n; foo\n'
+
+    expr = Node('declare-const', 'x', 'Real')
+    assert nodes.__render_smtlib_expression(expr,
+                                            False) == '(declare-const x Real)'
+    assert nodes.__render_smtlib_expression(expr,
+                                            True) == '(declare-const x Real)'
+
+    expr = Node('assert', ('and', ))
+    assert nodes.__render_smtlib_expression(expr, False) == '(assert (and))'
+    assert nodes.__render_smtlib_expression(expr, True) == '(assert\n  (and))'
+
+    expr = Node('assert', ('>', 'x', 'y'), ())
+    assert nodes.__render_smtlib_expression(expr,
+                                            False) == '(assert (> x y) ())'
+    assert nodes.__render_smtlib_expression(
+        expr, True) == '(assert\n  (> x y)\n  ())'
