@@ -50,6 +50,22 @@ def test_arith_simplify_constant():
         assert m.filter(k)
         assert m.mutations(k) == v
 
+    exprs = [
+        Node('assert', ('=', '13', 'y')),
+        Node('assert', ('>', '13', 'z')),
+        Node('assert', ('<', 'y', 'z')),
+    ]
+    x = Node('13')
+    assert m.filter(x)
+    assert list(m.global_mutations(x, exprs)) == [
+        {
+            x: Node('6')
+        },
+        {
+            x: Node('1')
+        },
+    ]
+
 
 def test_arith_split_nary_relations():
     m = mutators_arithmetic.ArithmeticSplitNaryRelation()
