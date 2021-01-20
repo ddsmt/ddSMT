@@ -41,6 +41,7 @@ def test_smtlib_inline_define_fun():
     smtlib.collect_information([n])
     assert m.filter(inner)
     assert m.mutations(inner) == []
+    smtlib.reset_information()
 
 
 def test_smtlib_let_elimination():

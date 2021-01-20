@@ -4,8 +4,11 @@ from . import options
 
 
 class Constants:
-    """Replaces any node by a constant (which depends on the type of
-    ``code``)."""
+    """Replaces any node by a constant (which depends on the type of ``code``).
+
+    Requires that global information has been populated via
+    ``collect_information``.
+    """
     def filter(self, node):
         return get_sort(node) is not None
 
@@ -75,14 +78,15 @@ class ReplaceByChild:
 
 
 class ReplaceByVariable:
-    """Replace a node by another variable of the same type.
+    """Replace a node by another variable of the same type. Note that replacing
+    variables by other variables potentially introduces cycles. To avoid this,
+    we only substitute non-leaf nodes (and thus the input shrinks) or we
+    substitute with variables that are lexicographically smaller than the
+    current node. If ``--replace-by-variable-mode=dec`` is given (the default
+    is ``inc``), we instead replace with lexicograpically larger variables.
 
-    Note that replacing variables by other variables potentially
-    introduces cycles. To avoid this, we only substitute non-leaf nodes
-    (and thus the input shrinks) or we substitute with variables that
-    are lexicographically smaller than the current node. If ``--replace-
-    by-variable-mode=dec`` is given (the default is ``inc``), we instead
-    replace with lexicograpically larger variables.
+    Requires that global information has been populated via
+    ``collect_information``.
     """
     def filter(self, node):
         return not is_const(node)

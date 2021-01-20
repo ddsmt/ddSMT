@@ -13,6 +13,7 @@ def test_constants():
     assert not m.filter(Node('y'))
     assert m.mutations(Node('x')) == [Node('0.0'), Node('1.0')]
     assert m.mutations(Node('=', 'x', '1')) == [Node('false'), Node('true')]
+    smtlib.reset_information()
 
 
 def test_erase_node():
@@ -83,6 +84,7 @@ def test_replace_by_variable():
     assert list(m.mutations(x)) == [v1, v3]
     assert list(m.mutations(v1)) == []
     assert list(m.mutations(v3)) == [v1]
+    smtlib.reset_information()
 
 
 def test_sort_children():
