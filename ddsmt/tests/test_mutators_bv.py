@@ -194,6 +194,7 @@ def test_bv_ite_to_bvcomp():
     exprs = [declx, decly, declz, ite]
     smtlib.collect_information(exprs)
     assert not m.filter(Node('ite', ('=', 'z', 'z'), '#b1', '#b0'))
+    assert not m.filter(Node('ite', ('=', 'x', 'y'), '#b1', '#b1'))
     assert not m.filter(Node('ite', ('=', 'x', 'y'), '#b11', '#b01'))
     assert m.filter(ite)
     assert m.mutations(ite) == [Node('bvcomp', 'x', 'y')]
@@ -227,13 +228,22 @@ def test_simplify_constant():
     assert m.filter(Node('#b11'))
     assert m.filter(Node('_', 'bv4', 3))
     assert m.mutations(Node('#b10')) == [Node('#b00'), Node('#b01')]
-    assert m.mutations(Node('#b11001010')) == [
+    bvconst = Node('#b11001010')
+    assert m.mutations(bvconst) == [
         Node('#b00000000'),
         Node('#b00000001'),
         Node('#b00000110'),
         Node('#b00011001'),
         Node('#b01100101'),
     ]
+    assert m.global_mutations(bvconst, [Node('assert', ('=', bvconst, 'x'))]) \
+           == [
+                [Node('assert', ('=', Node('#b00000000'), 'x'))],
+                [Node('assert', ('=', Node('#b00000001'), 'x'))],
+                [Node('assert', ('=', Node('#b00000110'), 'x'))],
+                [Node('assert', ('=', Node('#b00011001'), 'x'))],
+                [Node('assert', ('=', Node('#b01100101'), 'x'))],
+           ]
 
 
 def test_transform_to_bool():
