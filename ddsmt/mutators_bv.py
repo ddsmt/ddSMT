@@ -220,20 +220,25 @@ class BVTransformToBool:
     For example, transform ``(= bv1 (bvor X Y))`` into ``(or (= bv1 X)
     (= bv1 Y))``.
     """
+    repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
+
     def filter(self, node):
         return node.has_ident() \
                and node.get_ident() == '=' \
-               and is_bv_const(node[1]) \
-               and get_bv_width(node[1]) == 1
+               and len(node) == 3 \
+               and all(
+                   (is_bv_const(n) and get_bv_width(n) == 1) \
+                   or (n.has_ident() and n.get_ident() in self.repl) \
+                       for n in node[1:])
 
     def mutations(self, node):
-        repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
-        if node[2].has_ident() and node[2].get_ident() in repl:
-            return [
-                Node(repl[get_ident(node[2])],
-                     *[Node('=', node[1], c) for c in node[2][1:]])
-            ]
-        return []
+        c = next(n for n in node[1:] \
+                 if is_bv_const(n) and get_bv_width(n) == 1)
+        n = next(m for m in node[1:] \
+                 if m.has_ident() and m.get_ident() in self.repl)
+        return [
+            Node(self.repl[n.get_ident()], *[Node('=', c, d) for d in n[1:]])
+        ]
 
     def __str__(self):
         return 'transform bit-vector to boolean'

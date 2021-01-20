@@ -213,20 +213,37 @@ def test_simplify_constant():
     ]
 
 
-#class BVSimplifyConstant:
-#    def mutations(self, node):
-#        val, width = get_bv_constant_value(node)
-#        return [
-#            Node('#b{{:0>{}b}}'.format(width).format(v))
-#            for v in [val // 32, val // 8, val // 2]
-#        ]
-#
-#    def global_mutations(self, linput, ginput):
-#        return [
-#            nodes.substitute(ginput, {linput: rep})
-#            for rep in self.mutations(linput)
-#        ]
+def test_transform_to_bool():
+    m = mutators_bv.BVTransformToBool()
+    assert not m.filter(Node('x'))
+    assert not m.filter(Node('=', 'x', 'y'))
+    assert not m.filter(Node('=', '#b11', 'x'))
+    assert not m.filter(Node('=', 'x', '#b1'))
+    assert not m.filter(Node('=', '#b1', 'x'))
+    assert not m.filter(Node('=', '#b1', ('bvand', 'x', 'y'), 'z'))
+    assert m.filter(Node('=', '#b1', ('bvand', 'x', 'y')))
+    assert m.filter(Node('=', ('bvand', 'x', 'y'), '#b1'))
+    assert m.filter(Node('=', '#b1', ('bvand', 'x', 'y', 'z')))
+    assert m.mutations(Node('=', '#b1', ('bvand', 'x', 'y', 'z'))) == [
+        Node('and', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))
+    ]
+    assert m.mutations(Node('=', ('bvand', 'x', 'y', 'z'), '#b1')) == [
+        Node('and', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))
+    ]
+    assert m.mutations(Node('=', '#b0', ('bvor', 'x', 'y', 'z'))) == [
+        Node('or', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))
+    ]
+    assert m.mutations(Node('=', ('bvor', 'x', 'y', 'z'), '#b0')) == [
+        Node('or', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))
+    ]
+    assert m.mutations(Node('=', '#b1', ('bvxor', 'x', 'y', 'z'))) == [
+        Node('xor', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))
+    ]
+    assert m.mutations(Node('=', ('bvxor', 'x', 'y', 'z'), '#b0')) == [
+        Node('xor', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))
+    ]
+
+
 # TODO
-#class BVTransformToBool:
 #class BVReduceBW:
 #class BVMergeReducedBW:
