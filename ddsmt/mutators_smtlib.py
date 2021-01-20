@@ -10,7 +10,7 @@ class CheckSatAssuming:
         return node.has_ident() and node.get_ident() == 'check-sat-assuming'
 
     def mutations(self, node):
-        return [Node('check-sat')]
+        return [Node(Node('check-sat'))]
 
     def __str__(self):
         return 'substitute check-sat-assuming by check-sat'
@@ -100,8 +100,7 @@ class PushPopRemoval:
     """
     def global_mutations(self, linput, ginput):
         if linput != ginput[0]:
-            return []
-        res = []
+            return
         pairs = []
         # identify (push) / (pop) pairs
         stack = []
@@ -115,14 +114,11 @@ class PushPopRemoval:
         for p in pairs:
             if p[0] + 1 == p[1]:
                 i = p[0]
-                res.append(ginput[:i] + ginput[i + 2:])
-        if res != []:
-            return res
+                yield ginput[:i] + ginput[i + 2:]
         # remove non-successive pairs
         for p in pairs:
-            r = ginput[:p[0]] + ginput[p[0] + 1:p[1]] + ginput[p[1] + 1:]
-            res.append(r)
-        return res
+            if p[0] + 1 != p[1]:
+                yield ginput[:p[0]] + ginput[p[0] + 1:p[1]] + ginput[p[1] + 1:]
 
     def __str__(self):
         return 'remove push-pop pair'
