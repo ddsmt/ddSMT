@@ -75,3 +75,34 @@ def test_dfs():
         ('assert', ('=', ('*', 'y', 'y'), 'y')), 'assert',
         ('=', ('*', 'y', 'y'), 'y')
     ]
+
+
+def test_substitute():
+    x = Node('x')
+    expr = Node('assert', ('>', x, 'y'))
+    exprs = [expr, Node('assert', ('=', ('*', 'x', 'y'), 'y'))]
+
+    assert nodes.substitute(x, {x: Node('z')}) == Node('z')
+    assert nodes.substitute(x, {x.id: Node('z')}) == Node('z')
+    assert nodes.substitute(x, {x.id: None}) is None
+    assert nodes.substitute(x, {Node('y'): None}) == x
+
+    assert nodes.substitute(expr,
+                            {x: Node('z')}) == Node('assert', ('>', 'z', 'y'))
+    assert nodes.substitute(expr,
+                            {x.id: Node('z')}) == Node('assert',
+                                                       ('>', 'z', 'y'))
+    assert nodes.substitute(expr, {x.id: None}) == Node('assert', ('>', 'y'))
+
+    assert nodes.substitute(exprs, {x: Node('z')}) == [
+        Node('assert', ('>', 'z', 'y')),
+        Node('assert', ('=', ('*', 'z', 'y'), 'y')),
+    ]
+    assert nodes.substitute(exprs, {x.id: Node('z')}) == [
+        Node('assert', ('>', 'z', 'y')),
+        Node('assert', ('=', ('*', 'x', 'y'), 'y')),
+    ]
+    assert nodes.substitute(exprs, {x.id: None}) == [
+        Node('assert', ('>', 'y')),
+        Node('assert', ('=', ('*', 'x', 'y'), 'y')),
+    ]
