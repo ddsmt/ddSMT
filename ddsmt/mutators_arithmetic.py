@@ -46,10 +46,8 @@ class ArithmeticSimplifyConstant:
         return [Node(str(int(f))), Node(node.data[:-1])]
 
     def global_mutations(self, linput, ginput):
-        return [
-            nodes.substitute(ginput, {linput: rep})
-            for rep in self.mutations(linput)
-        ]
+        for rep in self.mutations(linput):
+            yield {linput: rep}
 
     def __str__(self):
         return 'simplify arithmetic constant'
