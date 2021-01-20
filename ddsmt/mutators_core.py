@@ -13,11 +13,11 @@ class Constants:
         return get_sort(node) is not None
 
     def mutations(self, node):
-        """Return ``get_constants(get_sort(node))``."""
+        """Return ``get_default_constants(get_sort(node))``."""
         t = get_sort(node)
         if t is None:
             return []
-        res = get_constants(t)
+        res = get_default_constants(t)
         if node in res:
             return []
         return res

@@ -227,7 +227,7 @@ def test_is_eq():
     assert is_eq(Node('=', 'x', 'y', 'z'))
 
 
-def test_get_constants():
+def test_get_default_constants():
     sort_bool = Node('Bool')
     sort_bv8 = Node('_', 'BitVec', 8)
     sort_bv32 = Node('_', 'BitVec', 32)
@@ -238,24 +238,24 @@ def test_get_constants():
     sort_fp64_1 = Node('_', 'FloatingPoint', 11, 53)
     sort_set = Node('Set', 'Int')
     sort_string = Node('String')
-    assert get_constants(sort_bool) == [Node('false'), Node('true')]
-    assert get_constants(sort_bv8) == [
+    assert get_default_constants(sort_bool) == [Node('false'), Node('true')]
+    assert get_default_constants(sort_bv8) == [
         Node('_', 'bv0', 8), Node('_', 'bv1', 8)
     ]
-    assert get_constants(sort_bv32) == [
+    assert get_default_constants(sort_bv32) == [
         Node('_', 'bv0', 32), Node('_', 'bv1', 32)
     ]
-    assert get_constants(sort_int) == [Node(0), Node(1)]
-    assert get_constants(sort_real) == [Node('0.0'), Node('1.0')]
-    assert get_constants(sort_fp16) == []
-    assert get_constants(sort_fp64) == []
-    assert get_constants(sort_fp64_1) == []
-    assert get_constants(sort_set) == [
+    assert get_default_constants(sort_int) == [Node(0), Node(1)]
+    assert get_default_constants(sort_real) == [Node('0.0'), Node('1.0')]
+    assert get_default_constants(sort_fp16) == []
+    assert get_default_constants(sort_fp64) == []
+    assert get_default_constants(sort_fp64_1) == []
+    assert get_default_constants(sort_set) == [
         Node('as', 'emptyset', ('Set', 'Int')),
         Node('singleton', 0),
         Node('singleton', 1)
     ]
-    assert get_constants(sort_string) == []
+    assert get_default_constants(sort_string) == []
 
 
 def test_get_sort():

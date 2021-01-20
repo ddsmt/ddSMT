@@ -232,7 +232,7 @@ def is_eq(node):
     return node.has_ident() and node.get_ident() == '='
 
 
-def get_constants(sort):
+def get_default_constants(sort):
     """Return a list of default constants for the given ``sort``."""
     if sort == 'Bool':
         return [Node('false'), Node('true')]
@@ -244,7 +244,7 @@ def get_constants(sort):
         return [Node('_', c, sort[2]) for c in ['bv0', 'bv1']]
     if is_set_sort(sort):
         return [Node('as', 'emptyset', sort)] \
-               + [Node('singleton', c) for c in get_constants(sort[1])]
+               + [Node('singleton', c) for c in get_default_constants(sort[1])]
     return []
 
 
