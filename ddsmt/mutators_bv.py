@@ -197,9 +197,12 @@ class BVSimplifyConstant:
     def mutations(self, node):
         val, width = get_bv_constant_value(node)
         return [
-            Node('#b{{:0>{}b}}'.format(width).format(v))
-            for v in [val // 32, val // 8, val // 2]
-        ]
+                Node('#b{{:0>{}b}}'.format(width).format(0)),
+                Node('#b{{:0>{}b}}'.format(width).format(1)),
+               ] +  [
+                Node('#b{{:0>{}b}}'.format(width).format(v)) \
+                    for v in [val // 32, val // 8, val // 2] if v not in [0, 1]
+               ]
 
     def global_mutations(self, linput, ginput):
         return [

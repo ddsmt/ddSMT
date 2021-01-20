@@ -188,8 +188,45 @@ def test_reflexive_nand():
     assert m.mutations(Node('bvnand', 'x', 'x')) == [Node('bvnot', 'x')]
 
 
-# TODO
+def test_simplify_constant():
+    m = mutators_bv.BVSimplifyConstant()
+    assert not m.filter(Node('x'))
+    assert not m.filter(Node('declare-const', 'x', ('_', 'BitVec', 4)))
+    assert not m.filter(Node('0'))
+    assert not m.filter(Node('1'))
+    assert not m.filter(Node('#x0'))
+    assert not m.filter(Node('#x1'))
+    assert not m.filter(Node('#b0'))
+    assert not m.filter(Node('#b1'))
+    assert not m.filter(Node('_', 'bv0', 8))
+    assert not m.filter(Node('_', 'bv1', 8))
+    assert m.filter(Node('#b10'))
+    assert m.filter(Node('#b11'))
+    assert m.filter(Node('_', 'bv4', 3))
+    assert m.mutations(Node('#b10')) == [Node('#b00'), Node('#b01')]
+    assert m.mutations(Node('#b11001010')) == [
+        Node('#b00000000'),
+        Node('#b00000001'),
+        Node('#b00000110'),
+        Node('#b00011001'),
+        Node('#b01100101'),
+    ]
+
+
 #class BVSimplifyConstant:
+#    def mutations(self, node):
+#        val, width = get_bv_constant_value(node)
+#        return [
+#            Node('#b{{:0>{}b}}'.format(width).format(v))
+#            for v in [val // 32, val // 8, val // 2]
+#        ]
+#
+#    def global_mutations(self, linput, ginput):
+#        return [
+#            nodes.substitute(ginput, {linput: rep})
+#            for rep in self.mutations(linput)
+#        ]
+# TODO
 #class BVTransformToBool:
 #class BVReduceBW:
 #class BVMergeReducedBW:
