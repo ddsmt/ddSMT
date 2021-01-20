@@ -58,13 +58,17 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
 class DumpConfigAction(argparse.Action):
     """Dump the current config using ``pprint``."""
     def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, True)
         import pprint
         pprint.pprint(vars(namespace))
 
 
-def parse_options(mutators):
-    """Configures the commandline parse and then parse the commandline
-    options."""
+def parse_options(mutators, cmdlineoptions=None):
+    """Configures the commandline parse and then parse the commandline options.
+
+    ``cmdlineoptions`` can be used to override the contents of
+    ``sys.argv``, but is mostly useful for unit tests.
+    """
 
     usage = "ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]"
     ap = argparsemod.ModularArgumentParser(
@@ -166,7 +170,7 @@ def parse_options(mutators):
 
     mutators.collect_mutator_options(ap)
 
-    res = ap.parse_args()
+    res = ap.parse_args(cmdlineoptions)
 
     if res.cmd_cc:
         res.cmd_cc = res.cmd_cc.split()
@@ -177,14 +181,15 @@ def parse_options(mutators):
 __PARSED_ARGS = None
 
 
-def args():
+def args(cmdlineoptions=None):
     """Returns the commandline options.
 
-    Calls ``parse_options()`` if parsing has not yet happened.
+    Calls ``parse_options()`` if parsing has not yet happened. The
+    ``cmdlineoptions`` is passed on to ``parse_options`` in this case.
     """
     global __PARSED_ARGS
     if __PARSED_ARGS is None:
         # make sure that options as a whole does not depend on other modules
         from . import mutators
-        __PARSED_ARGS = parse_options(mutators)
+        __PARSED_ARGS = parse_options(mutators, cmdlineoptions)
     return __PARSED_ARGS
