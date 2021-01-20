@@ -122,6 +122,8 @@ class Node:
         self.data = exprs[0][0].data
 
     def is_leaf(self):
+        """Return true if this node is a leaf node, i.e., it has no children
+        but is only a string."""
         return isinstance(self.data, str)
 
     def has_ident(self):
