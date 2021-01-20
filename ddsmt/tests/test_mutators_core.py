@@ -7,17 +7,24 @@ def test_constants():
     exprs = [Node('declare-const', 'x', 'Real')]
     smtlib.collect_information(exprs)
     m = mutators_core.Constants()
+    assert m.filter(Node('x'))
+    assert m.filter(Node('=', 'x', '1'))
+    assert not m.filter(Node('y'))
     assert m.mutations(Node('x')) == [Node('0.0'), Node('1.0')]
+    assert m.mutations(Node('=', 'x', '1')) == [Node('false'), Node('true')]
 
 
 def test_erase_node():
     m = mutators_core.EraseNode()
+    assert m.filter(Node('x'))
     assert m.mutations(Node('x')) == [None]
 
 
 def test_erase_named_node():
     m = mutators_core.EraseNode()
     m.ident = 'assert'
+    assert m.filter(Node('assert', 'x'))
+    assert not m.filter(Node('x'))
     assert m.mutations(Node(Node('assert'), Node('true'))) == [None]
 
 
