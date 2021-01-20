@@ -80,7 +80,6 @@ def test_replace_by_variable():
 
 
 def test_sort_children():
-
     node = Node(Node('+'), Node('123'), Node(Node('*'), Node('y'), Node('2')),
                 Node('x'))
     expected = Node(Node('+'), Node('123'), Node('x'),
@@ -95,5 +94,77 @@ def test_sort_children():
     assert list(m.mutations(expected)) == []
 
 
-# TODO
-#def test_top_level_binary_reduction():
+def test_top_level_binary_reduction():
+    m = mutators_core.TopLevelBinaryReduction()
+    assert not hasattr(m, 'filter')
+    a = Node('a')
+    b = Node('b')
+    c = Node('c')
+    d = Node('d')
+    e = Node('e')
+    f = Node('f')
+    g = Node('g')
+    h = Node('h')
+    i = Node('i')
+    exprs = [a, b, c, d, e, f, g, h, i]
+    mut = [
+        {
+            e.id: None,
+            f.id: None,
+            g.id: None,
+            h.id: None,
+            i.id: None
+        },
+        {
+            a.id: None,
+            b.id: None,
+            c.id: None,
+            d.id: None
+        },
+        {
+            g.id: None,
+            h.id: None,
+            i.id: None
+        },
+        {
+            e.id: None,
+            f.id: None
+        },
+        {
+            c.id: None,
+            d.id: None
+        },
+        {
+            a.id: None,
+            b.id: None
+        },
+    ]
+    assert list(m.global_mutations(a, exprs)) == mut
+
+
+def test_top_level_binary_reduction_named():
+    m = mutators_core.TopLevelBinaryReduction()
+    m.ident = 'assert'
+    assert not hasattr(m, 'filter')
+    a = Node('a')
+    b = Node('assert', 'b')
+    c = Node('c')
+    d = Node('assert', 'd')
+    e = Node('e')
+    f = Node('assert', 'f')
+    g = Node('g')
+    h = Node('assert', 'h')
+    i = Node('assert', 'i')
+    exprs = [a, b, c, d, e, f, g, h, i]
+    mut = [
+        {
+            f.id: None,
+            h.id: None,
+            i.id: None
+        },
+        {
+            b.id: None,
+            d.id: None
+        },
+    ]
+    assert list(m.global_mutations(a, exprs)) == mut
