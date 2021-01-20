@@ -258,8 +258,8 @@ class BVReduceBW:
     """
     def filter(self, node):
         return node.has_ident() \
-               and (get_ident(node) == 'declare-const' or \
-                   (get_ident(node) == 'declare-fun' and len(node[2]) == 0)) \
+               and (node.get_ident() == 'declare-const' or \
+                   (node.get_ident() == 'declare-fun' and len(node[2]) == 0)) \
                and get_sort(node[1]) is not None \
                and is_bv_sort(get_sort(node[1]))
 
