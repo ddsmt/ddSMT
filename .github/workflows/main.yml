@@ -29,6 +29,10 @@ jobs:
       run: yapf -r -d .
     - name: test with pytest
       run: pytest
+    - name: collect code coverage
+      run: |
+        coverage run --source=ddsmt/ -m pytest
+        coverage report -m
   
   package:
     if: github.ref == 'refs/heads/development' || startsWith(github.ref, 'refs/tags/')
