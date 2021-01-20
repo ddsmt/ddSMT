@@ -79,9 +79,8 @@ class ArithmeticStrengthenRelation:
 
     def mutations(self, node):
         negator = {'<': ['='], '>': ['='], '<=': ['<', '='], '>=': ['>', '=']}
-        if node[0] in negator:
-            return [Node(rel, *node.data[1:]) for rel in negator[node[0]]]
-        return []
+        assert node[0] in negator
+        return [Node(rel, *node.data[1:]) for rel in negator[node[0]]]
 
     def __str__(self):
         return 'strengthen arithmetic relation'

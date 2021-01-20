@@ -2,6 +2,20 @@ from ..nodes import Node
 from .. import mutators_arithmetic
 
 
+def test_arith_get_mutators():
+    d = mutators_arithmetic.get_mutators()
+    assert isinstance(d, dict)
+    assert len(d) == 4
+
+
+def test_arith_is_relevant():
+    assert mutators_arithmetic.is_relevant(Node('declare-const', 'x', 'Real'))
+    assert mutators_arithmetic.is_relevant(Node('declare-fun', 'x', (),
+                                                'Real'))
+    assert not mutators_arithmetic.is_relevant(
+        Node('declare-fun', 'x', (), 'String'))
+
+
 def test_arith_negate_relation():
     m = mutators_arithmetic.ArithmeticNegateRelation()
     assert isinstance(str(m), str)
