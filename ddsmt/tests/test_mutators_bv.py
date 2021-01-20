@@ -3,6 +3,20 @@ from .. import mutators_bv
 from .. import smtlib
 
 
+def test_bv_get_mutators():
+    d = mutators_bv.get_mutators()
+    assert isinstance(d, dict)
+    assert len(d) == 12
+
+
+def test_bv_is_relevant():
+    assert mutators_bv.is_relevant(
+        Node('declare-const', 'x', ('_', 'BitVec', '17')))
+    assert mutators_bv.is_relevant(
+        Node('declare-fun', 'x', (), ('_', 'BitVec', '5')))
+    assert not mutators_bv.is_relevant(Node('declare-fun', 'x', (), 'Bool'))
+
+
 def test_bv_concat_to_zero_extend():
     m = mutators_bv.BVConcatToZeroExtend()
     assert isinstance(str(m), str)
