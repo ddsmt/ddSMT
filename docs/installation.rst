@@ -1,6 +1,7 @@
 Installation
 ====================================
 
+There are several ways to obtain and install ddSMT.
 If you just want to use a stable version of ddSMT use
 
 .. code-block:: bash
@@ -15,7 +16,7 @@ If you are interested in a specific version of ddSMT (including development vers
     $ pip3 install ddsmt==
     $ pip3 install ddsmt==<version>
 
-If you want to experiment with ddSMT, for example to test custom mutators, clone ddSMT from github and run it from your working copy:
+If you want to experiment with ddSMT, for example to test :ref:`custom mutators <Writing new mutators>`, clone ddSMT from github and run it from your working copy:
 
 .. code-block:: bash
 

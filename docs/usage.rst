@@ -5,22 +5,22 @@ The basic idea of ddSMT is that it runs some command with some input and records
 Then, ddSMT mutates the input such that the command still behaves the same and repeats doing so until no further mutations are possible.
 
 The command is usually an SMT solver with options and the behavior is its exit code, standard output and error output. This, together with the computation time, constitutes what ddSMT calls the "golden run".
-For any mutations that are accepted, the command must exit with the same exit code, standard output and error output. Additionally, ddSMT imposes a timeout that is twice the computation time of the golden run.
+For any mutations that are accepted, the command must exit with the same exit code, standard output and error output. Additionally, ddSMT imposes a timeout that is usually computed based on the computation time of the golden run.
 
-Afterwards, ddSMT traverses the input and applies all enabled mutations and applies the command to the resulting input. The first mutation on which the command behaves the same is accepted, the mutated input is adopted and new mutations are tested based on this new input.
-Eventually, no further mutations are found and ddSMT terminates with the final output written to ``delta.out.smt2``.
+Afterwards, ddSMT employs a certain :ref:`strategy <Minimization strategies>` to generate derived inputs by applying all enabled mutators and executes the command with these derived input. The first mutation on which the command behaves the same is accepted, the mutated input is adopted and new mutations are tested based on this new input.
+Eventually, no further mutations are found and ddSMT terminates with the final output written to the specified output file.
 
 For such a case, ddSMT is executed as follows:
 
 .. code-block:: bash
 
-    $ ddsmt input.smt2 bin/solver --option
+    $ ddsmt input.smt2 output.smt2 bin/solver --option
 
-ddSMT provides many options that cover common use cases, consult :ref:`Full option listing` for an exhaustive list. The following is a list of the most commonly used options:
+ddSMT provides many options that cover common use cases, consult the :ref:`full option listing <Full option listing>` for an exhaustive list. The following is a list of the most commonly used options:
 
-* ``--jobs`` (or ``-j``) sets the number of processes allows to run in parallel.
-* ``--memout`` imposes a memory limit (in megabytes).
-* ``--timeout`` imposes a custom time limit (in seconds).
+* ``--jobs`` (or ``-j``) sets the number of processes allowed to run in parallel, uses the number of cpu cores minus two by default.
+* ``--memout`` imposes a memory limit (in megabytes), otherwise memory usage is not limited.
+* ``--timeout`` imposes a custom time limit (in seconds), otherwise the time limit is computed based on the running time of the initial run.
 * ``--strategy`` selects between the ``ddmin`` strategy and the ``hierarchical`` strategy (see :doc:`strategies`).
 * ``--ignore-output``, ``--match-out`` and ``--match-err`` allow to change how the comparison with the golden run is performed. See :ref:`Comparison with golden run` for more details.
 
