@@ -255,6 +255,9 @@ class BVReduceBW:
         (declare-const _v (_BitVec 1))
 
     This mutator generates all possible mutations for a variable.
+
+    Requires that global information has been populated via
+    ``collect_information``.
     """
     def filter(self, node):
         return node.has_ident() \
@@ -270,12 +273,13 @@ class BVReduceBW:
 
         res = []
         bw = get_bv_width(linput[1])
-        for b in range(1, bw):
-            varname = '_{}'.format(linput[1])
-            var = Node('declare-const', varname, Node('_', 'BitVec', b))
-            zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
-                        Node(Node('_', 'zero_extend', bw - b), varname))
-            res.append(gin1 + [var] + [zext] + gin2)
+        for b in sorted(set([bw - 1, bw // 2, 2, 1])):
+            if b > 0:
+                varname = '_{}'.format(linput[1])
+                var = Node('declare-const', varname, Node('_', 'BitVec', b))
+                zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
+                            Node(Node('_', 'zero_extend', bw - b), varname))
+                res.append(gin1 + [var] + [zext] + gin2)
         return res
 
     def __str__(self):

@@ -4,6 +4,8 @@ from .. import smtlib
 
 
 def test_bv_concat_to_zero_extend():
+    m = mutators_bv.BVConcatToZeroExtend()
+    assert isinstance(str(m), str)
     r = Node('r')
     x = Node('x')
     const = Node('declare-const', r, 'Real')
@@ -17,8 +19,6 @@ def test_bv_concat_to_zero_extend():
     conc16_4 = Node('concat', val8_0, x)
     exprs = [conc16_0, conc16_1, conc16_2, conc16_3, conc16_4]
     smtlib.collect_information(exprs)
-    m = mutators_bv.BVConcatToZeroExtend()
-    assert isinstance(str(m), str)
     assert not m.filter(const)
     assert not m.filter(conc16_0)
     assert not m.filter(conc16_1)
@@ -29,11 +29,11 @@ def test_bv_concat_to_zero_extend():
 
 
 def test_bv_double_negation():
+    m = mutators_bv.BVDoubleNegation()
+    assert isinstance(str(m), str)
     x = Node('x')
     bvnot = Node('bvnot', Node('bvnot', x))
     bvneg = Node('bvneg', Node('bvneg', x))
-    m = mutators_bv.BVDoubleNegation()
-    assert isinstance(str(m), str)
     assert not m.filter(Node('bvadd', x, x))
     assert m.filter(bvnot)
     assert m.filter(bvneg)
@@ -42,6 +42,8 @@ def test_bv_double_negation():
 
 
 def test_bv_elim_bvcomp():
+    m = mutators_bv.BVElimBVComp()
+    assert isinstance(str(m), str)
     x = Node('x')
     const = Node('#011')
     const0 = Node('#b0')
@@ -55,8 +57,6 @@ def test_bv_elim_bvcomp():
     eq2_2 = Node('=', const1, x, bvcomp, x)
     eq_x = Node('=', x, x)
     ne_x = Node('not', eq_x)
-    m = mutators_bv.BVElimBVComp()
-    assert isinstance(str(m), str)
     assert not m.filter(x)
     assert not m.filter(Node('=', x, x))
     assert not m.filter(Node('=', const0, x, x))
@@ -80,6 +80,8 @@ def test_bv_elim_bvcomp():
 
 
 def test_bv_eval_extend():
+    m = mutators_bv.BVEvalExtend()
+    assert isinstance(str(m), str)
     x = Node('x')
     const0_1 = Node('#b011')
     const0_2 = Node('_', 'bv3', 3)
@@ -93,8 +95,6 @@ def test_bv_eval_extend():
     sext0_2 = Node(('_', 'sign_extend', 2), const0_2)
     sext1_1 = Node(('_', 'sign_extend', 2), const1_1)
     sext1_2 = Node(('_', 'sign_extend', 2), const1_2)
-    m = mutators_bv.BVEvalExtend()
-    assert isinstance(str(m), str)
     assert not m.filter(Node('bvand', x, x))
     assert not m.filter(Node(('_', 'zero_extend', 2), x))
     assert not m.filter(Node(('zero_extend', 2), const0_1))
@@ -117,6 +117,8 @@ def test_bv_eval_extend():
 
 
 def test_bv_extract_constants():
+    m = mutators_bv.BVExtractConstants()
+    assert isinstance(str(m), str)
     x = Node('x')
     const1 = Node('#b011')
     const2 = Node('_', 'bv3', 3)
@@ -126,8 +128,6 @@ def test_bv_extract_constants():
     ext1_1 = Node(('_', 'extract', 0, 0), const2)
     ext1_2 = Node(('_', 'extract', 1, 1), const2)
     ext1_3 = Node(('_', 'extract', 2, 2), const2)
-    m = mutators_bv.BVExtractConstants()
-    assert isinstance(str(m), str)
     assert not m.filter(Node(('_', 'extract', 0, 0), ('bvadd', 'x', 'y')))
     assert m.filter(ext0_1)
     assert m.filter(ext0_2)
@@ -144,13 +144,13 @@ def test_bv_extract_constants():
 
 
 def test_bv_extract_zero_extend():
+    m = mutators_bv.BVExtractZeroExtend()
+    assert isinstance(str(m), str)
     x = Node('x')
     ext1 = Node(('_', 'extract', 7, 5), (('_', 'zero_extend', 4), x))
     ext2 = Node(('_', 'extract', 1, 0), (('_', 'zero_extend', 4), x))
     ext3 = Node(('_', 'extract', 5, 3), (('_', 'zero_extend', 4), x))
     exprs = [Node('declare-const', x, ('_', 'BitVec', 4)), ext1, ext2, ext3]
-    m = mutators_bv.BVExtractZeroExtend()
-    assert isinstance(str(m), str)
     assert not m.filter(Node(('_', 'extract', 7, 5), x))
     assert m.filter(ext1)
     assert m.filter(ext2)
@@ -254,6 +254,108 @@ def test_transform_to_bool():
     ]
 
 
+def test_bv_reduce_bw():
+    m = mutators_bv.BVReduceBW()
+    assert isinstance(str(m), str)
+    x = Node('x')
+    y = Node('y')
+    z = Node('z')
+    r = Node('r')
+    s = Node('s')
+    a = Node('a')
+    b = Node('b')
+    c = Node('c')
+    bvsort8 = Node('_', 'BitVec', 8)
+    bvsort9 = Node('_', 'BitVec', 9)
+    assert not m.filter(Node('bvadd', x, y))
+    assert not m.filter(Node('declare-const', x, 'Int'))
+    assert not m.filter(Node('declare-fun', y, ('Int', ), bvsort8))
+    declx = Node('declare-const', x, bvsort8)
+    decly = Node('declare-fun', y, (), bvsort8)
+    assert not m.filter(declx)
+    assert not m.filter(decly)
+    exprs0 = [declx, decly]
+    smtlib.collect_information(exprs0)
+    assert m.filter(declx)
+    assert m.filter(decly)
+    declz = Node('declare-const', z, bvsort9)
+    smtlib.reset_information()
+    _exprs1 = [
+        Node('declare-fun', r, (), 'Real'),
+        Node('declare-const', s, 'String'),
+        Node('declare-const', a, 'Float64'),
+        Node('declare-const', b, ('_', 'FloatingPoint', 11, 53)),
+        Node('declare-fun', c, (), ('_', 'FloatingPoint', 5, 11)),
+        Node('assert', ('=', ('bvadd', x, y), (('_', 'extract', 24, 17), z))),
+        Node('assert', ('<', ('+', r, r), 4)),
+        Node('assert', ('distinct', ('str.++', s, s), "aaa")),
+    ]
+    exprs1 = [
+        declx,
+        decly,
+        declz,
+        *_exprs1,
+    ]
+    x8 = [
+        Node('declare-const', '_x', ('_', 'BitVec', 1)),
+        Node('declare-const', '_x', ('_', 'BitVec', 2)),
+        Node('declare-const', '_x', ('_', 'BitVec', 4)),
+        Node('declare-const', '_x', ('_', 'BitVec', 7)),
+    ]
+    y8 = [
+        Node('declare-const', '_y', ('_', 'BitVec', 1)),
+        Node('declare-const', '_y', ('_', 'BitVec', 2)),
+        Node('declare-const', '_y', ('_', 'BitVec', 4)),
+        Node('declare-const', '_y', ('_', 'BitVec', 7)),
+    ]
+    z9 = [
+        Node('declare-const', '_z', ('_', 'BitVec', 1)),
+        Node('declare-const', '_z', ('_', 'BitVec', 2)),
+        Node('declare-const', '_z', ('_', 'BitVec', 4)),
+        Node('declare-const', '_z', ('_', 'BitVec', 8)),
+    ]
+    zext_x8 = [
+        Node(('_', 'zero_extend', 7), '_x'),
+        Node(('_', 'zero_extend', 6), '_x'),
+        Node(('_', 'zero_extend', 4), '_x'),
+        Node(('_', 'zero_extend', 1), '_x'),
+    ]
+    zext_y8 = [
+        Node(('_', 'zero_extend', 7), '_y'),
+        Node(('_', 'zero_extend', 6), '_y'),
+        Node(('_', 'zero_extend', 4), '_y'),
+        Node(('_', 'zero_extend', 1), '_y'),
+    ]
+    zext_z9 = [
+        Node(('_', 'zero_extend', 8), '_z'),
+        Node(('_', 'zero_extend', 7), '_z'),
+        Node(('_', 'zero_extend', 5), '_z'),
+        Node(('_', 'zero_extend', 1), '_z'),
+    ]
+    smtlib.collect_information(exprs1)
+    assert m.global_mutations(declx, exprs1) == [[
+        x8[i],
+        Node('define-fun', x, (), bvsort8, zext_x8[i]),
+        decly,
+        declz,
+        *_exprs1,
+    ] for i in range(0, 4)]
+    assert m.global_mutations(decly, exprs1) == [[
+        declx,
+        y8[i],
+        Node('define-fun', y, (), bvsort8, zext_y8[i]),
+        declz,
+        *_exprs1,
+    ] for i in range(0, 4)]
+    assert m.global_mutations(declz, exprs1) == [[
+        declx,
+        decly,
+        z9[i],
+        Node('define-fun', z, (), bvsort9, zext_z9[i]),
+        *_exprs1,
+    ] for i in range(0, 4)]
+    smtlib.reset_information()
+
+
 # TODO
-#class BVReduceBW:
 #class BVMergeReducedBW:
