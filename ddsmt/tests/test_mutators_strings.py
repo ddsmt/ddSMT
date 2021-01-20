@@ -3,6 +3,26 @@ from .. import mutators_strings
 from .. import smtlib
 
 
+def test_strings_simplify_constant():
+    expr = Node('"abc123"')
+    gexpr = Node('define-fun', 's', (), 'String', '"abc123"')
+    m = mutators_strings.StringSimplifyConstant()
+    assert m.filter(expr)
+    assert m.mutations(expr) == [
+        Node('""'),
+        Node('"abc"'),
+        Node('"bc123"'),
+        Node('"abc12"')
+    ]
+
+    assert m.global_mutations(expr, gexpr) == [
+        Node('define-fun', 's', (), 'String', '""'),
+        Node('define-fun', 's', (), 'String', '"abc"'),
+        Node('define-fun', 's', (), 'String', '"bc123"'),
+        Node('define-fun', 's', (), 'String', '"abc12"'),
+    ]
+
+
 def test_strings_replace_all():
     expr = Node('str.replace_all', 'x', 'from', 'to')
     target = Node('str.replace', 'x', 'from', 'to')
@@ -38,5 +58,4 @@ def test_strings_contains_to_concat():
     m = mutators_strings.StringContainsToConcat()
     assert m.filter(expr)
     res = m.global_mutations(expr, exprs)
-    print(res)
     assert res == target
