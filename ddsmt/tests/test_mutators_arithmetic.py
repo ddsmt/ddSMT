@@ -13,7 +13,11 @@ def test_arith_is_relevant():
     assert mutators_arithmetic.is_relevant(Node('declare-fun', 'x', (),
                                                 'Real'))
     assert not mutators_arithmetic.is_relevant(
+        Node('declare-const', 'x', 'Bool'))
+    assert not mutators_arithmetic.is_relevant(
         Node('declare-fun', 'x', (), 'String'))
+    assert not mutators_arithmetic.is_relevant(Node())
+    assert not mutators_arithmetic.is_relevant(Node('assert', 'x'))
 
 
 def test_arith_negate_relation():
