@@ -7,13 +7,10 @@ import textwrap
 
 HEADER_TEMPLATE = """
 ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
-Copyright (C) 2013-2021, Aina Niemetz.
-Copyright (C) 2016-2021, Mathias Preiner.
-Copyright (C) 2020-2021, Gereon Kremer.
-Copyright (C) 2018, Jane Lange.
-Copyright (C) 2018, Andres Noetzli.
 
 This file is part of ddSMT.
+
+Copyright (C) 2013-2021 by the authors listed in AUTHORS file.
 
 ddSMT is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -84,5 +81,8 @@ if __name__ == '__main__':
     parse_options()
     header = prepare_header()
     for filename in list_files():
+        if filename.endswith('__init__.py'):
+            continue
+
         print(filename)
         update_file(filename, header)
