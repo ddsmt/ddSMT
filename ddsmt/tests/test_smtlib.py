@@ -1,6 +1,84 @@
 import pytest
 from ..nodes import Node
+from .. import smtlib
 from ..smtlib import *
+
+
+def test_collect_information():
+    collect_information([])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('declare-const', 'x')])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('declare-const', ('x', 'Real'), 'Real')])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('declare-const', 'x', 'Real')])
+    assert smtlib.__constants == {'x': 'Real'}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {'x': 'Real'}
+
+    collect_information([Node('declare-fun', 'x', ())])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('declare-fun', ('x', 'Real'), (), 'Real')])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('declare-fun', 'x', 'Real', 'Real')])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('declare-fun', 'x', (), 'Real')])
+    assert smtlib.__constants == {'x': 'Real'}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {'x': 'Real'}
+
+    collect_information([Node('declare-fun', 'x', ('Real', ), 'Real')])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {'x': 'Real'}
+
+    collect_information([Node('define-fun', 'x', (), 'Real')])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('define-fun', ('x', 'Real'), (), 'Real', '5.0')])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('define-fun', 'x', 'Real', 'Real', '5.0')])
+    assert smtlib.__constants == {}
+    assert smtlib.__defined_functions == {}
+    assert smtlib.__sort_lookup == {}
+
+    collect_information([Node('define-fun', 'x', (), 'Real', '5.0')])
+    assert smtlib.__constants == {'x': 'Real'}
+    assert 'x' in smtlib.__defined_functions
+    assert smtlib.__defined_functions['x'](Node()) == '5.0'
+    assert smtlib.__sort_lookup == {'x': 'Real'}
+
+    collect_information(
+        [Node('define-fun', 'x', ('y', 'Real'), 'Real', ('+', 'y', '5.0'))])
+    assert smtlib.__constants == {}
+    assert 'x' in smtlib.__defined_functions
+    assert smtlib.__defined_functions['x'](('3.0', )) == ('+', '3.0', '5.0')
+    assert smtlib.__sort_lookup == {'x': 'Real'}
+
+    reset_information()
 
 
 def test_get_variables_with_sort():

@@ -48,7 +48,7 @@ def collect_information(exprs):  # noqa: C901
                 logging.trace(f'Ignored command: "{cmd[2]}" is a leaf')
                 continue
             if cmd[2] == tuple():
-                __constants[cmd[1].data] = cmd[2]
+                __constants[cmd[1].data] = cmd[3]
             __sort_lookup[cmd[1].data] = cmd[3]
         if name == 'define-fun':
             if not len(cmd) == 5:
@@ -62,7 +62,7 @@ def collect_information(exprs):  # noqa: C901
                 logging.trace(f'Ignored command: "{cmd[2]}" is a leaf')
                 continue
             if cmd[2] == tuple():
-                __constants[cmd[1]] = cmd[2]
+                __constants[cmd[1]] = cmd[3]
             __defined_functions[
                 cmd[1]] = lambda args, cmd=cmd: nodes.substitute(
                     cmd[4], {cmd[2][i][0]: args[i]
