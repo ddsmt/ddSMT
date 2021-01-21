@@ -12,8 +12,11 @@ def test_strings_get_mutators():
 def test_strings_is_relevant():
     assert mutators_strings.is_relevant(Node('declare-const', 'x', 'String'))
     assert mutators_strings.is_relevant(Node('declare-fun', 'x', (), 'String'))
+    assert not mutators_strings.is_relevant(Node('declare-const', 'x', 'Real'))
     assert not mutators_strings.is_relevant(
         Node('declare-fun', 'x', (), 'Real'))
+    assert not mutators_strings.is_relevant(Node())
+    assert not mutators_strings.is_relevant(Node('assert', 'x'))
 
 
 def test_strings_simplify_constant():
