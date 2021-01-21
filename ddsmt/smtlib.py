@@ -380,9 +380,6 @@ def get_sort(node):
        or is_indexed_operator_app(node, 'to_fp_unsigned', 2):
         idx = get_indices(node[0], node[0][1], 2)
         return Node('_', 'FloatingPoint', idx[0], idx[1])
-    if is_indexed_operator_app(node, 'fp.to_sbv', 1) \
-       or is_indexed_operator_app(node, 'fp.to_ubv', 1):
-        return Node('_', 'BitVec', get_indices(node[0], node[0][1], 1)[0])
 
     return None
 

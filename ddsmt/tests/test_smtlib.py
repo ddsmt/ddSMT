@@ -67,6 +67,8 @@ def test_introduce_variables():
     exprs2 = exprs0 + [decl_x1, decl_x2, decl_x3, fpadd, fpmul, fpass]
     assert introduce_variables(exprs2, [decl_x]) \
            == exprs0 + [decl_x1, decl_x2, decl_x3, fpadd, fpmul, decl_x, fpass]
+    exprs3 = [Node('echo')]
+    assert introduce_variables(exprs3, [decl_x]) == [decl_x, Node('echo')]
 
 
 def test_substitute_vars_except_decl():
@@ -88,6 +90,7 @@ def test_substitute_vars_except_decl():
     exprs = [decl_x1, decl_x2, decl_x3, fpadd, fpmul, fpass0, fpass1]
 
     assert not exprs == substitute_vars_except_decl(exprs, {x1: y1})
+    assert substitute_vars_except_decl(exprs, {x1: x1}) == None
     assert substitute_vars_except_decl(exprs, {x1 : y1}) == \
            [
                decl_x1, decl_x2, decl_x3, fpadd, fpmul,
@@ -169,7 +172,7 @@ def test_is_indexed_operator_app():
 
 def test_has_nary_operator():
     x = Node('x')
-    assert not has_nary_operator(Node(x))
+    assert not has_nary_operator(x)
     assert has_nary_operator(Node('=>', x, x))
     assert has_nary_operator(Node('and', x, x))
     assert has_nary_operator(Node('or', x, x))
@@ -386,6 +389,7 @@ def test_get_sort():
     assert get_sort(tx) == sort_string
 
     assert get_sort(Node('ite', 'true', vx, vx)) == sort_bv
+    assert get_sort(Node('ite', 'true', rx, rx)) == sort_real
 
     assert get_sort(Node('+', ix, ix)) == sort_int
     assert get_sort(Node('*', ix, ix)) == sort_int
@@ -531,6 +535,7 @@ def test_is_bv_const():
     assert not is_bv_const(Node('declare-const', 'x', ('_', 'BitVec', 4)))
     assert not is_bv_const(Node('2'))
     assert not is_bv_const(Node('0101'))
+    assert not is_bv_const(Node('_', ('bv5', ), 3))
     assert is_bv_const(Node('#b0101'))
     assert is_bv_const(Node('#x1af'))
     assert is_bv_const(Node('_', 'bv5', 3))
@@ -621,6 +626,7 @@ def test_get_bv_width():
     assert get_bv_width(Node('true')) == -1
     assert get_bv_width(Node('false')) == -1
     assert get_bv_width(Node('#b01011111')) == 8
+    assert get_bv_width(Node('#x110')) == 12
     assert get_bv_width(Node('_', 'bv4', 8)) == 8
     assert get_bv_width(Node(2)) == -1
     assert get_bv_width(Node('2.0')) == -1
@@ -882,5 +888,6 @@ def test_is_set_sort():
     assert not is_set_sort(
         Node('declare-const', 'x', ('Set', ('_', 'BitVec', 8))))
     assert not is_set_sort(Node('Set'))
+    assert not is_set_sort(Node('bvnot', 'x'))
     assert is_set_sort(Node('Set', 'Int'))
     assert is_set_sort(Node('Set', ('_', 'BitVec', 8)))
