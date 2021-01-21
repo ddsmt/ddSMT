@@ -481,8 +481,8 @@ def get_bv_width(node):
             data = node.data
             if data.startswith('#b'):
                 return len(data[2:])
-            if data.startswith('#x'):
-                return len(data[2:]) * 4
+            assert data.startswith('#x')
+            return len(data[2:]) * 4
         return int(node[2].data)
     if node in __sort_lookup:
         bvsort = __sort_lookup[node]
