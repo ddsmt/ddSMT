@@ -392,6 +392,22 @@ def test_bv_reduce_bw():
     ] for i in range(0, 4)]
     smtlib.reset_information()
 
+    # corner case: avoid reducing by 0 bits
+    decl = Node('declare-const', 'x', ('_', 'BitVec', 2))
+    smtlib.collect_information([decl])
+    assert m.filter(decl)
+    assert list(m.global_mutations(decl, [decl])) == [[
+        Node('declare-const', '_x', ('_', 'BitVec', 1)),
+        Node('define-fun', 'x', (), ('_', 'BitVec', 2),
+             (('_', 'zero_extend', '1'), '_x'))
+    ]]
+
+    decl = Node('declare-const', 'x', ('_', 'BitVec', 1))
+    smtlib.collect_information([decl])
+    assert m.filter(decl)
+    assert list(m.global_mutations(decl, [decl])) == []
+    smtlib.reset_information()
+
 
 def test_bv_merge_reduced_bw():
     m = mutators_bv.BVMergeReducedBW()
