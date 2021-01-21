@@ -103,6 +103,9 @@ def test_smtlib_let_substitution():
         ('let', (('a', 'x'), ('b', 'y')), ('and', 'x', 'b')),
         ('let', (('a', 'x'), ('b', 'y')), ('and', 'a', 'y'))
     ]
+    n = Node('let', (('a', 'x'), ('b', 'y')), ('and', 'abc', 'def'))
+    assert m.filter(n)
+    assert m.mutations(n) == []
 
 
 def test_smtlib_pushpop_removal():
