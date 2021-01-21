@@ -60,6 +60,16 @@ def test_smtlib_inline_define_fun():
     assert m.mutations(inner) == []
     smtlib.reset_information()
 
+    inner = Node('x')
+    expr = Node(inner, 'a', 'b')
+    smtlib.collect_information([
+        Node('define-fun', 'x', (('y', 'Bool'), ('z', 'Bool')), 'Bool',
+             ('and', 'y', 'z'))
+    ])
+    assert m.filter(expr)
+    assert m.mutations(expr) == [Node('and', 'a', 'b')]
+    smtlib.reset_information()
+
 
 def test_smtlib_let_elimination():
     m = mutators_smtlib.LetElimination()
