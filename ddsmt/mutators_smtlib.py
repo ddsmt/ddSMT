@@ -74,7 +74,10 @@ class InlineDefinedFuns:
         if node.id in map(lambda n: n.id, nodes.dfs(get_defined_fun(node))):
             # we are about to inline the function into itself
             return []
-        return [get_defined_fun(node)]
+        res = get_defined_fun(node)
+        if res == node:
+            return []
+        return [res]
 
     def __str__(self):
         return 'inline defined function'
