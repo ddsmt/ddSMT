@@ -207,7 +207,6 @@ class SimplifySymbolNames:
     def global_mutations(self, linput, ginput):
         if linput.get_ident() in ['declare-datatype', 'declare-datatypes']:
             for c in self.__flatten(Node(linput[1:])):
-                print(c)
                 yield from self.__mutate_symbol(c, ginput)
             return
         if linput.get_ident() in ['exists', 'forall']:
