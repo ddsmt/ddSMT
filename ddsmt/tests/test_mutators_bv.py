@@ -357,21 +357,21 @@ def test_bv_reduce_bw():
         Node(('_', 'zero_extend', 1), '_z'),
     ]
     smtlib.collect_information(exprs1)
-    assert m.global_mutations(declx, exprs1) == [[
+    assert list(m.global_mutations(declx, exprs1)) == [[
         x8[i],
         Node('define-fun', x, (), bvsort8, zext_x8[i]),
         decly,
         declz,
         *_exprs1,
     ] for i in range(0, 4)]
-    assert m.global_mutations(decly, exprs1) == [[
+    assert list(m.global_mutations(decly, exprs1)) == [[
         declx,
         y8[i],
         Node('define-fun', y, (), bvsort8, zext_y8[i]),
         declz,
         *_exprs1,
     ] for i in range(0, 4)]
-    assert m.global_mutations(declz, exprs1) == [[
+    assert list(m.global_mutations(declz, exprs1)) == [[
         declx,
         decly,
         z9[i],

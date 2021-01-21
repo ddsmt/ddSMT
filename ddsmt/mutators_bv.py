@@ -270,8 +270,6 @@ class BVReduceBW:
         idx = ginput.index(linput)
         gin1 = ginput[:idx]
         gin2 = ginput[idx + 1:]
-
-        res = []
         bw = get_bv_width(linput[1])
         for b in sorted(set([bw - 1, bw // 2, 2, 1])):
             if b > 0:
@@ -279,8 +277,8 @@ class BVReduceBW:
                 var = Node('declare-const', varname, Node('_', 'BitVec', b))
                 zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
                             Node(Node('_', 'zero_extend', bw - b), varname))
-                res.append(gin1 + [var] + [zext] + gin2)
-        return res
+                yield gin1 + [var] + [zext] + gin2
+        return
 
     def __str__(self):
         return 'reduce bit-width of variable'
