@@ -1,6 +1,5 @@
 from ..nodes import Node
 from .. import mutators_fp
-from .. import smtlib
 
 
 def test_fp_get_mutators():
@@ -13,7 +12,10 @@ def test_fp_is_relevant():
     assert mutators_fp.is_relevant(Node('declare-const', 'x', 'Float16'))
     assert mutators_fp.is_relevant(
         Node('declare-fun', 'x', (), ('_', 'FloatingPoint', '5', '11')))
+    assert not mutators_fp.is_relevant(Node('declare-const', 'x', 'Real'))
     assert not mutators_fp.is_relevant(Node('declare-fun', 'x', (), 'Bool'))
+    assert not mutators_fp.is_relevant(Node())
+    assert not mutators_fp.is_relevant(Node('assert', 'x'))
 
 
 def test_fp_short_sort():
