@@ -1,5 +1,6 @@
 from ..nodes import Node
 from .. import mutators_core
+from .. import options
 from .. import smtlib
 
 
@@ -62,11 +63,15 @@ def test_replace_by_child():
 
 
 def test_replace_by_variable():
+    options.args(['in', 'out', 'bin'])
+
     x = Node('x')
     c = Node('42')
     node = Node(Node('+'), x, c)
     m = mutators_core.ReplaceByVariable()
     assert isinstance(str(m), str)
+    assert m.mutations(Node('x')) == []
+
     m.repl_mode = 'inc'
     assert isinstance(str(m), str)
     assert m.mutations(node) == []

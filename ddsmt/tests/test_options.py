@@ -5,6 +5,7 @@ from .. import options
 
 
 def test_help(capsys):
+    options.__PARSED_ARGS = None
     with pytest.raises(SystemExit):
         options.parse_options(mutators, ['--help'])
     captured = capsys.readouterr()
@@ -12,6 +13,7 @@ def test_help(capsys):
 
 
 def test_help_all(capsys):
+    options.__PARSED_ARGS = None
     with pytest.raises(SystemExit):
         options.parse_options(mutators, ['--help-all'])
     captured = capsys.readouterr()
@@ -19,6 +21,7 @@ def test_help_all(capsys):
 
 
 def test_dump_config(capsys):
+    options.__PARSED_ARGS = None
     with pytest.raises(SystemExit):
         options.parse_options(mutators, ['--dump-config'])
     captured = capsys.readouterr()
@@ -26,6 +29,7 @@ def test_dump_config(capsys):
 
 
 def test_no_options(capsys):
+    options.__PARSED_ARGS = None
     with pytest.raises(SystemExit):
         options.parse_options(mutators, [])
     captured = capsys.readouterr()
@@ -33,6 +37,7 @@ def test_no_options(capsys):
 
 
 def test_basic(capsys):
+    options.__PARSED_ARGS = None
     options.parse_options(mutators, ['input.smt2', 'output.smt2', 'binary'])
     options.parse_options(mutators,
                           ['--no-core', 'input.smt2', 'output.smt2', 'binary'])
@@ -42,12 +47,14 @@ def test_basic(capsys):
 
 
 def test_cmd_cc(capsys):
+    options.__PARSED_ARGS = None
     options.parse_options(
         mutators,
         ['-c', 'other-binary', 'input.smt2', 'output.smt2', 'binary'])
 
 
 def test_args(capsys):
+    options.__PARSED_ARGS = None
     with pytest.raises(SystemExit):
         options.args()
     opts = options.args(['--no-core', 'input.smt2', 'output.smt2', 'binary'])
