@@ -27,9 +27,26 @@ def test_smtlib_eliminate_variable():
     m = mutators_smtlib.EliminateVariable()
     assert isinstance(str(m), str)
     # special case where 'x' occurs in the replacement
-    n = Node('=', 'x', ('*', 'x', 'y'))
-    assert m.filter(n)
-    assert m.global_mutations(n, n) == []
+    eq = Node('=', 'x', ('*', 'x', 'y'))
+    assert m.filter(eq)
+    assert m.global_mutations(eq, eq) == []
+    eq = Node('=', 'x', ('*', 'y', 'y'))
+    exprs = [
+        Node('declare-const', 'x', 'Real'),
+        Node('define-fun', 'y', (), 'Real', ('*', 'x', 'x')),
+        Node('define-fun', 'z', (), 'Real', ('*', 'x', 'y')),
+        Node('assert', eq),
+        Node('assert', ('>', 'x', 'y')),
+    ]
+    assert m.filter(eq)
+    assert m.global_mutations(eq, exprs) == [[
+        Node('declare-const', 'x', 'Real'),
+        Node('define-fun', 'y', (), 'Real',
+             ('*', ('*', 'y', 'y'), ('*', 'y', 'y'))),
+        Node('define-fun', 'z', (), 'Real', ('*', ('*', 'y', 'y'), 'y')),
+        Node('assert', ('=', ('*', 'y', 'y'), ('*', 'y', 'y'))),
+        Node('assert', ('>', ('*', 'y', 'y'), 'y')),
+    ]]
 
 
 def test_smtlib_inline_define_fun():

@@ -12,7 +12,7 @@ __defined_functions = {}
 __sort_lookup = {}
 
 
-def collect_information(exprs):
+def collect_information(exprs):  # noqa: C901
     """Initialize global lookups for first-order constants, defined functions
     and sorts of all these symbols."""
     global __constants
@@ -83,7 +83,7 @@ def reset_information():
     __sort_lookup = {}
 
 
-### General utilities
+# General utilities
 
 
 def get_variables_with_sort(var_sort):
@@ -118,8 +118,9 @@ def introduce_variables(exprs, vars):
 
 
 def substitute_vars_except_decl(exprs, repl):
-    """Perform the given variable substitution anywhere it occurs except in
-    declaration commands ``declare-const``, ``declare-fun``, ``define-fun``.
+    """Perform the given variable substitution anywhere it occurs except for
+    the declared or defined variable in any of the declaration commands
+    ``declare-const``, ``declare-fun``, ``define-fun``
 
     If there was no substitution to be done (i.e. the result is still
     ``exprs``), return ``None``.
@@ -130,7 +131,9 @@ def substitute_vars_except_decl(exprs, repl):
         if e.has_ident() and e.get_ident() in [
                 'declare-const', 'declare-fun', 'define-fun'
         ]:
-            res.append(e)
+            # Ignore e[0:3]: ident, name and arguments
+            mapped = map(lambda x: nodes.substitute(x, repl), e[3:])
+            res.append(Node(*e[0:3], *mapped))
         else:
             res.append(nodes.substitute(e, repl))
             if res[-1] != e:
@@ -140,7 +143,7 @@ def substitute_vars_except_decl(exprs, repl):
     return res
 
 
-### General semantic testers and testers
+# General semantic testers and testers
 
 
 def is_leaf(node):
@@ -248,7 +251,7 @@ def get_default_constants(sort):
     return []
 
 
-def get_sort(node):
+def get_sort(node):  # noqa: C901
     """Get the sort of the given node.
 
     Return ``None`` if it can not be inferred. Requires that global
@@ -373,7 +376,7 @@ def get_sort(node):
             sw = 1 + get_bv_width(node[3])
             return Node('_', 'FloatingPoint', ew, sw)
 
-    ## indexed operators
+    # indexed operators
     if is_indexed_operator_app(node, 'divisible'):
         return Node('Bool')
     if is_indexed_operator_app(node, 'to_fp', 2) \
@@ -390,7 +393,7 @@ def get_indices(node, name, index_count=1):
     return [int(n.data) for n in node[2:]]
 
 
-### Boolean
+# Boolean
 
 
 def is_bool_const(node):
@@ -398,7 +401,7 @@ def is_bool_const(node):
     return node.is_leaf() and node.data in ['false', 'true']
 
 
-### Arithmetic
+# Arithmetic
 
 
 def is_arith_const(node):
@@ -422,7 +425,7 @@ def is_real_const(node):
            and re.match('^[0-9]+(\\.[0-9]*)?$', node.data) is not None
 
 
-### BV
+# BV
 
 
 def is_bv_sort(node):
@@ -549,7 +552,7 @@ def get_bv_constant_value(node):
     return (int(node[1][2:]), int(node[2].data))
 
 
-### FP
+# FP
 
 
 def is_fp_sort(node):
@@ -563,7 +566,7 @@ def is_fp_sort(node):
     return node[1] == 'FloatingPoint'
 
 
-### Functions
+# Functions
 
 
 def is_defined_fun(node):
@@ -590,7 +593,7 @@ def get_defined_fun(node):
     return __defined_functions[node.get_ident()](node[1:])
 
 
-### Sets
+# Sets
 
 
 def is_set_sort(node):
@@ -602,7 +605,7 @@ def is_set_sort(node):
     return True
 
 
-### Strings
+# Strings
 
 
 def is_string_const(node):

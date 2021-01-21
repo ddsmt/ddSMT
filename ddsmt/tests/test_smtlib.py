@@ -83,24 +83,29 @@ def test_substitute_vars_except_decl():
     decl_x2 = Node('declare-fun', x2, (), fp64)
     decl_x3 = Node('declare-fun', x3, (), fp64)
     fpadd = Node('define-fun', 'fpadd', (), fp64, ('fp.add', 'RTZ', x1, x2))
-    fpmul = Node('define-fun', 'fpmul', (), fp64, ('fp.mul', 'RTZ', fpadd, x3))
+    fpmul = Node('define-fun', 'fpmul', (), fp64,
+                 ('fp.mul', 'RTZ', 'fpadd', x3))
     fpass0 = Node('assert', ('=', ('fp.rem', x1, x2), ('fp.rem', x1, x3)))
     fpass1 = Node('assert', ('=', 'fpmul', 'fpadd'))
 
     exprs = [decl_x1, decl_x2, decl_x3, fpadd, fpmul, fpass0, fpass1]
 
     assert not exprs == substitute_vars_except_decl(exprs, {x1: y1})
-    assert substitute_vars_except_decl(exprs, {x1: x1}) == None
+    assert substitute_vars_except_decl(exprs, {x1: x1}) is None
     assert substitute_vars_except_decl(exprs, {x1 : y1}) == \
            [
-               decl_x1, decl_x2, decl_x3, fpadd, fpmul,
+               decl_x1, decl_x2, decl_x3,
+               Node('define-fun', 'fpadd', (), fp64, ('fp.add', 'RTZ', y1, x2)),
+               fpmul,
                Node('assert', ('=', ('fp.rem', y1, x2), ('fp.rem', y1, x3))),
                fpass1,
            ]
     assert not exprs == substitute_vars_except_decl(exprs, {x2: y2})
     assert substitute_vars_except_decl(exprs, {x2 : y2}) == \
            [
-               decl_x1, decl_x2, decl_x3, fpadd, fpmul,
+               decl_x1, decl_x2, decl_x3,
+               Node('define-fun', 'fpadd', (), fp64, ('fp.add', 'RTZ', x1, y2)),
+               fpmul,
                Node('assert', ('=', ('fp.rem', x1, y2), ('fp.rem', x1, x3))),
                fpass1,
            ]
@@ -295,16 +300,16 @@ def test_get_sort():
         Node('declare-const', tx, sort_string),
     ]
 
-    assert get_sort(sort_bool) == None
-    assert get_sort(sort_bv) == None
-    assert get_sort(sort_int) == None
-    assert get_sort(sort_real) == None
-    assert get_sort(sort_fp16) == None
-    assert get_sort(sort_fp64) == None
-    assert get_sort(sort_rm) == None
-    assert get_sort(sort_set) == None
-    assert get_sort(sort_string) == None
-    assert get_sort(fpfma) == None
+    assert get_sort(sort_bool) is None
+    assert get_sort(sort_bv) is None
+    assert get_sort(sort_int) is None
+    assert get_sort(sort_real) is None
+    assert get_sort(sort_fp16) is None
+    assert get_sort(sort_fp64) is None
+    assert get_sort(sort_rm) is None
+    assert get_sort(sort_set) is None
+    assert get_sort(sort_string) is None
+    assert get_sort(fpfma) is None
 
     assert get_sort(Node('true')) == sort_bool
     assert get_sort(Node('false')) == sort_bool
@@ -367,9 +372,9 @@ def test_get_sort():
     assert get_sort(Node('card', sx)) == sort_int
 
     assert get_sort(Node('/', rx, rx)) == sort_real
-    assert get_sort(Node('+', rx, rx)) == None
-    assert get_sort(Node('*', rx, rx)) == None
-    assert get_sort(Node('-', rx, rx)) == None
+    assert get_sort(Node('+', rx, rx)) is None
+    assert get_sort(Node('*', rx, rx)) is None
+    assert get_sort(Node('-', rx, rx)) is None
     assert get_sort(Node('to_real', ix)) == sort_real
     assert get_sort(Node('fp.to_real', fpfma)) == sort_real
 
@@ -377,7 +382,7 @@ def test_get_sort():
            == Node('_', 'BitVec', 1)
 
     collect_information(exprs)
-    assert get_sort(Node('Fx')) == None
+    assert get_sort(Node('Fx')) is None
     assert get_sort(bx) == sort_bool
     assert get_sort(vx) == sort_bv
     assert get_sort(ix) == sort_int
