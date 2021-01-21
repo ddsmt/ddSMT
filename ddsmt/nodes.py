@@ -85,7 +85,7 @@ class Node:
     def __str__(self):
         if isinstance(self.data, str):
             return self.data
-        return f'(' + ' '.join(map(str, self.data)) + ')'
+        return '(' + ' '.join(map(str, self.data)) + ')'
 
     def __repr__(self):
         return str(self)
@@ -400,6 +400,8 @@ def __render_smtlib_expression(expr: Node, pretty: bool = False):
         ex, visited = visit.pop()
         if ex.is_leaf():
             assert isinstance(ex.data, str)
+            if ex.data == '':
+                continue
             if ex.data[0] == ';':
                 args.append(f'\n{ex.data}\n')
             else:
