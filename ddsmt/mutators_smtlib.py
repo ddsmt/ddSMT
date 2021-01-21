@@ -28,7 +28,6 @@ class EliminateVariable:
         return is_eq(node) and any(map(lambda n: n.is_leaf(), node[1:]))
 
     def global_mutations(self, linput, ginput):
-        res = []
         ops = linput[1:]
         targets = list(filter(lambda n: n.is_leaf(), ops))
         for t in targets:
@@ -40,8 +39,7 @@ class EliminateVariable:
                     continue
                 subst = substitute_vars_except_decl(ginput, {t: c})
                 if subst:
-                    res.append(subst)
-        return res
+                    yield subst
 
     def __str__(self):
         return 'eliminate variable from equality'

@@ -29,7 +29,7 @@ def test_smtlib_eliminate_variable():
     # special case where 'x' occurs in the replacement
     eq = Node('=', 'x', ('*', 'x', 'y'))
     assert m.filter(eq)
-    assert m.global_mutations(eq, eq) == []
+    assert list(m.global_mutations(eq, eq)) == []
     eq = Node('=', 'x', ('*', 'y', 'y'))
     exprs = [
         Node('declare-const', 'x', 'Real'),
@@ -39,7 +39,7 @@ def test_smtlib_eliminate_variable():
         Node('assert', ('>', 'x', 'y')),
     ]
     assert m.filter(eq)
-    assert m.global_mutations(eq, exprs) == [[
+    assert list(m.global_mutations(eq, exprs)) == [[
         Node('declare-const', 'x', 'Real'),
         Node('define-fun', 'y', (), 'Real',
              ('*', ('*', 'y', 'y'), ('*', 'y', 'y'))),
