@@ -27,19 +27,22 @@ def test_eq():
     assert Node('#x1af') == ('#x1af')
     assert Node('#x1af') == Node('#x1af')
 
-    assert not Node('#b101') == '(_ bv5 3)'
-    assert Node('#b101') == ('_', 'bv5', 3)
-    assert Node('#b101') == Node('_', 'bv5', 3)
+    assert not Node('#b0101') == '(_ bv5 4)'
+    assert Node('#b0101') == ('_', 'bv5', 4)
+    assert Node('#b0101') == Node('_', 'bv5', 4)
     assert not Node('#x1af') == '(_ bv431 12)'
     assert Node('#x1af') == ('_', 'bv431', 12)
     assert Node('#x1af') == Node('_', 'bv431', 12)
 
-    assert Node('_', 'bv5', 3) == '#b101'
-    assert not Node('_', 'bv5', 3) == ('#b101', )
-    assert Node('_', 'bv5', 3) == Node('#b101')
+    assert Node('_', 'bv0', '4') == '#b0000'
+    assert Node(Node('_'), Node('bv5'), Node('4')) == '#b0101'
+    assert not Node('_', 'bv5', 4) == ('#b0101', )
+    assert Node('_', 'bv5', 4) == Node('#b0101')
     assert Node('_', 'bv431', 12) == '#x1af'
     assert not Node('_', 'bv431', 12) == ('#x1af', )
     assert Node('_', 'bv431', 12) == Node('#x1af')
+
+    assert [Node('_', 'bv5', 4)] == ['#b0101']
 
     assert not Node('#b110101111') == '#x1af'
     assert Node('#b000110101111') == '#x1af'

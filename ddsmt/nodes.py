@@ -22,8 +22,8 @@ def bv_const_is_equal(leaf, other):
             val_leaf = int(leaf[2:], 2)
             val_other = int(f'0x{other[2:]}', 16)
             return val_leaf == val_other and bw_leaf == bw_other
-        val = str(bin(int(other[1][2:])))[2:]
-        return val == leaf[2:]
+        val = int(leaf[2:], 2)
+        return val == int(other[1][2:])
 
     if leaf.startswith('#x'):
         if isinstance(other, str):
