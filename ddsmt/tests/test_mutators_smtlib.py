@@ -48,6 +48,19 @@ def test_smtlib_eliminate_variable():
         Node('assert', ('>', ('*', 'y', 'y'), 'y')),
     ]]
 
+    eq = Node('=', 'x', 'y', 'a', ('*', 'y', 'y'), ('+', 'a', 'b'))
+    exprs = [Node('assert', ('>', 'x', 'y'))]
+    assert m.filter(eq)
+    assert list(m.global_mutations(eq, exprs)) == [
+        [Node('assert', ('>', 'y', 'y'))],
+        [Node('assert', ('>', 'a', 'y'))],
+        [Node('assert', ('>', ('*', 'y', 'y'), 'y'))],
+        [Node('assert', ('>', ('+', 'a', 'b'), 'y'))],
+        [Node('assert', ('>', 'x', 'x'))],
+        [Node('assert', ('>', 'x', 'a'))],
+        [Node('assert', ('>', 'x', ('+', 'a', 'b')))],
+    ]
+
 
 def test_smtlib_inline_define_fun():
     m = mutators_smtlib.InlineDefinedFuns()
