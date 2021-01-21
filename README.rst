@@ -1,4 +1,4 @@
-.. image:: https://img.shields.io/github/workflow/status/aniemetz/ddSMT/main
+.. image:: https://img.shields.io/github/workflow/status/ddsmt/ddSMT/main
   :alt: GitHub Workflow Status
   :target: https://github.com/nafur/ddSMT/actions
 
@@ -16,7 +16,7 @@
 
 .. image:: https://img.shields.io/pypi/l/ddsmt
   :alt: PyPI - License
-  :target: https://github.com/aniemetz/ddSMT/blob/master/LICENSE
+  :target: https://github.com/ddsmt/ddSMT/blob/master/LICENSE
 
 
 ddSMT: delta debugging for SMT-LIBv2
@@ -31,7 +31,7 @@ ddSMT is implemented in Python 3 and developed on a Linux OS. ddSMT requires
 Python version 3.6 or later.
 
 ddSMT is free software released under the GPLv3. You should have received a
-copy of the GNU General Public License along with ddSMT (see file `LICENSE <https://github.com/aniemetz/ddSMT/blob/development/LICENSE>`_).
+copy of the GNU General Public License along with ddSMT (see file `LICENSE <https://github.com/ddsmt/ddSMT/blob/development/LICENSE>`_).
 If not, see http://www.gnu.org/licenses/.
 
 Documentation for ddSMT is available at https://ddsmt.readthedocs.io.

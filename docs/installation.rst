@@ -20,6 +20,6 @@ If you want to experiment with ddSMT, for example to test :ref:`custom mutators 
 
 .. code-block:: bash
 
-    $ git clone https://github.com/aniemetz/ddSMT.git
+    $ git clone https://github.com/ddsmt/ddSMT.git
     $ ddSMT/bin/ddsmt --version
 
