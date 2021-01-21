@@ -231,10 +231,12 @@ class BVTransformToBool:
                        for n in node[1:])
 
     def mutations(self, node):
-        c = next(n for n in node[1:] \
-                 if is_bv_const(n) and get_bv_width(n) == 1)
-        n = next(m for m in node[1:] \
-                 if m.has_ident() and m.get_ident() in self.repl)
+        if is_bv_const(node[1]) and get_bv_width(node[1]) == 1:
+            c = node[1]
+            n = node[2]
+        else:
+            c = node[2]
+            n = node[1]
         return [
             Node(self.repl[n.get_ident()], *[Node('=', c, d) for d in n[1:]])
         ]
@@ -270,13 +272,14 @@ class BVReduceBW:
         gin1 = ginput[:idx]
         gin2 = ginput[idx + 1:]
         bw = get_bv_width(linput[1])
-        for b in sorted(set([bw - 1, bw // 2, 2, 1])):
-            if b > 0 and b < bw:
-                varname = '_{}'.format(linput[1])
-                var = Node('declare-const', varname, Node('_', 'BitVec', b))
-                zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
-                            Node(Node('_', 'zero_extend', bw - b), varname))
-                yield gin1 + [var] + [zext] + gin2
+        bws = sorted(set([bw - 1, bw // 2, 2, 1]))
+        if bws[0] == 0: bws.remove(0)
+        for b in bws:
+            varname = '_{}'.format(linput[1])
+            var = Node('declare-const', varname, Node('_', 'BitVec', b))
+            zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
+                        Node(Node('_', 'zero_extend', bw - b), varname))
+            yield gin1 + [var] + [zext] + gin2
         return
 
     def __str__(self):

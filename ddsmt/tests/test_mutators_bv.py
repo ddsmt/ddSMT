@@ -14,7 +14,12 @@ def test_bv_is_relevant():
         Node('declare-const', 'x', ('_', 'BitVec', '17')))
     assert mutators_bv.is_relevant(
         Node('declare-fun', 'x', (), ('_', 'BitVec', '5')))
+    assert mutators_bv.is_relevant(
+        Node('define-sort', 'x', (), ('_', 'BitVec', '5')))
+    assert not mutators_bv.is_relevant(Node('bvadd', 'x', 'y'))
+    assert not mutators_bv.is_relevant(Node('declare-const', 'x', 'Int'))
     assert not mutators_bv.is_relevant(Node('declare-fun', 'x', (), 'Bool'))
+    assert not mutators_bv.is_relevant(Node('x'))
 
 
 def test_bv_concat_to_zero_extend():
@@ -134,14 +139,18 @@ def test_bv_extract_constants():
     m = mutators_bv.BVExtractConstants()
     assert isinstance(str(m), str)
     x = Node('x')
-    const1 = Node('#b011')
-    const2 = Node('_', 'bv3', 3)
-    ext0_1 = Node(('_', 'extract', 0, 0), const1)
-    ext0_2 = Node(('_', 'extract', 1, 0), const1)
-    ext0_3 = Node(('_', 'extract', 2, 0), const1)
-    ext1_1 = Node(('_', 'extract', 0, 0), const2)
-    ext1_2 = Node(('_', 'extract', 1, 1), const2)
-    ext1_3 = Node(('_', 'extract', 2, 2), const2)
+    const0 = Node('#b011')
+    const1 = Node('_', 'bv3', 3)
+    const2 = Node('_', 'bv7', 3)
+    ext0_1 = Node(('_', 'extract', 0, 0), const0)
+    ext0_2 = Node(('_', 'extract', 1, 0), const0)
+    ext0_3 = Node(('_', 'extract', 2, 0), const0)
+    ext1_1 = Node(('_', 'extract', 2, 0), const1)
+    ext1_2 = Node(('_', 'extract', 2, 1), const1)
+    ext1_3 = Node(('_', 'extract', 2, 2), const1)
+    ext2_1 = Node(('_', 'extract', 1, 1), const2)
+    ext2_2 = Node(('_', 'extract', 2, 1), const2)
+    ext2_3 = Node(('_', 'extract', 2, 2), const2)
     assert not m.filter(Node(('_', 'extract', 0, 0), ('bvadd', 'x', 'y')))
     assert m.filter(ext0_1)
     assert m.filter(ext0_2)
@@ -152,9 +161,12 @@ def test_bv_extract_constants():
     assert m.mutations(ext0_1) == [Node('#b1')]
     assert m.mutations(ext0_2) == [Node('#b11')]
     assert m.mutations(ext0_3) == [Node('#b011')]
-    assert m.mutations(ext1_1) == [Node('#b1')]
-    assert m.mutations(ext1_2) == [Node('#b1')]
+    assert m.mutations(ext1_1) == [Node('#b011')]
+    assert m.mutations(ext1_2) == [Node('#b01')]
     assert m.mutations(ext1_3) == [Node('#b0')]
+    assert m.mutations(ext2_1) == [Node('#b1')]
+    assert m.mutations(ext2_2) == [Node('#b11')]
+    assert m.mutations(ext2_3) == [Node('#b1')]
 
 
 def test_bv_extract_zero_extend():
