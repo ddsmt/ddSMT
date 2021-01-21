@@ -1,5 +1,4 @@
 from .nodes import Node
-from . import options
 from .smtlib import *
 
 
@@ -272,7 +271,7 @@ class BVReduceBW:
         gin2 = ginput[idx + 1:]
         bw = get_bv_width(linput[1])
         for b in sorted(set([bw - 1, bw // 2, 2, 1])):
-            if b > 0:
+            if b > 0 and b < bw:
                 varname = '_{}'.format(linput[1])
                 var = Node('declare-const', varname, Node('_', 'BitVec', b))
                 zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
