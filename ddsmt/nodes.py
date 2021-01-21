@@ -2,6 +2,47 @@ import struct
 import textwrap
 
 
+def bv_const_is_equal(leaf, other):
+    """Return true if string ``leaf`` is a bit-vector constant given as '#b...'
+    or '#x...' and ``other`` is.
+
+    - a bit-vector constant given as '#b...' or '#x...'
+    - a tuple or Node that represents a bit-vector constant as
+      ('_', 'bv...', ...)
+    of the same value and bit-width.
+    Helper for Node.__eq__.
+    """
+    if leaf.startswith('#b'):
+        if isinstance(other, str):
+            if other.startswith('#b'):
+                return leaf == other
+            assert other.startswith('#x')
+            bw_leaf = len(leaf[2:])
+            bw_other = len(other[2:] * 4)
+            val_leaf = int(leaf[2:], 2)
+            val_other = int(f'0x{other[2:]}', 16)
+            return val_leaf == val_other and bw_leaf == bw_other
+        val = str(bin(int(other[1][2:])))[2:]
+        return val == leaf[2:]
+
+    if leaf.startswith('#x'):
+        if isinstance(other, str):
+            if other.startswith('#x'):
+                return leaf == other
+            assert other.startswith('#b')
+            bw_leaf = len(leaf[2:] * 4)
+            bw_other = len(other[2:])
+            val_leaf = int(f'0x{leaf[2:]}', 16)
+            val_other = int(other[2:], 2)
+        else:
+            val_leaf = int(f'0x{leaf[2:]}', 16)
+            val_other = int(other[1][2:])
+            bw_leaf = len(leaf[2:]) * 4
+            bw_other = int(other[2].data) \
+                        if isinstance(other[2], Node) else other[2]
+        return val_leaf == val_other and bw_leaf == bw_other
+
+
 class Node:
     """Represents a node in the input, consisting of an id and some data.
 
@@ -59,10 +100,36 @@ class Node:
 
     def __eq__(self, other):
         if isinstance(other, str):
+            if other.startswith('#') \
+               and ((self.is_leaf() and self.data.startswith('#')) \
+                    or (self.has_ident() \
+                        and self[0] == '_' \
+                        and self[1].data.startswith('bv'))):
+                return bv_const_is_equal(other, self.data)
             return self.is_leaf() and self.data == other
         if isinstance(other, tuple):
+            if self.is_leaf() \
+               and self.data.startswith('#') \
+               and other[0] == '_' \
+               and other[1].startswith('bv'):
+                return bv_const_is_equal(self.data, other)
             return not self.is_leaf() and self.data == other
-        return isinstance(other, Node) and self.data == other.data
+        if isinstance(other, Node):
+            if self.is_leaf() \
+               and self.data.startswith('#') \
+               and ((other.is_leaf() and other.data.startswith('#')) \
+                    or (other.has_ident() \
+                        and other[0] == '_' \
+                        and other[1].data.startswith('bv'))):
+                return bv_const_is_equal(self.data, other.data)
+            if other.is_leaf() \
+               and other.data.startswith('#') \
+               and ((self.is_leaf() and self.other.startswith('#')) \
+                    or (self.has_ident() \
+                        and self[0] == '_' \
+                        and self[1].data.startswith('bv'))):
+                return bv_const_is_equal(other.data, self.data)
+            return self.data == other.data
 
     def __hash__(self):
         return hash(self.data)

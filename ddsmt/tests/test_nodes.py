@@ -4,6 +4,52 @@ from .. import nodes
 from ..nodes import Node
 
 
+def test_eq():
+    assert not Node('x') == 'y'
+    assert not Node('declare-const', 'x',
+                    'Int') == ('declare-const', 'y', 'Int')
+    assert not Node('x') == Node('y')
+    assert Node('x') == 'x'
+    assert Node('declare-const', 'x', 'Int') == ('declare-const', 'x', 'Int')
+    assert Node('x') == Node('x')
+    assert Node('declare-const', 'x', 'Int') == Node('declare-const', 'x',
+                                                     'Int')
+
+    assert not Node('#b101') == Node('#b100')
+    assert not Node('#b101') == 'x'
+    assert not Node('#b101') == ('x')
+    assert not Node('#b101') == Node('x')
+
+    assert Node('#b101') == '#b101'
+    assert Node('#b101') == ('#b101')
+    assert Node('#b101') == Node('#b101')
+    assert Node('#x1af') == '#x1af'
+    assert Node('#x1af') == ('#x1af')
+    assert Node('#x1af') == Node('#x1af')
+
+    assert not Node('#b101') == '(_ bv5 3)'
+    assert Node('#b101') == ('_', 'bv5', 3)
+    assert Node('#b101') == Node('_', 'bv5', 3)
+    assert not Node('#x1af') == '(_ bv431 12)'
+    assert Node('#x1af') == ('_', 'bv431', 12)
+    assert Node('#x1af') == Node('_', 'bv431', 12)
+
+    assert Node('_', 'bv5', 3) == '#b101'
+    assert not Node('_', 'bv5', 3) == ('#b101', )
+    assert Node('_', 'bv5', 3) == Node('#b101')
+    assert Node('_', 'bv431', 12) == '#x1af'
+    assert not Node('_', 'bv431', 12) == ('#x1af', )
+    assert Node('_', 'bv431', 12) == Node('#x1af')
+
+    assert not Node('#b110101111') == '#x1af'
+    assert Node('#b000110101111') == '#x1af'
+    assert not Node('#b000110101111') == ('#x1af', )
+    assert Node('#b000110101111') == Node('#x1af')
+    assert Node('#x1af') == '#b000110101111'
+    assert not Node('#x1af') == ('#b000110101111', )
+    assert Node('#x1af') == Node('#b000110101111')
+
+
 def test_is_leaf():
     assert Node('x').is_leaf()
     assert not Node('not', 'x').is_leaf()
