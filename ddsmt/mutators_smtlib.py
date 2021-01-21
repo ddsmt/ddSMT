@@ -180,13 +180,14 @@ class SimplifySymbolNames:
         # check for is_const(node[1]) to avoid x -> false -> fals -> false
         # if the variable is irrelevant, false may be accepted by the solver
         return node.has_ident() and node.get_ident() in [
-            'declare-const', 'declare-datatypes', 'declare-fun',
-            'declare-sort', 'define-fun', 'exists', 'forall'
+            'declare-const', 'declare-datatype', 'declare-datatypes',
+            'declare-fun', 'declare-sort', 'define-fun', 'exists', 'forall'
         ] and not is_const(node[1])
 
     def global_mutations(self, linput, ginput):
-        if linput.get_ident() == 'declare-datatypes':
-            for c in self.__flatten(linput[1:]):
+        if linput.get_ident() in ['declare-datatype', 'declare-datatypes']:
+            for c in self.__flatten(Node(linput[1:])):
+                print(c)
                 yield from self.__mutate_symbol(c, ginput)
             return
         if linput.get_ident() in ['exists', 'forall']:
@@ -197,11 +198,11 @@ class SimplifySymbolNames:
 
     def __flatten(self, n):
         """Yield given node as flattened sequence."""
-        if isinstance(n, Node):
+        if n.is_leaf():
+            yield n
+        else:
             for e in n.data:
                 yield from self.__flatten(e)
-        else:
-            yield Node(n)
 
     def __mutate_symbol(self, symbol, ginput):
         """Return a list of mutations of ginput based on simpler versions of

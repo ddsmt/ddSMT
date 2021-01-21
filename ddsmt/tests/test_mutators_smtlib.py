@@ -177,6 +177,7 @@ def test_smtlib_simplify_symbol_names():
     assert m.filter(Node('declare-const', 'x', 'Real'))
     exprs = [
         Node('declare-const', 'abcdef', 'Bool'),
+        Node('declare-datatype', 'Color', (('red', ), ('|green|', ))),
         Node('assert', 'abcdef'),
         Node('assert',
              ('exists', (('xy', 'Bool'), ('z', 'Bool')), ('and', 'xy', 'z'))),
@@ -191,7 +192,27 @@ def test_smtlib_simplify_symbol_names():
         Node('abcdef'):
         Node('bcdef')
     }]
-    assert list(m.global_mutations(exprs[2][1], exprs)) == [{
+    assert list(m.global_mutations(exprs[1], exprs)) == [{
+        Node('Color'): 'Co'
+    }, {
+        Node('Color'): 'Colo'
+    }, {
+        Node('Color'): 'olor'
+    }, {
+        Node('red'): 're'
+    }, {
+        Node('red'): 'ed'
+    }, {
+        Node('|green|'):
+        '|gr|'
+    }, {
+        Node('|green|'):
+        '|gree|'
+    }, {
+        Node('|green|'):
+        '|reen|'
+    }]
+    assert list(m.global_mutations(exprs[3][1], exprs)) == [{
         Node('xy'): 'x'
     }, {
         Node('xy'): 'y'
