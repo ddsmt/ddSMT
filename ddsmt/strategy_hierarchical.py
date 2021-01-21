@@ -56,6 +56,15 @@ def get_passes():
     ]
 
 
+def get_pass(passes, id):
+    """Return the current pass, add empty parameter dict if none is given
+    explicitly."""
+    res = passes[id]
+    if isinstance(res, tuple):
+        return res
+    return res, {}
+
+
 # nodeid: id of the mutated node in dfs order. Only used for progress indication
 # name: name of the mutator
 # if we have a global mutation:
@@ -77,13 +86,14 @@ class Producer:
     nodes. As soon as ``abort_flag`` is triggered, stops generation as
     soon as possible.
     """
-    def __init__(self, skip, mutators, abort_flag):
+    def __init__(self, mutators, abort_flag, original):
         self.__node_count = 0
-        self.__node_skip = skip
         self.__mutators = mutators
         self.__abort = abort_flag
+        self.__original = original
+        self.__pickled = pickle.dumps(original)
 
-    def __mutate_node(self, linput, ginput, gpickled):
+    def __mutate_node(self, count, linput):
         """Apply all mutators to the given node.
 
         Returns a list of all possible mutations as ``Task`` objects.
@@ -98,32 +108,32 @@ class Producer:
                     for x in m.mutations(linput):
                         if self.__abort.is_set():
                             break
-                        yield Task(self.__node_count, str(m), True, gpickled,
+                        yield Task(count, str(m), True, self.__pickled,
                                    pickle.dumps({linput.id: x}), None)
                 if hasattr(m, 'global_mutations'):
-                    for x in m.global_mutations(linput, ginput):
+                    for x in m.global_mutations(linput, self.__original):
                         if self.__abort.is_set():
                             break
                         if isinstance(x, dict):
                             # is a substitution
-                            yield Task(self.__node_count, f'(global) {m}',
-                                       False, gpickled, pickle.dumps(x), None)
+                            yield Task(count, f'(global) {m}', False,
+                                       self.__pickled, pickle.dumps(x), None)
                         else:
-                            yield Task(self.__node_count, f'(global) {m}',
-                                       False, None, pickle.dumps(x), None)
+                            yield Task(count, f'(global) {m}', False, None,
+                                       pickle.dumps(x), None)
             except Exception as e:
                 logging.info(f'{type(e)} in application of {m}: {e}')
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
 
-    def generate(self, original, params):
+    def generate(self, skip, params):
         """A generator that produces all possible mutations as ``Task`` from
         the given original."""
-        pickled = pickle.dumps(original)
-        for node in nodes.dfs(original, params.get('max_depth', None)):
-            self.__node_count += 1
-            if self.__node_skip < self.__node_count:
-                yield from self.__mutate_node(node, original, pickled)
+        count = 0
+        for node in nodes.dfs(self.__original, params.get('max_depth', None)):
+            count += 1
+            if skip < count:
+                yield from self.__mutate_node(count, node)
             if self.__abort.is_set():
                 break
 
@@ -214,44 +224,45 @@ def reduce(exprs):
     """Reduces the input given in ``exprs`` as good as possible in a fixed-
     point loop."""
     passes = get_passes()
-    cur_pool = 0
+    passid = 0
 
     nchecks = 0
     stats = MutatorStats()
 
-    while cur_pool < len(passes):
-        cur_passes = passes[cur_pool]
-        params = {}
-        if isinstance(cur_passes, tuple):
-            cur_passes, params = cur_passes
-        cur_pool += 1
-        logging.info(f'stage {cur_pool} / {len(passes)}')
-        skip = 0
-        fresh_run = True
-        while True:
-            start = time.time()
-            smtlib.collect_information(exprs)
-            reduction = False
-            cnt = nodes.count_nodes(exprs)
-            progress.start(cnt)
-            progress.update(min(cnt, skip))
-
-            with multiprocessing.Pool(options.args().jobs) as pool:
-                # multiprocessing: abort flag is passed to both producer and consumer
-                abort_flag = multiprocessing.Manager().Event()
-                prod = Producer(skip, cur_passes, abort_flag)
+    # use one pool for the whole reduction
+    with multiprocessing.Pool(options.args().jobs) as pool:
+        # abort flag is passed to both producer and consumer
+        # important: the pool will break if the abort_flag is destroyed early
+        abort_flag = multiprocessing.Manager().Event()
+        # iterate over all passes
+        for passid in range(len(passes)):
+            cur_passes, params = get_pass(passes, passid)
+            logging.info(f'pass {passid + 1} / {len(passes)}')
+            skip = 0
+            fresh_run = True
+            # repeat until no further reduction is found
+            while True:
+                reduction = False
+                start = time.time()
+                smtlib.collect_information(exprs)
+                cnt = nodes.count_nodes(exprs)
+                progress.start(cnt)
+                progress.update(min(cnt, skip))
+                abort_flag.clear()
+                prod = Producer(cur_passes, abort_flag, exprs)
                 cons = Consumer(abort_flag)
                 for result in pool.imap_unordered(cons.check,
-                                                  prod.generate(exprs,
-                                                                params)):
+                                                  prod.generate(skip, params)):
+                    if abort_flag.is_set():
+                        # skip remaining results if we had a success
+                        continue
                     nchecks += 1
                     success, task = pickle.loads(result)
                     progress.update(task.nodeid)
                     stats.add(success, task, exprs)
                     if success:
-                        # trigger abort and close the pool, then process the result
+                        # trigger abort, then process the result
                         abort_flag.set()
-                        pool.close()
                         progress.finish()
                         runtime = time.time() - start
                         logging.info(
@@ -263,17 +274,15 @@ def reduce(exprs):
                         fresh_run = False
                         nodes.write_smtlib_to_file(options.args().outfile,
                                                    exprs)
-                        # and finally join
-                        pool.join()
+                if not reduction:
+                    sys.stdout.write('\n')
+                    logging.info('No further simplification found')
+                    if fresh_run:
+                        # this was a fresh run, continue with next pass
                         break
-            if not reduction:
-                sys.stdout.write('\n')
-                logging.info('No further simplification found')
-                if fresh_run:
-                    break
-                logging.info('Starting over')
-                skip = 0
-                fresh_run = True
+                    logging.info('Starting over')
+                    skip = 0
+                    fresh_run = True
 
     stats.print()
 
