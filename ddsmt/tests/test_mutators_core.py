@@ -4,13 +4,21 @@ from .. import smtlib
 
 
 def test_constants():
-    exprs = [Node('declare-const', 'x', 'Real')]
-    smtlib.collect_information(exprs)
     m = mutators_core.Constants()
     assert isinstance(str(m), str)
+    exprs = [Node('declare-const', 'x', 'Real'), Node('#b1011')]
+    assert not m.filter(Node('x'))
+    assert m.mutations(Node('x')) == []
+    smtlib.collect_information(exprs)
     assert m.filter(Node('x'))
+    assert m.filter(Node('#b1011'))
     assert m.filter(Node('=', 'x', '1'))
     assert not m.filter(Node('y'))
+    assert m.mutations(Node('#b0')) == []
+    assert isinstance(m.mutations(Node('#b1011'))[0], Node)
+    assert isinstance(m.mutations(Node('#b1011'))[0].data, tuple)
+    assert m.mutations(Node('#b1011'))[0] == Node('#b0000')
+    assert m.mutations(Node('#b1011')) == [Node('#b0000'), Node('#b0001')]
     assert m.mutations(Node('x')) == [Node('0.0'), Node('1.0')]
     assert m.mutations(Node('=', 'x', '1')) == [Node('false'), Node('true')]
     smtlib.reset_information()
@@ -54,8 +62,16 @@ def test_replace_by_child():
 
 
 def test_replace_by_variable():
-    v1 = Node('v1')
     x = Node('x')
+    c = Node('42')
+    node = Node(Node('+'), x, c)
+    m = mutators_core.ReplaceByVariable()
+    assert isinstance(str(m), str)
+    m.repl_mode = 'inc'
+    assert isinstance(str(m), str)
+    assert m.mutations(node) == []
+
+    v1 = Node('v1')
     v3 = Node('v3')
     exprs = [
         Node(Node('declare-const'), v1, Node('Int')),
@@ -63,14 +79,8 @@ def test_replace_by_variable():
         Node(Node('declare-const'), Node('v2'), Node('Bool')),
         Node(Node('declare-const'), v3, Node('Int'))
     ]
+
     smtlib.collect_information(exprs)
-
-    c = Node('42')
-    node = Node(Node('+'), x, c)
-
-    m = mutators_core.ReplaceByVariable()
-    assert isinstance(str(m), str)
-    m.repl_mode = 'inc'
     assert m.filter(node)
     assert m.filter(x)
     assert not m.filter(c)
@@ -149,6 +159,7 @@ def test_top_level_binary_reduction():
             b.id: None
         },
     ]
+    assert list(m.global_mutations(b, exprs)) == []
     assert list(m.global_mutations(a, exprs)) == mut
 
 
