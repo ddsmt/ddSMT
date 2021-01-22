@@ -630,4 +630,4 @@ def is_set_sort(node):
 
 def is_string_const(node):
     """Checks whether the ``node`` is a string constant."""
-    return node.is_leaf() and re.match('^\"[^\"]*\"$', node.data) is not None
+    return node.is_leaf() and node[0] == '"' and node[-1] == '"'
