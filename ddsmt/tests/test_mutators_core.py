@@ -167,6 +167,17 @@ def test_top_level_binary_reduction():
     assert list(m.global_mutations(b, exprs)) == []
     assert list(m.global_mutations(a, exprs)) == mut
 
+    assert list(m.mutations(Node('and', 'a', 'b', 'c'))) == []
+    n = Node('and', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j')
+    assert list(m.mutations(n)) == [
+        Node('and', 'a', 'b', 'c', 'd'),
+        Node('e', 'f', 'g', 'h', 'i', 'j'),
+        Node('and', 'a', 'b', 'c', 'd', 'e', 'f', 'g'),
+        Node('and', 'a', 'b', 'c', 'd', 'h', 'i', 'j'),
+        Node('and', 'a', 'e', 'f', 'g', 'h', 'i', 'j'),
+        Node('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'),
+    ]
+
 
 def test_top_level_binary_reduction_named():
     m = mutators_core.TopLevelBinaryReduction()

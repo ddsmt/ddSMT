@@ -153,6 +153,12 @@ class TopLevelBinaryReduction:
     :class:`ddsmt.mutators_core.EraseNode`.
     If additionally ``self.ident`` is set, only nodes with the specified
     identifier are considered."""
+    def mutations(self, node):
+        if node.is_leaf() or len(node) < 8:
+            return
+        for sec in nodes.binary_search(len(node)):
+            yield node[:sec[0]] + node[sec[1]:]
+
     def global_mutations(self, linput, ginput):
         if linput != ginput[0]:
             return []
@@ -166,13 +172,8 @@ class TopLevelBinaryReduction:
             ]
         else:
             ids = [node.id for node in ginput]
-        den = 2
-        while den * 2 < len(ids):
-            for num in reversed(range(0, den)):
-                start = int(num / den * len(ids))
-                end = int((num + 1) / den * len(ids))
-                yield {nodeid: None for nodeid in ids[start:end]}
-            den *= 2
+        for sec in nodes.binary_search(len(ids)):
+            yield {nodeid: None for nodeid in ids[sec[0]:sec[1]]}
 
     def __str__(self):
         if hasattr(self, 'ident'):
