@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 import progressbar
 import sys
 
@@ -25,9 +26,15 @@ __BAR = None
 
 
 def start(max):
-    """Initialize a new progress bar for at most ``max`` steps."""
+    """Initialize a new progress bar for at most ``max`` steps.
+
+    Only initialize if the current log level is at least
+    ``logging.INFO``.
+    """
     global __BAR
     if not sys.stdout.isatty():
+        return
+    if logging.getLogger().level > logging.INFO:
         return
     widgets = [progressbar.Bar(), ' ', progressbar.Counter(), ' / ', str(max)]
     __BAR = progressbar.ProgressBar(maxval=max, widgets=widgets)

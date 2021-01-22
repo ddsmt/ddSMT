@@ -247,6 +247,7 @@ def reduce(exprs):
     passid = 0
 
     nchecks = 0
+    nreduce = 0
     stats = MutatorStats()
 
     # use one pool for the whole reduction
@@ -257,7 +258,7 @@ def reduce(exprs):
         # iterate over all passes
         for passid in range(len(passes)):
             cur_passes, params = get_pass(passes, passid)
-            logging.info(f'pass {passid + 1} / {len(passes)}')
+            logging.chat(f'pass {passid + 1} / {len(passes)}')
             skip = 0
             fresh_run = True
             # repeat until no further reduction is found
@@ -284,10 +285,11 @@ def reduce(exprs):
                         # trigger abort, then process the result
                         abort_flag.set()
                         progress.finish()
+                        nreduce += 1
                         runtime = time.time() - start
-                        logging.info(
-                            'Found simplification: {} ({:.2f}s)'.format(
-                                task.name, runtime))
+                        logging.chat(
+                            f'#{nreduce}: {task.name} ({runtime:.2f}s, {nodes.count_nodes(task.exprs)} expressions)'
+                        )
                         reduction = True
                         exprs = task.exprs
                         skip = task.nodeid - 1
@@ -295,7 +297,7 @@ def reduce(exprs):
                         nodes.write_smtlib_to_file(options.args().outfile,
                                                    exprs)
                 if not reduction:
-                    sys.stdout.write('\n')
+                    progress.finish()
                     logging.info('No further simplification found')
                     if fresh_run:
                         # this was a fresh run, continue with next pass
