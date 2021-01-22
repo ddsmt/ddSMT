@@ -233,12 +233,6 @@ def _check_par(gran, subsets, exprs, nexprs, mutator, stats):
         # Remove empty subsets
         subsets = [x for x in subsets if x]
 
-        # Heuristic: Try to avoid too many checks for lower granularity,
-        # instead try to increase granularity again.
-        if gran <= 2 and nsuccess > gran:
-            gran = gran * 4
-            break
-
     return exprs, gran
 
 
