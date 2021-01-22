@@ -107,6 +107,11 @@ def parse_options(mutators, cmdlineoptions=None):
                     dest="verbosity",
                     default=0,
                     help="increase verbosity")
+    ap.add_argument("-q",
+                    action="count",
+                    dest="quietness",
+                    default=0,
+                    help="decrease verbosity")
     ap.add_argument('--dump-config',
                     nargs=0,
                     action=DumpConfigAction,

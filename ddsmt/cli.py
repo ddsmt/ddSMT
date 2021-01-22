@@ -66,19 +66,26 @@ def check_options():
 
 
 def setup_logging():
+    logging.CHAT = 25
+    logging.addLevelName(logging.CHAT, "CHAT")
+    logging.chat = lambda msg, *args, **kwargs: logging.log(
+        logging.CHAT, msg, *args, **kwargs)
     logging.TRACE = 5
     logging.addLevelName(logging.TRACE, "TRACE")
     logging.trace = lambda msg, *args, **kwargs: logging.log(
         logging.TRACE, msg, *args, **kwargs)
     logging.basicConfig(format='[ddSMT %(levelname)s] %(message)s')
     verbositymap = {
-        0: logging.WARN,
+        -2: logging.ERROR,
+        -1: logging.WARN,
+        0: logging.CHAT,
         1: logging.INFO,
         2: logging.DEBUG,
         3: logging.TRACE,
     }
+    verbosity = options.args().verbosity - options.args().quietness
     logging.getLogger().setLevel(
-        level=verbositymap.get(options.args().verbosity, logging.DEBUG))
+        level=verbositymap.get(verbosity, logging.DEBUG))
 
 
 def ddsmt_main():
