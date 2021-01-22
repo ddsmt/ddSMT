@@ -4,6 +4,96 @@ from .. import options
 from .. import smtlib
 
 
+def test_binary_reduction():
+    m = mutators_core.BinaryReduction()
+    assert isinstance(str(m), str)
+    assert not hasattr(m, 'filter')
+    a = Node('a')
+    b = Node('b')
+    c = Node('c')
+    d = Node('d')
+    e = Node('e')
+    f = Node('f')
+    g = Node('g')
+    h = Node('h')
+    i = Node('i')
+    exprs = [a, b, c, d, e, f, g, h, i]
+    mut = [
+        {
+            e.id: None,
+            f.id: None,
+            g.id: None,
+            h.id: None,
+            i.id: None
+        },
+        {
+            a.id: None,
+            b.id: None,
+            c.id: None,
+            d.id: None
+        },
+        {
+            g.id: None,
+            h.id: None,
+            i.id: None
+        },
+        {
+            e.id: None,
+            f.id: None
+        },
+        {
+            c.id: None,
+            d.id: None
+        },
+        {
+            a.id: None,
+            b.id: None
+        },
+    ]
+    assert list(m.global_mutations(b, exprs)) == []
+    assert list(m.global_mutations(a, exprs)) == mut
+
+    assert list(m.mutations(Node('and', 'a', 'b', 'c'))) == []
+    n = Node('and', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j')
+    assert list(m.mutations(n)) == [
+        Node('and', 'a', 'b', 'c', 'd'),
+        Node('e', 'f', 'g', 'h', 'i', 'j'),
+        Node('and', 'a', 'b', 'c', 'd', 'e', 'f', 'g'),
+        Node('and', 'a', 'b', 'c', 'd', 'h', 'i', 'j'),
+        Node('and', 'a', 'e', 'f', 'g', 'h', 'i', 'j'),
+        Node('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'),
+    ]
+
+
+def test_binary_reduction_named():
+    m = mutators_core.BinaryReduction()
+    m.ident = 'assert'
+    assert isinstance(str(m), str)
+    assert not hasattr(m, 'filter')
+    a = Node('a')
+    b = Node('assert', 'b')
+    c = Node('c')
+    d = Node('assert', 'd')
+    e = Node('e')
+    f = Node('assert', 'f')
+    g = Node('g')
+    h = Node('assert', 'h')
+    i = Node('assert', 'i')
+    exprs = [a, b, c, d, e, f, g, h, i]
+    mut = [
+        {
+            f.id: None,
+            h.id: None,
+            i.id: None
+        },
+        {
+            b.id: None,
+            d.id: None
+        },
+    ]
+    assert list(m.global_mutations(a, exprs)) == mut
+
+
 def test_constants():
     m = mutators_core.Constants()
     assert isinstance(str(m), str)
@@ -116,93 +206,3 @@ def test_sort_children():
     assert m.filter(expected)
     assert list(m.mutations(node)) == [expected]
     assert list(m.mutations(expected)) == []
-
-
-def test_top_level_binary_reduction():
-    m = mutators_core.TopLevelBinaryReduction()
-    assert isinstance(str(m), str)
-    assert not hasattr(m, 'filter')
-    a = Node('a')
-    b = Node('b')
-    c = Node('c')
-    d = Node('d')
-    e = Node('e')
-    f = Node('f')
-    g = Node('g')
-    h = Node('h')
-    i = Node('i')
-    exprs = [a, b, c, d, e, f, g, h, i]
-    mut = [
-        {
-            e.id: None,
-            f.id: None,
-            g.id: None,
-            h.id: None,
-            i.id: None
-        },
-        {
-            a.id: None,
-            b.id: None,
-            c.id: None,
-            d.id: None
-        },
-        {
-            g.id: None,
-            h.id: None,
-            i.id: None
-        },
-        {
-            e.id: None,
-            f.id: None
-        },
-        {
-            c.id: None,
-            d.id: None
-        },
-        {
-            a.id: None,
-            b.id: None
-        },
-    ]
-    assert list(m.global_mutations(b, exprs)) == []
-    assert list(m.global_mutations(a, exprs)) == mut
-
-    assert list(m.mutations(Node('and', 'a', 'b', 'c'))) == []
-    n = Node('and', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j')
-    assert list(m.mutations(n)) == [
-        Node('and', 'a', 'b', 'c', 'd'),
-        Node('e', 'f', 'g', 'h', 'i', 'j'),
-        Node('and', 'a', 'b', 'c', 'd', 'e', 'f', 'g'),
-        Node('and', 'a', 'b', 'c', 'd', 'h', 'i', 'j'),
-        Node('and', 'a', 'e', 'f', 'g', 'h', 'i', 'j'),
-        Node('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'),
-    ]
-
-
-def test_top_level_binary_reduction_named():
-    m = mutators_core.TopLevelBinaryReduction()
-    m.ident = 'assert'
-    assert isinstance(str(m), str)
-    assert not hasattr(m, 'filter')
-    a = Node('a')
-    b = Node('assert', 'b')
-    c = Node('c')
-    d = Node('assert', 'd')
-    e = Node('e')
-    f = Node('assert', 'f')
-    g = Node('g')
-    h = Node('assert', 'h')
-    i = Node('assert', 'i')
-    exprs = [a, b, c, d, e, f, g, h, i]
-    mut = [
-        {
-            f.id: None,
-            h.id: None,
-            i.id: None
-        },
-        {
-            b.id: None,
-            d.id: None
-        },
-    ]
-    assert list(m.global_mutations(a, exprs)) == mut

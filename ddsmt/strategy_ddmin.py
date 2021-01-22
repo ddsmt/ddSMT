@@ -53,7 +53,7 @@ def ddmin_passes():
         mutators.get_mutators([
             'Constants',
             'ReplaceByChild',
-            #        'TopLevelBinaryReduction',
+            #        'BinaryReduction',
             'LetElimination',
             'LetSubstitution',
             #        'PushPopRemoval',
