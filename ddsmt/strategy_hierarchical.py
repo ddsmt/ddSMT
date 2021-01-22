@@ -41,17 +41,15 @@ def get_passes():
     quick reduction.
     """
     prelude = [
-        (mutators.get_initialized_mutator('TopLevelBinaryReduction',
+        (mutators.get_initialized_mutator('BinaryReduction',
                                           {'ident': 'assert'}), {
                                               'max_depth': 1
                                           }),
-        (mutators.get_mutators(['TopLevelBinaryReduction']), {
-            'max_depth': 1
-        }),
+        mutators.get_mutators(['BinaryReduction']),
         mutators.get_mutators([
             'EraseNode',
             'ReplaceByChild',
-            'TopLevelBinaryReduction',
+            'BinaryReduction',
             'CheckSatAssuming',
             'LetElimination',
             'LetSubstitution',
