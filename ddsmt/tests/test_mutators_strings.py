@@ -25,18 +25,42 @@ def test_strings_simplify_constant():
     m = mutators_strings.StringSimplifyConstant()
     assert isinstance(str(m), str)
     assert m.filter(expr)
-    assert m.mutations(expr) == [
+    assert list(m.mutations(expr)) == [
         Node('""'),
         Node('"abc"'),
+        Node('"123"'),
         Node('"bc123"'),
         Node('"abc12"')
     ]
 
-    assert m.global_mutations(expr, gexpr) == [
-        Node('define-fun', 's', (), 'String', '""'),
-        Node('define-fun', 's', (), 'String', '"abc"'),
-        Node('define-fun', 's', (), 'String', '"bc123"'),
-        Node('define-fun', 's', (), 'String', '"abc12"'),
+    assert list(m.global_mutations(expr, gexpr)) == [
+        {
+            '"abc123"': '""'
+        },
+        {
+            '"abc123"': '"abc"'
+        },
+        {
+            '"abc123"': '"123"'
+        },
+        {
+            '"abc123"': '"bc123"'
+        },
+        {
+            '"abc123"': '"abc12"'
+        },
+    ]
+
+    assert list(m.mutations(Node('"abcdefg\\uab"'))) == [
+        Node('""'),
+        Node('"abcde"'),
+        Node('"fg\\uab"'),
+        Node('"abcdefg"'),
+        Node('"abcdeuab"'),
+        Node('"abfg\\uab"'),
+        Node('"cdefg\\uab"'),
+        Node('"bcdefg\\uab"'),
+        Node('"abcdefg\\ua"'),
     ]
 
 

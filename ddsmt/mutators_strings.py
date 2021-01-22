@@ -23,21 +23,27 @@ from .smtlib import *
 
 class StringSimplifyConstant:
     """Replace a string constant by a shorter constant."""
+    def __fix_escape_sequences(self, s, end):
+        id = s.rfind('\\', end - 8, end)
+        if id != -1:
+            return id
+        return end
+
     def filter(self, node):
         return is_string_const(node) and node != '""'
 
     def mutations(self, node):
+        yield Node(f'""')
         content = node[1:-1]
-        return [
-            Node(f'"{c}"') for c in
-            ['', content[:len(content) // 2], content[1:], content[:-1]]
-        ]
+        for sec in nodes.binary_search(len(content)):
+            start = self.__fix_escape_sequences(content, sec[0])
+            yield Node(f'"{content[:start]}{content[sec[1]:]}"')
+        yield Node(f'"{content[1:]}"')
+        yield Node(f'"{content[:-1]}"')
 
     def global_mutations(self, linput, ginput):
-        return [
-            nodes.substitute(ginput, {linput: rep})
-            for rep in self.mutations(linput)
-        ]
+        for rep in self.mutations(linput):
+            yield {linput: rep}
 
     def __str__(self):
         return 'simplify string constant'
