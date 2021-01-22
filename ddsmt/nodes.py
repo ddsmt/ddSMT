@@ -144,7 +144,7 @@ class Node:
                 return bv_const_is_equal(self.data, other.data)
             if other.is_leaf() \
                and other.data.startswith('#') \
-               and ((self.is_leaf() and self.other.startswith('#')) \
+               and ((self.is_leaf() and self.data.startswith('#')) \
                     or (self.has_ident() \
                         and self[0] == '_' \
                         and self[1].data.startswith('bv'))):
