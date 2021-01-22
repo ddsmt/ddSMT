@@ -491,3 +491,15 @@ def filter_nodes(exprs, filter_func, max_depth=-1):
     for expr in dfs(exprs, max_depth):
         if filter_func(expr):
             yield expr
+
+
+def binary_search(input_length):
+    """Assume an input sequence of some ``input_length``, generates indices of
+    sub-sequences of decreasing length in a binary-search fashion."""
+    den = 2
+    while den * 2 <= input_length:
+        for num in reversed(range(0, den)):
+            start = int(num / den * input_length)
+            end = int((num + 1) / den * input_length)
+            yield (start, end)
+        den *= 2

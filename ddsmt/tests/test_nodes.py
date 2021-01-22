@@ -181,3 +181,15 @@ def test_render_smtlib_expression():
                                             False) == '(assert (> x y) ())'
     assert nodes.__render_smtlib_expression(
         expr, True) == '(assert\n  (> x y)\n  ())'
+
+
+def test_binary_search():
+    assert list(nodes.binary_search(4)) == [(2, 4), (0, 2)]
+    assert list(nodes.binary_search(15)) == [
+        (7, 15),
+        (0, 7),
+        (11, 15),
+        (7, 11),
+        (3, 7),
+        (0, 3),
+    ]
