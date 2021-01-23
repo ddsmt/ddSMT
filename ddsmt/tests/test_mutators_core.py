@@ -105,11 +105,19 @@ def test_constants():
     assert m.filter(Node('#b1011'))
     assert m.filter(Node('=', 'x', '1'))
     assert not m.filter(Node('y'))
-    assert m.mutations(Node('#b0')) == []
+
+    # can't handle this case without BV const normalization
+    # else this should be an empty set
+    assert m.mutations(
+        Node('#b0')) == [Node('_', 'bv0', 1),
+                         Node('_', 'bv1', 1)]
+
     assert isinstance(m.mutations(Node('#b1011'))[0], Node)
     assert isinstance(m.mutations(Node('#b1011'))[0].data, tuple)
-    assert m.mutations(Node('#b1011'))[0] == Node('#b0000')
-    assert m.mutations(Node('#b1011')) == [Node('#b0000'), Node('#b0001')]
+    assert m.mutations(Node('#b1011'))[0] == Node('_', 'bv0', 4)
+    assert m.mutations(
+        Node('#b1011')) == [Node('_', 'bv0', 4),
+                            Node('_', 'bv1', 4)]
     assert m.mutations(Node('x')) == [Node('0.0'), Node('1.0')]
     assert m.mutations(Node('=', 'x', '1')) == [Node('false'), Node('true')]
     smtlib.reset_information()
