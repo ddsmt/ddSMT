@@ -44,6 +44,9 @@ class Node:
             self.data = str(args[0])
             self.hash = hash(self.data)
         else:
+            if len(args) == 1 and isinstance(args[0], tuple):
+                args = args[0]
+
             self.data = tuple(
                 map(lambda a: self.__ensure_is_node(a), list(args)))
             assert all(map(lambda t: isinstance(t, Node), self.data))
@@ -80,11 +83,33 @@ class Node:
         return self.data[key]
 
     def __eq__(self, other):
-        if isinstance(other, str):
-            return self.is_leaf() and self.data == other
-        if isinstance(other, tuple):
-            return not self.is_leaf() and self.data == other
-        return isinstance(other, Node) and self.data == other.data
+        if other is None: return False
+        visit_self = [self]
+        if not isinstance(other, Node):
+            visit_other = [Node(other)]
+        else:
+            visit_other = [other]
+        while visit_self:
+            if not visit_other: return False
+            ns = visit_self.pop()
+            no = visit_other.pop()
+            if type(ns) != type(no): return False
+            if isinstance(ns, str):
+                if ns != no:
+                    return False
+            elif isinstance(ns, tuple):
+                visit_self.extend(list(ns))
+                visit_other.extend(list(no))
+            else:
+                if ns.is_leaf() != no.is_leaf(): return False
+                if hash(ns) != hash(no): return False
+                if ns.is_leaf():
+                    visit_self.append(ns.data)
+                    visit_other.append(no.data)
+                else:
+                    visit_self.extend(ns.data)
+                    visit_other.extend(no.data)
+        return True
 
     def __hash__(self):
         return self.hash

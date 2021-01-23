@@ -14,18 +14,21 @@ def test_eq():
     assert Node('x') == Node('x')
     assert Node('declare-const', 'x', 'Int') == Node('declare-const', 'x',
                                                      'Int')
-    assert Node(('pop',)) == ('pop',)
+    assert Node(Node('pop')) == Node(('pop', ))
+    assert Node('pop', 1) == Node(('pop', 1))
+    assert Node(('pop', )) == ('pop', )
+    assert Node(Node('pop')) == ('pop', )
 
     assert not Node('#b101') == Node('#b100')
     assert not Node('#b101') == 'x'
-    assert not Node('#b101') == ('x')
+    assert not Node('#b101') == ('x', )
     assert not Node('#b101') == Node('x')
 
     assert Node('#b101') == '#b101'
-    assert not Node('#b101') == ('#b101')
+    assert not Node('#b101') == ('#b101', )
     assert Node('#b101') == Node('#b101')
     assert Node('#x1af') == '#x1af'
-    assert not Node('#x1af') == ('#x1af')
+    assert not Node('#x1af') == ('#x1af', )
     assert Node('#x1af') == Node('#x1af')
 
     assert not Node('#x1af') == '(_ bv431 12)'
@@ -37,7 +40,7 @@ def test_eq():
     assert not Node('#b000110101111') == ('#x1af', )
     assert not Node('#x1af') == ('#b000110101111', )
 
-    # can't handle any of these case without BV const normalization
+    # can't handle any of these cases without BV const normalization
     # each of these denotes equal values
     assert not Node('#b0101') == '(_ bv5 4)'
     assert not Node('#b0101') == Node('_', 'bv5', 4)
