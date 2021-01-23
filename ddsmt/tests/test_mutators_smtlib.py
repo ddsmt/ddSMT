@@ -63,6 +63,7 @@ def test_smtlib_eliminate_variable():
 
 
 def test_smtlib_inline_define_fun():
+    smtlib.reset_information()
     m = mutators_smtlib.InlineDefinedFuns()
     assert isinstance(str(m), str)
     # special case where we should not attempt to inline into itself
@@ -71,7 +72,6 @@ def test_smtlib_inline_define_fun():
     smtlib.collect_information([n])
     assert m.filter(inner)
     assert m.mutations(inner) == []
-    smtlib.reset_information()
 
     inner = Node('x')
     expr = Node(inner, 'a', 'b')
@@ -81,7 +81,6 @@ def test_smtlib_inline_define_fun():
     ])
     assert m.filter(expr)
     assert m.mutations(expr) == [Node('and', 'a', 'b')]
-    smtlib.reset_information()
 
 
 def test_smtlib_let_elimination():

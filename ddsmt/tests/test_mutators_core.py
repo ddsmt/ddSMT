@@ -95,6 +95,7 @@ def test_binary_reduction_named():
 
 
 def test_constants():
+    smtlib.reset_information()
     m = mutators_core.Constants()
     assert isinstance(str(m), str)
     exprs = [Node('declare-const', 'x', 'Real'), Node('#b1011')]
@@ -120,7 +121,6 @@ def test_constants():
                             Node('_', 'bv1', 4)]
     assert m.mutations(Node('x')) == [Node('0.0'), Node('1.0')]
     assert m.mutations(Node('=', 'x', '1')) == [Node('false'), Node('true')]
-    smtlib.reset_information()
 
 
 def test_erase_node():
@@ -161,6 +161,7 @@ def test_replace_by_child():
 
 
 def test_replace_by_variable():
+    smtlib.reset_information()
     options.args(['in', 'out', 'bin'])
 
     x = Node('x')
@@ -197,7 +198,6 @@ def test_replace_by_variable():
     assert list(m.mutations(x)) == [v1, v3]
     assert list(m.mutations(v1)) == []
     assert list(m.mutations(v3)) == [v1]
-    smtlib.reset_information()
 
 
 def test_sort_children():

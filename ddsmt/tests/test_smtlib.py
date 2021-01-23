@@ -5,6 +5,7 @@ from ..smtlib import *
 
 
 def test_collect_information():
+    reset_information()
     collect_information([])
     assert smtlib.__constants == {}
     assert smtlib.__defined_functions == {}
@@ -78,10 +79,10 @@ def test_collect_information():
     assert smtlib.__defined_functions['x'](('3.0', )) == ('+', '3.0', '5.0')
     assert smtlib.__sort_lookup == {'x': 'Real'}
 
-    reset_information()
 
 
 def test_get_variables_with_sort():
+    reset_information()
     x = Node('x')
     y = Node('y')
     z = Node('z')
@@ -113,7 +114,6 @@ def test_get_variables_with_sort():
     assert get_variables_with_sort(Node('_', 'FloatingPoint', 5, 11)) == [c]
     assert get_variables_with_sort(Node('Real')) == [r]
     assert get_variables_with_sort(Node('String')) == [s]
-    reset_information()
 
 
 def test_introduce_variables():
@@ -200,6 +200,7 @@ def test_is_leaf():
 
 
 def test_is_var():
+    reset_information()
     assert not is_var(Node('declare-const', 'x', 'Real'))
     assert not is_var(Node('declare-fun', 'x', (), ('_', 'BitVec', 8)))
     assert not is_var(Node('define-fun', 'f', (), 'Int', ('+', 'x', 'x')))
@@ -211,7 +212,6 @@ def test_is_var():
     collect_information(exprs)
     assert not is_var(Node('x'))
     assert is_var(Node('y'))
-    reset_information()
 
 
 def test_is_piped_symbol():
@@ -345,6 +345,7 @@ def test_get_default_constants():
 
 
 def test_get_sort():
+    reset_information()
     bx = Node('bx')
     vx = Node('vx')
     ix = Node('ix')
@@ -537,7 +538,6 @@ def test_get_sort():
     assert get_sort(Node(('_', 'to_fp', 5, 11), vx)) == sort_fp16
     assert get_sort(Node(('_', 'to_fp', 5, 11), rm, vx)) == sort_fp16
     assert get_sort(Node(('_', 'to_fp_unsigned', 5, 11), rm, vx)) == sort_fp16
-    reset_information()
 
 
 def test_get_indices():
@@ -662,6 +662,7 @@ def test_is_bv_neg():
 
 
 def test_get_bv_width():
+    reset_information()
     bx = Node('bx')
     vx = Node('vx')
     ix = Node('ix')
@@ -850,10 +851,10 @@ def test_get_bv_width():
     assert get_bv_width(Node(('_', 'to_fp', 5, 11), vx)) == -1
     assert get_bv_width(Node(('_', 'to_fp', 5, 11), rm, vx)) == -1
     assert get_bv_width(Node(('_', 'to_fp_unsigned', 5, 11), rm, vx)) == -1
-    reset_information()
 
 
 def test_is_defined_fun():
+    reset_information()
     x1 = Node('x1')
     x2 = Node('x2')
     x3 = Node('x3')
@@ -900,10 +901,10 @@ def test_is_defined_fun():
     assert is_defined_fun(Node('fx', 'true'))
     assert is_defined_fun(Node('gx', 'true', 2))
     assert is_defined_fun(Node('f', 15))
-    reset_information()
 
 
 def test_get_defined_fun():
+    reset_information()
     x1 = Node('x1')
     x2 = Node('x2')
     x3 = Node('x3')
@@ -964,7 +965,6 @@ def test_get_defined_fun():
     assert get_defined_fun(Node('gx', 'true', 2)) \
            == Node('fp.fma', 2, 'fx', 'fx', 'fx')
     assert get_defined_fun(Node('f', 15)) == Node('+', 15, 15)
-    reset_information()
 
 
 def test_is_set_sort():

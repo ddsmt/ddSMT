@@ -23,6 +23,7 @@ def test_bv_is_relevant():
 
 
 def test_bv_concat_to_zero_extend():
+    smtlib.reset_information()
     m = mutators_bv.BVConcatToZeroExtend()
     assert isinstance(str(m), str)
     r = Node('r')
@@ -170,6 +171,7 @@ def test_bv_extract_constants():
 
 
 def test_bv_extract_zero_extend():
+    smtlib.reset_information()
     m = mutators_bv.BVExtractZeroExtend()
     assert isinstance(str(m), str)
     x = Node('x')
@@ -188,10 +190,10 @@ def test_bv_extract_zero_extend():
     assert m.mutations(ext3) == [
         Node(('_', 'zero_extend', 2), (('_', 'extract', 3, 3), x))
     ]
-    smtlib.reset_information()
 
 
 def test_bv_ite_to_bvcomp():
+    smtlib.reset_information()
     m = mutators_bv.BVIteToBVComp()
     assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
@@ -210,7 +212,6 @@ def test_bv_ite_to_bvcomp():
     assert not m.filter(Node('ite', ('=', 'x', 'y'), '#b11', '#b01'))
     assert m.filter(ite)
     assert m.mutations(ite) == [Node('bvcomp', 'x', 'y')]
-    smtlib.reset_information()
 
 
 def test_reflexive_nand():
@@ -291,6 +292,7 @@ def test_transform_to_bool():
 
 
 def test_bv_reduce_bw():
+    smtlib.reset_information()
     m = mutators_bv.BVReduceBW()
     assert isinstance(str(m), str)
     x = Node('x')
@@ -315,7 +317,6 @@ def test_bv_reduce_bw():
     assert m.filter(declx)
     assert m.filter(decly)
     declz = Node('declare-const', z, bvsort9)
-    smtlib.reset_information()
     _exprs1 = [
         Node('declare-fun', r, (), 'Real'),
         Node('declare-const', s, 'String'),
@@ -390,7 +391,6 @@ def test_bv_reduce_bw():
         Node('define-fun', z, (), bvsort9, zext_z9[i]),
         *_exprs1,
     ] for i in range(0, 4)]
-    smtlib.reset_information()
 
     # corner case: avoid reducing by 0 bits
     decl = Node('declare-const', 'x', ('_', 'BitVec', 2))
@@ -406,10 +406,10 @@ def test_bv_reduce_bw():
     smtlib.collect_information([decl])
     assert m.filter(decl)
     assert list(m.global_mutations(decl, [decl])) == []
-    smtlib.reset_information()
 
 
 def test_bv_merge_reduced_bw():
+    smtlib.reset_information()
     m = mutators_bv.BVMergeReducedBW()
     assert isinstance(str(m), str)
     bvsort1 = Node('_', 'BitVec', 1)
@@ -443,4 +443,3 @@ def test_bv_merge_reduced_bw():
     assert m.mutations(def_x) == [
         Node('define-fun', 'x', (), bvsort8, (('_', 'zero_extend', 7), '__x'))
     ]
-    smtlib.reset_information()
