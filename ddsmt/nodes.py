@@ -29,7 +29,7 @@ class Node:
     is automatically set to a unique integer that can be used for local
     substitutions.
     """
-    __slots__ = 'id', 'data'
+    __slots__ = 'id', 'data', 'hash'
     __ID_COUNTER = 0
 
     @classmethod
@@ -42,10 +42,12 @@ class Node:
         if len(args) == 1 \
            and (isinstance(args[0], str) or isinstance(args[0], int)):
             self.data = str(args[0])
+            self.hash = hash(self.data)
         else:
             self.data = tuple(
                 map(lambda a: self.__ensure_is_node(a), list(args)))
             assert all(map(lambda t: isinstance(t, Node), self.data))
+            self.hash = sum(x.hash for x in self.data)
 
     def __ensure_is_node(self, data):
         """Recursively walk data and make sure everything is a node."""
@@ -85,7 +87,7 @@ class Node:
         return isinstance(other, Node) and self.data == other.data
 
     def __hash__(self):
-        return hash(self.data)
+        return self.hash
 
     def __getstate__(self):
         """Callback method for custom (non-recursive) pickling."""
