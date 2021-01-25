@@ -166,7 +166,7 @@ class Node:
                 children = exprs.pop()
                 _id = children.pop(0)
                 _hash = children.pop(0)
-                node = Node(_data=children, _id=_id, _hash=_hash)
+                node = Node(_data=tuple(children), _id=_id, _hash=_hash)
                 exprs[-1].append(node)
                 continue
             if cur == 76:  # b'L'
