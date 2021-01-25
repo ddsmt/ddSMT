@@ -89,35 +89,39 @@ class Node:
         return self.data[key]
 
     def __eq__(self, other):
-        if other is None: return False
-        visit_self = [self]
-        if not isinstance(other, Node):
+        if other is None:
+            return False
+        if isinstance(other, Node):
+            if self.id == other.id:
+                return True
+            visit_other = [other]
+        else:
             if isinstance(other, tuple):
                 visit_other = [Node(*other)]
             else:
                 visit_other = [Node(other)]
-        else:
-            visit_other = [other]
+        visit_self = [self]
         while visit_self:
-            if not visit_other: return False
+            if not visit_other:
+                return False
             ns = visit_self.pop()
             no = visit_other.pop()
-            if type(ns) != type(no): return False
-            if isinstance(ns, str):
-                if ns != no:
+            assert isinstance(ns, Node)
+            assert isinstance(no, Node)
+            if ns.id == no.id:
+                continue
+            if ns.is_leaf() != no.is_leaf():
+                return False
+            if ns.hash != no.hash:
+                return False
+            if ns.is_leaf():
+                if ns.data != no.data:
                     return False
-            elif isinstance(ns, tuple):
-                visit_self.extend(list(ns))
-                visit_other.extend(list(no))
             else:
-                if ns.is_leaf() != no.is_leaf(): return False
-                if hash(ns) != hash(no): return False
-                if ns.is_leaf():
-                    visit_self.append(ns.data)
-                    visit_other.append(no.data)
-                else:
-                    visit_self.extend(ns.data)
-                    visit_other.extend(no.data)
+                if len(ns) != len(no):
+                    return False
+                visit_self.extend(ns.data)
+                visit_other.extend(no.data)
         return True
 
     def __hash__(self):
