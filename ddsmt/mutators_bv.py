@@ -22,6 +22,20 @@ from .nodes import Node
 from .smtlib import *
 
 
+class BVNormalizeConstants:
+    """Normalize bit-vector constants to be represented using the ``(_ bvN M)``
+    notation."""
+    def filter(self, node):
+        return node.is_leaf() and is_bv_const(node)
+
+    def mutations(self, node):
+        val, bw = get_bv_constant_value(node)
+        return [Node('_', f'bv{val}', bw)]
+
+    def __str__(self):
+        return 'normalize bit-vector const'
+
+
 class BVConcatToZeroExtend:
     """Replace a ``concat`` with zero by ``zero_extend``."""
     def filter(self, node):
@@ -207,7 +221,7 @@ class BVReflexiveNand:
         return 'replace bvnand by bvnot'
 
 
-class BVSimplifyConstant:
+class BVSimplifyConstants:
     """Replace a bit-vector constant by a simpler constant of smaller value."""
     def filter(self, node):
         return is_bv_const(node) \
@@ -358,16 +372,17 @@ def get_mutators():
     """Return mapping from mutator class names to the name of their config
     options."""
     return {
+        'BVNormalizeConstants': 'bv-norm-constants',
         'BVConcatToZeroExtend': 'bv-zero-concat',
         'BVDoubleNegation': 'bv-double-negation',
         'BVElimBVComp': 'bv-elim-bvcomp',
         'BVEvalExtend': 'bv-eval-extend',
-        'BVExtractConstants': 'bv-eval-extract',
+        'BVExtractConstants': 'bv-extract-constants',
         'BVExtractZeroExtend': 'bv-extract-zeroextend',
         'BVMergeReducedBW': 'bv-merge-reduced-bw',
         'BVIteToBVComp': 'bv-ite-to-bvcomp',
         'BVReflexiveNand': 'bv-reflexive-nand',
-        'BVSimplifyConstant': 'bv-constants',
+        'BVSimplifyConstants': 'bv-simp-constants',
         'BVTransformToBool': 'bv-to-bool',
         'BVReduceBW': 'bv-reduce-bitwidth',
     }

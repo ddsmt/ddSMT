@@ -6,7 +6,7 @@ from .. import smtlib
 def test_bv_get_mutators():
     d = mutators_bv.get_mutators()
     assert isinstance(d, dict)
-    assert len(d) == 12
+    assert len(d) == 13
 
 
 def test_bv_is_relevant():
@@ -20,6 +20,31 @@ def test_bv_is_relevant():
     assert not mutators_bv.is_relevant(Node('declare-const', 'x', 'Int'))
     assert not mutators_bv.is_relevant(Node('declare-fun', 'x', (), 'Bool'))
     assert not mutators_bv.is_relevant(Node('x'))
+
+
+def test_normalize_constants():
+    m = mutators_bv.BVNormalizeConstants()
+    assert isinstance(str(m), str)
+    assert not m.filter(Node(3))
+    assert not m.filter(Node('define-fun', 'f', (), '#b0010'))
+    assert not m.filter(Node('_', 'bv4', 4))
+    assert not m.filter(Node('#b2010'))
+    assert not m.filter(Node('#xz010'))
+    assert m.filter(Node('#b0010'))
+    assert m.filter(Node('#xa1f'))
+    assert m.mutations(Node('#b0')) == [('_', 'bv0', 1)]
+    assert m.mutations(Node('#b1')) == [('_', 'bv1', 1)]
+    assert m.mutations(Node('#b000')) == [('_', 'bv0', 3)]
+    assert m.mutations(Node('#b001')) == [('_', 'bv1', 3)]
+    assert m.mutations(Node('#b010')) == [('_', 'bv2', 3)]
+    assert m.mutations(Node('#b011')) == [('_', 'bv3', 3)]
+    assert m.mutations(Node('#b100')) == [('_', 'bv4', 3)]
+    assert m.mutations(Node('#b101')) == [('_', 'bv5', 3)]
+    assert m.mutations(Node('#b110')) == [('_', 'bv6', 3)]
+    assert m.mutations(Node('#b111')) == [('_', 'bv7', 3)]
+    assert m.mutations(Node('#x11'))  == [('_', 'bv17', 8)]
+    assert m.mutations(Node('#x011')) == [('_', 'bv17', 12)]
+    assert m.mutations(Node('#xa11')) == [('_', 'bv2577', 12)]
 
 
 def test_bv_concat_to_zero_extend():
@@ -224,8 +249,8 @@ def test_reflexive_nand():
     assert m.mutations(Node('bvnand', 'x', 'x')) == [Node('bvnot', 'x')]
 
 
-def test_simplify_constant():
-    m = mutators_bv.BVSimplifyConstant()
+def test_simplify_constants():
+    m = mutators_bv.BVSimplifyConstants()
     assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
     assert not m.filter(Node('declare-const', 'x', ('_', 'BitVec', 4)))
