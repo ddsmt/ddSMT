@@ -51,9 +51,6 @@ def get_passes():
             'ReplaceByChild',
             'BinaryReduction',
             'CheckSatAssuming',
-            'LetElimination',
-            'LetSubstitution',
-            'PushPopRemoval',
         ]),
     ]
 
