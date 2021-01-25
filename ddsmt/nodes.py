@@ -50,7 +50,8 @@ class Node:
             self.data = tuple(
                 map(lambda a: self.__ensure_is_node(a), list(args)))
             assert all(map(lambda t: isinstance(t, Node), self.data))
-            self.hash = sum(x.hash for x in self.data)
+        assert isinstance(self.data, (str, tuple))
+        self.hash = hash(self.data)
 
     def __ensure_is_node(self, data):
         """Recursively walk data and make sure everything is a node."""
@@ -135,6 +136,7 @@ class Node:
             else:
                 res.append(b'(')
                 res.append(struct.pack("i", expr.id))
+                res.append(struct.pack("q", expr.hash))
                 visit.append(')')
                 visit.extend(reversed(expr.data))
 
@@ -147,15 +149,20 @@ class Node:
         smax = len(state)
         while i < smax:
             if state[i] == 40:  # b'('
-                exprs.append([struct.unpack('i', state[i + 1:i + 5])[0]])
-                i += 5
+                exprs.append([
+                    struct.unpack('i', state[i + 1:i + 5])[0],
+                    struct.unpack('q', state[i + 5:i + 13])[0]
+                ])
+                i += 13
                 continue
             if state[i] == 41:  # b')'
                 i += 1
                 children = exprs.pop()
                 id = children.pop(0)
+                hash = children.pop(0)
                 node = Node(*children)
                 node.id = id
+                node.hash = hash
                 exprs[-1].append(node)
                 continue
             if state[i] == 76:  # b'L'
@@ -168,6 +175,7 @@ class Node:
                 continue
             break
         self.id = exprs[0][0].id
+        self.hash = exprs[0][0].hash
         self.data = exprs[0][0].data
 
     def is_leaf(self):
