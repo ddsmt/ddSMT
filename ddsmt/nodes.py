@@ -37,22 +37,27 @@ class Node:
         self.__ID_COUNTER += 1
         return self.__ID_COUNTER
 
-    def __init__(self, *args):
+    def __init__(self, *args, _id=None, _data=None, _hash=None):
         """
         Node("str") -> "str"
         otherwise:
         Node(*args) -> tuple(*args)
+        If any of ``_id``, ``_data`` and ``_hash`` are set, these are used to
+        populate the respective properties without checking them. Only use
+        them if you really know what you are doing!
         """
-        self.id = self.__get_id()
-        if len(args) == 1 and isinstance(args[0], (str, int)):
-            self.data = str(args[0])
-            self.hash = hash(self.data)
+        self.id = _id if _id else self.__get_id()
+        if _data:
+            self.data = _data
         else:
-            self.data = tuple(
-                map(lambda a: self.__ensure_is_node(a), list(args)))
-            assert all(map(lambda t: isinstance(t, Node), self.data))
-        assert isinstance(self.data, (str, tuple))
-        self.hash = hash(self.data)
+            if len(args) == 1 and isinstance(args[0], (str, int)):
+                self.data = str(args[0])
+            else:
+                self.data = tuple(map(lambda a: self.__ensure_is_node(a),
+                                      args))
+            #assert all(map(lambda t: isinstance(t, Node), self.data))
+        #assert isinstance(self.data, (str, tuple))
+        self.hash = _hash if _hash else hash(self.data)
 
     def __ensure_is_node(self, data):
         """Recursively walk data and make sure everything is a node."""
@@ -63,10 +68,7 @@ class Node:
         if isinstance(data, int):
             return Node(str(data))
         assert isinstance(data, tuple)
-        res = []
-        for d in data:
-            res.append(self.__ensure_is_node(d))
-        return Node(*res)
+        return Node(*map(lambda a: self.__ensure_is_node(a), data))
 
     def __str__(self):
         if isinstance(self.data, str):
@@ -134,13 +136,11 @@ class Node:
             assert isinstance(expr, Node)
             if expr.is_leaf():
                 res.append(b'L')
-                res.append(struct.pack("i", expr.id))
-                res.append(struct.pack("i", len(expr.data)))
+                res.append(struct.pack("=ii", expr.id, len(expr.data)))
                 res.append(expr.data.encode())
             else:
                 res.append(b'(')
-                res.append(struct.pack("i", expr.id))
-                res.append(struct.pack("q", expr.hash))
+                res.append(struct.pack("=iq", expr.id, expr.hash))
                 visit.append(')')
                 visit.extend(reversed(expr.data))
 
@@ -152,28 +152,22 @@ class Node:
         i = 0
         smax = len(state)
         while i < smax:
-            if state[i] == 40:  # b'('
-                exprs.append([
-                    struct.unpack('i', state[i + 1:i + 5])[0],
-                    struct.unpack('q', state[i + 5:i + 13])[0]
-                ])
+            cur = state[i]
+            if cur == 40:  # b'('
+                exprs.append(list(struct.unpack('=iq', state[i + 1:i + 13])))
                 i += 13
                 continue
-            if state[i] == 41:  # b')'
+            if cur == 41:  # b')'
                 i += 1
                 children = exprs.pop()
-                id = children.pop(0)
-                hash = children.pop(0)
-                node = Node(*children)
-                node.id = id
-                node.hash = hash
+                _id = children.pop(0)
+                _hash = children.pop(0)
+                node = Node(_data=children, _id=_id, _hash=_hash)
                 exprs[-1].append(node)
                 continue
-            if state[i] == 76:  # b'L'
-                id = struct.unpack('i', state[i + 1:i + 5])[0]
-                leaflen = struct.unpack('i', state[i + 5:i + 9])[0]
-                node = Node(state[i + 9:i + leaflen + 9].decode())
-                node.id = id
+            if cur == 76:  # b'L'
+                _id, leaflen = struct.unpack('=ii', state[i + 1:i + 9])
+                node = Node(state[i + 9:i + leaflen + 9].decode(), _id=_id)
                 exprs[-1].append(node)
                 i += leaflen + 9
                 continue
