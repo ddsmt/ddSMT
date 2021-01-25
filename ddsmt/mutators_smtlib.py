@@ -113,38 +113,6 @@ class LetSubstitution:
         return 'substitute variable into let body'
 
 
-class PushPopRemoval:
-    """Remove matching ``(push)(pop)`` pairs.
-
-    Start with directly consecutive pairs, then attempt to remove more
-    distant ones.
-    """
-    def global_mutations(self, linput, ginput):
-        if linput != ginput[0]:
-            return
-        pairs = []
-        # identify (push) / (pop) pairs
-        stack = []
-        for i in range(len(ginput)):
-            if ginput[i] == (Node('push'), ):
-                stack.append(i)
-            if ginput[i] == (Node('pop'), ) and stack != []:
-                pairs.append((stack[-1], i))
-                stack.pop()
-        # remove directly successive pairs
-        for p in pairs:
-            if p[0] + 1 == p[1]:
-                i = p[0]
-                yield ginput[:i] + ginput[i + 2:]
-        # remove non-successive pairs
-        for p in pairs:
-            if p[0] + 1 != p[1]:
-                yield ginput[:p[0]] + ginput[p[0] + 1:p[1]] + ginput[p[1] + 1:]
-
-    def __str__(self):
-        return 'remove push-pop pair'
-
-
 class SimplifyLogic:
     """Replaces the logic specified in ``(check-logic ...)`` by a simpler
     one."""
@@ -258,7 +226,6 @@ def get_mutators():
         'InlineDefinedFuns': 'inline-functions',
         'LetElimination': 'let-elimination',
         'LetSubstitution': 'let-substitution',
-        'PushPopRemoval': 'push-pop-removal',
         'SimplifyLogic': 'simplify-logic',
         'SimplifyQuotedSymbols': 'simplify-quoted-symbols',
         'SimplifySymbolNames': 'simplify-symbol-names',
