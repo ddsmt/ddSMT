@@ -80,7 +80,6 @@ def test_collect_information():
     assert smtlib.__sort_lookup == {'x': 'Real'}
 
 
-
 def test_get_variables_with_sort():
     reset_information()
     x = Node('x')
@@ -619,8 +618,11 @@ def test_is_bv_const():
     assert not is_bv_const(Node('2'))
     assert not is_bv_const(Node('0101'))
     assert not is_bv_const(Node('_', ('bv5', ), 3))
+    assert not is_bv_const(Node('#b0121'))
+    assert not is_bv_const(Node('#x1az'))
     assert is_bv_const(Node('#b0101'))
     assert is_bv_const(Node('#x1af'))
+    assert is_bv_const(Node('#x1AF'))
     assert is_bv_const(Node('_', 'bv5', 3))
 
 

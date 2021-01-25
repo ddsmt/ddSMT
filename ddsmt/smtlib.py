@@ -20,6 +20,7 @@
 
 import logging
 import re
+import string
 
 from . import nodes
 from .nodes import Node
@@ -461,9 +462,9 @@ def is_bv_const(node):
     """Return true if ``node`` is a bit-vector constant."""
     if node.is_leaf():
         s = node.data
-        if s.startswith('#b'):
+        if s.startswith('#b') and all(c in ['0', '1'] for c in s[2:]):
             return True
-        if s.startswith('#x'):
+        if s.startswith('#x') and all(c in string.hexdigits for c in s[2:]):
             return True
         return False
     if len(node) != 3:
