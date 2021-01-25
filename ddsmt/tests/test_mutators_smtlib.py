@@ -6,7 +6,7 @@ from .. import smtlib
 def test_smtlib_get_mutators():
     d = mutators_smtlib.get_mutators()
     assert isinstance(d, dict)
-    assert len(d) == 9
+    assert len(d) == 8
 
 
 def test_smtlib_checksat_assuming():
@@ -105,39 +105,6 @@ def test_smtlib_let_substitution():
     n = Node('let', (('a', 'x'), ('b', 'y')), ('and', 'abc', 'def'))
     assert m.filter(n)
     assert m.mutations(n) == []
-
-
-def test_smtlib_pushpop_removal():
-    m = mutators_smtlib.PushPopRemoval()
-    assert isinstance(str(m), str)
-    exprs = [
-        Node('set-logic', 'QF_NRA'),
-        Node('assert', 'x'),
-        Node(Node('push')),
-        Node(Node('pop')),
-        Node('assert', 'y'),
-        Node(Node('push')),
-        Node('assert', 'z'),
-        Node(Node('pop')),
-    ]
-    assert list(m.global_mutations(exprs[1], exprs)) == []
-    assert list(m.global_mutations(exprs[0],
-                                   exprs)) == [[
-                                       Node('set-logic', 'QF_NRA'),
-                                       Node('assert', 'x'),
-                                       Node('assert', 'y'),
-                                       Node(Node('push')),
-                                       Node('assert', 'z'),
-                                       Node(Node('pop')),
-                                   ],
-                                               [
-                                                   Node('set-logic', 'QF_NRA'),
-                                                   Node('assert', 'x'),
-                                                   Node(Node('push')),
-                                                   Node(Node('pop')),
-                                                   Node('assert', 'y'),
-                                                   Node('assert', 'z'),
-                                               ]]
 
 
 def test_smtlib_simplify_logic():
