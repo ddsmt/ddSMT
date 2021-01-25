@@ -89,6 +89,8 @@ class LetElimination:
         return is_operator_app(node, 'let')
 
     def mutations(self, node):
+        if len(node) <= 2:
+            return []
         return [node[2]]
 
     def __str__(self):
@@ -102,6 +104,8 @@ class LetSubstitution:
         return is_operator_app(node, 'let')
 
     def mutations(self, node):
+        if len(node) <= 2:
+            return []
         res = []
         for var in node[1]:
             if any(n == var[0] for n in nodes.dfs(node[2])):
