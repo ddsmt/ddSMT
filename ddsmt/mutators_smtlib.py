@@ -126,9 +126,9 @@ class PushPopRemoval:
         # identify (push) / (pop) pairs
         stack = []
         for i in range(len(ginput)):
-            if ginput[i] == ('push', ):
+            if ginput[i] == (Node('push'), ):
                 stack.append(i)
-            if ginput[i] == ('pop', ) and stack != []:
+            if ginput[i] == (Node('pop'), ) and stack != []:
                 pairs.append((stack[-1], i))
                 stack.pop()
         # remove directly successive pairs

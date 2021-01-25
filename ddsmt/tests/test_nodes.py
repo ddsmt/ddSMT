@@ -4,6 +4,14 @@ from .. import nodes
 from ..nodes import Node
 
 
+def test_constructor():
+    assert Node().data == ()
+    assert Node(15).data == '15'
+    assert Node('foobar').data == 'foobar'
+    assert Node('a', 15, ('b', 13)).data == ('a', '15', ('b', '13'))
+    assert Node(()).data == ((), )
+
+
 def test_eq():
     assert not Node('x') == 'y'
     assert not Node('declare-const', 'x',
@@ -14,10 +22,8 @@ def test_eq():
     assert Node('x') == Node('x')
     assert Node('declare-const', 'x', 'Int') == Node('declare-const', 'x',
                                                      'Int')
-    assert Node(Node('pop')) == Node(('pop', ))
-    assert Node('pop', 1) == Node(('pop', 1))
-    assert Node(('pop', )) == ('pop', )
-    assert Node(Node('pop')) == ('pop', )
+    assert Node(Node('pop')) == (Node('pop'), )
+    assert Node('pop', 1) == ('pop', 1)
 
     assert not Node('#b101') == Node('#b100')
     assert not Node('#b101') == 'x'
@@ -25,10 +31,10 @@ def test_eq():
     assert not Node('#b101') == Node('x')
 
     assert Node('#b101') == '#b101'
-    assert not Node('#b101') == ('#b101', )
+    assert not Node('#b101') == (Node('#b101'), )
     assert Node('#b101') == Node('#b101')
     assert Node('#x1af') == '#x1af'
-    assert not Node('#x1af') == ('#x1af', )
+    assert not Node('#x1af') == (Node('#x1af'), )
     assert Node('#x1af') == Node('#x1af')
 
     assert not Node('#x1af') == '(_ bv431 12)'

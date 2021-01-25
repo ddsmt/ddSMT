@@ -38,15 +38,16 @@ class Node:
         return self.__ID_COUNTER
 
     def __init__(self, *args):
+        """
+        Node("str") -> "str"
+        otherwise:
+        Node(*args) -> tuple(*args)
+        """
         self.id = self.__get_id()
-        if len(args) == 1 \
-           and (isinstance(args[0], str) or isinstance(args[0], int)):
+        if len(args) == 1 and isinstance(args[0], (str, int)):
             self.data = str(args[0])
             self.hash = hash(self.data)
         else:
-            if len(args) == 1 and isinstance(args[0], tuple):
-                args = args[0]
-
             self.data = tuple(
                 map(lambda a: self.__ensure_is_node(a), list(args)))
             assert all(map(lambda t: isinstance(t, Node), self.data))
@@ -89,7 +90,10 @@ class Node:
         if other is None: return False
         visit_self = [self]
         if not isinstance(other, Node):
-            visit_other = [Node(other)]
+            if isinstance(other, tuple):
+                visit_other = [Node(*other)]
+            else:
+                visit_other = [Node(other)]
         else:
             visit_other = [other]
         while visit_self:
