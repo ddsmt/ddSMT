@@ -72,7 +72,9 @@ class Node:
         return '(' + ' '.join(map(str, self.data)) + ')'
 
     def __repr__(self):
-        return str(self)
+        if isinstance(self.data, str):
+            return f'"{self.data}"'
+        return f'({self.id} ' + ' '.join(map(repr, self.data)) + ')'
 
     def __len__(self):
         if self.is_leaf():
