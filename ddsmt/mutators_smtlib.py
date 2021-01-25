@@ -83,6 +83,26 @@ class InlineDefinedFuns:
         return 'inline defined function'
 
 
+class IntroduceFreshVariable:
+    """Replace a term by a fresh variable of the appropriate type."""
+    def filter(self, node):
+        if node.is_leaf():
+            if node.data.startswith('__fresh_'):
+                return False
+        return not is_const(node) and get_sort(node) is not None
+
+    def global_mutations(self, linput, ginput):
+        varname = Node(f'__fresh_{linput.id}')
+        var = Node('declare-fun', varname, (), get_sort(linput))
+        return [
+            nodes.substitute(introduce_variables(ginput, [var]),
+                             {linput.id: varname})
+        ]
+
+    def __str__(self):
+        return 'introduce fresh variable'
+
+
 class LetElimination:
     """Substitutes a ``let`` expression with its body."""
     def filter(self, node):
@@ -228,6 +248,7 @@ def get_mutators():
         'CheckSatAssuming': 'check-sat-assuming',
         'EliminateVariable': 'eliminate-variables',
         'InlineDefinedFuns': 'inline-functions',
+        'IntroduceFreshVariable': 'introduce-fresh-variables',
         'LetElimination': 'let-elimination',
         'LetSubstitution': 'let-substitution',
         'SimplifyLogic': 'simplify-logic',

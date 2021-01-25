@@ -6,7 +6,7 @@ from .. import smtlib
 def test_smtlib_get_mutators():
     d = mutators_smtlib.get_mutators()
     assert isinstance(d, dict)
-    assert len(d) == 8
+    assert len(d) == 9
 
 
 def test_smtlib_checksat_assuming():
@@ -81,6 +81,25 @@ def test_smtlib_inline_define_fun():
     ])
     assert m.filter(expr)
     assert m.mutations(expr) == [Node('and', 'a', 'b')]
+
+
+def test_smtlib_introduce_fresh_variable():
+    smtlib.reset_information()
+    m = mutators_smtlib.IntroduceFreshVariable()
+    assert isinstance(str(m), str)
+
+    decl = Node('declare-const', 'x', 'Bool')
+    smtlib.collect_information([decl])
+    term = Node('not', 'x')
+    exprs = [decl, Node('assert', term)]
+    assert not m.filter(Node('false'))
+    assert m.filter(Node('x'))
+    assert not m.filter(Node('__fresh_'))
+    assert m.filter(term)
+    assert m.global_mutations(term, exprs) == [[
+        decl, ('declare-fun', f'__fresh_{term.id}', (), 'Bool'),
+        Node('assert', f'__fresh_{term.id}')
+    ]]
 
 
 def test_smtlib_let_elimination():
