@@ -266,6 +266,48 @@ def get_default_constants(sort):
         return [Node('0.0'), Node('1.0')]
     if is_bv_sort(sort):
         return [Node('_', c, sort[2]) for c in ['bv0', 'bv1']]
+    if is_fp_sort(sort):
+        if sort.is_leaf():
+            if sort.data == 'Float16':
+                ew = 5
+                sw = 10
+            elif sort.data == 'Float32':
+                ew = 8
+                sw = 23
+            elif sort.data == 'Float64':
+                ew = 11
+                sw = 52
+            else:
+                assert sort.data == 'Float128'
+                ew = 15
+                sw = 112
+        else:
+            if isinstance(sort, Node):
+                ew = int(sort[-2].data)
+                sw = int(sort[-1].data) - 1
+            else:
+                ew = sort[-2]
+                sw = sort[-1] - 1
+        sign = Node('_', 'bv0', 1)
+        signm = Node('_', 'bv1', 1)
+        zero_ew = Node('_', 'bv0', ew)
+        zero_sw = Node('_', 'bv0', sw)
+        one_sw = Node('_', 'bv1', sw)
+        ones_ew = Node('_', f'bv{2**ew - 1}', ew)
+        return [
+            # +zero
+            Node('fp', sign, zero_ew, zero_sw),
+            # -zero
+            Node('fp', signm, zero_ew, zero_sw),
+            # +NaN (note: only one possible NaN value is generated)
+            Node('fp', sign, ones_ew, one_sw),
+            # -NaN (note: only one possible NaN value is generated)
+            Node('fp', signm, ones_ew, one_sw),
+            # +oo
+            Node('fp', sign, ones_ew, zero_sw),
+            # -oo
+            Node('fp', signm, ones_ew, zero_sw)
+        ]
     if is_set_sort(sort):
         return [Node('as', 'emptyset', sort)] \
                + [Node('singleton', c) for c in get_default_constants(sort[1])]
@@ -579,7 +621,7 @@ def get_bv_constant_value(node):
 def is_fp_sort(node):
     """Return true if ``node`` is a floating-point sort."""
     if is_leaf(node) \
-       and str(node).startswith('Float') \
+       and node.data.startswith('Float') \
        and node[5:] in ['16', '32', '64', '128']:
         return True
     if not node.has_ident() or node.get_ident() != '_' or len(node) != 4:
