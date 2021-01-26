@@ -64,7 +64,7 @@ class Constants:
     ``collect_information``.
     """
     def filter(self, node):
-        return get_sort(node) is not None
+        return not is_definition_node(node) and get_sort(node) is not None
 
     def mutations(self, node):
         """Return ``get_default_constants(get_sort(node))``."""

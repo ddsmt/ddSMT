@@ -29,6 +29,9 @@ from .nodes import Node
 __constants = {}
 # Stores all defined functions with their return sorts
 __defined_functions = {}
+# Stores the ids of all nodes that are symbols within their definitions
+# i.e. the id of x within ``(declare-const x Int)``
+__definition_node_ids = []
 # Stores the sorts for all declared or defined symbols
 __sort_lookup = {}
 
@@ -38,9 +41,11 @@ def collect_information(exprs):  # noqa: C901
     and sorts of all these symbols."""
     global __constants
     global __defined_functions
+    global __definition_node_ids
     global __sort_lookup
     __constants = {}
     __defined_functions = {}
+    __definition_node_ids = []
     __sort_lookup = {}
 
     for cmd in exprs:
@@ -56,6 +61,7 @@ def collect_information(exprs):  # noqa: C901
                 logging.trace(f'Ignored command: "{cmd[1]}" is not a leaf')
                 continue
             __constants[cmd[1].data] = cmd[2]
+            __definition_node_ids.append(cmd[1].id)
             __sort_lookup[cmd[1].data] = cmd[2]
         if name == 'declare-fun':
             if not len(cmd) == 4:
@@ -70,6 +76,7 @@ def collect_information(exprs):  # noqa: C901
                 continue
             if cmd[2] == tuple():
                 __constants[cmd[1].data] = cmd[3]
+            __definition_node_ids.append(cmd[1].id)
             __sort_lookup[cmd[1].data] = cmd[3]
         if name == 'define-fun':
             if not len(cmd) == 5:
@@ -88,6 +95,7 @@ def collect_information(exprs):  # noqa: C901
                 cmd[1]] = lambda args, cmd=cmd: nodes.substitute(
                     cmd[4], {cmd[2][i][0]: args[i]
                              for i in range(len(args))})
+            __definition_node_ids.append(cmd[1].id)
             __sort_lookup[cmd[1].data] = cmd[3]
 
 
@@ -98,9 +106,11 @@ def reset_information():
     """
     global __constants
     global __defined_functions
+    global __definition_node_ids
     global __sort_lookup
     __constants = {}
     __defined_functions = {}
+    __definition_node_ids = []
     __sort_lookup = {}
 
 
@@ -321,7 +331,7 @@ def get_sort(node):  # noqa: C901
     information has been populated via ``collect_information``.
     """
     if node.is_leaf() and node.data in __sort_lookup:
-        return __sort_lookup[node.data]
+        return __sort_lookup[node]
     if is_bool_const(node):
         return Node('Bool')
     if is_bv_const(node):
@@ -630,6 +640,16 @@ def is_fp_sort(node):
 
 
 # Functions
+
+
+def is_definition_node(node):
+    """Check whether ``node`` is the node that specifies the name of a symbol
+    within the declaration of definition of this symbol.
+
+    This would be the case for the node ``x`` within ``(declare-const x
+    Int)``, but not for any other occurrence of ``x``.
+    """
+    return node.id in __definition_node_ids
 
 
 def is_defined_fun(node):
