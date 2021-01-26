@@ -18,8 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
-from multiprocessing import Pool
+import multiprocessing
+import collections
 import logging
+import pickle
 import sys
 import time
 
@@ -28,6 +30,93 @@ from . import mutators
 from . import nodes
 from . import options
 from . import smtlib
+
+Task = collections.namedtuple('Task', ['id', 'exprs', 'subset', 'substs'])
+
+Result = collections.namedtuple(
+    'Result', ['task_id', 'success', 'reduced', 'exprs', 'tests'])
+
+
+def _partition(exprs, gran):
+    """Partition ``exprs`` into a list of subsets of size ``gran``."""
+    return [exprs[s:s + gran] for s in range(0, len(exprs), gran)]
+
+
+class TaskGenerator:
+    """Filter ``exprs`` based on ``mutator`` and generates tasks."""
+    def __init__(self, exprs, gran, mutator, max_depth=None):
+        self.exprs = exprs
+        self.mutator = mutator
+        self.max_depth = max_depth
+        self.index = 0
+        self.stopped = False
+
+        # Filter nodes and partition into subsets of size ``gran``.
+        filter_func = getattr(mutator, 'filter', lambda x: True)
+        filtered = list(nodes.filter_nodes(exprs, filter_func, max_depth))
+        self.gran = len(filtered) if gran is None else gran
+        self.subsets = _partition(filtered, self.gran) if self.gran else []
+
+        njobs = options.args().jobs
+        if njobs > 1 and len(self.subsets) > 2 * njobs:
+            self.pickled_exprs = pickle.dumps(exprs)
+        else:
+            self.pickled_exprs = None
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        """Generate next task."""
+        if not self.stopped and self.index < len(self.subsets):
+            subset = self.subsets[self.index]
+            subset_ids = [n.id for n in subset]
+            if self.pickled_exprs:
+                substs = pickle.dumps(self.__get_substs(subset))
+                task = Task(self.index, self.pickled_exprs, subset_ids, substs)
+            else:
+                substs = self.__get_substs(subset)
+                task = Task(self.index, self.exprs, subset_ids, substs)
+            logging.debug(f'TaskGen: Generate next {self.index}')
+            self.index += 1
+            return task
+        raise StopIteration
+
+    def __get_substs(self, subset):
+        """Generate substitutions for ``subset`` based on ``self.mutator``."""
+        substs = []
+        # Granularity 1: Try all mutations separately.
+        if len(subset) == 1:
+            node = subset[0]
+            substs.extend(self.mutator.mutations(node))
+        # Granularity > 1: Pick first mutation and perform parallel
+        # substitution of nodes in ``subset``.
+        else:
+            for node in subset:
+                try:
+                    substs.append(next(iter(self.mutator.mutations(node))))
+                except StopIteration:
+                    continue
+        return substs
+
+    def reset(self, index):
+        """Reset ``self.index`` to ``index``."""
+        logging.debug(f'TaskGen: Reset to {index}')
+        self.index = index
+
+    def update(self, exprs):
+        """Update ``self.exprs`` with new ``exprs``."""
+        self.exprs = exprs
+        if self.pickled_exprs is not None:
+            self.pickled_exprs = pickle.dumps(exprs)
+
+    def stop(self):
+        """Stop generating new taks."""
+        self.stopped = True
+
+    def start(self):
+        """Continue generating new taks."""
+        self.stopped = False
 
 
 def ddmin_passes():
@@ -90,7 +179,7 @@ def ddmin_passes():
     ]
 
 
-def _subst(exprs, subset, mutator):
+def _subst(exprs, subset, substs):
     """Return list of mutated formulas.
 
     Apply ``mutator`` to nodes in ``subset`` and substitute the nodes in
@@ -101,51 +190,68 @@ def _subst(exprs, subset, mutator):
     res = []
     # Granularity 1: Try all mutations separately.
     if len(subset) == 1:
-        node = subset[0]
-        mutations = mutator.mutations(node)
-        for x in mutations:
-            mexprs = nodes.substitute(exprs, {node.id: x})
+        node_id = subset[0]
+        for subst in substs:
+            mexprs = nodes.substitute(exprs, {node_id: subst})
             if mexprs is not exprs:  # Only perform checks if exprs changed
                 res.append(mexprs)
     # Granularity > 1: Pick first mutation and perform parallel substitution of
     # nodes in ``subset``.
     else:
-        substs = dict()
-        for node in subset:
-            try:
-                substs[node.id] = next(iter(mutator.mutations(node)))
-            except StopIteration:
-                continue
+        repl = dict()
+        for node_id, subst in zip(subset, substs):
+            repl[node_id] = subst
 
-        mexprs = nodes.substitute(exprs, substs)
+        mexprs = nodes.substitute(exprs, repl)
         if mexprs is not exprs:  # Only perform checks if exprs changed
             res.append(mexprs)
 
     return res
 
 
+__cached_exprs = None
+__cached_exprs_hash = None
+__abort_flag = None
+
+
 def _worker(task):
-    """Perform mutations on given ``subset`` and check mutated input.
+    """Process given ``task``.
 
-    A worker process takes a task and performs mutations on the input
-    and checks whether the input fails.
+    If _worker runs in a separate process ``task.exprs`` and
+    ``task.substs`` are pickled and need to be unpickled before
+    performing the substitutions and checks.
     """
-    task_id, exprs, subset, mutator = task
+    global __cached_exprs
+    global __cached_exprs_hash
+    global __abort_flag
 
-    mutated_exprs = _subst(exprs, subset, mutator)
+    if __abort_flag and __abort_flag.is_set():
+        logging.debug(f'Worker: Abort task {task.id}')
+        return Result(task.id, False, 0, [], 0)
+
+    if isinstance(task.exprs, bytes):
+        hashval = hash(task.exprs)
+        if __cached_exprs_hash != hashval:
+            __cached_exprs = pickle.loads(task.exprs)
+            __cached_exprs_hash = hashval
+
+        exprs = __cached_exprs
+        substs = pickle.loads(task.substs)
+    else:
+        exprs = task.exprs
+        substs = task.substs
+
+    subset = task.subset
+
+    mutated_exprs = _subst(exprs, subset, substs)
 
     ntests = 0
     for mexprs in mutated_exprs:
         ntests += 1
         if checker.check_exprs(mexprs):
             nreduced = nodes.count_exprs(exprs) - nodes.count_exprs(mexprs)
-            return task_id, True, nreduced, mexprs, ntests
-    return task_id, False, 0, [], ntests
-
-
-def _partition(exprs, gran):
-    """Partition ``exprs`` into a list of subsets of size ``gran``."""
-    return [exprs[s:s + gran] for s in range(0, len(exprs), gran)]
+            return Result(task.id, True, nreduced, mexprs, ntests)
+    return Result(task.id, False, 0, [], 0)
 
 
 __last_msg = ""
@@ -169,71 +275,86 @@ def _print_progress(msg, update=True):
     __last_msg = msg
 
 
-def _check_seq(gran, subsets, exprs, nexprs, mutator, stats):
-    """Sequentially check ``subsets`` and update ``stats``."""
+def _check_seq(taskgen, nexprs, stats):
+    """Sequentially process tasks generated by ``taskgen``."""
 
     outfile = options.args().outfile
 
-    for i, subset in enumerate(subsets):
-        task = (i, exprs, subset, mutator)
-        task_id, success, nreduced, reduced_exprs, ntests = _worker(task)
-        stats['tests'] += ntests
+    for task in taskgen:
+        result = _worker(task)
+        stats['tests'] += result.tests
 
-        if success:
+        if result.success:
             stats['tests_success'] += 1
-            stats['reduced'] += nreduced
-            exprs = reduced_exprs
-            nodes.write_smtlib_to_file(outfile, exprs)
-            smtlib.collect_information(exprs)
+            stats['reduced'] += result.reduced
+            taskgen.update(result.exprs)
+            nodes.write_smtlib_to_file(outfile, taskgen.exprs)
+            smtlib.collect_information(taskgen.exprs)
 
         _print_progress(
-            f"[ddSMT INFO] {mutator}: granularity: {gran}, " \
-            f"subset {task_id} of {len(subsets)}, " \
-            f"expressions: {nexprs - stats['reduced']}/{nexprs}")
+            f"[ddSMT INFO] {taskgen.mutator}: granularity: {taskgen.gran}, " \
+            f"subset {task.id} of {len(taskgen.subsets)}, " \
+            f"expressions: {nexprs - stats['reduced']}/{nexprs}",
+            options.args().verbosity == 1)
 
-    return exprs, gran
+    return taskgen.exprs
 
 
-def _check_par(gran, subsets, exprs, nexprs, mutator, stats):
-    """Perform ``subsets`` checks in parallel.
+def _check_par(taskgen, nexprs, stats):
+    """Process tasks generated by ``taskgen`` with multiple processes.
 
-    If multiple workers report failed subsets there is currently no good
-    solution for merging/combining the resulting input. Instead, we
-    remove non-failing subsets from ``subsets`` and check the remaining
-    (failed) subsets on the updated input ``exprs``. ``exprs`` gets
-    updated with the first failing input reported by a worker.
+    As soon as one process performs a successful check with task N the
+    main process stops the task generator and notifies all worker
+    processes to stop ASAP. ``taskgen.exprs`` will be updated with the
+    reduced expressions and ``taskgen`` is reset to start with task N+1.
     """
+    global __abort_flag
+
     outfile = options.args().outfile
 
-    while subsets:
-        tasks = [(i, exprs, x, mutator) for i, x in enumerate(subsets)]
-        nsuccess = 0
-        with Pool(options.args().jobs) as pool:
-            for result in pool.imap_unordered(_worker, tasks):
-                task_id, success, nreduced, reduced_exprs, ntests = result
-                stats['tests'] += ntests
+    __abort_flag = multiprocessing.Manager().Event()
 
-                if success:
-                    if nsuccess == 0:
-                        stats['tests_success'] += 1
-                        stats['reduced'] += nreduced
-                        exprs = reduced_exprs
-                        nodes.write_smtlib_to_file(outfile, exprs)
-                        smtlib.collect_information(exprs)
-                        subsets[task_id] = None
-                    nsuccess += 1
-                else:
-                    subsets[task_id] = None
+    start_index = 0
+    with multiprocessing.Pool(options.args().jobs) as pool:
+        while start_index >= 0:
+            start_index = -1
+            skip = False
+            for result in pool.imap_unordered(_worker, taskgen):
+                stats['tests'] += result.tests
+
+                if result.success and not skip:
+                    __abort_flag.set()
+                    logging.debug(f'Main: Set abort flag')
+                    taskgen.stop()
+                    taskgen.update(result.exprs)
+                    nodes.write_smtlib_to_file(outfile, taskgen.exprs)
+                    smtlib.collect_information(taskgen.exprs)
+                    stats['tests_success'] += 1
+                    stats['reduced'] += result.reduced
+                    start_index = result.task_id + 1
+                    skip = True
+                    logging.debug(
+                        f'Successful test with subset {result.task_id}: ' \
+                        f'{result.reduced}')
+                elif result.success and skip:
+                    logging.debug(
+                        f'Skip test with subset {result.task_id}: ' \
+                        f'{result.reduced}')
 
                 _print_progress(
-                    f"[ddSMT INFO] {mutator}: granularity: {gran}, " \
-                    f"subset {task_id} of {len(subsets)}, " \
-                    f"expressions: {nexprs - stats['reduced']}/{nexprs}")
+                    f"[ddSMT INFO] {taskgen.mutator}: " \
+                    f"granularity: {taskgen.gran}, " \
+                    f"subset {result.task_id} of {len(taskgen.subsets)}, " \
+                    f"expressions: {nexprs - stats['reduced']}/{nexprs}",
+                    options.args().verbosity == 1)
 
-        # Remove empty subsets
-        subsets = [x for x in subsets if x]
+            if __abort_flag.is_set():
+                __abort_flag.clear()
+                taskgen.reset(start_index)
+                taskgen.start()
+                logging.debug(f'Restart tests starting from {start_index}')
 
-    return exprs, gran
+    return taskgen.exprs
 
 
 def _apply_mutator(mutator, exprs, max_depth=None):
@@ -241,27 +362,18 @@ def _apply_mutator(mutator, exprs, max_depth=None):
 
     ``max_depth`` limits the DFS traversal when filtering nodes in
     ``exprs``.
-
-    The general workflow steps are as follows:
-
-    Nodes in ``exprs`` are filtered based on ``mutator``. The
-    resulting list of nodes is partitioned into subsets of size
-    ``gran``, which are then checked via ``check_func``.
     """
+
     start_time = time.time()
     nexprs = nodes.count_exprs(exprs)
-    filter_func = getattr(mutator, 'filter', lambda x: True)
-    filtered = list(nodes.filter_nodes(exprs, filter_func, max_depth))
-    check_func = _check_seq if options.args().jobs == 1 else _check_par
-
     stats = {'tests': 0, 'tests_success': 0, 'reduced': 0}
-
-    gran = len(filtered)
+    taskgen = TaskGenerator(exprs, None, mutator, max_depth)
+    gran = taskgen.gran
     while gran > 0:
-        subsets = _partition(filtered, gran)
-        exprs, gran = check_func(gran, subsets, exprs, nexprs, mutator, stats)
-        filtered = list(nodes.filter_nodes(exprs, filter_func, max_depth))
+        check_func = _check_par if taskgen.pickled_exprs else _check_seq
+        exprs = check_func(taskgen, nexprs, stats)
         gran = gran // 2
+        taskgen = TaskGenerator(exprs, gran, mutator, max_depth)
 
     if stats['tests'] > 0 or options.args().verbosity >= 2:
         _print_progress(f"{mutator}: diff {-stats['reduced']:+} expressions, " \
