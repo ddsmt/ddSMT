@@ -47,6 +47,6 @@ If you are reasonably sure that the issue is unrelated to let binders itself, yo
 
 .. code-block:: bash
 
-    $ ddsmt --disable-all --let-substitution <input> <output> <solver>
-    $ ddsmt --disable-all --let-elimination <input> <output> <solver>
+    $ ddsmt --unchecked --disable-all --let-substitution <input> <output> <solver>
+    $ ddsmt --unchecked --disable-all --let-elimination <input> <output> <solver>
 
