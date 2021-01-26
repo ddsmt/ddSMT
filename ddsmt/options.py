@@ -164,7 +164,8 @@ def parse_options(mutators, cmdlineoptions=None):
         metavar='str',
         help="match string in stdout to identify failing input")
 
-    apcheck.add_argument("-c",
+    apcheck.add_argument('-c',
+                         '--cross-check',
                          metavar='cmd-cc',
                          dest='cmd_cc',
                          help="cross check command")
