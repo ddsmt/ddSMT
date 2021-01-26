@@ -48,6 +48,10 @@ def get_passes():
         mutators.get_mutators(['BinaryReduction']),
         mutators.get_mutators([
             'EraseNode',
+            'Constants',
+            'IntroduceFreshVariable',
+            'LetElimination',
+            'LetSubstitution',
             'ReplaceByChild',
             'BinaryReduction',
             'CheckSatAssuming',
