@@ -11,7 +11,12 @@ Debugging unsoundness
 Sometimes bugs in solvers do not make the command crash or print an error message, but simply provide an incorrect result.
 This is a particular nasty case for delta-debuggin, as the solver itself oftentimes can not detect this issue. Relying on annotations in the input (i.e. the SMT-LIB status) is usually not a good idea, as mutating the input may very well change the correct output (i.e. flip from sat to unsat or vice-versa) but still retain the underlying error.
 
-A better approach is usually to use another solver as reference solver and employ a wrapper script that checks whether the two solvers disagree. A wrapper script for this purpose is provided in :download:`scripts/result_differs.py <../scripts/result_differs.py>`. It runs two solvers (``'A'`` and ``'B'``) and compares their outputs. Note that this script expects the solver to only output ``sat`` or ``unsat``.
+A better approach is usually to use another solver as reference solver, for example using the builtin ``--cross-check`` option.
+If ``--cross-check`` is given, ddSMT not only checks whether the (main) command behaves :ref:`"the same" <Comparison with golden run>`, but does the same for another cross-check solver.
+Just as for the main solver, the cross-check solver comes with a set of options ``--ignore-output-cc``, ``--match-err-cc`` and ``--match-out-cc``.
+
+In some cases the ``--cross-check`` option just is not flexible enough: you may want to allow the input changing its satisfiability (as long as the main solver is still incorrect), compare the outputs of the two solvers, or do any other kind of analysis.
+This can be done within a wrapper script that is then used instead of the main solver. A model wrapper script is provided in :download:`scripts/result_differs.py <../scripts/result_differs.py>` and can serve as a basis for whatever more complex comparisons are necessary. It runs two solvers (``'A'`` and ``'B'``) and compares their outputs. Note that this script expects the solver to only output ``sat`` or ``unsat``.
 
 .. literalinclude:: ../scripts/result_differs.py
    :language: python3
