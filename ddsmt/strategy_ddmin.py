@@ -251,7 +251,7 @@ def _worker(task):
         if checker.check_exprs(mexprs):
             nreduced = nodes.count_exprs(exprs) - nodes.count_exprs(mexprs)
             return Result(task.id, True, nreduced, mexprs, ntests)
-    return Result(task.id, False, 0, [], 0)
+    return Result(task.id, False, 0, [], ntests)
 
 
 __last_msg = ""
