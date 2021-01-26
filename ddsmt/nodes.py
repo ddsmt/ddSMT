@@ -330,7 +330,7 @@ def substitute(exprs, repl):
 
         didrepl = False
         if expr.id and expr.id in repl:
-            expr = repl[expr.id]
+            expr = repl.pop(expr.id)
             didrepl = True
         if expr in repl:
             expr = repl[expr]
@@ -339,8 +339,6 @@ def substitute(exprs, repl):
             changed = True
             if expr is None:
                 continue
-            args[-1].append(expr)
-            continue
         assert isinstance(expr, Node)
 
         if visited:
@@ -351,7 +349,7 @@ def substitute(exprs, repl):
             else:
                 args[-1].append(node)
         else:
-            if expr.is_leaf():
+            if not repl or expr.is_leaf():
                 args[-1].append(expr)
             else:
                 visit.append((expr, True))

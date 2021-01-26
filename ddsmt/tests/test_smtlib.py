@@ -76,7 +76,8 @@ def test_collect_information():
         [Node('define-fun', 'x', ('y', 'Real'), 'Real', ('+', 'y', '5.0'))])
     assert smtlib.__constants == {}
     assert 'x' in smtlib.__defined_functions
-    assert smtlib.__defined_functions['x'](('3.0', )) == ('+', '3.0', '5.0')
+    assert smtlib.__defined_functions['x'](
+        (Node('3.0'), )) == ('+', '3.0', '5.0')
     assert smtlib.__sort_lookup == {'x': 'Real'}
 
 
