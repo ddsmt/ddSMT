@@ -73,6 +73,10 @@ def test_smtlib_inline_define_fun():
     assert m.filter(inner)
     assert m.mutations(inner) == []
 
+    n = Node('define-fun', 'x', (), 'Bool', inner)
+    smtlib.collect_information([n])
+    assert m.mutations(inner) == []
+
     inner = Node('x')
     expr = Node(inner, 'a', 'b')
     smtlib.collect_information([
@@ -81,6 +85,7 @@ def test_smtlib_inline_define_fun():
     ])
     assert m.filter(expr)
     assert m.mutations(expr) == [Node('and', 'a', 'b')]
+    smtlib.reset_information()
 
 
 def test_smtlib_introduce_fresh_variable():
@@ -106,9 +111,17 @@ def test_smtlib_let_elimination():
     m = mutators_smtlib.LetElimination()
     assert isinstance(str(m), str)
     assert not m.filter(Node('and', 'x', 'y'))
+
     n = Node('let', (('a', 'x'), ('b', 'y')), ('and', 'a', 'b'))
     assert m.filter(n)
     assert m.mutations(n) == [('and', 'a', 'b')]
+
+    n = Node(
+        'let',
+        (('a', 'x'), ('b', 'y')),
+    )
+    assert m.filter(n)
+    assert m.mutations(n) == []
 
 
 def test_smtlib_let_substitution():
@@ -122,6 +135,10 @@ def test_smtlib_let_substitution():
         ('let', (('a', 'x'), ('b', 'y')), ('and', 'a', 'y'))
     ]
     n = Node('let', (('a', 'x'), ('b', 'y')), ('and', 'abc', 'def'))
+    assert m.filter(n)
+    assert m.mutations(n) == []
+
+    n = Node('let', (('a', 'x'), ('b', 'y')))
     assert m.filter(n)
     assert m.mutations(n) == []
 

@@ -112,6 +112,7 @@ def test_constants():
     assert m.mutations(
         Node('#b0')) == [Node('_', 'bv0', 1),
                          Node('_', 'bv1', 1)]
+    assert m.mutations(Node('_', 'bv0', 1)) == []
 
     assert isinstance(m.mutations(Node('#b1011'))[0], Node)
     assert isinstance(m.mutations(Node('#b1011'))[0].data, tuple)
