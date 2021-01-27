@@ -293,6 +293,7 @@ def test_transform_to_bool():
     assert not m.filter(Node('=', 'x', '#b1'))
     assert not m.filter(Node('=', '#b1', 'x'))
     assert not m.filter(Node('=', '#b1', ('bvand', 'x', 'y'), 'z'))
+    assert not m.filter(Node('=', '#b1', ('_', 'bv0', '1')))
     assert m.filter(Node('=', '#b1', ('bvand', 'x', 'y')))
     assert m.filter(Node('=', ('bvand', 'x', 'y'), '#b1'))
     assert m.filter(Node('=', '#b1', ('bvand', 'x', 'y', 'z')))

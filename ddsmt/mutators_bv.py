@@ -256,13 +256,16 @@ class BVTransformToBool:
     repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
 
     def filter(self, node):
-        return node.has_ident() \
-               and node.get_ident() == '=' \
-               and len(node) == 3 \
-               and all(
-                   (is_bv_const(n) and get_bv_width(n) == 1) \
-                   or (n.has_ident() and n.get_ident() in self.repl) \
-                       for n in node[1:])
+        if not node.has_ident() \
+            or node.get_ident() != '=' \
+            or len(node) != 3:
+            return False
+
+        if is_bv_const(node[1]) and get_bv_width(node[1]) == 1:
+            return node[2].has_ident() and node[2].get_ident() in self.repl
+
+        return is_bv_const(node[2]) and get_bv_width(node[2]) == 1 \
+                and node[1].has_ident() and node[1].get_ident() in self.repl
 
     def mutations(self, node):
         if is_bv_const(node[1]) and get_bv_width(node[1]) == 1:
