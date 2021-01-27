@@ -270,7 +270,7 @@ def _print_progress(msg, update=True):
 
     print(' ' * len(__last_msg), end='\r', flush=True, file=sys.stderr)
     if update:
-        print(msg, end='\r', flush=True, file=sys.stderr)
+        print(f'[ddSMT INFO] {msg}', end='\r', flush=True, file=sys.stderr)
     else:
         logging.info(msg)
     __last_msg = msg
@@ -293,7 +293,7 @@ def _check_seq(taskgen, nexprs, stats):
             smtlib.collect_information(taskgen.exprs)
 
         _print_progress(
-            f"[ddSMT INFO] {taskgen.mutator}: " \
+            f"{taskgen.mutator}: " \
             f"nodes: {taskgen.num_filtered}, " \
             f"gran: {taskgen.gran}, " \
             f"subset {task.id} of {len(taskgen.subsets)}, " \
@@ -345,7 +345,7 @@ def _check_par(taskgen, nexprs, stats):
                         f'{result.reduced}')
 
                 _print_progress(
-                    f"[ddSMT INFO] {taskgen.mutator}: " \
+                    f"{taskgen.mutator}: " \
                     f"nodes: {taskgen.num_filtered}, " \
                     f"gran: {taskgen.gran}, " \
                     f"subset {result.task_id} of {len(taskgen.subsets)}, " \
