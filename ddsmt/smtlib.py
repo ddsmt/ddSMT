@@ -31,9 +31,13 @@ __constants = {}
 __defined_functions = {}
 # Stores the ids of all nodes that are symbols within their definitions
 # i.e. the id of x within ``(declare-const x Int)``
-__definition_node_ids = []
+__definition_node_ids = set()
 # Stores the sorts for all declared or defined symbols
 __sort_lookup = {}
+# Stores indices that should not be replaced by constants
+__indices = set()
+# Caches calls to get_sort
+__get_sort_cache = {}
 
 
 def collect_information(exprs):  # noqa: C901
@@ -43,10 +47,8 @@ def collect_information(exprs):  # noqa: C901
     global __defined_functions
     global __definition_node_ids
     global __sort_lookup
-    __constants = {}
-    __defined_functions = {}
-    __definition_node_ids = []
-    __sort_lookup = {}
+    global __indices
+    reset_information()
 
     for cmd in exprs:
         if not cmd.has_ident():
@@ -61,7 +63,7 @@ def collect_information(exprs):  # noqa: C901
                 logging.trace(f'Ignored command: "{cmd[1]}" is not a leaf')
                 continue
             __constants[cmd[1].data] = cmd[2]
-            __definition_node_ids.append(cmd[1].id)
+            __definition_node_ids.add(cmd[1].id)
             __sort_lookup[cmd[1].data] = cmd[2]
         if name == 'declare-fun':
             if not len(cmd) == 4:
@@ -76,7 +78,7 @@ def collect_information(exprs):  # noqa: C901
                 continue
             if cmd[2] == tuple():
                 __constants[cmd[1].data] = cmd[3]
-            __definition_node_ids.append(cmd[1].id)
+            __definition_node_ids.add(cmd[1].id)
             __sort_lookup[cmd[1].data] = cmd[3]
         if name == 'define-fun':
             if not len(cmd) == 5:
@@ -95,8 +97,22 @@ def collect_information(exprs):  # noqa: C901
                 cmd[2]), lambda args, cmd=cmd: nodes.substitute(
                     cmd[4], {cmd[2][i][0]: args[i]
                              for i in range(len(args))}))
-            __definition_node_ids.append(cmd[1].id)
+            __definition_node_ids.add(cmd[1].id)
             __sort_lookup[cmd[1].data] = cmd[3]
+
+    # Collect additional term level information.
+    for node in nodes.dfs(exprs):
+        # Mark indices of indexed terms.
+        if len(node) > 2 and node[0] == '_':
+            for num in node[2:]:
+                if num.data.isdigit():
+                    __indices.add(num.id)
+        # Determine sort of symbols introduced by let.
+        if is_operator_app(node, 'let'):
+            for sym, term in node[1]:
+                if sym.is_leaf():
+                    __sort_lookup[sym.data] = get_sort(term)
+                    __definition_node_ids.add(sym.id)
 
 
 def reset_information():
@@ -108,10 +124,14 @@ def reset_information():
     global __defined_functions
     global __definition_node_ids
     global __sort_lookup
+    global __indices
+    global __get_sort_cache
     __constants = {}
     __defined_functions = {}
-    __definition_node_ids = []
+    __definition_node_ids = set()
     __sort_lookup = {}
+    __indices = set()
+    __get_sort_cache = {}
 
 
 # General utilities
@@ -175,6 +195,11 @@ def substitute_vars_except_decl(exprs, repl):
 
 
 # General semantic testers and testers
+
+
+def is_index(node):
+    global __indices
+    return node.id in __indices
 
 
 def is_leaf(node):
@@ -324,8 +349,8 @@ def get_default_constants(sort):
     return []
 
 
-def get_sort(node):  # noqa: C901
-    """Get the sort of the given node.
+def _get_sort_aux(node):  # noqa: C901
+    """Get the sort of the given node (uncached).
 
     Return ``None`` if it can not be inferred. Requires that global
     information has been populated via ``collect_information``.
@@ -336,9 +361,9 @@ def get_sort(node):  # noqa: C901
         return Node('Bool')
     if is_bv_const(node):
         return Node('_', 'BitVec', str(get_bv_width(node)))
-    if is_int_const(node):
+    if is_int_const(node) and not is_index(node):
         return Node('Int')
-    if is_real_const(node):
+    if is_real_const(node) and not is_index(node):
         return Node('Real')
     bvwidth = get_bv_width(node)
     # operators the return bit-vectors handled via get_bv_width
@@ -467,6 +492,21 @@ def get_sort(node):  # noqa: C901
     return None
 
 
+def get_sort(node):
+    """Get the sort of the given node (cached).
+
+    Return ``None`` if it can not be inferred. Requires that global
+    information has been populated via ``collect_information``.
+    """
+    global __get_sort_cache
+
+    if node.id in __get_sort_cache:
+        return __get_sort_cache[node.id]
+    sort = _get_sort_aux(node)
+    __get_sort_cache[node.id] = sort
+    return sort
+
+
 def get_indices(node, name, index_count=1):
     """Return a list with the indices of the given indexed operator."""
     assert is_indexed_operator(node, name, index_count)
@@ -504,7 +544,9 @@ def is_real_const(node):
     return node.is_leaf() \
            and re.match('^[0-9]+(\\.[0-9]*)?$', node.data) is not None
 
+
 # Arrays
+
 
 def is_array_sort(node):
     """Return true if ``node`` is a array sort."""
@@ -520,7 +562,7 @@ def is_array_sort(node):
 
 def is_bv_sort(node):
     """Return true if ``node`` is a bit-vector sort."""
-    if node.is_leaf() or len(node) != 3:
+    if node is None or node.is_leaf() or len(node) != 3:
         return False
     if not node.has_ident() or node.get_ident() != '_':
         return False
