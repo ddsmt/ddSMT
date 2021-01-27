@@ -270,10 +270,11 @@ def _print_progress(msg, update=True):
 
     print(' ' * len(__last_msg), end='\r', flush=True, file=sys.stderr)
     if update:
-        print(f'[ddSMT INFO] {msg}', end='\r', flush=True, file=sys.stderr)
+        __last_msg = f'[ddSMT INFO] {msg}'
+        print(__last_msg, end='\r', flush=True, file=sys.stderr)
     else:
         logging.info(msg)
-    __last_msg = msg
+        __last_msg = msg
 
 
 def _check_seq(taskgen, nexprs, stats):
