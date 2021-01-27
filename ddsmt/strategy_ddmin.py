@@ -268,8 +268,9 @@ def _print_progress(msg, update=True):
     if options.args().verbosity < 1:
         return
 
-    print(' ' * len(__last_msg), end='\r', flush=True, file=sys.stderr)
-    if update:
+    if sys.stderr.isatty():
+        print(' ' * len(__last_msg), end='\r', flush=True, file=sys.stderr)
+    if update and sys.stderr.isatty():
         __last_msg = f'[ddSMT INFO] {msg}'
         print(__last_msg, end='\r', flush=True, file=sys.stderr)
     else:
