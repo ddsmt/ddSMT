@@ -54,6 +54,7 @@ class TaskGenerator:
         # Filter nodes and partition into subsets of size ``gran``.
         filter_func = getattr(mutator, 'filter', lambda x: True)
         filtered = list(nodes.filter_nodes(exprs, filter_func, max_depth))
+        self.num_filtered = len(filtered)
         self.gran = len(filtered) if gran is None else gran
         self.subsets = _partition(filtered, self.gran) if self.gran else []
 
@@ -292,9 +293,11 @@ def _check_seq(taskgen, nexprs, stats):
             smtlib.collect_information(taskgen.exprs)
 
         _print_progress(
-            f"[ddSMT INFO] {taskgen.mutator}: granularity: {taskgen.gran}, " \
+            f"[ddSMT INFO] {taskgen.mutator}: " \
+            f"nodes: {taskgen.num_filtered}, " \
+            f"gran: {taskgen.gran}, " \
             f"subset {task.id} of {len(taskgen.subsets)}, " \
-            f"expressions: {nexprs - stats['reduced']}/{nexprs}",
+            f"exprs: {nexprs - stats['reduced']}/{nexprs}",
             options.args().verbosity == 1)
 
     return taskgen.exprs
@@ -343,9 +346,10 @@ def _check_par(taskgen, nexprs, stats):
 
                 _print_progress(
                     f"[ddSMT INFO] {taskgen.mutator}: " \
-                    f"granularity: {taskgen.gran}, " \
+                    f"nodes: {taskgen.num_filtered}, " \
+                    f"gran: {taskgen.gran}, " \
                     f"subset {result.task_id} of {len(taskgen.subsets)}, " \
-                    f"expressions: {nexprs - stats['reduced']}/{nexprs}",
+                    f"exprs: {nexprs - stats['reduced']}/{nexprs}",
                     options.args().verbosity == 1)
 
             if __abort_flag.is_set():
@@ -376,7 +380,7 @@ def _apply_mutator(mutator, exprs, max_depth=None):
         taskgen = TaskGenerator(exprs, gran, mutator, max_depth)
 
     if stats['tests'] > 0 or options.args().verbosity >= 2:
-        _print_progress(f"{mutator}: diff {-stats['reduced']:+} expressions, " \
+        _print_progress(f"{mutator}: diff {-stats['reduced']:+} exprs, " \
                         f"{stats['tests']} tests ({stats['tests_success']}), " \
                         f"{time.time() - start_time:.1f}s", False)
 
