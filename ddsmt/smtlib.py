@@ -159,7 +159,7 @@ def introduce_variables(exprs, vars):
         e = exprs[pos]
         if not e.has_ident():
             break
-        if not e.get_ident() in [
+        if e.get_ident() not in [
                 'declare-const', 'declare-fun', 'define-fun', 'set-info',
                 'set-logic'
         ]:
@@ -550,7 +550,7 @@ def is_real_const(node):
 
 def is_array_sort(node):
     """Return true if ``node`` is a array sort."""
-    if node.is_leaf() or len(node) != 3:
+    if node is None or node.is_leaf() or len(node) != 3:
         return False
     if not node.has_ident() or node.get_ident() != 'Array':
         return False
@@ -620,8 +620,7 @@ def get_bv_width(node):
         bvsort = __sort_lookup[node]
         if is_bv_sort(bvsort):
             return int(bvsort[2].data)
-        else:
-            return -1
+        return -1
     if is_indexed_operator_app(node, 'zero_extend') \
        or is_indexed_operator_app(node, 'sign_extend'):
         return get_indices(node[0], node[0][1])[0] + get_bv_width(node[1])
