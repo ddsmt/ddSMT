@@ -339,7 +339,6 @@ def substitute(exprs, repl):
             changed = True
             if expr is None:
                 continue
-        assert isinstance(expr, Node)
 
         if visited:
             children = args.pop()
