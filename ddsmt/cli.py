@@ -124,18 +124,19 @@ def ddsmt_main():
     # perform golden runs to see what the solver is doing
     checker.do_golden_runs()
 
+    orig_exprs = exprs
     # do the reduction
-    if options.args().strategy == 'ddmin':
-        reduced_exprs, ntests = strategy_ddmin.reduce(exprs)
-    elif options.args().strategy == 'hierarchical':
-        reduced_exprs, ntests = strategy_hierarchical.reduce(exprs)
+    if options.args().strategy in ('ddmin', 'hybrid'):
+        exprs, ntests = strategy_ddmin.reduce(exprs)
+    if options.args().strategy == ('hierarchical', 'hybrid'):
+        exprs, ntests = strategy_hierarchical.reduce(exprs)
     end_time = time.time()
 
     # show the results
-    if reduced_exprs != exprs:
+    if exprs != orig_exprs:
         ifilesize = os.path.getsize(options.args().infile)
         ofilesize = os.path.getsize(options.args().outfile)
-        nreduced_exprs = nodes.count_exprs(reduced_exprs)
+        nreduced_exprs = nodes.count_exprs(exprs)
 
         logging.info("")
         logging.info("runtime:         {:.2f} s".format(end_time - start_time))
