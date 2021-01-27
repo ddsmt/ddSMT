@@ -91,10 +91,10 @@ def collect_information(exprs):  # noqa: C901
                 continue
             if cmd[2] == tuple():
                 __constants[cmd[1]] = cmd[3]
-            __defined_functions[
-                cmd[1]] = lambda args, cmd=cmd: nodes.substitute(
+            __defined_functions[cmd[1]] = (len(
+                cmd[2]), lambda args, cmd=cmd: nodes.substitute(
                     cmd[4], {cmd[2][i][0]: args[i]
-                             for i in range(len(args))})
+                             for i in range(len(args))}))
             __definition_node_ids.append(cmd[1].id)
             __sort_lookup[cmd[1].data] = cmd[3]
 
@@ -672,8 +672,12 @@ def get_defined_fun(node):
     """
     assert is_defined_fun(node)
     if node.is_leaf():
-        return __defined_functions[node.data]([])
-    return __defined_functions[node.get_ident()](node[1:])
+        _, func = __defined_functions[node.data]
+        return func([])
+    arity, func = __defined_functions[node.get_ident()]
+    if arity == len(node[1:]):
+        return func(node[1:])
+    return node
 
 
 # Sets

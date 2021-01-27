@@ -69,14 +69,14 @@ def test_collect_information():
     collect_information([Node('define-fun', 'x', (), 'Real', '5.0')])
     assert smtlib.__constants == {'x': 'Real'}
     assert 'x' in smtlib.__defined_functions
-    assert smtlib.__defined_functions['x'](Node()) == '5.0'
+    assert smtlib.__defined_functions['x'][1](Node()) == '5.0'
     assert smtlib.__sort_lookup == {'x': 'Real'}
 
     collect_information(
         [Node('define-fun', 'x', ('y', 'Real'), 'Real', ('+', 'y', '5.0'))])
     assert smtlib.__constants == {}
     assert 'x' in smtlib.__defined_functions
-    assert smtlib.__defined_functions['x'](
+    assert smtlib.__defined_functions['x'][1](
         (Node('3.0'), )) == ('+', '3.0', '5.0')
     assert smtlib.__sort_lookup == {'x': 'Real'}
 
@@ -339,41 +339,45 @@ def test_get_default_constants():
     assert get_default_constants(sort_int) == [Node(0), Node(1)]
     assert get_default_constants(sort_real) == [Node('0.0'), Node('1.0')]
     assert get_default_constants(sort_fp16) == [
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv0', 5), ('_', 'bv0', 10)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv0', 5), ('_', 'bv0', 10)),
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv31', 5), ('_', 'bv1', 10)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv31', 5), ('_', 'bv1', 10)),
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv31', 5), ('_', 'bv0', 10)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv31', 5), ('_', 'bv0', 10)),
-            ]
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv0', 5), ('_', 'bv0', 10)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv0', 5), ('_', 'bv0', 10)),
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv31', 5), ('_', 'bv1', 10)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv31', 5), ('_', 'bv1', 10)),
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv31', 5), ('_', 'bv0', 10)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv31', 5), ('_', 'bv0', 10)),
+    ]
     assert get_default_constants(sort_fp32) == [
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv0', 8), ('_', 'bv0', 23)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv0', 8), ('_', 'bv0', 23)),
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv255', 8), ('_', 'bv1', 23)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv255', 8), ('_', 'bv1', 23)),
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv255', 8), ('_', 'bv0', 23)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv255', 8), ('_', 'bv0', 23)),
-            ]
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv0', 8), ('_', 'bv0', 23)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv0', 8), ('_', 'bv0', 23)),
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv255', 8), ('_', 'bv1', 23)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv255', 8), ('_', 'bv1', 23)),
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv255', 8), ('_', 'bv0', 23)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv255', 8), ('_', 'bv0', 23)),
+    ]
     assert get_default_constants(sort_fp64) == [
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv0', 11), ('_', 'bv0', 52)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv0', 11), ('_', 'bv0', 52)),
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv2047', 11), ('_', 'bv1', 52)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv2047', 11), ('_', 'bv1', 52)),
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv2047', 11), ('_', 'bv0', 52)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv2047', 11), ('_', 'bv0', 52)),
-            ]
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv0', 11), ('_', 'bv0', 52)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv0', 11), ('_', 'bv0', 52)),
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv2047', 11), ('_', 'bv1', 52)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv2047', 11), ('_', 'bv1', 52)),
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv2047', 11), ('_', 'bv0', 52)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv2047', 11), ('_', 'bv0', 52)),
+    ]
     assert get_default_constants(sort_fp128) == [
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv0', 15), ('_', 'bv0', 112)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv0', 15), ('_', 'bv0', 112)),
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv32767', 15), ('_', 'bv1', 112)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv32767', 15), ('_', 'bv1', 112)),
-            Node('fp', ('_', 'bv0', 1), ('_', 'bv32767', 15), ('_', 'bv0', 112)),
-            Node('fp', ('_', 'bv1', 1), ('_', 'bv32767', 15), ('_', 'bv0', 112)),
-            ]
-    assert get_default_constants(sort_fp16) == get_default_constants(sort_fp16_1)
-    assert get_default_constants(sort_fp32) == get_default_constants(sort_fp32_1)
-    assert get_default_constants(sort_fp64) == get_default_constants(sort_fp64_1)
-    assert get_default_constants(sort_fp128) == get_default_constants(sort_fp128_1)
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv0', 15), ('_', 'bv0', 112)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv0', 15), ('_', 'bv0', 112)),
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv32767', 15), ('_', 'bv1', 112)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv32767', 15), ('_', 'bv1', 112)),
+        Node('fp', ('_', 'bv0', 1), ('_', 'bv32767', 15), ('_', 'bv0', 112)),
+        Node('fp', ('_', 'bv1', 1), ('_', 'bv32767', 15), ('_', 'bv0', 112)),
+    ]
+    assert get_default_constants(sort_fp16) == get_default_constants(
+        sort_fp16_1)
+    assert get_default_constants(sort_fp32) == get_default_constants(
+        sort_fp32_1)
+    assert get_default_constants(sort_fp64) == get_default_constants(
+        sort_fp64_1)
+    assert get_default_constants(sort_fp128) == get_default_constants(
+        sort_fp128_1)
     assert get_default_constants(sort_set) == [
         Node('as', 'emptyset', ('Set', 'Int')),
         Node('singleton', 0),
@@ -1006,6 +1010,7 @@ def test_get_defined_fun():
     assert get_defined_fun(Node('gx', 'true', 2)) \
            == Node('fp.fma', 2, 'fx', 'fx', 'fx')
     assert get_defined_fun(Node('f', 15)) == Node('+', 15, 15)
+    assert get_defined_fun(Node('f', 15, 15)) == Node('f', 15, 15)
 
 
 def test_is_set_sort():
