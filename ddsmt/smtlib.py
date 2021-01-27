@@ -109,7 +109,10 @@ def collect_information(exprs):  # noqa: C901
                     __indices.add(num.id)
         # Determine sort of symbols introduced by let.
         if is_operator_app(node, 'let'):
-            for sym, term in node[1]:
+            for var in node[1]:
+                if len(var) != 2:
+                    continue
+                sym, term = var
                 if sym.is_leaf():
                     __sort_lookup[sym.data] = get_sort(term)
                     __definition_node_ids.add(sym.id)
