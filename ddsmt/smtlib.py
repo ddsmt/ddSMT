@@ -448,6 +448,13 @@ def get_sort(node):  # noqa: C901
             ew = get_bv_width(node[2])
             sw = 1 + get_bv_width(node[3])
             return Node('_', 'FloatingPoint', ew, sw)
+        if ident == 'select':
+            asort = get_sort(node[1])
+            if is_array_sort(asort):
+                return asort[1]
+            return None
+        if ident == 'store':
+            return get_sort(node[1])
 
     # indexed operators
     if is_indexed_operator_app(node, 'divisible'):
@@ -496,6 +503,16 @@ def is_real_const(node):
         return is_int_const(node[1]) and is_int_const(node[2])
     return node.is_leaf() \
            and re.match('^[0-9]+(\\.[0-9]*)?$', node.data) is not None
+
+# Arrays
+
+def is_array_sort(node):
+    """Return true if ``node`` is a array sort."""
+    if node.is_leaf() or len(node) != 3:
+        return False
+    if not node.has_ident() or node.get_ident() != 'Array':
+        return False
+    return True
 
 
 # BV
