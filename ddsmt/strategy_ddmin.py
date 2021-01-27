@@ -31,7 +31,7 @@ from . import nodes
 from . import options
 from . import smtlib
 
-Task = collections.namedtuple('Task', ['id', 'exprs', 'subset', 'substs'])
+Task = collections.namedtuple('Task', ['id', 'exprs', 'substs'])
 
 Result = collections.namedtuple(
     'Result', ['task_id', 'success', 'reduced', 'exprs', 'tests'])
@@ -69,35 +69,39 @@ class TaskGenerator:
 
     def __next__(self):
         """Generate next task."""
-        if not self.stopped and self.index < len(self.subsets):
-            subset = self.subsets[self.index]
-            subset_ids = [n.id for n in subset]
-            if self.pickled_exprs:
-                substs = pickle.dumps(self.__get_substs(subset))
-                task = Task(self.index, self.pickled_exprs, subset_ids, substs)
-            else:
-                substs = self.__get_substs(subset)
-                task = Task(self.index, self.exprs, subset_ids, substs)
-            logging.debug(f'TaskGen: Generate next {self.index}')
+        while not self.stopped and self.index < len(self.subsets):
+            task_id = self.index
             self.index += 1
-            return task
+            subset = self.subsets[task_id]
+            substs = self.__get_substs(subset)
+
+            if not substs:
+                continue
+
+            logging.debug(f'TaskGen: Generate next {task_id}')
+            if self.pickled_exprs:
+                return Task(task_id, self.pickled_exprs, pickle.dumps(substs))
+            return Task(task_id, self.exprs, substs)
         raise StopIteration
 
     def __get_substs(self, subset):
         """Generate substitutions for ``subset`` based on ``self.mutator``."""
-        substs = []
         # Granularity 1: Try all mutations separately.
         if len(subset) == 1:
             node = subset[0]
-            substs.extend(self.mutator.mutations(node))
+            mutations = list(self.mutator.mutations(node))
+            if mutations:
+                return (node.id, mutations)
+            return dict()
+
         # Granularity > 1: Pick first mutation and perform parallel
         # substitution of nodes in ``subset``.
-        else:
-            for node in subset:
-                try:
-                    substs.append(next(iter(self.mutator.mutations(node))))
-                except StopIteration:
-                    continue
+        substs = dict()
+        for node in subset:
+            try:
+                substs[node.id] = next(iter(self.mutator.mutations(node)))
+            except StopIteration:
+                continue
         return substs
 
     def reset(self, index):
@@ -180,7 +184,7 @@ def ddmin_passes():
     ]
 
 
-def _subst(exprs, subset, substs):
+def _subst(exprs, substs):
     """Return list of mutated formulas.
 
     Apply ``mutator`` to nodes in ``subset`` and substitute the nodes in
@@ -188,25 +192,23 @@ def _subst(exprs, subset, substs):
     ``mutator``, for all other granularities pick the first mutation.
     """
 
-    res = []
+    # Granularity > 1: Pick first mutation and perform parallel
+    # substitution of nodes in ``subset``.
+    if isinstance(substs, dict):
+        mexprs = nodes.substitute(exprs, substs)
+        if mexprs is not exprs:
+            return [mexprs]
+        return []
+
     # Granularity 1: Try all mutations separately.
-    if len(subset) == 1:
-        node_id = subset[0]
-        for subst in substs:
-            mexprs = nodes.substitute(exprs, {node_id: subst})
-            if mexprs is not exprs:  # Only perform checks if exprs changed
-                res.append(mexprs)
-    # Granularity > 1: Pick first mutation and perform parallel substitution of
-    # nodes in ``subset``.
-    else:
-        repl = dict()
-        for node_id, subst in zip(subset, substs):
-            repl[node_id] = subst
-
-        mexprs = nodes.substitute(exprs, repl)
-        if mexprs is not exprs:  # Only perform checks if exprs changed
+    assert isinstance(substs, tuple)
+    res = []
+    node_id = substs[0]
+    mutations = substs[1]
+    for mut in mutations:
+        mexprs = nodes.substitute(exprs, {node_id: mut})
+        if mexprs is not exprs:
             res.append(mexprs)
-
     return res
 
 
@@ -242,9 +244,7 @@ def _worker(task):
         exprs = task.exprs
         substs = task.substs
 
-    subset = task.subset
-
-    mutated_exprs = _subst(exprs, subset, substs)
+    mutated_exprs = _subst(exprs, substs)
 
     ntests = 0
     for mexprs in mutated_exprs:
