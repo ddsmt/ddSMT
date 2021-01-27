@@ -122,11 +122,13 @@ class MergeWithChildren:
 class ReplaceByChild:
     """Replace a node by one of its children."""
     def filter(self, node):
-        return not is_leaf(node) and not is_operator_app(node, 'let') \
-                and any(get_sort(node) == get_sort(x) for x in node[1:])
+        return not is_leaf(node) and not is_operator_app(node, 'let')
 
     def mutations(self, node):
-        yield from node[1:]
+        sort = get_sort(node)
+        for n in node[1:]:
+            if get_sort(n) == sort:
+                yield n
 
     def __str__(self):
         return 'replace by a child'

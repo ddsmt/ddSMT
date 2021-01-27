@@ -151,14 +151,17 @@ def test_merge_with_children():
 
 
 def test_replace_by_child():
-    x = Node('x')
-    y = Node('y')
-    node = Node(Node('+'), x, y)
+    smtlib.collect_information([
+        Node('declare-const', 'x', 'Int'),
+        Node('declare-const', 'y', 'Int'),
+    ])
+    node = Node('+', 'x', 'y')
     m = mutators_core.ReplaceByChild()
     assert isinstance(str(m), str)
     assert m.filter(node)
-    assert not m.filter(x)
-    assert list(m.mutations(node)) == [x, y]
+    assert not m.filter(Node('x'))
+    assert list(m.mutations(node)) == ['x', 'y']
+    smtlib.reset_information()
 
 
 def test_replace_by_variable():
