@@ -46,7 +46,7 @@ class ArithmeticNegateRelation:
             'distinct': '='
         }
         assert node[1][0] in negator
-        return [(negator[node[1][0]], ) + node[1][1:]]
+        return [Node(negator[node[1][0]], *node[1][1:])]
 
     def __str__(self):
         return 'push negation into arithmetic relation'
