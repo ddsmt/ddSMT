@@ -80,6 +80,7 @@ Some guidelines for the implementation:
 - Add your code to the corresponding ``mutators_<theory>.py`` file.
 - Register your mutator in the ``get_mutators`` function towards the end of the file.
 - Make sure your mutator is reasonably fast.
+- Make sure that your mutator (mostly) generates valid SMT-LIB constructs.
 - Make sure to return a list of ``nodes.Node`` objects.
 - If your mutator returns a large number of candidates, avoid returning them as a list from ``mutations`` and ``global_mutations``. Instead use ``yield`` to turn your mutator into a generator.
 - Add some unit tests (in ``ddsmt/tests/``). For your own sanity, test at least that it does what you expect and does not apply to unrelated nodes (i.e. ``filter`` returns ``False``).
