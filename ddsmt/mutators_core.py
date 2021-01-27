@@ -122,7 +122,8 @@ class MergeWithChildren:
 class ReplaceByChild:
     """Replace a node by one of its children."""
     def filter(self, node):
-        return not is_leaf(node) and not is_operator_app(node, 'let')
+        return not is_leaf(node) and not is_operator_app(node, 'let') \
+                and any(get_sort(node) == get_sort(x) for x in node[1:])
 
     def mutations(self, node):
         yield from node[1:]
@@ -143,7 +144,7 @@ class ReplaceByVariable:
     ``collect_information``.
     """
     def filter(self, node):
-        return not is_const(node)
+        return not is_const(node) and get_sort(node) is not None
 
     def mutations(self, node):
         if not hasattr(self, 'repl_mode'):
