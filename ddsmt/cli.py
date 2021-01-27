@@ -128,7 +128,7 @@ def ddsmt_main():
     # do the reduction
     if options.args().strategy in ('ddmin', 'hybrid'):
         exprs, ntests = strategy_ddmin.reduce(exprs)
-    if options.args().strategy == ('hierarchical', 'hybrid'):
+    if options.args().strategy in ('hierarchical', 'hybrid'):
         exprs, ntests = strategy_hierarchical.reduce(exprs)
     end_time = time.time()
 
