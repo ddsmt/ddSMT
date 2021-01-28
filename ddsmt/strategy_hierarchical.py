@@ -273,11 +273,12 @@ def reduce(exprs):
                 cons = Consumer(abort_flag)
                 for result in pool.imap_unordered(cons.check,
                                                   prod.generate(skip, params)):
-                    if abort_flag.is_set():
-                        # skip remaining results if we had a success
-                        continue
                     nchecks += 1
                     success, task = pickle.loads(result)
+                    if abort_flag.is_set():
+                        # skip remaining results if we had a success
+                        skip = min(skip, task.nodeid - 1)
+                        continue
                     progress.update(task.nodeid)
                     stats.add(success, task, exprs)
                     if success:
