@@ -1,6 +1,6 @@
 .. image:: https://img.shields.io/github/workflow/status/ddsmt/ddSMT/main
   :alt: GitHub Workflow Status
-  :target: https://github.com/nafur/ddSMT/actions
+  :target: https://github.com/ddsmt/ddSMT/actions
 
 .. image:: https://img.shields.io/readthedocs/ddsmt/development
   :alt: Read the Docs
