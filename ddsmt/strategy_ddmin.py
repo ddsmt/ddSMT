@@ -72,7 +72,14 @@ class TaskGenerator:
         while not self.stopped and self.index < len(self.subsets):
             task_id = self.index
             self.index += 1
+
+            # Filter nodes in subset in order to ensure that the mutator still
+            # applies after updating ``self.exprs`` via ``self.update``.
             subset = self.subsets[task_id]
+            subset = [n for n in subset if self.mutator.filter(n)]
+            if not subset:
+                continue
+
             substs = self.__get_substs(subset)
 
             if not substs:
