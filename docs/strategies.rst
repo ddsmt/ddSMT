@@ -1,9 +1,12 @@
 Minimization strategies
 ====================================
 
-ddSMT offers two fundamentally different strategies for minimization that we call ``ddmin`` and ``hierarchical``.
+ddSMT offers two fundamentally different strategies for minimization that we call ``ddmin`` and ``hierarchical``, and a comined strategy ``hybrid``.
 ``ddmin`` employs the minimization strategy from :cite:`Zeller1999` and is the direct successor of what the original ``ddSMT`` from :cite:`Niemetz2013` does: it collects a set of simplifications and applies varying subsets at once.
 ``hierarchical`` performs a simple depth-first walk through the input and applies one simplification at a time for the current node, similar to what is presented as "hierarchical delta-debugging" in :cite:`Brummayer2009`.
+
+``ddmin`` is usually faster than ``hierarchical``, but produces larger output files.
+The default strategy ``hybrid`` thus uses ``ddmin`` first and then ``hierarchical`` on the already simplified input, which almost always combines the better performance characteristics of ``ddmin`` with the smaller results of ``hierarchical``.
 
 
 The ``ddmin`` strategy
@@ -22,3 +25,10 @@ This approach aims to be reasonably fast in reducing the input initially, but th
 Within a single run, ``hierarchical`` employs a fixed-point loop and only terminates when no simplification was successfull for a whole input traversal.
 For a single node, ``hierarchical`` iterates over all (currently active) mutators in an arbitrary order and simply checks all suggested simplifications, accepting the first successfull one.
 Once a simplification was accepted, ``hierarchical`` continues the input traversal (roughly) from the node it just simplified.
+
+
+The ``hybrid`` strategy
+-----------------------
+
+This strategy aims to combine the advantages of ``ddmin`` (generally better performance, in particular for the initial reduction) and ``hierarchical`` (smaller end results).
+It simply combines the two by first running ``ddmin`` and then applying ``hierarchical`` on the already reduced output.

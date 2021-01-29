@@ -129,7 +129,7 @@ def parse_options(mutators, cmdlineoptions=None):
                     help='wrap lines in output file')
     ap.add_argument('--strategy',
                     choices=['ddmin', 'hierarchical', 'hybrid'],
-                    default='ddmin',
+                    default='hybrid',
                     help='minimization strategy')
 
     apcheck = ap.add_argument_group('checker arguments')
