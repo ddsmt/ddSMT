@@ -1,6 +1,7 @@
 from ..nodes import Node
 from .. import mutators_bv
 from .. import smtlib
+from .utils import *
 
 
 def test_bv_get_mutators():
@@ -32,19 +33,19 @@ def test_normalize_constants():
     assert not m.filter(Node('#xz010'))
     assert m.filter(Node('#b0010'))
     assert m.filter(Node('#xa1f'))
-    assert m.mutations(Node('#b0')) == [('_', 'bv0', 1)]
-    assert m.mutations(Node('#b1')) == [('_', 'bv1', 1)]
-    assert m.mutations(Node('#b000')) == [('_', 'bv0', 3)]
-    assert m.mutations(Node('#b001')) == [('_', 'bv1', 3)]
-    assert m.mutations(Node('#b010')) == [('_', 'bv2', 3)]
-    assert m.mutations(Node('#b011')) == [('_', 'bv3', 3)]
-    assert m.mutations(Node('#b100')) == [('_', 'bv4', 3)]
-    assert m.mutations(Node('#b101')) == [('_', 'bv5', 3)]
-    assert m.mutations(Node('#b110')) == [('_', 'bv6', 3)]
-    assert m.mutations(Node('#b111')) == [('_', 'bv7', 3)]
-    assert m.mutations(Node('#x11'))  == [('_', 'bv17', 8)]
-    assert m.mutations(Node('#x011')) == [('_', 'bv17', 12)]
-    assert m.mutations(Node('#xa11')) == [('_', 'bv2577', 12)]
+    assert check_mutations(m, Node('#b0'), [('_', 'bv0', 1)])
+    assert check_mutations(m, Node('#b1'), [('_', 'bv1', 1)])
+    assert check_mutations(m, Node('#b000'), [('_', 'bv0', 3)])
+    assert check_mutations(m, Node('#b001'), [('_', 'bv1', 3)])
+    assert check_mutations(m, Node('#b010'), [('_', 'bv2', 3)])
+    assert check_mutations(m, Node('#b011'), [('_', 'bv3', 3)])
+    assert check_mutations(m, Node('#b100'), [('_', 'bv4', 3)])
+    assert check_mutations(m, Node('#b101'), [('_', 'bv5', 3)])
+    assert check_mutations(m, Node('#b110'), [('_', 'bv6', 3)])
+    assert check_mutations(m, Node('#b111'), [('_', 'bv7', 3)])
+    assert check_mutations(m, Node('#x11'), [('_', 'bv17', 8)])
+    assert check_mutations(m, Node('#x011'), [('_', 'bv17', 12)])
+    assert check_mutations(m, Node('#xa11'), [('_', 'bv2577', 12)])
 
 
 def test_bv_concat_to_zero_extend():
@@ -70,7 +71,7 @@ def test_bv_concat_to_zero_extend():
     assert not m.filter(conc16_2)
     assert not m.filter(conc16_3)
     assert m.filter(conc16_4)
-    assert m.mutations(conc16_4) == [Node(('_', 'zero_extend', 8), 'x')]
+    assert check_mutations(m, conc16_4, [Node(('_', 'zero_extend', 8), 'x')])
 
 
 def test_bv_double_negation():
@@ -82,8 +83,8 @@ def test_bv_double_negation():
     assert not m.filter(Node('bvadd', x, x))
     assert m.filter(bvnot)
     assert m.filter(bvneg)
-    assert m.mutations(bvnot) == [x]
-    assert m.mutations(bvneg) == [x]
+    assert check_mutations(m, bvnot, [x])
+    assert check_mutations(m, bvneg, [x])
 
 
 def test_bv_elim_bvcomp():
@@ -112,16 +113,14 @@ def test_bv_elim_bvcomp():
     assert m.filter(eq0_2)
     assert m.filter(eq1_2)
     assert m.filter(eq2_2)
-    assert m.mutations(eq0_1) == [ne_x]
-    assert m.mutations(eq1_1) == [Node('and', ne_x, ('=', const0, x))]
-    assert m.mutations(eq2_1) == [
-        Node('and', ('=', const0, x), ne_x, ('=', const0, x))
-    ]
-    assert m.mutations(eq0_2) == [Node('=', x, x)]
-    assert m.mutations(eq1_2) == [Node('and', eq_x, ('=', const1, x))]
-    assert m.mutations(eq2_2) == [
-        Node('and', ('=', const1, x), eq_x, ('=', const1, x))
-    ]
+    assert check_mutations(m, eq0_1, [ne_x])
+    assert check_mutations(m, eq1_1, [Node('and', ne_x, ('=', const0, x))])
+    assert check_mutations(
+        m, eq2_1, [Node('and', ('=', const0, x), ne_x, ('=', const0, x))])
+    assert check_mutations(m, eq0_2, [Node('=', x, x)])
+    assert check_mutations(m, eq1_2, [Node('and', eq_x, ('=', const1, x))])
+    assert check_mutations(
+        m, eq2_2, [Node('and', ('=', const1, x), eq_x, ('=', const1, x))])
 
 
 def test_bv_eval_extend():
@@ -151,14 +150,14 @@ def test_bv_eval_extend():
     assert m.filter(sext0_2)
     assert m.filter(sext1_1)
     assert m.filter(sext1_2)
-    assert m.mutations(zext0_1) == [Node('_', 'bv3', 5)]
-    assert m.mutations(zext0_2) == [Node('_', 'bv3', 5)]
-    assert m.mutations(zext1_1) == [Node('_', 'bv5', 5)]
-    assert m.mutations(zext1_2) == [Node('_', 'bv5', 5)]
-    assert m.mutations(sext0_1) == [Node('_', 'bv3', 5)]
-    assert m.mutations(sext0_2) == [Node('_', 'bv3', 5)]
-    assert m.mutations(sext1_1) == [Node('#b11101')]
-    assert m.mutations(sext1_2) == [Node('#b11101')]
+    assert check_mutations(m, zext0_1, [Node('_', 'bv3', 5)])
+    assert check_mutations(m, zext0_2, [Node('_', 'bv3', 5)])
+    assert check_mutations(m, zext1_1, [Node('_', 'bv5', 5)])
+    assert check_mutations(m, zext1_2, [Node('_', 'bv5', 5)])
+    assert check_mutations(m, sext0_1, [Node('_', 'bv3', 5)])
+    assert check_mutations(m, sext0_2, [Node('_', 'bv3', 5)])
+    assert check_mutations(m, sext1_1, [Node('#b11101')])
+    assert check_mutations(m, sext1_2, [Node('#b11101')])
 
 
 def test_bv_extract_constants():
@@ -184,15 +183,15 @@ def test_bv_extract_constants():
     assert m.filter(ext1_1)
     assert m.filter(ext1_2)
     assert m.filter(ext1_3)
-    assert m.mutations(ext0_1) == [Node('#b1')]
-    assert m.mutations(ext0_2) == [Node('#b11')]
-    assert m.mutations(ext0_3) == [Node('#b011')]
-    assert m.mutations(ext1_1) == [Node('#b011')]
-    assert m.mutations(ext1_2) == [Node('#b01')]
-    assert m.mutations(ext1_3) == [Node('#b0')]
-    assert m.mutations(ext2_1) == [Node('#b1')]
-    assert m.mutations(ext2_2) == [Node('#b11')]
-    assert m.mutations(ext2_3) == [Node('#b1')]
+    assert check_mutations(m, ext0_1, [Node('#b1')])
+    assert check_mutations(m, ext0_2, [Node('#b11')])
+    assert check_mutations(m, ext0_3, [Node('#b011')])
+    assert check_mutations(m, ext1_1, [Node('#b011')])
+    assert check_mutations(m, ext1_2, [Node('#b01')])
+    assert check_mutations(m, ext1_3, [Node('#b0')])
+    assert check_mutations(m, ext2_1, [Node('#b1')])
+    assert check_mutations(m, ext2_2, [Node('#b11')])
+    assert check_mutations(m, ext2_3, [Node('#b1')])
 
 
 def test_bv_extract_zero_extend():
@@ -208,13 +207,12 @@ def test_bv_extract_zero_extend():
     assert m.filter(ext1)
     assert m.filter(ext2)
     assert m.filter(ext3)
-    assert m.mutations(ext1) == []
+    assert check_mutations(m, ext1, [])
     smtlib.collect_information(exprs)
-    assert m.mutations(ext1) == [Node('_', 'bv0', 3)]
-    assert m.mutations(ext2) == [Node(('_', 'extract', 1, 0), x)]
-    assert m.mutations(ext3) == [
-        Node(('_', 'zero_extend', 2), (('_', 'extract', 3, 3), x))
-    ]
+    assert check_mutations(m, ext1, [Node('_', 'bv0', 3)])
+    assert check_mutations(m, ext2, [Node(('_', 'extract', 1, 0), x)])
+    assert check_mutations(
+        m, ext3, [Node(('_', 'zero_extend', 2), (('_', 'extract', 3, 3), x))])
 
 
 def test_bv_ite_to_bvcomp():
@@ -236,7 +234,7 @@ def test_bv_ite_to_bvcomp():
     assert not m.filter(Node('ite', ('=', 'x', 'y'), '#b1', '#b1'))
     assert not m.filter(Node('ite', ('=', 'x', 'y'), '#b11', '#b01'))
     assert m.filter(ite)
-    assert m.mutations(ite) == [Node('bvcomp', 'x', 'y')]
+    assert check_mutations(m, ite, [Node('bvcomp', 'x', 'y')])
 
 
 def test_reflexive_nand():
@@ -246,7 +244,7 @@ def test_reflexive_nand():
     assert not m.filter(Node('bvor', 'x', 'y'))
     assert not m.filter(Node('bvnand', 'x', 'y'))
     assert m.filter(Node('bvnand', 'x', 'x'))
-    assert m.mutations(Node('bvnand', 'x', 'x')) == [Node('bvnot', 'x')]
+    assert check_mutations(m, Node('bvnand', 'x', 'x'), [Node('bvnot', 'x')])
 
 
 def test_simplify_constants():
@@ -265,23 +263,23 @@ def test_simplify_constants():
     assert m.filter(Node('#b10'))
     assert m.filter(Node('#b11'))
     assert m.filter(Node('_', 'bv4', 3))
-    assert m.mutations(Node('#b10')) == [Node('#b00'), Node('#b01')]
+    assert check_mutations(m, Node('#b10'), [Node('#b00'), Node('#b01')])
     bvconst = Node('#b11001010')
-    assert m.mutations(bvconst) == [
+    assert check_mutations(m, bvconst, [
         Node('#b00000000'),
         Node('#b00000001'),
         Node('#b00000110'),
         Node('#b00011001'),
         Node('#b01100101'),
-    ]
-    assert m.global_mutations(bvconst, [Node('assert', ('=', bvconst, 'x'))]) \
-           == [
-                [Node('assert', ('=', Node('#b00000000'), 'x'))],
-                [Node('assert', ('=', Node('#b00000001'), 'x'))],
-                [Node('assert', ('=', Node('#b00000110'), 'x'))],
-                [Node('assert', ('=', Node('#b00011001'), 'x'))],
-                [Node('assert', ('=', Node('#b01100101'), 'x'))],
-           ]
+    ])
+    assert check_global_mutations(
+        m, bvconst, [Node('assert', ('=', bvconst, 'x'))], [
+            [Node('assert', ('=', Node('#b00000000'), 'x'))],
+            [Node('assert', ('=', Node('#b00000001'), 'x'))],
+            [Node('assert', ('=', Node('#b00000110'), 'x'))],
+            [Node('assert', ('=', Node('#b00011001'), 'x'))],
+            [Node('assert', ('=', Node('#b01100101'), 'x'))],
+        ])
 
 
 def test_transform_to_bool():

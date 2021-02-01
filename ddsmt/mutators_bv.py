@@ -20,6 +20,7 @@
 
 from .nodes import Node
 from .smtlib import *
+from .mutator_utils import Simplification
 
 
 class BVNormalizeConstants:
@@ -30,7 +31,7 @@ class BVNormalizeConstants:
 
     def mutations(self, node):
         val, bw = get_bv_constant_value(node)
-        return [Node('_', f'bv{val}', bw)]
+        return [Simplification({node.id: Node('_', f'bv{val}', bw)}, [])]
 
     def __str__(self):
         return 'normalize bit-vector const'
@@ -47,8 +48,12 @@ class BVConcatToZeroExtend:
 
     def mutations(self, node):
         return [
-            Node(('_', 'zero_extend', get_bv_constant_value(node[1])[1]),
-                 node[2])
+            Simplification(
+                {
+                    node.id:
+                    Node(('_', 'zero_extend', get_bv_constant_value(
+                        node[1])[1]), node[2])
+                }, [])
         ]
 
     def __str__(self):
@@ -62,7 +67,7 @@ class BVDoubleNegation:
                or (is_bv_neg(node) and is_bv_neg(node[1]))
 
     def mutations(self, node):
-        return [node[1][1]]
+        return [Simplification({node.id: node[1][1]}, [])]
 
     def __str__(self):
         return 'eliminate double bit-vector negation'
@@ -85,8 +90,10 @@ class BVElimBVComp:
                 res.append(Node('not', Node('=', *n[1:])))
             else:
                 res.append(Node('=', node[1], n))
-        res = res if len(res) == 1 else [Node('and', *res)]
-        return res
+        if len(res) == 1:
+            return [Simplification({node.id: res[0]}, [])]
+        else:
+            return [Simplification({node.id: Node('and', *res)}, [])]
 
     def __str__(self):
         return 'eliminate bvcomp by equality'
@@ -107,8 +114,13 @@ class BVEvalExtend:
             val_bin = bin(val)
             if len(val_bin[2:]) == width and val_bin[2] == '1':
                 ones = '1' * index
-                return [Node(f'#b{ones}{val_bin[2:]}')]
-        return [Node('_', f'bv{val}', width + index)]
+                return [
+                    Simplification({node.id: Node(f'#b{ones}{val_bin[2:]}')},
+                                   [])
+                ]
+        return [
+            Simplification({node.id: Node('_', f'bv{val}', width + index)}, [])
+        ]
 
     def __str__(self):
         return 'evaluate bit-vector extend'
@@ -135,7 +147,9 @@ class BVExtractConstants:
         idx = get_indices(node[0], 'extract', 2)
         upper = n - idx[0] - 1
         lower = n - idx[1] - 1
-        return [Node(f'#b{constant[upper:lower+1]}')]
+        return [
+            Simplification({node.id: Node(f'#b{constant[upper:lower+1]}')}, [])
+        ]
 
     def __str__(self):
         return 'evaluate bit-vector extract on constant'
@@ -162,14 +176,21 @@ class BVExtractZeroExtend:
         # we extract upper..lower from 0|varwidth
         if lower >= bw:
             # we only extract from the zeroes
-            return [Node('_', 'bv0', upper - lower + 1)]
+            return [
+                Simplification({node.id: Node('_', 'bv0', upper - lower + 1)},
+                               [])
+            ]
         if upper < bw:
             # we only extract from the variable
-            return [Node(node[0], term)]
+            return [Simplification({node.id: Node(node[0], term)}, [])]
         # switch extract and zero_extend, reduce lengths of extract and zero_extend
         return [
-            Node(('_', 'zero_extend', str(upper - bw + 1)),
-                 (('_', 'extract', str(bw - 1), str(lower)), term))
+            Simplification(
+                {
+                    node.id:
+                    Node(('_', 'zero_extend', str(upper - bw + 1)),
+                         (('_', 'extract', str(bw - 1), str(lower)), term))
+                }, [])
         ]
 
     def __str__(self):
@@ -200,7 +221,10 @@ class BVIteToBVComp:
         return True
 
     def mutations(self, node):
-        return [Node('bvcomp', node[1][1], node[1][2])]
+        return [
+            Simplification({node.id: Node('bvcomp', node[1][1], node[1][2])},
+                           [])
+        ]
 
     def __str__(self):
         return 'eliminate ite with bv1 / bv0 cases'
@@ -215,7 +239,7 @@ class BVReflexiveNand:
                and node[1] == node[2]
 
     def mutations(self, node):
-        return [Node('bvnot', node[1])]
+        return [Simplification({node.id: Node('bvnot', node[1])}, [])]
 
     def __str__(self):
         return 'replace bvnand by bvnot'
@@ -229,18 +253,18 @@ class BVSimplifyConstants:
 
     def mutations(self, node):
         val, width = get_bv_constant_value(node)
-        return [
-                Node('#b{{:0>{}b}}'.format(width).format(0)),
-                Node('#b{{:0>{}b}}'.format(width).format(1)),
-               ] +  [
-                Node('#b{{:0>{}b}}'.format(width).format(v)) \
+        yield Simplification(
+            {node.id: Node('#b{{:0>{}b}}'.format(width).format(0))}, [])
+        yield Simplification(
+            {node.id: Node('#b{{:0>{}b}}'.format(width).format(1))}, [])
+        yield from [Simplification({node.id: Node('#b{{:0>{}b}}'.format(width).format(v))}, []) \
                     for v in [val // 32, val // 8, val // 2] if v not in [0, 1]
                ]
 
     def global_mutations(self, linput, ginput):
-        return [
-            nodes.substitute(ginput, {linput: rep})
-            for rep in self.mutations(linput)
+        yield from [
+            Simplification({linput: simp.substs[linput.id]}, [])
+            for simp in self.mutations(linput)
         ]
 
     def __str__(self):
