@@ -72,7 +72,10 @@ class InlineDefinedFuns:
 
     def mutations(self, node):
         if node.id in map(lambda n: n.id, nodes.dfs(get_defined_fun(node))):
-            # we are about to inline the function into itself
+            # we are about to inline the function into its own body
+            return []
+        if is_definition_node(node):
+            # we are about to inline the function into its own name
             return []
         res = get_defined_fun(node)
         if res == node:
