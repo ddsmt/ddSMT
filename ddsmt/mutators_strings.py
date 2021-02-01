@@ -19,6 +19,7 @@
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
 from .smtlib import *
+from .mutator_utils import Simplification
 
 
 class StringSimplifyConstant:
@@ -33,17 +34,18 @@ class StringSimplifyConstant:
         return is_string_const(node) and node != '""'
 
     def mutations(self, node):
-        yield Node(f'""')
+        yield Simplification({node.id: Node(f'""')}, [])
         content = node[1:-1]
         for sec in nodes.binary_search(len(content)):
             start = self.__fix_escape_sequences(content, sec[0])
-            yield Node(f'"{content[:start]}{content[sec[1]:]}"')
-        yield Node(f'"{content[1:]}"')
-        yield Node(f'"{content[:-1]}"')
+            yield Simplification(
+                {node.id: Node(f'"{content[:start]}{content[sec[1]:]}"')}, [])
+        yield Simplification({node.id: Node(f'"{content[1:]}"')}, [])
+        yield Simplification({node.id: Node(f'"{content[:-1]}"')}, [])
 
     def global_mutations(self, linput, ginput):
-        for rep in self.mutations(linput):
-            yield {linput: rep}
+        for simp in self.mutations(linput):
+            yield Simplification({linput: simp.substs[linput.id]}, [])
 
     def __str__(self):
         return 'simplify string constant'
@@ -55,7 +57,7 @@ class StringReplaceAll:
         return node.has_ident() and node.get_ident() == 'str.replace_all'
 
     def mutations(self, node):
-        return [Node('str.replace', *node[1:])]
+        return [Simplification({node.id: Node('str.replace', *node[1:])}, [])]
 
     def __str__(self):
         return 'eliminate str.replace_all'
@@ -68,7 +70,7 @@ class StringIndexOfNotFound:
         return node.has_ident() and node.get_ident() == 'str.indexof'
 
     def mutations(self, node):
-        return [Node('-', '1')]
+        return [Simplification({node.id: Node('-', '1')}, [])]
 
     def __str__(self):
         return 'eliminate str.indexof'
@@ -87,9 +89,8 @@ class StringContainsToConcat:
             Node('declare-const', k1, 'String'),
             Node('declare-const', k2, 'String'),
         ]
-        ginput = introduce_variables(ginput, vars)
         eq = Node('=', var, ('str.++', k1, linput[2], k2))
-        return nodes.substitute(ginput, {linput: eq})
+        return [Simplification({linput: eq}, vars)]
 
     def __str__(self):
         return 'eliminate str.contains by ++'

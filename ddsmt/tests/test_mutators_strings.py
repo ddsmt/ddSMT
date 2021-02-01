@@ -1,6 +1,8 @@
 from ..nodes import Node
 from .. import mutators_strings
 from .. import smtlib
+from .utils import *
+from ..mutator_utils import *
 
 
 def test_strings_get_mutators():
@@ -25,33 +27,27 @@ def test_strings_simplify_constant():
     m = mutators_strings.StringSimplifyConstant()
     assert isinstance(str(m), str)
     assert m.filter(expr)
-    assert list(m.mutations(expr)) == [
+    assert check_mutations(m, expr, [
         Node('""'),
         Node('"abc"'),
         Node('"123"'),
         Node('"bc123"'),
         Node('"abc12"')
-    ]
+    ])
 
-    assert list(m.global_mutations(expr, gexpr)) == [
-        {
-            '"abc123"': '""'
-        },
-        {
-            '"abc123"': '"abc"'
-        },
-        {
-            '"abc123"': '"123"'
-        },
-        {
-            '"abc123"': '"bc123"'
-        },
-        {
-            '"abc123"': '"abc12"'
-        },
-    ]
+    assert check_global_mutations(m, expr, gexpr, [
+        apply_simp(gexpr, Simplification({Node('"abc123"'): Node('""')}, [])),
+        apply_simp(gexpr, Simplification({Node('"abc123"'): Node('"abc"')},
+                                         [])),
+        apply_simp(gexpr, Simplification({Node('"abc123"'): Node('"123"')},
+                                         [])),
+        apply_simp(gexpr,
+                   Simplification({Node('"abc123"'): Node('"bc123"')}, [])),
+        apply_simp(gexpr,
+                   Simplification({Node('"abc123"'): Node('"abc12"')}, []))
+    ])
 
-    assert list(m.mutations(Node('"abcdefg\\uab"'))) == [
+    assert check_mutations(m, Node('"abcdefg\\uab"'), [
         Node('""'),
         Node('"abcde"'),
         Node('"fg\\uab"'),
@@ -61,7 +57,7 @@ def test_strings_simplify_constant():
         Node('"cdefg\\uab"'),
         Node('"bcdefg\\uab"'),
         Node('"abcdefg\\ua"'),
-    ]
+    ])
 
 
 def test_strings_replace_all():
@@ -70,7 +66,7 @@ def test_strings_replace_all():
     m = mutators_strings.StringReplaceAll()
     assert isinstance(str(m), str)
     assert m.filter(expr)
-    assert m.mutations(expr) == [target]
+    assert check_mutations(m, expr, [target])
 
 
 def test_strings_indexof_not_found():
@@ -79,7 +75,7 @@ def test_strings_indexof_not_found():
     m = mutators_strings.StringIndexOfNotFound()
     assert isinstance(str(m), str)
     assert m.filter(expr)
-    assert m.mutations(expr) == [target]
+    assert check_mutations(m, expr, [target])
 
 
 def test_strings_contains_to_concat():
@@ -101,5 +97,4 @@ def test_strings_contains_to_concat():
     m = mutators_strings.StringContainsToConcat()
     assert isinstance(str(m), str)
     assert m.filter(expr)
-    res = m.global_mutations(expr, exprs)
-    assert res == target
+    assert check_global_mutations(m, expr, exprs, [target])
