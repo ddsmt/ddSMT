@@ -21,6 +21,7 @@
 from .nodes import Node, count_nodes
 from .smtlib import *
 from . import options
+from .mutator_utils import Simplification
 
 
 class BinaryReduction:
@@ -49,7 +50,9 @@ class BinaryReduction:
         else:
             ids = [node.id for node in ginput]
         for sec in nodes.binary_search(len(ids)):
-            yield {nodeid: None for nodeid in ids[sec[0]:sec[1]]}
+            yield Simplification(
+                {nodeid: None
+                 for nodeid in ids[sec[0]:sec[1]]}, [])
 
     def __str__(self):
         if hasattr(self, 'ident'):
@@ -74,7 +77,8 @@ class Constants:
         res = get_default_constants(t)
         if node in res:
             return []
-        return res
+        for c in res:
+            yield Simplification({node.id: c}, [])
 
     def __str__(self):
         return 'substitute by a constant'
@@ -94,7 +98,7 @@ class EraseNode:
     """Erases the given node."""
 
     def mutations(self, node):
-        return [None]
+        return [Simplification({node.id: None}, [])]
 
     def __str__(self):
         if hasattr(self, 'ident'):
@@ -113,7 +117,8 @@ class MergeWithChildren:
     def mutations(self, node):
         for cid, child in enumerate(node):
             if child.has_ident() and node.get_ident() == child.get_ident():
-                yield Node(*node[:cid], *node[cid][1:], *node[cid + 1:])
+                simp = Node(*node[:cid], *node[cid][1:], *node[cid + 1:])
+                yield Simplification({node.id: simp}, [])
 
     def __str__(self):
         return 'merge with child'
@@ -128,7 +133,7 @@ class ReplaceByChild:
         sort = get_sort(node)
         for n in node[1:]:
             if get_sort(n) == sort:
-                yield n
+                yield Simplification({node.id: n}, [])
 
     def __str__(self):
         return 'replace by a child'
@@ -158,9 +163,9 @@ class ReplaceByVariable:
         variables = get_variables_with_sort(ret_sort)
         if is_leaf(node):
             if self.repl_mode == 'inc':
-                return [Node(v) for v in variables if v > node.data]
-            return [Node(v) for v in variables if v < node.data]
-        return [Node(v) for v in variables]
+                variables = [v for v in variables if v > node.data]
+            variables = [v for v in variables if v < node.data]
+        yield from [Simplification({node.id: Node(v)}, []) for v in variables]
 
     def __str__(self):
         if hasattr(self, 'repl_mode'):
@@ -177,7 +182,7 @@ class SortChildren:
         """Return ``sorted(node, key = count_nodes)``."""
         s = nodes.Node(*sorted(node, key=count_nodes))
         if s != node:
-            return [s]
+            return [Simplification({node.id: s}, [])]
         return []
 
     def __str__(self):

@@ -21,6 +21,7 @@
 import re
 
 from .smtlib import *
+from .mutator_utils import Simplification
 
 
 class CheckSatAssuming:
@@ -30,12 +31,13 @@ class CheckSatAssuming:
         return node.has_ident() and node.get_ident() == 'check-sat-assuming'
 
     def mutations(self, node):
-        return [Node(Node('check-sat'))]
+        return [Simplification({node.id: Node(Node('check-sat'))}, [])]
 
     def __str__(self):
         return 'substitute check-sat-assuming by check-sat'
 
 
+# TODO
 class EliminateVariable:
     """Eliminate a variable using an equality with this variable.
 
@@ -80,7 +82,7 @@ class InlineDefinedFuns:
         res = get_defined_fun(node)
         if res == node:
             return []
-        return [res]
+        return [Simplification({node.id: res}, [])]
 
     def __str__(self):
         return 'inline defined function'
@@ -95,12 +97,9 @@ class IntroduceFreshVariable:
         return not is_const(node) and get_sort(node) is not None
 
     def global_mutations(self, linput, ginput):
-        varname = Node(f'__fresh_{linput.id}')
-        var = Node('declare-fun', varname, (), get_sort(linput))
-        return [
-            nodes.substitute(introduce_variables(ginput, [var]),
-                             {linput.id: varname})
-        ]
+        varname = Node(f'x{linput.id}__fresh')
+        var = Node('declare-const', varname, get_sort(linput))
+        return [Simplification({linput.id: varname}, [var])]
 
     def __str__(self):
         return 'introduce fresh variable'
@@ -114,12 +113,13 @@ class LetElimination:
     def mutations(self, node):
         if len(node) <= 2:
             return []
-        return [node[2]]
+        return [Simplification({node.id: node[2]}, [])]
 
     def __str__(self):
         return 'eliminate let binder'
 
 
+# TODO
 class LetSubstitution:
     """Substitutes a variable bound by a ``let`` binder into the nested
     term."""
@@ -166,7 +166,9 @@ class SimplifyLogic:
             assert logic.is_leaf()
             if r in logic.data:
                 cands.append(logic.data.replace(r, repls[r]))
-        return [Node('set-logic', c) for c in cands]
+        yield from [
+            Simplification({node.id: Node('set-logic', c)}, []) for c in cands
+        ]
 
     def __str__(self):
         return 'simplify logic'
@@ -179,10 +181,10 @@ class SimplifyQuotedSymbols:
             '\\|[a-zA-Z0-9~!@$%^&*_+=<>.?/-]+\\|', node.data) is not None
 
     def mutations(self, node):
-        return [get_piped_symbol(node)]
+        return [Simplification({node.id: get_piped_symbol(node)}, [])]
 
     def global_mutations(self, linput, ginput):
-        return [{linput: get_piped_symbol(linput)}]
+        return [Simplification({linput: get_piped_symbol(linput)}, [])]
 
     def __str__(self):
         return 'simplify quoted symbol'
@@ -226,10 +228,10 @@ class SimplifySymbolNames:
         symbol."""
         if is_piped_symbol(symbol):
             for s in self.__simpler(get_piped_symbol(symbol)):
-                yield {symbol: Node('|' + s + '|')}
+                yield Simplification({symbol: Node('|' + s + '|')}, [])
         else:
             for s in self.__simpler(symbol):
-                yield {symbol: Node(s)}
+                yield Simplification({symbol: Node(s)}, [])
 
     def __simpler(self, symbol):
         """Return a list of simpler versions of the given symbol."""

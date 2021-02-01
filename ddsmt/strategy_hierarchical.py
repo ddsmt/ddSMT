@@ -32,6 +32,7 @@ from . import nodes
 from . import options
 from . import progress
 from . import smtlib
+from .mutator_utils import Simplification, apply_simp
 
 
 def get_passes():
@@ -127,13 +128,20 @@ class Producer:
                     for x in m.mutations(linput):
                         if self.__abort.is_set():
                             break
-                        yield Task(count, str(m), True, self.__pickled,
-                                   pickle.dumps({linput.id: x}), None)
+                        if isinstance(x, Simplification):
+                            yield Task(count, str(m), True, self.__pickled,
+                                       pickle.dumps(x), None)
+                        else:
+                            yield Task(count, str(m), True, self.__pickled,
+                                       pickle.dumps({linput.id: x}), None)
                 if hasattr(m, 'global_mutations'):
                     for x in m.global_mutations(linput, self.__original):
                         if self.__abort.is_set():
                             break
-                        if isinstance(x, dict):
+                        if isinstance(x, Simplification):
+                            yield Task(count, f'(global) {m}', False,
+                                       self.__pickled, pickle.dumps(x), None)
+                        elif isinstance(x, dict):
                             # is a substitution
                             yield Task(count, f'(global) {m}', False,
                                        self.__pickled, pickle.dumps(x), None)
@@ -177,8 +185,11 @@ class Consumer:
             start = time.time()
             if task.local:
                 # local
-                exprs = nodes.substitute(pickle.loads(task.exprs),
-                                         pickle.loads(task.repl))
+                simp = pickle.loads(task.repl)
+                if isinstance(simp, Simplification):
+                    exprs = apply_simp(pickle.loads(task.exprs), simp)
+                else:
+                    exprs = nodes.substitute(pickle.loads(task.exprs), simp)
             else:
                 # global
                 exprs = pickle.loads(task.repl)
@@ -187,6 +198,12 @@ class Consumer:
                     if self.__abort.is_set():
                         return abortres
                     exprs = nodes.substitute(original, exprs)
+                elif isinstance(exprs, Simplification):
+                    original = pickle.loads(task.exprs)
+                    if self.__abort.is_set():
+                        return abortres
+                    exprs = apply_simp(original, exprs)
+
             if self.__abort.is_set():
                 return abortres
             res = checker.check_exprs(exprs)

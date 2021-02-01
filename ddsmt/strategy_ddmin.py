@@ -30,8 +30,9 @@ from . import mutators
 from . import nodes
 from . import options
 from . import smtlib
+from .mutator_utils import Simplification, apply_simp
 
-Task = collections.namedtuple('Task', ['id', 'exprs', 'substs'])
+Task = collections.namedtuple('Task', ['id', 'exprs', 'simplifications'])
 
 Result = collections.namedtuple(
     'Result', ['task_id', 'success', 'reduced', 'exprs', 'tests'])
@@ -80,15 +81,15 @@ class TaskGenerator:
             if not subset:
                 continue
 
-            substs = self.__get_substs(subset)
+            simps = self.__get_substs(subset)
 
-            if not substs:
+            if not simps:
                 continue
 
             logging.debug(f'TaskGen: Generate next {task_id}')
             if self.pickled_exprs:
-                return Task(task_id, self.pickled_exprs, pickle.dumps(substs))
-            return Task(task_id, self.exprs, substs)
+                return Task(task_id, self.pickled_exprs, pickle.dumps(simps))
+            return Task(task_id, self.exprs, simps)
         raise StopIteration
 
     def __get_substs(self, subset):
@@ -96,20 +97,50 @@ class TaskGenerator:
         # Granularity 1: Try all mutations separately.
         if len(subset) == 1:
             node = subset[0]
-            mutations = list(self.mutator.mutations(node))
-            if mutations:
-                return (node.id, mutations)
-            return dict()
+            if hasattr(self.mutator, 'mutations'):
+                mutations = self.mutator.mutations(node)
+            elif hasattr(self.mutator, 'global_mutations'):
+                mutations = self.mutator.global_mutations(node, self.exprs)
+            else:
+                return None
 
-        # Granularity > 1: Pick first mutation and perform parallel
-        # substitution of nodes in ``subset``.
+            res = []
+            for simp in mutations:
+                if isinstance(simp, Simplification):
+                    res.append(simp)
+                elif isinstance(simp, dict):
+                    res.append(Simplification(simp, []))
+                else:
+                    res.append(Simplification({node.id: simp}, []))
+            return res
+
+        # Granularity > 1: Pick first simplification for each node and group
+        # them all into one.
+        fresh_vars = []
         substs = dict()
         for node in subset:
+            if hasattr(self.mutator, 'mutations'):
+                mutations = self.mutator.mutations(node)
+            elif hasattr(self.mutator, 'global_mutations'):
+                mutations = self.mutator.global_mutations(node, self.exprs)
+            else:
+                continue
+
             try:
-                substs[node.id] = next(iter(self.mutator.mutations(node)))
+                simp = next(iter(mutations))
+                if isinstance(simp, Simplification):
+                    fresh_vars.extend(simp.fresh_vars)
+                    substs.update(simp.substs)
+                elif isinstance(simp, dict):
+                    substs.update(simp)
+                else:
+                    substs[node.id] = simp
             except StopIteration:
                 continue
-        return substs
+
+        if not substs:
+            return None
+        return [Simplification(substs, fresh_vars)]
 
     def reset(self, index):
         """Reset ``self.index`` to ``index``."""
@@ -139,84 +170,44 @@ def ddmin_passes():
     """
 
     # Passes applied to top-level nodes (DFS max-depth 1)
-    toplevel_passes = mutators.get_initialized_mutator('EraseNode',
-                                                       {'ident': 'assert'})
-    toplevel_passes.extend(
-        mutators.get_mutators([
-            'EraseNode',
-            'CheckSatAssuming',
-        ]))
+    stage1_names = ['EraseNode', 'CheckSatAssuming']
 
-    return [
-        toplevel_passes,
+    stage1 = mutators.get_initialized_mutator('EraseNode', {'ident': 'assert'})
+    stage1.extend(mutators.get_mutators(stage1_names))
 
-        # Passes applied to all nodes
-        mutators.get_mutators([
-            'Constants',
-            'ReplaceByChild',
-            #        'BinaryReduction',
-            'LetElimination',
-            'LetSubstitution',
-            #        'PushPopRemoval',
-            'ArithmeticSimplifyConstant',
-            'ArithmeticNegateRelation',
-            'ArithmeticSplitNaryRelation',
-            'ArithmeticStrengthenRelation',
-            'BVConcatToZeroExtend',
-            'BVDoubleNegation',
-            'BVElimBVComp',
-            'BVEvalExtend',
-            'BVExtractConstants',
-            'BVIteToBVComp',
-            'BVReflexiveNand',
-            'BVSimplifyConstant',
-            'BVTransformToBool',
-            #        'BVReduceBW',
-            'BVMergeReducedBW',
-            'BoolDeMorgan',
-            'BoolDoubleNegation',
-            'BoolEliminateFalseEquality',
-            'BoolEliminateImplication',
-            'BoolXORRemoveConstant',
-            'BoolXOREliminateBinary',
-            'MergeWithChildren',
-            'ReplaceByVariable',
-            'SortChildren',
-            'InlineDefinedFuns',
-            'SimplifyLogic',
-            'StringSimplifyConstant',
-            'SimplifyQuotedSymbols',
-            #        'SimplifySymbolNames',
-        ])
+    # Use mutators that promise maximum reduction first
+    stage2_names = [
+        'Constants',
+        'ReplaceByChild',
+        'IntroduceFreshVariable',
+        'LetElimination',
+        'LetSubstitution',
+        'ReplaceByVariable',
+        'MergeWithChildren',
     ]
 
+    exclude = [
+        'BinaryReduction',
+        'BVReduceBW',
+        'EliminateVariable',
+    ]
+    exclude.extend(stage1_names)
+    exclude.extend(stage2_names)
 
-def _subst(exprs, substs):
-    """Return list of mutated formulas.
+    # Add remaining mutators
+    for theory in mutators.get_all_mutators().values():
+        stage2_names.extend(x for x in theory[1] if x not in exclude)
 
-    Apply ``mutator`` to nodes in ``subset`` and substitute the nodes in
-    ``exprs``. At granularity 1 try all mutations returned by
-    ``mutator``, for all other granularities pick the first mutation.
-    """
+    return [stage1, mutators.get_mutators(stage2_names)]
 
-    # Granularity > 1: Pick first mutation and perform parallel
-    # substitution of nodes in ``subset``.
-    if isinstance(substs, dict):
-        mexprs = nodes.substitute(exprs, substs)
-        if mexprs is not exprs:
-            return [mexprs]
-        return []
 
-    # Granularity 1: Try all mutations separately.
-    assert isinstance(substs, tuple)
-    res = []
-    node_id = substs[0]
-    mutations = substs[1]
-    for mut in mutations:
-        mexprs = nodes.substitute(exprs, {node_id: mut})
-        if mexprs is not exprs:
-            res.append(mexprs)
-    return res
+def _simp(exprs, simplifications):
+    """Apply ``simplifications`` to ``exprs`` and return simplified
+    formulas."""
+    for simp in simplifications:
+        mexprs = apply_simp(exprs, simp)
+        if mexprs is not None:
+            yield mexprs
 
 
 __cached_exprs = None
@@ -228,7 +219,7 @@ def _worker(task):
     """Process given ``task``.
 
     If _worker runs in a separate process ``task.exprs`` and
-    ``task.substs`` are pickled and need to be unpickled before
+    ``task.simplifications`` are pickled and need to be unpickled before
     performing the substitutions and checks.
     """
     global __cached_exprs
@@ -246,15 +237,13 @@ def _worker(task):
             __cached_exprs_hash = hashval
 
         exprs = __cached_exprs
-        substs = pickle.loads(task.substs)
+        substs = pickle.loads(task.simplifications)
     else:
         exprs = task.exprs
-        substs = task.substs
-
-    mutated_exprs = _subst(exprs, substs)
+        substs = task.simplifications
 
     ntests = 0
-    for mexprs in mutated_exprs:
+    for mexprs in _simp(exprs, substs):
         ntests += 1
         if checker.check_exprs(mexprs):
             nreduced = nodes.count_exprs(exprs) - nodes.count_exprs(mexprs)
@@ -409,7 +398,6 @@ def reduce(exprs):
 
         # Apply top-level passes until fixed-point.
         for mut in passes[0]:
-            assert hasattr(mut, 'mutations')
             while True:
                 exprs, ntests, nreduced = _apply_mutator(mut, exprs, 1)
                 ntests_total += ntests
@@ -419,7 +407,6 @@ def reduce(exprs):
                     break
 
         for mut in passes[1]:
-            assert hasattr(mut, 'mutations')
             exprs, ntests, nreduced = _apply_mutator(mut, exprs)
             ntests_total += ntests
             nreduced_round += nreduced
