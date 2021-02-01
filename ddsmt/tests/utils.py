@@ -22,6 +22,7 @@ def check_global_mutations(mut, node, exprs, expected):
 
     for res, exp in zip(mutations, expected):
         simp = mutator_utils.apply_simp(exprs, res)
+        print(simp)
         if simp != exp:
             return False
 

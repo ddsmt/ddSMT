@@ -299,7 +299,12 @@ class BVTransformToBool:
             c = node[2]
             n = node[1]
         return [
-            Node(self.repl[n.get_ident()], *[Node('=', c, d) for d in n[1:]])
+            Simplification(
+                {
+                    node.id:
+                    Node(self.repl[n.get_ident()], *
+                         [Node('=', c, d) for d in n[1:]])
+                }, [])
         ]
 
     def __str__(self):
@@ -329,9 +334,6 @@ class BVReduceBW:
                and is_bv_sort(get_sort(node[1]))
 
     def global_mutations(self, linput, ginput):
-        idx = ginput.index(linput)
-        gin1 = ginput[:idx]
-        gin2 = ginput[idx + 1:]
         bw = get_bv_width(linput[1])
         bws = sorted(set([bw - 1, bw // 2, 2, 1]))
         for b in bws:
@@ -340,8 +342,7 @@ class BVReduceBW:
                 var = Node('declare-const', varname, Node('_', 'BitVec', b))
                 zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
                             Node(Node('_', 'zero_extend', bw - b), varname))
-                yield gin1 + [var] + [zext] + gin2
-        return
+                yield Simplification({linput.id: zext}, [var])
 
     def __str__(self):
         return 'reduce bit-width of variable'
@@ -387,8 +388,13 @@ class BVMergeReducedBW:
         deffun_zext = int(deffun_body[0][-1].data)
         decfun_name = deffun_body[-1]
         return [
-            Node('define-fun', name, (), nsort,
-                 (('_', 'zero_extend', zext + deffun_zext), decfun_name))
+            Simplification(
+                {
+                    node.id:
+                    Node('define-fun', name, (), nsort,
+                         (('_', 'zero_extend', zext + deffun_zext),
+                          decfun_name))
+                }, [])
         ]
 
     def __str__(self):

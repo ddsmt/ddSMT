@@ -295,24 +295,24 @@ def test_transform_to_bool():
     assert m.filter(Node('=', '#b1', ('bvand', 'x', 'y')))
     assert m.filter(Node('=', ('bvand', 'x', 'y'), '#b1'))
     assert m.filter(Node('=', '#b1', ('bvand', 'x', 'y', 'z')))
-    assert m.mutations(Node('=', '#b1', ('bvand', 'x', 'y', 'z'))) == [
-        Node('and', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))
-    ]
-    assert m.mutations(Node('=', ('bvand', 'x', 'y', 'z'), '#b1')) == [
-        Node('and', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))
-    ]
-    assert m.mutations(Node('=', '#b0', ('bvor', 'x', 'y', 'z'))) == [
-        Node('or', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))
-    ]
-    assert m.mutations(Node('=', ('bvor', 'x', 'y', 'z'), '#b0')) == [
-        Node('or', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))
-    ]
-    assert m.mutations(Node('=', '#b1', ('bvxor', 'x', 'y', 'z'))) == [
-        Node('xor', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))
-    ]
-    assert m.mutations(Node('=', ('bvxor', 'x', 'y', 'z'), '#b0')) == [
-        Node('xor', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))
-    ]
+    assert check_mutations(
+        m, Node('=', '#b1', ('bvand', 'x', 'y', 'z')),
+        [Node('and', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))])
+    assert check_mutations(
+        m, Node('=', ('bvand', 'x', 'y', 'z'), '#b1'),
+        [Node('and', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))])
+    assert check_mutations(
+        m, Node('=', '#b0', ('bvor', 'x', 'y', 'z')),
+        [Node('or', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))])
+    assert check_mutations(
+        m, Node('=', ('bvor', 'x', 'y', 'z'), '#b0'),
+        [Node('or', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))])
+    assert check_mutations(
+        m, Node('=', '#b1', ('bvxor', 'x', 'y', 'z')),
+        [Node('xor', ('=', '#b1', 'x'), ('=', '#b1', 'y'), ('=', '#b1', 'z'))])
+    assert check_mutations(
+        m, Node('=', ('bvxor', 'x', 'y', 'z'), '#b0'),
+        [Node('xor', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))])
 
 
 def test_bv_reduce_bw():
@@ -341,12 +341,14 @@ def test_bv_reduce_bw():
     assert m.filter(declx)
     assert m.filter(decly)
     declz = Node('declare-const', z, bvsort9)
-    _exprs1 = [
+    _decls1 = [
         Node('declare-fun', r, (), 'Real'),
         Node('declare-const', s, 'String'),
         Node('declare-const', a, 'Float64'),
         Node('declare-const', b, ('_', 'FloatingPoint', 11, 53)),
         Node('declare-fun', c, (), ('_', 'FloatingPoint', 5, 11)),
+    ]
+    _asserts1 = [
         Node('assert', ('=', ('bvadd', x, y), (('_', 'extract', 24, 17), z))),
         Node('assert', ('<', ('+', r, r), 4)),
         Node('assert', ('distinct', ('str.++', s, s), "aaa")),
@@ -355,7 +357,8 @@ def test_bv_reduce_bw():
         declx,
         decly,
         declz,
-        *_exprs1,
+        *_decls1,
+        *_asserts1,
     ]
     x8 = [
         Node('declare-const', '_x', ('_', 'BitVec', 1)),
@@ -394,42 +397,45 @@ def test_bv_reduce_bw():
         Node(('_', 'zero_extend', 1), '_z'),
     ]
     smtlib.collect_information(exprs1)
-    assert list(m.global_mutations(declx, exprs1)) == [[
-        x8[i],
+    assert check_global_mutations(m, declx, exprs1, [[
         Node('define-fun', x, (), bvsort8, zext_x8[i]),
         decly,
         declz,
-        *_exprs1,
-    ] for i in range(0, 4)]
-    assert list(m.global_mutations(decly, exprs1)) == [[
+        *_decls1,
+        x8[i],
+        *_asserts1,
+    ] for i in range(0, 4)])
+    assert check_global_mutations(m, decly, exprs1, [[
         declx,
-        y8[i],
         Node('define-fun', y, (), bvsort8, zext_y8[i]),
         declz,
-        *_exprs1,
-    ] for i in range(0, 4)]
-    assert list(m.global_mutations(declz, exprs1)) == [[
+        *_decls1,
+        y8[i],
+        *_asserts1,
+    ] for i in range(0, 4)])
+    assert check_global_mutations(m, declz, exprs1, [[
         declx,
         decly,
-        z9[i],
         Node('define-fun', z, (), bvsort9, zext_z9[i]),
-        *_exprs1,
-    ] for i in range(0, 4)]
+        *_decls1,
+        z9[i],
+        *_asserts1,
+    ] for i in range(0, 4)])
 
     # corner case: avoid reducing by 0 bits
     decl = Node('declare-const', 'x', ('_', 'BitVec', 2))
     smtlib.collect_information([decl])
     assert m.filter(decl)
-    assert list(m.global_mutations(decl, [decl])) == [[
-        Node('declare-const', '_x', ('_', 'BitVec', 1)),
+    assert check_global_mutations(m, decl, [decl], [[
         Node('define-fun', 'x', (), ('_', 'BitVec', 2),
-             (('_', 'zero_extend', '1'), '_x'))
-    ]]
+             (('_', 'zero_extend', '1'), '_x')),
+        Node('declare-const', '_x', ('_', 'BitVec', 1)),
+    ]])
 
     decl = Node('declare-const', 'x', ('_', 'BitVec', 1))
     smtlib.collect_information([decl])
     assert m.filter(decl)
-    assert list(m.global_mutations(decl, [decl])) == []
+    assert check_global_mutations(m, decl, [decl], [])
 
 
 def test_bv_merge_reduced_bw():
@@ -464,9 +470,9 @@ def test_bv_merge_reduced_bw():
     assert not m.filter(def_y)
     assert m.filter(exprs[2])
     assert m.filter(def_x)
-    assert m.mutations(def_x) == [
+    assert check_mutations(m, def_x, [
         Node('define-fun', 'x', (), bvsort8, (('_', 'zero_extend', 7), '__x'))
-    ]
+    ])
 
 
 def test_bv_reduce_bw_usecase():
