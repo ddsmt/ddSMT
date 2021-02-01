@@ -1,5 +1,6 @@
 from ..nodes import Node
 from .. import mutators_fp
+from .utils import *
 
 
 def test_fp_get_mutators():
@@ -28,9 +29,12 @@ def test_fp_short_sort():
     assert not m.filter(Node('_', 'FloatingPoint', 5))
     assert not m.filter(Node('_', 'FloatingPoin', 5, 11))
     assert m.filter(Node('_', 'FloatingPoint', 3, 5))
-    assert m.mutations(Node('_', 'FloatingPoint', 3, 5)) == []
-    assert m.mutations(Node('_', 'FloatingPoint', 5, 11)) == [Node('Float16')]
-    assert m.mutations(Node('_', 'FloatingPoint', 8, 24)) == [Node('Float32')]
-    assert m.mutations(Node('_', 'FloatingPoint', 11, 53)) == [Node('Float64')]
-    assert m.mutations(Node('_', 'FloatingPoint', 15,
-                            113)) == [Node('Float128')]
+    assert check_mutations(m, Node('_', 'FloatingPoint', 3, 5), [])
+    assert check_mutations(m, Node('_', 'FloatingPoint', 5, 11),
+                           [Node('Float16')])
+    assert check_mutations(m, Node('_', 'FloatingPoint', 8, 24),
+                           [Node('Float32')])
+    assert check_mutations(m, Node('_', 'FloatingPoint', 11, 53),
+                           [Node('Float64')])
+    assert check_mutations(m, Node('_', 'FloatingPoint', 15, 113),
+                           [Node('Float128')])

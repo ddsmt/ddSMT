@@ -20,6 +20,7 @@
 
 from .nodes import Node
 from .smtlib import *
+from .mutator_utils import Simplification
 
 
 class FPShortSort:
@@ -37,13 +38,13 @@ class FPShortSort:
 
     def mutations(self, node):
         if node[2] == '5' and node[3] == '11':
-            return [Node('Float16')]
+            return [Simplification({node.id: Node('Float16')}, [])]
         if node[2] == '8' and node[3] == '24':
-            return [Node('Float32')]
+            return [Simplification({node.id: Node('Float32')}, [])]
         if node[2] == '11' and node[3] == '53':
-            return [Node('Float64')]
+            return [Simplification({node.id: Node('Float64')}, [])]
         if node[2] == '15' and node[3] == '113':
-            return [Node('Float128')]
+            return [Simplification({node.id: Node('Float128')}, [])]
         return []
 
     def __str__(self):
