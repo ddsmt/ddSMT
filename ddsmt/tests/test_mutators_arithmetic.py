@@ -1,5 +1,6 @@
 from ..nodes import Node
 from .. import mutators_arithmetic
+from .utils import *
 
 
 def test_arith_get_mutators():
@@ -40,7 +41,7 @@ def test_arith_negate_relation():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
 
 def test_arith_simplify_constant():
@@ -66,7 +67,7 @@ def test_arith_simplify_constant():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
     exprs = [
         Node('assert', ('=', '13', 'y')),
@@ -75,14 +76,18 @@ def test_arith_simplify_constant():
     ]
     x = Node('13')
     assert m.filter(x)
-    assert list(m.global_mutations(x, exprs)) == [
-        {
-            x: Node('6')
-        },
-        {
-            x: Node('1')
-        },
-    ]
+    assert check_global_mutations(m, x, exprs, [
+        [
+            Node('assert', ('=', '6', 'y')),
+            Node('assert', ('>', '6', 'z')),
+            Node('assert', ('<', 'y', 'z')),
+        ],
+        [
+            Node('assert', ('=', '1', 'y')),
+            Node('assert', ('>', '1', 'z')),
+            Node('assert', ('<', 'y', 'z')),
+        ],
+    ])
 
 
 def test_arith_split_nary_relations():
@@ -101,7 +106,7 @@ def test_arith_split_nary_relations():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
 
 def test_arith_strengthen_relations():
@@ -120,4 +125,4 @@ def test_arith_strengthen_relations():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)

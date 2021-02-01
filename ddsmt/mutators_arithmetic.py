@@ -19,6 +19,7 @@
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
 from .smtlib import *
+from .mutator_utils import Simplification
 
 
 def is_arithmetic_relation(node):
@@ -46,7 +47,10 @@ class ArithmeticNegateRelation:
             'distinct': '='
         }
         assert node[1][0] in negator
-        return [Node(negator[node[1][0]], *node[1][1:])]
+        return [
+            Simplification({node.id: Node(negator[node[1][0]], *node[1][1:])},
+                           [])
+        ]
 
     def __str__(self):
         return 'push negation into arithmetic relation'
@@ -62,12 +66,21 @@ class ArithmeticSimplifyConstant:
         f = float(node.data)
         if int(f) == f:
             i = int(f)
-            return [Node(str(i // 2)), Node(str(i // 10))]
-        return [Node(str(int(f))), Node(node.data[:-1])]
+            yield from [
+                Simplification({node.id: Node(str(i // 2))}, []),
+                Simplification({node.id: Node(str(i // 10))}, [])
+            ]
+            return
+        yield from [
+            Simplification({node.id: Node(str(int(f)))}, []),
+            Simplification({node.id: Node(node.data[:-1])}, [])
+        ]
 
     def global_mutations(self, linput, ginput):
-        for rep in self.mutations(linput):
-            yield {linput: rep}
+        yield from [
+            Simplification({linput: simp.substs[linput.id]}, [])
+            for simp in self.mutations(linput)
+        ]
 
     def __str__(self):
         return 'simplify arithmetic constant'
@@ -83,7 +96,7 @@ class ArithmeticSplitNaryRelation:
         split = [(node.get_ident(), node[i], node[i + 1])
                  for i in range(1,
                                 len(node) - 1)]
-        return [Node('and', *split)]
+        return [Simplification({node.id: Node('and', *split)}, [])]
 
     def __str__(self):
         return 'split arithmetic n-ary relation'
@@ -100,7 +113,10 @@ class ArithmeticStrengthenRelation:
     def mutations(self, node):
         negator = {'<': ['='], '>': ['='], '<=': ['<', '='], '>=': ['>', '=']}
         assert node[0] in negator
-        return [Node(rel, *node.data[1:]) for rel in negator[node[0]]]
+        yield from [
+            Simplification({node.id: Node(rel, *node.data[1:])}, [])
+            for rel in negator[node[0]]
+        ]
 
     def __str__(self):
         return 'strengthen arithmetic relation'
