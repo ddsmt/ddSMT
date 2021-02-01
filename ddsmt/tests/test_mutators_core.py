@@ -2,6 +2,7 @@ from ..nodes import Node
 from .. import mutators_core
 from .. import options
 from .. import smtlib
+from .utils import *
 
 
 def test_binary_reduction():
@@ -18,51 +19,21 @@ def test_binary_reduction():
     h = Node('h')
     i = Node('i')
     exprs = [a, b, c, d, e, f, g, h, i]
-    mut = [
-        {
-            e.id: None,
-            f.id: None,
-            g.id: None,
-            h.id: None,
-            i.id: None
-        },
-        {
-            a.id: None,
-            b.id: None,
-            c.id: None,
-            d.id: None
-        },
-        {
-            g.id: None,
-            h.id: None,
-            i.id: None
-        },
-        {
-            e.id: None,
-            f.id: None
-        },
-        {
-            c.id: None,
-            d.id: None
-        },
-        {
-            a.id: None,
-            b.id: None
-        },
-    ]
-    assert list(m.global_mutations(b, exprs)) == []
-    assert list(m.global_mutations(a, exprs)) == mut
+    mut = [[a, b, c, d], [e, f, g, h, i], [a, b, c, d, e, f],
+           [a, b, c, d, g, h, i], [a, b, e, f, g, h, i], [c, d, e, f, g, h, i]]
+    assert check_global_mutations(m, b, exprs, [])
+    assert check_global_mutations(m, a, exprs, mut)
 
-    assert list(m.mutations(Node('and', 'a', 'b', 'c'))) == []
+    assert check_mutations(m, Node('and', 'a', 'b', 'c'), [])
     n = Node('and', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j')
-    assert list(m.mutations(n)) == [
+    assert check_mutations(m, n, [
         Node('and', 'a', 'b', 'c', 'd'),
         Node('e', 'f', 'g', 'h', 'i', 'j'),
         Node('and', 'a', 'b', 'c', 'd', 'e', 'f', 'g'),
         Node('and', 'a', 'b', 'c', 'd', 'h', 'i', 'j'),
         Node('and', 'a', 'e', 'f', 'g', 'h', 'i', 'j'),
         Node('b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'),
-    ]
+    ])
 
 
 def test_binary_reduction_named():
@@ -80,18 +51,8 @@ def test_binary_reduction_named():
     h = Node('assert', 'h')
     i = Node('assert', 'i')
     exprs = [a, b, c, d, e, f, g, h, i]
-    mut = [
-        {
-            f.id: None,
-            h.id: None,
-            i.id: None
-        },
-        {
-            b.id: None,
-            d.id: None
-        },
-    ]
-    assert list(m.global_mutations(a, exprs)) == mut
+    mut = [[a, b, c, d, e, g], [a, c, e, f, g, h, i]]
+    assert check_global_mutations(m, a, exprs, mut)
 
 
 def test_constants():
@@ -100,7 +61,7 @@ def test_constants():
     assert isinstance(str(m), str)
     exprs = [Node('declare-const', 'x', 'Real'), Node('#b1011')]
     assert not m.filter(Node('x'))
-    assert m.mutations(Node('x')) == []
+    assert list(m.mutations(Node('x'))) == []
     smtlib.collect_information(exprs)
     assert m.filter(Node('x'))
     assert m.filter(Node('#b1011'))
@@ -109,26 +70,26 @@ def test_constants():
 
     # can't handle this case without BV const normalization
     # else this should be an empty set
-    assert m.mutations(
-        Node('#b0')) == [Node('_', 'bv0', 1),
-                         Node('_', 'bv1', 1)]
-    assert m.mutations(Node('_', 'bv0', 1)) == []
+    assert check_mutations(
+        m, Node('#b0'),
+        [Node('_', 'bv0', 1), Node('_', 'bv1', 1)])
+    assert check_mutations(m, Node('_', 'bv0', 1), [])
 
-    assert isinstance(m.mutations(Node('#b1011'))[0], Node)
-    assert isinstance(m.mutations(Node('#b1011'))[0].data, tuple)
-    assert m.mutations(Node('#b1011'))[0] == Node('_', 'bv0', 4)
-    assert m.mutations(
-        Node('#b1011')) == [Node('_', 'bv0', 4),
-                            Node('_', 'bv1', 4)]
-    assert m.mutations(Node('x')) == [Node('0.0'), Node('1.0')]
-    assert m.mutations(Node('=', 'x', '1')) == [Node('false'), Node('true')]
+    #assert isinstance(m.mutations(Node('#b1011'))[0], Node)
+    #assert isinstance(m.mutations(Node('#b1011'))[0].data, tuple)
+    assert check_mutations(
+        m, Node('#b1011'),
+        [Node('_', 'bv0', 4), Node('_', 'bv1', 4)])
+    assert check_mutations(m, Node('x'), [Node('0.0'), Node('1.0')])
+    assert check_mutations(m, Node('=', 'x', '1'),
+                           [Node('false'), Node('true')])
 
 
 def test_erase_node():
     m = mutators_core.EraseNode()
     assert isinstance(str(m), str)
     assert m.filter(Node('x'))
-    assert m.mutations(Node('x')) == [None]
+    assert check_mutations(m, Node('x'), [None])
 
 
 def test_erase_named_node():
@@ -137,7 +98,7 @@ def test_erase_named_node():
     assert isinstance(str(m), str)
     assert m.filter(Node('assert', 'x'))
     assert not m.filter(Node('x'))
-    assert m.mutations(Node(Node('assert'), Node('true'))) == [None]
+    assert check_mutations(m, Node(Node('assert'), Node('true')), [None])
 
 
 def test_merge_with_children():
@@ -145,9 +106,8 @@ def test_merge_with_children():
     m = mutators_core.MergeWithChildren()
     assert isinstance(str(m), str)
     assert m.filter(node)
-    assert list(m.mutations(node)) == [
-        Node(Node('+'), Node('x'), Node('x'), Node('y'))
-    ]
+    assert check_mutations(m, node,
+                           [Node(Node('+'), Node('x'), Node('x'), Node('y'))])
 
 
 def test_replace_by_child():
@@ -160,7 +120,7 @@ def test_replace_by_child():
     assert isinstance(str(m), str)
     assert m.filter(node)
     assert not m.filter(Node('x'))
-    assert list(m.mutations(node)) == ['x', 'y']
+    assert check_mutations(m, node, ['x', 'y'])
     smtlib.reset_information()
 
 
@@ -173,11 +133,11 @@ def test_replace_by_variable():
     node = Node(Node('+'), x, c)
     m = mutators_core.ReplaceByVariable()
     assert isinstance(str(m), str)
-    assert m.mutations(Node('x')) == []
+    assert check_mutations(m, Node('x'), [])
 
     m.repl_mode = 'inc'
     assert isinstance(str(m), str)
-    assert m.mutations(node) == []
+    assert check_mutations(m, node, [])
 
     v1 = Node('v1')
     v3 = Node('v3')
@@ -192,16 +152,16 @@ def test_replace_by_variable():
     assert m.filter(node)
     assert m.filter(x)
     assert not m.filter(c)
-    assert list(m.mutations(node)) == [v1, x, v3]
-    assert list(m.mutations(x)) == []
-    assert list(m.mutations(v1)) == [x, v3]
-    assert list(m.mutations(v3)) == [x]
+    assert check_mutations(m, node, [v1, x, v3])
+    assert check_mutations(m, x, [])
+    assert check_mutations(m, v1, [x, v3])
+    assert check_mutations(m, v3, [x])
 
     m.repl_mode = 'dec'
-    assert list(m.mutations(node)) == [v1, x, v3]
-    assert list(m.mutations(x)) == [v1, v3]
-    assert list(m.mutations(v1)) == []
-    assert list(m.mutations(v3)) == [v1]
+    assert check_mutations(m, node, [v1, x, v3])
+    assert check_mutations(m, x, [v1, v3])
+    assert check_mutations(m, v1, [])
+    assert check_mutations(m, v3, [v1])
 
 
 def test_sort_children():
@@ -216,5 +176,5 @@ def test_sort_children():
     assert not m.filter(Node('123'))
     assert m.filter(node)
     assert m.filter(expected)
-    assert list(m.mutations(node)) == [expected]
-    assert list(m.mutations(expected)) == []
+    assert check_mutations(m, node, [expected])
+    assert check_mutations(m, expected, [])

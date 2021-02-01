@@ -358,7 +358,8 @@ def substitute(exprs, repl):
         return exprs
     if isinstance(exprs, Node):
         assert len(args) == 1
-        assert len(args[0]) == 1
+        if len(args[0]) == 0:
+            return None
         return args[0][0]
     return args[0]
 

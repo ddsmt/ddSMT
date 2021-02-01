@@ -34,7 +34,7 @@ class BinaryReduction:
         if node.is_leaf() or len(node) < 8:
             return
         for sec in nodes.binary_search(len(node)):
-            yield node[:sec[0]] + node[sec[1]:]
+            yield Simplification({node.id: node[:sec[0]] + node[sec[1]:]}, [])
 
     def global_mutations(self, linput, ginput):
         if linput != ginput[0]:
@@ -164,7 +164,8 @@ class ReplaceByVariable:
         if is_leaf(node):
             if self.repl_mode == 'inc':
                 variables = [v for v in variables if v > node.data]
-            variables = [v for v in variables if v < node.data]
+            else:
+                variables = [v for v in variables if v < node.data]
         yield from [Simplification({node.id: Node(v)}, []) for v in variables]
 
     def __str__(self):
