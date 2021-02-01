@@ -19,6 +19,7 @@
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
 from .smtlib import *
+from .mutator_utils import Simplification
 
 
 def is_quantifier(node):
@@ -32,10 +33,10 @@ def make_and(children):
     are no children.
     """
     if len(children) == 0:
-        return []
+        return None
     if len(children) == 1:
-        return children
-    return [Node('and', *children)]
+        return children[0]
+    return Node('and', *children)
 
 
 class BoolDeMorgan:
@@ -47,9 +48,9 @@ class BoolDeMorgan:
     def mutations(self, node):
         negated = [Node('not', t) for t in node[1][1:]]
         if node[1].get_ident() == 'and':
-            return [Node('or', *negated)]
+            return [Simplification({node.id: Node('or', *negated)}, [])]
         assert node[1].get_ident() == 'or'
-        return [Node('and', *negated)]
+        return [Simplification({node.id: Node('and', *negated)}, [])]
 
     def __str__(self):
         return 'push negation inside'
@@ -61,7 +62,7 @@ class BoolDoubleNegation:
         return is_operator_app(node, 'not') and is_operator_app(node[1], 'not')
 
     def mutations(self, node):
-        return [node[1][1]]
+        return [Simplification({node.id: node[1][1]}, [])]
 
     def __str__(self):
         return 'eliminate double negation'
@@ -76,8 +77,8 @@ class BoolEliminateFalseEquality:
         return is_eq(node) and Node('false') in node
 
     def mutations(self, node):
-        negated = [Node('not', n) for n in node[1:] if n != 'false']
-        return make_and(negated)
+        simp = make_and([Node('not', n) for n in node[1:] if n != 'false'])
+        return [] if simp is None else [Simplification({node.id: simp}, [])]
 
     def __str__(self):
         return 'replace equality with false by negation'
@@ -89,12 +90,12 @@ class BoolEliminateImplication:
         return is_operator_app(node, '=>')
 
     def mutations(self, node):
-        split = [
+        simp = make_and([
             Node('or', ('not', node[i]), node[i + 1])
             for i in range(1,
                            len(node) - 1)
-        ]
-        return make_and(split)
+        ])
+        return [] if simp is None else [Simplification({node.id: simp}, [])]
 
     def __str__(self):
         return 'eliminate implication'
@@ -107,9 +108,16 @@ class BoolNegateQuantifier:
 
     def mutations(self, node):
         if node[1].get_ident() == 'exists':
-            return [Node('forall', node[1][1], ('not', node[1][2]))]
+            return [
+                Simplification(
+                    {node.id: Node('forall', node[1][1], ('not', node[1][2]))},
+                    [])
+            ]
         assert node[1].get_ident() == 'forall'
-        return [Node('exists', node[1][1], ('not', node[1][2]))]
+        return [
+            Simplification(
+                {node.id: Node('exists', node[1][1], ('not', node[1][2]))}, [])
+        ]
 
     def __str__(self):
         return 'push negation inside of quantifier'
@@ -121,7 +129,9 @@ class BoolXOREliminateBinary:
         return is_operator_app(node, 'xor') and len(node) == 3
 
     def mutations(self, node):
-        return [Node('distinct', node[1], node[2])]
+        return [
+            Simplification({node.id: Node('distinct', node[1], node[2])}, [])
+        ]
 
     def __str__(self):
         return 'eliminate binary xor'
@@ -133,13 +143,15 @@ class BoolXORRemoveConstant:
         return is_operator_app(node, 'xor')
 
     def mutations(self, node):
-        res = []
         if 'false' in node:
-            res.append(Node(*[c for c in node if c != 'false']))
+            yield Simplification(
+                {node.id: Node(*[c for c in node if c != 'false'])}, [])
         if 'true' in node:
-            res.append(Node(*[c for c in node if c != 'true']))
-            res.append(Node('not', tuple(c for c in node if c != 'true')))
-        return res
+            yield Simplification(
+                {node.id: Node(*[c for c in node if c != 'true'])}, [])
+            yield Simplification(
+                {node.id: Node('not', tuple(c for c in node if c != 'true'))},
+                [])
 
     def __str__(self):
         return 'remove constants from xor'

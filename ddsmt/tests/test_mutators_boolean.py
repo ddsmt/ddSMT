@@ -1,5 +1,6 @@
 from ..nodes import Node
 from .. import mutators_boolean
+from .utils import *
 
 
 def test_bool_get_mutators():
@@ -26,7 +27,7 @@ def test_bool_de_morgan():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
 
 def test_bool_double_negation():
@@ -45,7 +46,7 @@ def test_bool_double_negation():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
 
 def test_bool_eliminate_false_equality():
@@ -66,7 +67,7 @@ def test_bool_eliminate_false_equality():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
 
 def test_bool_eliminate_implication():
@@ -86,7 +87,7 @@ def test_bool_eliminate_implication():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
 
 def test_bool_negate_quantifier():
@@ -106,7 +107,7 @@ def test_bool_negate_quantifier():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
 
 def test_bool_xor_eliminate_binary():
@@ -123,7 +124,7 @@ def test_bool_xor_eliminate_binary():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
 
 
 def test_bool_xor_remove_constant():
@@ -147,4 +148,4 @@ def test_bool_xor_remove_constant():
         assert not m.filter(e)
     for k, v in exprs.items():
         assert m.filter(k)
-        assert m.mutations(k) == v
+        assert check_mutations(m, k, v)
