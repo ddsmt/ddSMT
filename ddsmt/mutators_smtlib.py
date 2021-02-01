@@ -37,7 +37,6 @@ class CheckSatAssuming:
         return 'substitute check-sat-assuming by check-sat'
 
 
-# TODO
 class EliminateVariable:
     """Eliminate a variable using an equality with this variable.
 
@@ -59,9 +58,13 @@ class EliminateVariable:
                 if t in nodes.dfs(c):
                     # Avoid cycles (for example with core.ReplaceByChild)
                     continue
-                subst = substitute_vars_except_decl(ginput, {t: c})
-                if subst:
-                    yield subst
+                substs = {}
+                for n in nodes.dfs(ginput):
+                    if n == t and not is_definition_node(n):
+                        substs[n.id] = c
+                if substs:
+                    print(substs)
+                    yield Simplification(substs, [])
 
     def __str__(self):
         return 'eliminate variable from equality'
@@ -92,7 +95,7 @@ class IntroduceFreshVariable:
     """Replace a term by a fresh variable of the appropriate type."""
     def filter(self, node):
         if node.is_leaf():
-            if node.data.startswith('__fresh_'):
+            if node.data.endswith('__fresh'):
                 return False
         return not is_const(node) and get_sort(node) is not None
 
@@ -119,7 +122,6 @@ class LetElimination:
         return 'eliminate let binder'
 
 
-# TODO
 class LetSubstitution:
     """Substitutes a variable bound by a ``let`` binder into the nested
     term."""
@@ -133,8 +135,8 @@ class LetSubstitution:
         for var in node[1]:
             if any(n == var[0] for n in nodes.dfs(node[2])):
                 subs = nodes.substitute(node[2], {var[0]: var[1]})
-                res.append(Node(node[0], node[1], subs))
-        return res
+                yield Simplification({node.id: Node(node[0], node[1], subs)},
+                                     [])
 
     def __str__(self):
         return 'substitute variable into let body'

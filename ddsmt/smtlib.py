@@ -171,32 +171,6 @@ def introduce_variables(exprs, vars):
     return exprs[:pos] + vars + exprs[pos:]
 
 
-def substitute_vars_except_decl(exprs, repl):
-    """Perform the given variable substitution anywhere it occurs except for
-    the declared or defined variable in any of the declaration commands
-    ``declare-const``, ``declare-fun``, ``define-fun``
-
-    If there was no substitution to be done (i.e. the result is still
-    ``exprs``), return ``None``.
-    """
-    res = []
-    did_change = False
-    for e in exprs:
-        if e.has_ident() and e.get_ident() in [
-                'declare-const', 'declare-fun', 'define-fun'
-        ]:
-            # Ignore e[0:3]: ident, name and arguments
-            mapped = map(lambda x: nodes.substitute(x, repl), e[3:])
-            res.append(Node(*e[0:3], *mapped))
-        else:
-            res.append(nodes.substitute(e, repl))
-            if res[-1] != e:
-                did_change = True
-    if not did_change:
-        return None
-    return res
-
-
 # General semantic testers and testers
 
 

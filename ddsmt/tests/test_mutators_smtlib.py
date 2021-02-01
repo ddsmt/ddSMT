@@ -1,6 +1,8 @@
 from ..nodes import Node
 from .. import mutators_smtlib
 from .. import smtlib
+from ..mutator_utils import *
+from .utils import *
 
 
 def test_smtlib_get_mutators():
@@ -17,10 +19,10 @@ def test_smtlib_checksat_assuming():
     assert m.filter(Node('check-sat-assuming', 'true'))
     assert m.filter(Node('check-sat-assuming', ('xor', 'x', 'y')))
 
-    assert m.mutations(Node('check-sat-assuming',
-                            'true')) == [Node(Node('check-sat'))]
-    assert m.mutations(Node('check-sat-assuming',
-                            ('xor', 'x', 'y'))) == [Node(Node('check-sat'))]
+    assert check_mutations(m, Node('check-sat-assuming', 'true'),
+                           [Node(Node('check-sat'))])
+    assert check_mutations(m, Node('check-sat-assuming', ('xor', 'x', 'y')),
+                           [Node(Node('check-sat'))])
 
 
 def test_smtlib_eliminate_variable():
@@ -29,7 +31,7 @@ def test_smtlib_eliminate_variable():
     # special case where 'x' occurs in the replacement
     eq = Node('=', 'x', ('*', 'x', 'y'))
     assert m.filter(eq)
-    assert list(m.global_mutations(eq, eq)) == []
+    assert check_global_mutations(m, eq, eq, [])
     eq = Node('=', 'x', ('*', 'y', 'y'))
     exprs = [
         Node('declare-const', 'x', 'Real'),
@@ -38,20 +40,22 @@ def test_smtlib_eliminate_variable():
         Node('assert', eq),
         Node('assert', ('>', 'x', 'y')),
     ]
+    smtlib.collect_information(exprs)
     assert m.filter(eq)
-    assert list(m.global_mutations(eq, exprs)) == [[
+    assert check_global_mutations(m, eq, exprs, [[
         Node('declare-const', 'x', 'Real'),
         Node('define-fun', 'y', (), 'Real',
              ('*', ('*', 'y', 'y'), ('*', 'y', 'y'))),
         Node('define-fun', 'z', (), 'Real', ('*', ('*', 'y', 'y'), 'y')),
         Node('assert', ('=', ('*', 'y', 'y'), ('*', 'y', 'y'))),
         Node('assert', ('>', ('*', 'y', 'y'), 'y')),
-    ]]
+    ]])
 
     eq = Node('=', 'x', 'y', 'a', ('*', 'y', 'y'), ('+', 'a', 'b'))
     exprs = [Node('assert', ('>', 'x', 'y'))]
+    smtlib.collect_information(exprs)
     assert m.filter(eq)
-    assert list(m.global_mutations(eq, exprs)) == [
+    assert check_global_mutations(m, eq, exprs, [
         [Node('assert', ('>', 'y', 'y'))],
         [Node('assert', ('>', 'a', 'y'))],
         [Node('assert', ('>', ('*', 'y', 'y'), 'y'))],
@@ -59,7 +63,7 @@ def test_smtlib_eliminate_variable():
         [Node('assert', ('>', 'x', 'x'))],
         [Node('assert', ('>', 'x', 'a'))],
         [Node('assert', ('>', 'x', ('+', 'a', 'b')))],
-    ]
+    ])
 
 
 def test_smtlib_inline_define_fun():
@@ -71,7 +75,7 @@ def test_smtlib_inline_define_fun():
     n = Node('define-fun', 'x', (), 'Bool', ('not', inner))
     smtlib.collect_information([n])
     assert m.filter(inner)
-    assert m.mutations(inner) == []
+    assert check_mutations(m, inner, [])
 
     n = Node('define-fun', 'x', (), 'Bool', inner)
     smtlib.collect_information([n])
@@ -84,7 +88,7 @@ def test_smtlib_inline_define_fun():
              ('and', 'y', 'z'))
     ])
     assert m.filter(expr)
-    assert m.mutations(expr) == [Node('and', 'a', 'b')]
+    assert check_mutations(m, expr, [Node('and', 'a', 'b')])
     smtlib.reset_information()
 
 
@@ -101,10 +105,10 @@ def test_smtlib_introduce_fresh_variable():
     assert m.filter(Node('x'))
     assert not m.filter(Node('__fresh_'))
     assert m.filter(term)
-    assert m.global_mutations(term, exprs) == [[
-        decl, ('declare-fun', f'__fresh_{term.id}', (), 'Bool'),
-        Node('assert', f'__fresh_{term.id}')
-    ]]
+    assert check_global_mutations(m, term, exprs, [[
+        decl, ('declare-const', f'x{term.id}__fresh', 'Bool'),
+        Node('assert', f'x{term.id}__fresh')
+    ]])
 
 
 def test_smtlib_let_elimination():
@@ -114,14 +118,14 @@ def test_smtlib_let_elimination():
 
     n = Node('let', (('a', 'x'), ('b', 'y')), ('and', 'a', 'b'))
     assert m.filter(n)
-    assert m.mutations(n) == [('and', 'a', 'b')]
+    assert check_mutations(m, n, [('and', 'a', 'b')])
 
     n = Node(
         'let',
         (('a', 'x'), ('b', 'y')),
     )
     assert m.filter(n)
-    assert m.mutations(n) == []
+    assert check_mutations(m, n, [])
 
 
 def test_smtlib_let_substitution():
@@ -130,17 +134,17 @@ def test_smtlib_let_substitution():
     assert not m.filter(Node('and', 'x', 'y'))
     n = Node('let', (('a', 'x'), ('b', 'y')), ('and', 'a', 'b'))
     assert m.filter(n)
-    assert m.mutations(n) == [
-        ('let', (('a', 'x'), ('b', 'y')), ('and', 'x', 'b')),
-        ('let', (('a', 'x'), ('b', 'y')), ('and', 'a', 'y'))
-    ]
+    assert check_mutations(m, n, [('let', (('a', 'x'), ('b', 'y')),
+                                   ('and', 'x', 'b')),
+                                  ('let', (('a', 'x'), ('b', 'y')),
+                                   ('and', 'a', 'y'))])
     n = Node('let', (('a', 'x'), ('b', 'y')), ('and', 'abc', 'def'))
     assert m.filter(n)
-    assert m.mutations(n) == []
+    assert check_mutations(m, n, [])
 
     n = Node('let', (('a', 'x'), ('b', 'y')))
     assert m.filter(n)
-    assert m.mutations(n) == []
+    assert check_mutations(m, n, [])
 
 
 def test_smtlib_simplify_logic():
@@ -149,14 +153,14 @@ def test_smtlib_simplify_logic():
 
     assert not m.filter(Node('assert', 'x'))
     assert m.filter(Node('set-logic', 'QF_NRA'))
-    assert m.mutations(Node('set-logic',
-                            'QF_NRA')) == [('set-logic', 'QF_LRA')]
-    assert m.mutations(Node('set-logic', 'QF_BVFPLRAS')) == [
+    assert check_mutations(m, Node('set-logic', 'QF_NRA'),
+                           [('set-logic', 'QF_LRA')])
+    assert check_mutations(m, Node('set-logic', 'QF_BVFPLRAS'), [
         ('set-logic', 'QF_FPLRAS'),
         ('set-logic', 'QF_BVLRAS'),
         ('set-logic', 'QF_BVFPLRA'),
         ('set-logic', 'QF_BVFPS'),
-    ]
+    ])
 
 
 def test_smtlib_quoted_symbols():
@@ -167,11 +171,9 @@ def test_smtlib_quoted_symbols():
     assert not m.filter(Node('|"x|'))
     assert not m.filter(Node('and', 'x', 'y'))
     assert not m.filter(Node('and', '|x|', 'y'))
-    assert m.mutations(Node('|x|')) == ['x']
-    assert m.global_mutations(Node('|x|'), Node('assert', '|x|')) == [{
-        Node('|x|'):
-        Node('x')
-    }]
+    assert check_mutations(m, Node('|x|'), ['x'])
+    assert check_global_mutations(m, Node('|x|'), Node('assert', '|x|'),
+                                  [Node('assert', 'x')])
 
 
 def test_smtlib_simplify_symbol_names():
@@ -187,38 +189,24 @@ def test_smtlib_simplify_symbol_names():
         Node('assert',
              ('exists', (('xy', 'Bool'), ('z', 'Bool')), ('and', 'xy', 'z'))),
     ]
-    assert list(m.global_mutations(exprs[0], exprs)) == [{
-        Node('abcdef'):
-        Node('abc')
-    }, {
-        Node('abcdef'):
-        Node('abcde')
-    }, {
-        Node('abcdef'):
-        Node('bcdef')
-    }]
-    assert list(m.global_mutations(exprs[1], exprs)) == [{
-        Node('Color'): 'Co'
-    }, {
-        Node('Color'): 'Colo'
-    }, {
-        Node('Color'): 'olor'
-    }, {
-        Node('red'): 're'
-    }, {
-        Node('red'): 'ed'
-    }, {
-        Node('|green|'):
-        '|gr|'
-    }, {
-        Node('|green|'):
-        '|gree|'
-    }, {
-        Node('|green|'):
-        '|reen|'
-    }]
-    assert list(m.global_mutations(exprs[3][1], exprs)) == [{
-        Node('xy'): 'x'
-    }, {
-        Node('xy'): 'y'
-    }]
+    assert check_global_mutations(m, exprs[0], exprs, [
+        apply_simp(exprs, Simplification({Node('abcdef'): Node('abc')}, [])),
+        apply_simp(exprs, Simplification({Node('abcdef'): Node('abcde')}, [])),
+        apply_simp(exprs, Simplification({Node('abcdef'): Node('bcdef')}, []))
+    ])
+    assert check_global_mutations(m, exprs[1], exprs, [
+        apply_simp(exprs, Simplification({Node('Color'): Node('Co')}, [])),
+        apply_simp(exprs, Simplification({Node('Color'): Node('Colo')}, [])),
+        apply_simp(exprs, Simplification({Node('Color'): Node('olor')}, [])),
+        apply_simp(exprs, Simplification({Node('red'): Node('re')}, [])),
+        apply_simp(exprs, Simplification({Node('red'): Node('ed')}, [])),
+        apply_simp(exprs, Simplification({Node('|green|'): Node('|gr|')}, [])),
+        apply_simp(exprs, Simplification({Node('|green|'): Node('|gree|')},
+                                         [])),
+        apply_simp(exprs, Simplification({Node('|green|'): Node('|reen|')},
+                                         []))
+    ])
+    assert check_global_mutations(m, exprs[3][1], exprs, [
+        apply_simp(exprs, Simplification({Node('xy'): Node('x')}, [])),
+        apply_simp(exprs, Simplification({Node('xy'): Node('y')}, []))
+    ])
