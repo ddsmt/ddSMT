@@ -128,26 +128,16 @@ class Producer:
                     for x in m.mutations(linput):
                         if self.__abort.is_set():
                             break
-                        if isinstance(x, Simplification):
-                            yield Task(count, str(m), True, self.__pickled,
-                                       pickle.dumps(x), None)
-                        else:
-                            yield Task(count, str(m), True, self.__pickled,
-                                       pickle.dumps({linput.id: x}), None)
+                        assert isinstance(x, Simplification)
+                        yield Task(count, str(m), True, self.__pickled,
+                                   pickle.dumps(x), None)
                 if hasattr(m, 'global_mutations'):
                     for x in m.global_mutations(linput, self.__original):
                         if self.__abort.is_set():
                             break
-                        if isinstance(x, Simplification):
-                            yield Task(count, f'(global) {m}', False,
-                                       self.__pickled, pickle.dumps(x), None)
-                        elif isinstance(x, dict):
-                            # is a substitution
-                            yield Task(count, f'(global) {m}', False,
-                                       self.__pickled, pickle.dumps(x), None)
-                        else:
-                            yield Task(count, f'(global) {m}', False, None,
-                                       pickle.dumps(x), None)
+                        assert isinstance(x, Simplification)
+                        yield Task(count, f'(global) {m}', False,
+                                   self.__pickled, pickle.dumps(x), None)
             except Exception as e:
                 logging.info(f'{type(e)} in application of {m}: {e}')
                 exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -186,23 +176,16 @@ class Consumer:
             if task.local:
                 # local
                 simp = pickle.loads(task.repl)
-                if isinstance(simp, Simplification):
-                    exprs = apply_simp(pickle.loads(task.exprs), simp)
-                else:
-                    exprs = nodes.substitute(pickle.loads(task.exprs), simp)
+                assert isinstance(simp, Simplification)
+                exprs = apply_simp(pickle.loads(task.exprs), simp)
             else:
                 # global
                 exprs = pickle.loads(task.repl)
-                if isinstance(exprs, dict):
-                    original = pickle.loads(task.exprs)
-                    if self.__abort.is_set():
-                        return abortres
-                    exprs = nodes.substitute(original, exprs)
-                elif isinstance(exprs, Simplification):
-                    original = pickle.loads(task.exprs)
-                    if self.__abort.is_set():
-                        return abortres
-                    exprs = apply_simp(original, exprs)
+                assert isinstance(exprs, Simplification)
+                original = pickle.loads(task.exprs)
+                if self.__abort.is_set():
+                    return abortres
+                exprs = apply_simp(original, exprs)
 
             if self.__abort.is_set():
                 return abortres

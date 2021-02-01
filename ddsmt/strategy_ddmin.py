@@ -103,16 +103,7 @@ class TaskGenerator:
                 mutations = self.mutator.global_mutations(node, self.exprs)
             else:
                 return None
-
-            res = []
-            for simp in mutations:
-                if isinstance(simp, Simplification):
-                    res.append(simp)
-                elif isinstance(simp, dict):
-                    res.append(Simplification(simp, []))
-                else:
-                    res.append(Simplification({node.id: simp}, []))
-            return res
+            return list(mutations)
 
         # Granularity > 1: Pick first simplification for each node and group
         # them all into one.
@@ -128,13 +119,9 @@ class TaskGenerator:
 
             try:
                 simp = next(iter(mutations))
-                if isinstance(simp, Simplification):
-                    fresh_vars.extend(simp.fresh_vars)
-                    substs.update(simp.substs)
-                elif isinstance(simp, dict):
-                    substs.update(simp)
-                else:
-                    substs[node.id] = simp
+                assert isinstance(simp, Simplification)
+                fresh_vars.extend(simp.fresh_vars)
+                substs.update(simp.substs)
             except StopIteration:
                 continue
 
