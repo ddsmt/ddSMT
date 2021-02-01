@@ -469,3 +469,68 @@ def test_bv_merge_reduced_bw():
     assert m.mutations(def_x) == [
         Node('define-fun', 'x', (), bvsort8, (('_', 'zero_extend', 7), '__x'))
     ]
+
+
+def test_bv_reduce_bw_usecase():
+    from .. import mutators_core
+    from .. import mutators_smtlib
+    from .. import nodes
+
+    exprs = [
+        Node('declare-const', 'x', ('_', 'BitVec', '32')),
+        Node('assert', ('=', 'x', ('concat', (('_', 'extract', 15, 0), 'x'),
+                                   (('_', 'extract', 31, 16), 'x'))))
+    ]
+    smtlib.collect_information(exprs)
+
+    mrbw = mutators_bv.BVReduceBW()
+    assert mrbw.filter(exprs[0])
+    mut = list(mrbw.global_mutations(exprs[0], exprs))[2]
+    assert mut[0][2][2] == '16'
+    exprs = mut
+    smtlib.collect_information(exprs)
+
+    midf = mutators_smtlib.InlineDefinedFuns()
+    for n in nodes.dfs(exprs):
+        if n == 'x':
+            assert midf.filter(n)
+            repllist = midf.mutations(n)
+            if repllist:
+                exprs = nodes.substitute(exprs, {n.id: repllist[0]})
+
+    refexprs = [
+        Node('declare-const', '_x', ('_', 'BitVec', '16')),
+        Node('define-fun', 'x', (), ('_', 'BitVec', '32'),
+             (('_', 'zero_extend', '16'), '_x')),
+        Node('assert', ('=', (('_', 'zero_extend', '16'), '_x'),
+                        ('concat', (('_', 'extract', 15, 0),
+                                    (('_', 'zero_extend', '16'), '_x')),
+                         (('_', 'extract', 31, 16),
+                          (('_', 'zero_extend', '16'), '_x')))))
+    ]
+    assert exprs == refexprs
+
+    bveze = mutators_bv.BVExtractZeroExtend()
+    for n in [exprs[2][1][2][1], exprs[2][1][2][2]]:
+        assert bveze.filter(n)
+        exprs = nodes.substitute(exprs, {n.id: bveze.mutations(n)[0]})
+
+    sorter = mutators_core.SortChildren()
+    assert sorter.filter(exprs[2][1][2])
+    exprs = nodes.substitute(
+        exprs, {exprs[2][1][2].id: sorter.mutations(exprs[2][1][2])[0]})
+
+    bvec = mutators_bv.BVConcatToZeroExtend()
+    assert bvec.filter(exprs[2][1][2])
+    exprs = nodes.substitute(
+        exprs, {exprs[2][1][2].id: bvec.mutations(exprs[2][1][2])[0]})
+
+    rbc = mutators_core.ReplaceByChild()
+    assert rbc.filter(exprs[2][1][2][1])
+    exprs = nodes.substitute(
+        exprs,
+        {exprs[2][1][2][1].id: list(rbc.mutations(exprs[2][1][2][1]))[0]})
+
+    en = mutators_core.EraseNode()
+    assert en.filter(exprs[1])
+    exprs = nodes.substitute(exprs, {exprs[1].id: en.mutations(exprs[1])[0]})
