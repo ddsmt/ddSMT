@@ -319,7 +319,7 @@ def substitute(exprs, repl):
             if exprs in repl:
                 return repl[exprs]
             return exprs
-        visit = [(x, False) for x in reversed(exprs.data)]
+        visit = [(exprs, False)]
     else:
         visit = [(x, False) for x in reversed(exprs)]
     changed = False
@@ -357,7 +357,9 @@ def substitute(exprs, repl):
     if not changed:
         return exprs
     if isinstance(exprs, Node):
-        return Node(*args[0])
+        assert len(args) == 1
+        assert len(args[0]) == 1
+        return args[0][0]
     return args[0]
 
 

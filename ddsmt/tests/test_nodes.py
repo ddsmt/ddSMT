@@ -153,6 +153,7 @@ def test_substitute():
                             {x.id: Node('z')}) == Node('assert',
                                                        ('>', 'z', 'y'))
     assert nodes.substitute(expr, {x.id: None}) == Node('assert', ('>', 'y'))
+    assert nodes.substitute(expr, {expr.id: Node('z')}) == Node('z')
 
     assert nodes.substitute(exprs, {x: Node('z')}) == [
         Node('assert', ('>', 'z', 'y')),
