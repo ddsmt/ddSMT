@@ -20,6 +20,7 @@
 
 import collections
 import logging
+import math
 import resource
 import subprocess
 import sys
@@ -42,6 +43,7 @@ def limit_resources(timeout):
             resource.RLIMIT_AS,
             (options.args().memout * 1024 * 1024, resource.RLIM_INFINITY))
     if timeout:
+        timeout = math.ceil(timeout)
         resource.setrlimit(resource.RLIMIT_CPU, (timeout, timeout))
 
 
