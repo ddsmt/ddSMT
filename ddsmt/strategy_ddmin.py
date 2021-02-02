@@ -175,8 +175,6 @@ def ddmin_passes():
 
     exclude = [
         'BinaryReduction',
-        'BVReduceBW',
-        'EliminateVariable',
     ]
     exclude.extend(stage1_names)
     exclude.extend(stage2_names)
