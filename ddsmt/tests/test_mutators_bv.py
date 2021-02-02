@@ -315,6 +315,65 @@ def test_transform_to_bool():
         [Node('xor', ('=', '#b0', 'x'), ('=', '#b0', 'y'), ('=', '#b0', 'z'))])
 
 
+def test_zero_extend_predicate():
+    m = mutators_bv.BVZeroExtendPredicate()
+    assert isinstance(str(m), str)
+    assert not m.filter(Node('x'))
+    assert not m.filter(Node('=', 'x', 'y'))
+    assert not m.filter(Node('=', (('_', 'zero_extend', 2), 'x'), 'y'))
+    assert not m.filter(Node('=', 'x', (('_', 'zero_extend', 2), 'y')))
+    assert not m.filter(
+        Node('bvadd', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert not m.filter(
+        Node('=', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y'), (('_', 'zero_extend', 2), 'z')))
+    assert m.filter(
+        Node('=', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('distinct', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('bvult', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('bvule', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('bvugt', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('bvuge', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('bvslt', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('bvsle', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('bvsgt', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert m.filter(
+        Node('bvsge', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')))
+    assert check_mutations(
+        m,
+        Node('=', (('_', 'zero_extend', 2), 'x'),
+             (('_', 'zero_extend', 2), 'y')), [Node('=', 'x', 'y')])
+    assert check_mutations(
+        m,
+        Node('=', (('_', 'zero_extend', 3), 'x'),
+             (('_', 'zero_extend', 2), 'y')),
+        [Node('=', (('_', 'zero_extend', 1), 'x'), 'y')])
+    assert check_mutations(
+        m,
+        Node('=', (('_', 'zero_extend', 3), 'x'),
+             (('_', 'zero_extend', 5), 'y')),
+        [Node('=', 'x', (('_', 'zero_extend', 2), 'y'))])
+
+
 def test_bv_reduce_bw():
     smtlib.reset_information()
     m = mutators_bv.BVReduceBW()

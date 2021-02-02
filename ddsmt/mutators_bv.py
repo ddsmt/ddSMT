@@ -311,6 +311,54 @@ class BVTransformToBool:
         return 'transform bit-vector to boolean'
 
 
+class BVZeroExtendPredicate():
+    """Eliminate zero_extend when both operands of an equality, disequality
+    of inequality are zero extended.
+
+    For example, transform ``(= ((_ zero_extend 2) a) ((_ zero_extend 2) b))``
+    into ``(= a b)``, and ``(= ((_ zero_extend 2) a) ((_ zero_extend 4) b))``
+    into ``(= a ((_ zero_extend 2 b)))``.
+    """
+    def filter(self, node):
+        return node.has_ident() and len(node) == 3 and node.get_ident() in [
+            '=', 'distinct', 'bvult', 'bvule', 'bvugt', 'bvuge', 'bvslt',
+            'bvsle', 'bvsgt', 'bvsge'
+        ] and is_indexed_operator_app(node[1], 'zero_extend',
+                                      1) and is_indexed_operator_app(
+                                          node[2], 'zero_extend', 1)
+
+    def mutations(self, node):
+        idx1 = get_indices(node[1][0], 'zero_extend', 1)[0]
+        idx2 = get_indices(node[2][0], 'zero_extend', 1)[0]
+        if idx1 == idx2:
+            return [
+                Simplification(
+                    {node.id: Node(node.get_ident(), node[1][1], node[2][1])},
+                    [])
+            ]
+        if idx1 > idx2:
+            return [
+                Simplification(
+                    {
+                        node.id:
+                        Node(
+                            node.get_ident(),
+                            Node(('_', 'zero_extend', int(idx1) - int(idx2)),
+                                 node[1][1]), node[2][1])
+                    }, [])
+            ]
+        return [
+            Simplification(
+                {
+                    node.id:
+                    Node(
+                        node.get_ident(), node[1][1],
+                        Node(('_', 'zero_extend', int(idx2) - int(idx1)),
+                             node[2][1]))
+                }, [])
+        ]
+
+
 class BVReduceBW:
     """Reduce the bit-width of a variable by introducing an extract and zero
     extension on that variable, e.g.,
@@ -417,6 +465,7 @@ def get_mutators():
         'BVReflexiveNand': 'bv-reflexive-nand',
         'BVSimplifyConstants': 'bv-simp-constants',
         'BVTransformToBool': 'bv-to-bool',
+        'BVZeroExtendPredicate': 'bv-zeroextend-pred',
         'BVReduceBW': 'bv-reduce-bitwidth',
     }
 
