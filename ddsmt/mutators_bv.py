@@ -421,6 +421,7 @@ class BVMergeReducedBW:
                and len(node[2]) == 0 \
                and get_sort(node[1]) is not None \
                and is_bv_sort(get_sort(node[1])) \
+               and is_defined_fun(node[1]) \
                and is_indexed_operator_app(
                        get_defined_fun(node[1]), 'zero_extend', 1) \
                and is_defined_fun(node[-1][-1]) \
