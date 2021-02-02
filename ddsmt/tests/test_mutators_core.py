@@ -150,7 +150,9 @@ def test_replace_by_variable():
 
     smtlib.collect_information(exprs)
     assert m.filter(node)
+    # we should not replace the x from the declare-const
     assert not m.filter(x)
+    # but we should replace another x from somewhere else
     assert m.filter(Node('x'))
     assert not m.filter(c)
     assert check_mutations(m, node, [v1, x, v3])
