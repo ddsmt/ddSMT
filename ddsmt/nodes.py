@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
+import collections
 import struct
 import textwrap
 
@@ -302,11 +303,13 @@ def dfs(exprs, max_depth=None):
         else:
             yield expr
 
+
 def bfs(exprs, max_depth=None):
     """BFS traversal of s-expressions in exprs up to a maximum depth."""
-    visit = [(1, x) for x in exprs]
+    visit = collections.deque()
+    visit.extend([(1, x) for x in exprs])
     while visit:
-        cur_depth, expr = visit.pop(0)
+        cur_depth, expr = visit.popleft()
         if isinstance(expr, Node) and (not max_depth or cur_depth < max_depth):
             yield expr
             if not expr.is_leaf():
