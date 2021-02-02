@@ -302,6 +302,18 @@ def dfs(exprs, max_depth=None):
         else:
             yield expr
 
+def bfs(exprs, max_depth=None):
+    """BFS traversal of s-expressions in exprs up to a maximum depth."""
+    visit = [(1, x) for x in exprs]
+    while visit:
+        cur_depth, expr = visit.pop(0)
+        if isinstance(expr, Node) and (not max_depth or cur_depth < max_depth):
+            yield expr
+            if not expr.is_leaf():
+                visit.extend([(cur_depth + 1, x) for x in expr.data])
+        else:
+            yield expr
+
 
 def substitute(exprs, repl):
     """Performs (local and global) substitutions on exprs as specified in repl.
