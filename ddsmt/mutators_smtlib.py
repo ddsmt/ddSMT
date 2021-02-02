@@ -101,6 +101,8 @@ class IntroduceFreshVariable:
 
     def global_mutations(self, linput, ginput):
         varname = Node(f'x{linput.id}__fresh')
+        if is_var(varname):
+            return []
         var = Node('declare-const', varname, get_sort(linput))
         return [Simplification({linput.id: varname}, [var])]
 

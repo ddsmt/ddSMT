@@ -151,7 +151,8 @@ class ReplaceByVariable:
     ``collect_information``.
     """
     def filter(self, node):
-        return not is_const(node) and get_sort(node) is not None
+        return not is_const(node) and not is_definition_node(
+            node) and get_sort(node) is not None
 
     def mutations(self, node):
         if not hasattr(self, 'repl_mode'):

@@ -150,7 +150,8 @@ def test_replace_by_variable():
 
     smtlib.collect_information(exprs)
     assert m.filter(node)
-    assert m.filter(x)
+    assert not m.filter(x)
+    assert m.filter(Node('x'))
     assert not m.filter(c)
     assert check_mutations(m, node, [v1, x, v3])
     assert check_mutations(m, x, [])
