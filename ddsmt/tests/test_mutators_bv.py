@@ -7,7 +7,7 @@ from .utils import *
 def test_bv_get_mutators():
     d = mutators_bv.get_mutators()
     assert isinstance(d, dict)
-    assert len(d) == 13
+    assert len(d) == 14
 
 
 def test_bv_is_relevant():
