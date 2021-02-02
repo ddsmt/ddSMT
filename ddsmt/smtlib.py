@@ -154,18 +154,15 @@ def introduce_variables(exprs, vars):
 
     Expects ``vars`` to contain declaration commands (like ``declare-
     fun``). Inserts the variables into ``exprs`` before the first SMT-
-    LIB command that is not ``set-info``, ``set-logic`` or a
-    constant/function/variable declaration.
+    LIB command that is not ``set-info`` or ``set-logic``. In particular,
+    new variables are added before the current variable declarations.
     """
     pos = 0
     while pos < len(exprs):
         e = exprs[pos]
         if not e.has_ident():
             break
-        if e.get_ident() not in [
-                'declare-const', 'declare-fun', 'define-fun', 'set-info',
-                'set-logic'
-        ]:
+        if e.get_ident() not in ['set-info', 'set-logic']:
             break
         pos += 1
     return exprs[:pos] + vars + exprs[pos:]

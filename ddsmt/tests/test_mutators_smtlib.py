@@ -105,10 +105,10 @@ def test_smtlib_introduce_fresh_variable():
     assert m.filter(Node('x'))
     assert not m.filter(Node('__fresh_'))
     assert m.filter(term)
-    assert check_global_mutations(m, term, exprs, [[
-        decl, ('declare-const', f'x{term.id}__fresh', 'Bool'),
-        Node('assert', f'x{term.id}__fresh')
-    ]])
+    assert check_global_mutations(
+        m, term, exprs,
+        [[('declare-const', f'x{term.id}__fresh', 'Bool'), decl,
+          Node('assert', f'x{term.id}__fresh')]])
 
 
 def test_smtlib_let_elimination():

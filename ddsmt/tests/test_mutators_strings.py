@@ -1,6 +1,5 @@
 from ..nodes import Node
 from .. import mutators_strings
-from .. import smtlib
 from .utils import *
 from ..mutator_utils import *
 
@@ -88,10 +87,10 @@ def test_strings_contains_to_concat():
     ]
     target = [
         Node('set-logic', 'QF_S'),
-        Node('declare-const', 'x', 'String'),
-        Node('declare-fun', 'y', (), 'String'),
         Node('declare-const', 'x_prefix', 'String'),
         Node('declare-const', 'x_suffix', 'String'),
+        Node('declare-const', 'x', 'String'),
+        Node('declare-fun', 'y', (), 'String'),
         Node('assert', ('=', 'x', ('str.++', 'x_prefix', 'y', 'x_suffix'))),
     ]
     m = mutators_strings.StringContainsToConcat()

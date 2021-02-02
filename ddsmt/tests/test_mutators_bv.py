@@ -457,27 +457,27 @@ def test_bv_reduce_bw():
     ]
     smtlib.collect_information(exprs1)
     assert check_global_mutations(m, declx, exprs1, [[
+        x8[i],
         Node('define-fun', x, (), bvsort8, zext_x8[i]),
         decly,
         declz,
         *_decls1,
-        x8[i],
         *_asserts1,
     ] for i in range(0, 4)])
     assert check_global_mutations(m, decly, exprs1, [[
+        y8[i],
         declx,
         Node('define-fun', y, (), bvsort8, zext_y8[i]),
         declz,
         *_decls1,
-        y8[i],
         *_asserts1,
     ] for i in range(0, 4)])
     assert check_global_mutations(m, declz, exprs1, [[
+        z9[i],
         declx,
         decly,
         Node('define-fun', z, (), bvsort9, zext_z9[i]),
         *_decls1,
-        z9[i],
         *_asserts1,
     ] for i in range(0, 4)])
 
@@ -486,9 +486,9 @@ def test_bv_reduce_bw():
     smtlib.collect_information([decl])
     assert m.filter(decl)
     assert check_global_mutations(m, decl, [decl], [[
+        Node('declare-const', '_x', ('_', 'BitVec', 1)),
         Node('define-fun', 'x', (), ('_', 'BitVec', 2),
              (('_', 'zero_extend', '1'), '_x')),
-        Node('declare-const', '_x', ('_', 'BitVec', 1)),
     ]])
 
     decl = Node('declare-const', 'x', ('_', 'BitVec', 1))

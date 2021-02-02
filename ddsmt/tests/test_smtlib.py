@@ -144,7 +144,7 @@ def test_introduce_variables():
 
     exprs2 = exprs0 + [decl_x1, decl_x2, decl_x3, fpadd, fpmul, fpass]
     assert introduce_variables(exprs2, [decl_x]) \
-           == exprs0 + [decl_x1, decl_x2, decl_x3, fpadd, fpmul, decl_x, fpass]
+           == exprs0 + [decl_x, decl_x1, decl_x2, decl_x3, fpadd, fpmul, fpass]
     exprs3 = [Node('echo')]
     assert introduce_variables(exprs3, [decl_x]) == [decl_x, Node('echo')]
 
