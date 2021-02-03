@@ -63,7 +63,6 @@ class EliminateVariable:
                     if n == t and not is_definition_node(n):
                         substs[n.id] = c
                 if substs:
-                    print(substs)
                     yield Simplification(substs, [])
 
     def __str__(self):
@@ -97,6 +96,8 @@ class IntroduceFreshVariable:
         if node.is_leaf():
             if node.data.endswith('__fresh'):
                 return False
+        if is_definition_node(node):
+            return False
         return not is_const(node) and get_sort(node) is not None
 
     def global_mutations(self, linput, ginput):
@@ -133,7 +134,6 @@ class LetSubstitution:
     def mutations(self, node):
         if len(node) <= 2:
             return []
-        res = []
         for var in node[1]:
             if any(n == var[0] for n in nodes.dfs(node[2])):
                 subs = nodes.substitute(node[2], {var[0]: var[1]})
@@ -232,10 +232,12 @@ class SimplifySymbolNames:
         symbol."""
         if is_piped_symbol(symbol):
             for s in self.__simpler(get_piped_symbol(symbol)):
-                yield Simplification({symbol: Node('|' + s + '|')}, [])
+                if not is_var(Node('|' + s + '|')):
+                    yield Simplification({symbol: Node('|' + s + '|')}, [])
         else:
             for s in self.__simpler(symbol):
-                yield Simplification({symbol: Node(s)}, [])
+                if not is_var(Node(s)):
+                    yield Simplification({symbol: Node(s)}, [])
 
     def __simpler(self, symbol):
         """Return a list of simpler versions of the given symbol."""

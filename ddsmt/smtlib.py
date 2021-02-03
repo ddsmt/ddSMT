@@ -98,6 +98,7 @@ def collect_information(exprs):  # noqa: C901
                     cmd[4], {cmd[2][i][0]: args[i]
                              for i in range(len(args))}))
             __definition_node_ids.add(cmd[1].id)
+            __definition_node_ids.add(cmd[4].id)
             __sort_lookup[cmd[1].data] = cmd[3]
 
     # Collect additional term level information.

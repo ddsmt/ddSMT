@@ -189,6 +189,7 @@ def test_smtlib_simplify_symbol_names():
         Node('assert',
              ('exists', (('xy', 'Bool'), ('z', 'Bool')), ('and', 'xy', 'z'))),
     ]
+    smtlib.collect_information(exprs)
     assert check_global_mutations(m, exprs[0], exprs, [
         apply_simp(exprs, Simplification({Node('abcdef'): Node('abc')}, [])),
         apply_simp(exprs, Simplification({Node('abcdef'): Node('abcde')}, [])),
