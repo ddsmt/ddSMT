@@ -85,7 +85,7 @@ def get_pass(passes, id):
     return res, {}
 
 
-# nodeid: id of the mutated node in dfs order. Only used for progress indication
+# nodeid: id of the mutated node in bfs order. Only used for progress indication
 # name: name of the mutator
 # if we have a global mutation:
 #   exprs: None
@@ -147,7 +147,7 @@ class Producer:
         """A generator that produces all possible mutations as ``Task`` from
         the given original."""
         count = 0
-        for node in nodes.dfs(self.__original, params.get('max_depth', None)):
+        for node in nodes.bfs(self.__original, params.get('max_depth', None)):
             count += 1
             if skip < count:
                 yield from self.__mutate_node(count, node)
