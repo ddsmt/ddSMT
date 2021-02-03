@@ -28,6 +28,7 @@ from . import options
 __TMPDIR = tempfile.TemporaryDirectory(prefix="ddsmt-")
 __BINARY = os.path.join(__TMPDIR.name, 'binary')
 __BINARY_CC = os.path.join(__TMPDIR.name, 'binary_cc')
+__FILEEXT = os.path.splitext(options.args().infile)[1]
 
 
 def copy_binaries():
@@ -46,7 +47,7 @@ def copy_binaries():
 
 def get_tmp_filename():
     """Return a filename within our temporary directory based on the pid."""
-    return os.path.join(__TMPDIR.name, "ddsmt-tmp-{}.smt2".format(os.getpid()))
+    return os.path.join(__TMPDIR.name, f'ddsmt-tmp-{os.getpid()}{__FILEEXT}')
 
 
 def copy_to_tmp_file(source):
