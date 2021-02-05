@@ -162,6 +162,8 @@ class ReplaceByVariable:
         if ret_sort is None:
             return []
         variables = get_variables_with_sort(ret_sort)
+        # Replacing by a defined variable may loop with inlining
+        variables = filter(lambda v: not is_defined_fun(v), variables)
         if is_leaf(node):
             if self.repl_mode == 'inc':
                 variables = [v for v in variables if v > node.data]

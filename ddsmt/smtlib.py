@@ -691,7 +691,7 @@ def is_defined_fun(node):
     Requires that global information has been populated via
     ``collect_information``.
     """
-    if node.is_leaf():
+    if isinstance(node, str) or node.is_leaf():
         return node in __defined_functions
     return node.has_ident() and node.get_ident() in __defined_functions
 
