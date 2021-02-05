@@ -1,4 +1,5 @@
 import collections
+import copy
 from . import smtlib
 from . import nodes
 
@@ -11,5 +12,6 @@ def apply_simp(exprs, simp):
     mexprs = nodes.substitute(exprs, simp.substs)
     if mexprs is not exprs and simp.fresh_vars:
         assert isinstance(mexprs, list)
-        mexprs = smtlib.introduce_variables(mexprs, simp.fresh_vars)
+        vars = copy.deepcopy(simp.fresh_vars)
+        mexprs = smtlib.introduce_variables(mexprs, vars)
     return mexprs

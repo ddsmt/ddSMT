@@ -19,6 +19,8 @@
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
 import collections
+import copy
+import multiprocessing
 import struct
 import textwrap
 
@@ -31,12 +33,13 @@ class Node:
     substitutions.
     """
     __slots__ = 'id', 'data', 'hash'
-    __ID_COUNTER = 0
+    __ID_COUNTER = multiprocessing.Value('i', 0)
 
     @classmethod
     def __get_id(self):
-        self.__ID_COUNTER += 1
-        return self.__ID_COUNTER
+        with self.__ID_COUNTER.get_lock():
+            self.__ID_COUNTER.value += 1
+            return self.__ID_COUNTER.value
 
     def __init__(self, *args, _id=None, _data=None, _hash=None):
         """
@@ -59,6 +62,12 @@ class Node:
             #assert all(map(lambda t: isinstance(t, Node), self.data))
         #assert isinstance(self.data, (str, tuple))
         self.hash = _hash if _hash else hash(self.data)
+
+    def __deepcopy__(self, memo):
+        """Hook for copy.deepcopy, make sure we assign a fresh id."""
+        return Node(_id=self.__get_id(),
+                    _data=copy.deepcopy(self.data),
+                    _hash=self.hash)
 
     def __ensure_is_node(self, data):
         """Recursively walk data and make sure everything is a node."""
@@ -332,7 +341,7 @@ def substitute(exprs, repl):
             if exprs.id and exprs.id in repl:
                 return repl[exprs.id]
             if exprs in repl:
-                return repl[exprs]
+                return copy.deepcopy(repl[exprs])
             return exprs
         visit = [(exprs, False)]
     else:
@@ -354,6 +363,7 @@ def substitute(exprs, repl):
             changed = True
             if expr is None:
                 continue
+            expr = copy.deepcopy(expr)
 
         if visited:
             children = args.pop()
