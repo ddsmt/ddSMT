@@ -94,8 +94,9 @@ class IntroduceFreshVariable:
     """Replace a term by a fresh variable of the appropriate type."""
     def filter(self, node):
         if node.is_leaf():
-            if node.data.endswith('__fresh'):
-                return False
+            # introducing a fresh variable for a leaf node and then inling it
+            # results in the same input and allows for loops
+            return False
         if is_definition_node(node):
             return False
         return not is_const(node) and get_sort(node) is not None

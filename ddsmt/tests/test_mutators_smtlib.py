@@ -102,8 +102,7 @@ def test_smtlib_introduce_fresh_variable():
     term = Node('not', 'x')
     exprs = [decl, Node('assert', term)]
     assert not m.filter(Node('false'))
-    assert m.filter(Node('x'))
-    assert not m.filter(Node('__fresh_'))
+    assert not m.filter(Node('x'))
     assert m.filter(term)
     assert check_global_mutations(
         m, term, exprs,
