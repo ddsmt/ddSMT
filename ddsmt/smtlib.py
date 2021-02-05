@@ -258,7 +258,7 @@ def is_const(node):
     """Return true if ``node`` is a constant value."""
     return is_bool_const(node) or is_arith_const(node) or is_int_const(
         node) or is_real_const(node) or is_string_const(node) or is_bv_const(
-            node)
+            node) or is_fp_const(node)
 
 
 def is_eq(node):
@@ -670,6 +670,11 @@ def is_fp_sort(node):
     if not node.has_ident() or node.get_ident() != '_' or len(node) != 4:
         return False
     return node[1] == 'FloatingPoint'
+
+
+def is_fp_const(node):
+    """Return true if ``node`` is a floating-point constant."""
+    return is_operator_app(node, 'fp')
 
 
 # Functions
