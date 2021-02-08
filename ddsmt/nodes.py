@@ -65,9 +65,27 @@ class Node:
 
     def __deepcopy__(self, memo):
         """Hook for copy.deepcopy, make sure we assign a fresh id."""
-        return Node(_id=self.__get_id(),
-                    _data=copy.deepcopy(self.data),
-                    _hash=self.hash)
+        visit = [(self, False)]
+        args = [[]]
+        while visit:
+            expr, visited = visit.pop()
+            assert isinstance(expr, Node)
+
+            if visited:
+                children = args.pop()
+                node = Node(*children)
+                args[-1].append(node)
+            else:
+                if expr.is_leaf():
+                    args[-1].append(Node(expr.data))
+                else:
+                    visit.append((expr, True))
+                    visit.extend((x, False) for x in reversed(expr.data))
+                    args.append([])
+        assert len(args) == 1
+        if len(args[0]) == 0:
+            return None
+        return args[0][0]
 
     def __ensure_is_node(self, data):
         """Recursively walk data and make sure everything is a node."""
