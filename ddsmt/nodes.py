@@ -440,7 +440,7 @@ def __render_smtlib_expression(expr: Node, pretty: bool = False):
             if ex.data[0] == ';':
                 args.append(f'\n{ex.data}\n')
             else:
-                args.append(str(ex.data))
+                args.append(ex.data)
             continue
 
         if visited:

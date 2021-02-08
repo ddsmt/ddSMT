@@ -104,7 +104,7 @@ def collect_information(exprs):  # noqa: C901
     # Collect additional term level information.
     for node in nodes.dfs(exprs):
         # Mark indices of indexed terms.
-        if len(node) > 2 and node[0] == '_':
+        if not node.is_leaf() and len(node) > 2 and node[0] == '_':
             for num in node[2:]:
                 if num.data.isdigit():
                     __indices.add(num.id)
