@@ -468,6 +468,39 @@ def write_smtlib_to_file(filename, exprs):
     open(filename, 'w').write(render_smtlib(exprs))
 
 
+def write_smtlib_to_file_for_checking(filename, exprs):
+    with open(filename, 'w') as file:
+        for expr in exprs:
+            visit = [(expr, False)]
+            needs_space = False
+            while visit:
+                ex, visited = visit.pop()
+                if ex.is_leaf():
+                    if needs_space:
+                        file.write(' ')
+                    assert isinstance(ex.data, str)
+                    if ex.data == '':
+                        continue
+                    if ex.data[0] == ';':
+                        file.write(f'\n{ex.data}\n')
+                    else:
+                        file.write(ex.data)
+                    needs_space = True
+                    continue
+
+                if visited:
+                    file.write(')')
+                    needs_space = True
+                else:
+                    if needs_space:
+                        file.write(' ')
+                    file.write('(')
+                    needs_space = False
+                    visit.append((ex, True))
+                    visit.extend((x, False) for x in reversed(ex.data))
+            file.write('\n')
+
+
 def count_nodes(node):
     """Return the number of expressions yielded when traversing ``node`` in DFS
     manner."""

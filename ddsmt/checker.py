@@ -127,7 +127,7 @@ def check_exprs(exprs):
     otherwise.
     """
     tmpfile = tmpfiles.get_tmp_filename()
-    nodes.write_smtlib_to_file(tmpfile, exprs)
+    nodes.write_smtlib_to_file_for_checking(tmpfile, exprs)
     return check(tmpfile)
 
 
