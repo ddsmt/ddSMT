@@ -21,7 +21,6 @@
 
 import logging
 import os
-import pprint
 import sys
 import time
 
@@ -33,7 +32,6 @@ from . import nodeio
 from . import nodes
 from . import options
 from . import tmpfiles
-from . import smtlib
 
 
 class DDSMTException(Exception):
