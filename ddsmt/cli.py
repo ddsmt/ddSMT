@@ -29,6 +29,7 @@ from . import checker
 from . import strategy_ddmin
 from . import strategy_hierarchical
 from . import mutators
+from . import nodeio
 from . import nodes
 from . import options
 from . import tmpfiles
@@ -50,8 +51,8 @@ def check_options():
 
     if options.args().parser_test:
         # only parse and print
-        exprs = list(nodes.parse_smtlib(open(options.args().infile).read()))
-        print(nodes.render_smtlib(exprs))
+        exprs = list(nodeio.parse_smtlib(open(options.args().infile).read()))
+        print(nodeio.write_smtlib(sys.stdout, exprs))
         sys.exit(0)
 
     # check executable
@@ -106,7 +107,7 @@ def ddsmt_main():
     # parse the input
     start_time = time.time()
     with open(options.args().infile, 'r') as infile:
-        exprs = list(nodes.parse_smtlib(infile.read()))
+        exprs = list(nodeio.parse_smtlib(infile.read()))
         nexprs = nodes.count_exprs(exprs)
 
     logging.debug("parsed {} s-expressions in {:.2f} seconds".format(

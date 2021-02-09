@@ -28,6 +28,7 @@ import traceback
 
 from . import checker
 from . import mutators
+from . import nodeio
 from . import nodes
 from . import options
 from . import progress
@@ -294,8 +295,8 @@ def reduce(exprs):
                         exprs = task.exprs
                         skip = task.nodeid - 1
                         fresh_run = False
-                        nodes.write_smtlib_to_file(options.args().outfile,
-                                                   exprs)
+                        nodeio.write_smtlib_to_file(options.args().outfile,
+                                                    exprs)
                 if not reduction:
                     progress.finish()
                     logging.info('No further simplification found')

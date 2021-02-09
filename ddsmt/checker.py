@@ -26,7 +26,7 @@ import subprocess
 import sys
 import time
 
-from . import nodes
+from . import nodeio
 from . import options
 from . import tmpfiles
 
@@ -127,7 +127,7 @@ def check_exprs(exprs):
     otherwise.
     """
     tmpfile = tmpfiles.get_tmp_filename()
-    nodes.write_smtlib_to_file_for_checking(tmpfile, exprs)
+    nodeio.write_smtlib_for_checking(tmpfile, exprs)
     return check(tmpfile)
 
 

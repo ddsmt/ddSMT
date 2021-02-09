@@ -1,5 +1,6 @@
 import pytest
 
+from .. import nodeio
 from .. import nodes
 from ..nodes import Node
 
@@ -90,8 +91,8 @@ def test_pickle():
 
 
 def test_parse_smtlib():
-    assert list(nodes.parse_smtlib('(reset)')) == [Node(Node('reset'))]
-    assert list(nodes.parse_smtlib('(assert (> x y))')) == [
+    assert list(nodeio.parse_smtlib('(reset)')) == [Node(Node('reset'))]
+    assert list(nodeio.parse_smtlib('(assert (> x y))')) == [
         Node('assert', ('>', 'x', 'y'))
     ]
     input = """
@@ -105,7 +106,7 @@ def test_parse_smtlib():
     (assert (= (* y y) y))
     (check-sat)
     """
-    assert list(nodes.parse_smtlib(input)) == [
+    assert list(nodeio.parse_smtlib(input)) == [
         Node('set-logic', 'QF_NRA'),
         Node('set-option', ':source', '|just for testing|'),
         Node('define-fun', 'x', (), 'String', '"abc""123"'),
@@ -116,8 +117,8 @@ def test_parse_smtlib():
     ]
 
     assert list(
-        nodes.parse_smtlib("(set-option :source |just for testing")) == []
-    assert list(nodes.parse_smtlib("(set-option :source testing")) == []
+        nodeio.parse_smtlib("(set-option :source |just for testing")) == []
+    assert list(nodeio.parse_smtlib("(set-option :source testing")) == []
 
 
 def test_dfs():
@@ -171,28 +172,25 @@ def test_substitute():
 
 def test_render_smtlib_expression():
     expr = Node('x')
-    assert nodes.__render_smtlib_expression(expr, False) == 'x'
-    assert nodes.__render_smtlib_expression(expr, True) == 'x'
+    assert nodeio.__write_smtlib_str(expr) == 'x'
+    assert nodeio.__write_smtlib_pretty_str(expr) == 'x\n'
 
     expr = Node('; foo')
-    assert nodes.__render_smtlib_expression(expr, False) == '\n; foo\n'
-    assert nodes.__render_smtlib_expression(expr, True) == '\n; foo\n'
+    assert nodeio.__write_smtlib_str(expr) == '\n; foo\n'
+    assert nodeio.__write_smtlib_pretty_str(expr) == '\n; foo\n'
 
     expr = Node('declare-const', 'x', 'Real')
-    assert nodes.__render_smtlib_expression(expr,
-                                            False) == '(declare-const x Real)'
-    assert nodes.__render_smtlib_expression(expr,
-                                            True) == '(declare-const x Real)'
+    assert nodeio.__write_smtlib_str(expr) == '(declare-const x Real)'
+    assert nodeio.__write_smtlib_pretty_str(expr) == '(declare-const x Real)\n'
 
     expr = Node('assert', ('and', ))
-    assert nodes.__render_smtlib_expression(expr, False) == '(assert (and))'
-    assert nodes.__render_smtlib_expression(expr, True) == '(assert\n  (and))'
+    assert nodeio.__write_smtlib_str(expr) == '(assert (and))'
+    assert nodeio.__write_smtlib_pretty_str(expr) == '(assert\n  (and)\n)\n'
 
     expr = Node('assert', ('>', 'x', 'y'), ())
-    assert nodes.__render_smtlib_expression(expr,
-                                            False) == '(assert (> x y) ())'
-    assert nodes.__render_smtlib_expression(
-        expr, True) == '(assert\n  (> x y)\n  ())'
+    assert nodeio.__write_smtlib_str(expr) == '(assert (> x y) ())'
+    assert nodeio.__write_smtlib_pretty_str(
+        expr) == '(assert\n  (> x y)\n  ()\n)\n'
 
 
 def test_binary_search():

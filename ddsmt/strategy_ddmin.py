@@ -27,6 +27,7 @@ import time
 
 from . import checker
 from . import mutators
+from . import nodeio
 from . import nodes
 from . import options
 from . import smtlib
@@ -272,7 +273,7 @@ def _check_seq(taskgen, nexprs, stats):
             stats['tests_success'] += 1
             stats['reduced'] += result.reduced
             taskgen.update(result.exprs)
-            nodes.write_smtlib_to_file(outfile, taskgen.exprs)
+            nodeio.write_smtlib_to_file(outfile, taskgen.exprs)
             smtlib.collect_information(taskgen.exprs)
 
         _print_progress(
@@ -313,7 +314,7 @@ def _check_par(taskgen, nexprs, stats):
                     logging.debug(f'Main: Set abort flag')
                     taskgen.stop()
                     taskgen.update(result.exprs)
-                    nodes.write_smtlib_to_file(outfile, taskgen.exprs)
+                    nodeio.write_smtlib_to_file(outfile, taskgen.exprs)
                     smtlib.collect_information(taskgen.exprs)
                     stats['tests_success'] += 1
                     stats['reduced'] += result.reduced

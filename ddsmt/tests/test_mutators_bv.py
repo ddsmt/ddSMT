@@ -538,6 +538,7 @@ def test_bv_reduce_bw_usecase():
     from .. import mutators_core
     from .. import mutators_smtlib
     from .. import mutator_utils
+    from .. import nodeio
     from .. import nodes
 
     exprs = [
@@ -545,7 +546,7 @@ def test_bv_reduce_bw_usecase():
         Node('assert', ('=', 'x', ('concat', (('_', 'extract', 15, 0), 'x'),
                                    (('_', 'extract', 31, 16), 'x'))))
     ]
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
     smtlib.collect_information(exprs)
 
     mrbw = mutators_bv.BVReduceBW()
@@ -553,7 +554,7 @@ def test_bv_reduce_bw_usecase():
     mut = list(mrbw.global_mutations(exprs[0], exprs))[2]
     assert mut.fresh_vars[0][2][2] == '16'
     exprs = mutator_utils.apply_simp(exprs, mut)
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
     smtlib.collect_information(exprs)
 
     midf = mutators_smtlib.InlineDefinedFuns()
@@ -575,37 +576,37 @@ def test_bv_reduce_bw_usecase():
                           (('_', 'zero_extend', '16'), '_x')))))
     ]
     assert exprs == refexprs
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
 
     en = mutators_core.EraseNode()
     assert en.filter(exprs[1])
     exprs = mutator_utils.apply_simp(exprs, en.mutations(exprs[1])[0])
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
 
     bveze = mutators_bv.BVExtractZeroExtend()
     for n in [exprs[1][1][2][1], exprs[1][1][2][2]]:
         assert bveze.filter(n)
         exprs = mutator_utils.apply_simp(exprs, bveze.mutations(n)[0])
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
 
     sorter = mutators_core.SortChildren()
     assert sorter.filter(exprs[1][1][2])
     exprs = mutator_utils.apply_simp(exprs,
                                      sorter.mutations(exprs[1][1][2])[0])
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
 
     bvec = mutators_bv.BVConcatToZeroExtend()
     assert bvec.filter(exprs[1][1][2])
     exprs = mutator_utils.apply_simp(exprs, bvec.mutations(exprs[1][1][2])[0])
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
 
     rbc = mutators_core.ReplaceByChild()
     assert rbc.filter(exprs[1][1][2][1])
     exprs = mutator_utils.apply_simp(exprs,
                                      list(rbc.mutations(exprs[1][1][2][1]))[0])
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
 
     bvzep = mutators_bv.BVZeroExtendPredicate()
     assert bvzep.filter(exprs[1][1])
     exprs = mutator_utils.apply_simp(exprs, bvzep.mutations(exprs[1][1])[0])
-    print('\n'.join(nodes.__render_smtlib(exprs)))
+    print('\n'.join([nodeio.__write_smtlib_str(expr) for expr in exprs]))
