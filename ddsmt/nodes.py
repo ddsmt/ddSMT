@@ -125,6 +125,8 @@ class Node:
         else:
             if isinstance(other, tuple):
                 visit_other = [Node(*other)]
+            elif isinstance(other, str):
+                return self.is_leaf() and self.data == other
             else:
                 visit_other = [Node(other)]
         visit_self = [self]
