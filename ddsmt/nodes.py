@@ -227,6 +227,35 @@ class Node:
         return self.data[0]
 
 
+def reduplicate(exprs):
+    """Re-duplicates nodes with the same id using deepcopy."""
+    ids = set()
+    visit = [(x, False) for x in reversed(exprs)]
+    args = [[]]
+    while visit:
+        expr, visited = visit.pop()
+        assert isinstance(expr, Node)
+
+        if visited:
+            children = args.pop()
+            if any(map(lambda x: id(x[0]) != id(x[1]), zip(expr, children))):
+                node = Node(*children)
+                args[-1].append(node)
+                ids.add(id(node))
+            else:
+                args[-1].append(expr)
+                ids.add(id(expr))
+        else:
+            if expr.is_leaf():
+                args[-1].append(expr)
+            else:
+                visit.append((expr, True))
+                visit.extend((x, False) for x in reversed(expr.data))
+                args.append([])
+    assert len(args) == 1
+    return args[0]
+
+
 def dfs(exprs, max_depth=None):
     """DFS traversal of s-expressions in exprs up to a maximum depth."""
     visit = [(1, x) for x in reversed(exprs)]
@@ -290,7 +319,6 @@ def substitute(exprs, repl):
             changed = True
             if expr is None:
                 continue
-            expr = copy.deepcopy(expr)
 
         if visited:
             children = args.pop()

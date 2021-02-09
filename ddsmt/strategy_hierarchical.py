@@ -277,7 +277,7 @@ def reduce(exprs):
                             f'#{nreduce}: {task.name} ({runtime:.2f}s, {nodes.count_nodes(task.exprs)} expressions)'
                         )
                         reduction = True
-                        exprs = task.exprs
+                        exprs = nodes.reduplicate(task.exprs)
                         skip = task.nodeid - 1
                         fresh_run = False
                         nodeio.write_smtlib_to_file(options.args().outfile,

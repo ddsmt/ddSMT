@@ -366,6 +366,7 @@ def _apply_mutator(mutator, exprs, max_depth=None):
     while gran > 0:
         check_func = _check_par if taskgen.pickled_exprs else _check_seq
         exprs = check_func(taskgen, nexprs, stats)
+        exprs = nodes.reduplicate(exprs)
         gran = gran // 2
         taskgen = TaskGenerator(exprs, gran, mutator, max_depth)
 
