@@ -170,7 +170,7 @@ class Consumer:
         try:
             start = time.time()
             simp = pickle.loads(task.simp)
-            assert isinstance(exprs, Simplification)
+            assert isinstance(simp, Simplification)
             if self.__abort.is_set():
                 return abortres
             exprs = apply_simp(pickle.loads(task.exprs), simp)
