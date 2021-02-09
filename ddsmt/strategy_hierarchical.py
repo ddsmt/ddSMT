@@ -88,15 +88,11 @@ def get_pass(passes, id):
 
 # nodeid: id of the mutated node in bfs order. Only used for progress indication
 # name: name of the mutator
-# if we have a global mutation:
-#   exprs: None
-#   repl: the new input to check
-# if we have a local mutation:
-#   exprs: the current input
-#   repl: the substitution to be checked
+# exprs: the current input
+# simp: the substitution to be checked
 # runtime: time needed to check this task
-Task = collections.namedtuple(
-    'Task', ['nodeid', 'name', 'local', 'exprs', 'repl', 'runtime'])
+Task = collections.namedtuple('Task',
+                              ['nodeid', 'name', 'exprs', 'simp', 'runtime'])
 
 
 class Producer:
@@ -130,15 +126,15 @@ class Producer:
                         if self.__abort.is_set():
                             break
                         assert isinstance(x, Simplification)
-                        yield Task(count, str(m), True, self.__pickled,
+                        yield Task(count, str(m), self.__pickled,
                                    pickle.dumps(x), None)
                 if hasattr(m, 'global_mutations'):
                     for x in m.global_mutations(linput, self.__original):
                         if self.__abort.is_set():
                             break
                         assert isinstance(x, Simplification)
-                        yield Task(count, f'(global) {m}', False,
-                                   self.__pickled, pickle.dumps(x), None)
+                        yield Task(count, f'(global) {m}', self.__pickled,
+                                   pickle.dumps(x), None)
             except Exception as e:
                 logging.info(f'{type(e)} in application of {m}: {e}')
                 exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -168,25 +164,16 @@ class Consumer:
 
     def check(self, task):
         abortres = pickle.dumps(
-            (False, Task(task.nodeid, task.name, task.local, None, None,
-                         None)))
+            (False, Task(task.nodeid, task.name, None, None, None)))
         if self.__abort.is_set():
             return abortres
         try:
             start = time.time()
-            if task.local:
-                # local
-                simp = pickle.loads(task.repl)
-                assert isinstance(simp, Simplification)
-                exprs = apply_simp(pickle.loads(task.exprs), simp)
-            else:
-                # global
-                exprs = pickle.loads(task.repl)
-                assert isinstance(exprs, Simplification)
-                original = pickle.loads(task.exprs)
-                if self.__abort.is_set():
-                    return abortres
-                exprs = apply_simp(original, exprs)
+            simp = pickle.loads(task.simp)
+            assert isinstance(exprs, Simplification)
+            if self.__abort.is_set():
+                return abortres
+            exprs = apply_simp(pickle.loads(task.exprs), simp)
 
             if self.__abort.is_set():
                 return abortres
@@ -195,12 +182,10 @@ class Consumer:
             if self.__abort.is_set():
                 return abortres
             if res:
-                return pickle.dumps((True,
-                                     Task(task.nodeid, task.name, task.local,
-                                          exprs, None, runtime)))
-            return pickle.dumps((False,
-                                 Task(task.nodeid, task.name, task.local, None,
-                                      None, runtime)))
+                return pickle.dumps(
+                    (True, Task(task.nodeid, task.name, exprs, None, runtime)))
+            return pickle.dumps(
+                (False, Task(task.nodeid, task.name, None, None, runtime)))
         except Exception as e:
             logging.info(f'{type(e)} in check of {task.name}: {e}')
             exc_type, exc_value, exc_traceback = sys.exc_info()
