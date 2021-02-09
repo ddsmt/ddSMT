@@ -36,27 +36,27 @@ __GOLDEN = None
 __GOLDEN_CC = None
 
 
-def limit_resources(timeout):
+def limit_resources(pid, timeout):
     """Apply resource limit given by ``--memout`` and timeout arguments."""
     if options.args().memout:
-        resource.setrlimit(
-            resource.RLIMIT_AS,
+        resource.prlimit(
+            pid, resource.RLIMIT_AS,
             (options.args().memout * 1024 * 1024, resource.RLIM_INFINITY))
     if timeout:
         timeout = math.ceil(timeout)
-        resource.setrlimit(resource.RLIMIT_CPU, (timeout, timeout))
+        resource.prlimit(pid, resource.RLIMIT_CPU, (timeout, timeout))
 
 
 def execute(cmd, filename, timeout):
     """Execute the command on the file with a timeout and a memory limit."""
     if options.args().unchecked:
         return RunInfo(0, "unchecked", "unchecked", 0)
+    start = time.time()
     proc = subprocess.Popen(cmd + [filename],
                             stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            preexec_fn=lambda: limit_resources(timeout))
+                            stderr=subprocess.PIPE)
+    limit_resources(proc.pid, timeout)
     try:
-        start = time.time()
         out, err = proc.communicate(timeout=timeout)
         runtime = time.time() - start
     except subprocess.TimeoutExpired:
