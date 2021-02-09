@@ -21,6 +21,7 @@
 import os
 import shutil
 import tempfile
+import threading
 
 from . import options
 
@@ -47,7 +48,9 @@ def copy_binaries():
 
 def get_tmp_filename():
     """Return a filename within our temporary directory based on the pid."""
-    return os.path.join(__TMPDIR.name, f'ddsmt-tmp-{os.getpid()}{__FILEEXT}')
+    return os.path.join(
+        __TMPDIR.name,
+        f'ddsmt-tmp-{os.getpid()}-{threading.get_ident()}{__FILEEXT}')
 
 
 def copy_to_tmp_file(source):
