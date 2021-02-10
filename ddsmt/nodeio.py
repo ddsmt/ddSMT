@@ -99,13 +99,19 @@ def parse_smtlib(text: str):  # noqa: C901
 
 def __write_smtlib(file: typing.TextIO, expr: Node):
     """Write the given smtlib expression in one line into the file object."""
-    visit = [(expr, False)]
+    visit = [expr]
     needs_space = False
     while visit:
-        ex, visited = visit.pop()
+        ex = visit.pop()
+        if ex is None:
+            file.write(')')
+            needs_space = True
+            continue
+
+        if needs_space:
+            file.write(' ')
+
         if ex.is_leaf():
-            if needs_space:
-                file.write(' ')
             if ex.data == '':
                 continue
             if ex.data[0] == ';':
@@ -115,16 +121,10 @@ def __write_smtlib(file: typing.TextIO, expr: Node):
             needs_space = True
             continue
 
-        if visited:
-            file.write(')')
-            needs_space = True
-        else:
-            if needs_space:
-                file.write(' ')
-            file.write('(')
-            needs_space = False
-            visit.append((ex, True))
-            visit.extend((x, False) for x in reversed(ex.data))
+        file.write('(')
+        needs_space = False
+        visit.append(None)
+        visit.extend(x for x in reversed(ex.data))
 
 
 def __write_smtlib_pretty(file: typing.TextIO, expr: Node):
