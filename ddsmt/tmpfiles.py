@@ -26,10 +26,22 @@ import threading
 from . import options
 
 # The temporary directory. Automatically deleted upon termination.
-__TMPDIR = tempfile.TemporaryDirectory(prefix="ddsmt-")
-__BINARY = os.path.join(__TMPDIR.name, 'binary')
-__BINARY_CC = os.path.join(__TMPDIR.name, 'binary_cc')
-__FILEEXT = os.path.splitext(options.args().infile)[1]
+__TMPDIR = None
+__BINARY = None
+__BINARY_CC = None
+__FILEEXT = None
+
+
+def init():
+    """Create temporary directory, set filenames."""
+    global __TMPDIR
+    global __BINARY
+    global __BINARY_CC
+    global __FILEEXT
+    __TMPDIR = tempfile.TemporaryDirectory(prefix="ddsmt-")
+    __BINARY = os.path.join(__TMPDIR.name, 'binary')
+    __BINARY_CC = os.path.join(__TMPDIR.name, 'binary_cc')
+    __FILEEXT = os.path.splitext(options.args().infile)[1]
 
 
 def copy_binaries():

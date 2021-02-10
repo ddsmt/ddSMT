@@ -92,6 +92,7 @@ def ddsmt_main():
     # general setup
     setup_logging()
     check_options()
+    tmpfiles.init()
 
     # show what we are going to do
     logging.info("input file:   '{}'".format(options.args().infile))
