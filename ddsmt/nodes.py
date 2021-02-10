@@ -347,14 +347,34 @@ def count_nodes(node):
     """Return the number of expressions yielded when traversing ``node`` in DFS
     manner."""
     assert isinstance(node, (Node, list))
-    return len(list(dfs(node)))
+    res = 0
+    if isinstance(node, Node):
+        visit = [node]
+    else:
+        visit = [x for x in node]
+    while visit:
+        expr = visit.pop()
+        res += 1
+        if not expr.is_leaf():
+            visit.extend([x for x in expr.data])
+    return res
 
 
 def count_exprs(node):
     """Return the number of tuples yielded when traversing ``node`` in DFS
     manner."""
     assert isinstance(node, (Node, list))
-    return len([x for x in dfs(node) if not x.is_leaf()])
+    res = 0
+    if isinstance(node, Node):
+        visit = [node]
+    else:
+        visit = [x for x in node]
+    while visit:
+        expr = visit.pop()
+        if not expr.is_leaf():
+            res += 1
+            visit.extend([x for x in expr.data if not x.is_leaf()])
+    return res
 
 
 def filter_nodes(exprs, filter_func, max_depth=-1):
