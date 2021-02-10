@@ -135,6 +135,10 @@ def parse_options(mutators, cmdlineoptions=None):
                     action='store_true',
                     default=False,
                     help='check for loops in the minimization process')
+    ap.add_argument('--profile',
+                    action='store_true',
+                    default=False,
+                    help='use cProfile for profiling')
 
     apcheck = ap.add_argument_group('checker arguments')
     apcheck.add_argument('--unchecked',

@@ -1,12 +1,16 @@
 import sys
 
 from . import cli
+from . import options
+from . import profile_utils
 
 
 def main():
     """Main entry point for ddsmt."""
     try:
         cli.ddsmt_main()
+        if options.args().profile:
+            profile_utils.render_profiles()
         return 0
     except MemoryError:
         print("[ddsmt] memory exhausted")
@@ -14,6 +18,8 @@ def main():
         print("[ddsmt] interrupted")
     except cli.DDSMTException as e:
         print(e)
+    if options.args().profile:
+        profile_utils.render_profiles()
     return 1
 
 

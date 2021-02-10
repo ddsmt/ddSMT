@@ -31,6 +31,7 @@ from . import mutators
 from . import nodeio
 from . import nodes
 from . import options
+from . import profile_utils
 from . import tmpfiles
 
 
@@ -94,62 +95,63 @@ def ddsmt_main():
     check_options()
     tmpfiles.init()
 
-    # show what we are going to do
-    logging.info("input file:   '{}'".format(options.args().infile))
-    logging.info("output file:  '{}'".format(options.args().outfile))
-    logging.info("command:      '{}'".format(" ".join(
-        map(str,
-            options.args().cmd))))
-    if options.args().cmd_cc:
-        logging.info("command (cc): '{}'".format(options.args().cmd_cc))
+    with profile_utils.Profiler(True):
+        # show what we are going to do
+        logging.info("input file:   '{}'".format(options.args().infile))
+        logging.info("output file:  '{}'".format(options.args().outfile))
+        logging.info("command:      '{}'".format(" ".join(
+            map(str,
+                options.args().cmd))))
+        if options.args().cmd_cc:
+            logging.info("command (cc): '{}'".format(options.args().cmd_cc))
 
-    # parse the input
-    start_time = time.time()
-    with open(options.args().infile, 'r') as infile:
-        exprs = list(nodeio.parse_smtlib(infile.read()))
-        nexprs = nodes.count_exprs(exprs)
+        # parse the input
+        start_time = time.time()
+        with open(options.args().infile, 'r') as infile:
+            exprs = list(nodeio.parse_smtlib(infile.read()))
+            nexprs = nodes.count_exprs(exprs)
 
-    logging.debug("parsed {} s-expressions in {:.2f} seconds".format(
-        nexprs,
-        time.time() - start_time))
+        logging.debug("parsed {} s-expressions in {:.2f} seconds".format(
+            nexprs,
+            time.time() - start_time))
 
-    if options.args().parser_test:
-        nodes.write_smtlib_to_file(options.args().outfile, exprs)
-        return
+        if options.args().parser_test:
+            nodes.write_smtlib_to_file(options.args().outfile, exprs)
+            return
 
-    # disable unused theories
-    mutators.auto_detect_theories(exprs)
-    # copy binaries to temp folder
-    tmpfiles.copy_binaries()
-    # perform golden runs to see what the solver is doing
-    checker.do_golden_runs()
+        # disable unused theories
+        mutators.auto_detect_theories(exprs)
+        # copy binaries to temp folder
+        tmpfiles.copy_binaries()
+        # perform golden runs to see what the solver is doing
+        checker.do_golden_runs()
 
-    orig_exprs = exprs
-    # do the reduction
-    if options.args().strategy in ('ddmin', 'hybrid'):
-        exprs, ntests = strategy_ddmin.reduce(exprs)
-    if options.args().strategy in ('hierarchical', 'hybrid'):
-        exprs, ntests = strategy_hierarchical.reduce(exprs)
-    end_time = time.time()
+        orig_exprs = exprs
+        # do the reduction
+        if options.args().strategy in ('ddmin', 'hybrid'):
+            exprs, ntests = strategy_ddmin.reduce(exprs)
+        if options.args().strategy in ('hierarchical', 'hybrid'):
+            exprs, ntests = strategy_hierarchical.reduce(exprs)
+        end_time = time.time()
 
-    # show the results
-    if exprs != orig_exprs:
-        ifilesize = os.path.getsize(options.args().infile)
-        ofilesize = os.path.getsize(options.args().outfile)
-        nreduced_exprs = nodes.count_exprs(exprs)
+        # show the results
+        if exprs != orig_exprs:
+            ifilesize = os.path.getsize(options.args().infile)
+            ofilesize = os.path.getsize(options.args().outfile)
+            nreduced_exprs = nodes.count_exprs(exprs)
 
-        logging.info("")
-        logging.info("runtime:         {:.2f} s".format(end_time - start_time))
-        logging.debug("main process:   {:.2f} s".format(time.process_time()
-                                                        - start_time_process))
-        logging.info("tests:           {}".format(ntests))
-        logging.info("input file:")
-        logging.info("  file size:     {} B".format(ifilesize))
-        logging.info("  s-expressions: {}".format(nexprs))
-        logging.info("reduced file:")
-        logging.info("  file size:     {} B ({:3.1f}%)".format(
-            ofilesize, ofilesize / ifilesize * 100))
-        logging.info("  s-expressions: {} ({:3.1f}%)".format(
-            nreduced_exprs, nreduced_exprs / nexprs * 100))
-    else:
-        logging.warning("unable to minimize input file")
+            logging.info("")
+            logging.info("runtime:         {:.2f} s".format(end_time - start_time))
+            logging.debug("main process:   {:.2f} s".format(time.process_time()
+                                                            - start_time_process))
+            logging.info("tests:           {}".format(ntests))
+            logging.info("input file:")
+            logging.info("  file size:     {} B".format(ifilesize))
+            logging.info("  s-expressions: {}".format(nexprs))
+            logging.info("reduced file:")
+            logging.info("  file size:     {} B ({:3.1f}%)".format(
+                ofilesize, ofilesize / ifilesize * 100))
+            logging.info("  s-expressions: {} ({:3.1f}%)".format(
+                nreduced_exprs, nreduced_exprs / nexprs * 100))
+        else:
+            logging.warning("unable to minimize input file")

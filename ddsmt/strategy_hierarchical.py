@@ -32,6 +32,7 @@ from . import nodeio
 from . import nodes
 from . import node_utils
 from . import options
+from . import profile_utils
 from . import progress
 from . import smtlib
 from .mutator_utils import Simplification, apply_simp
@@ -164,34 +165,35 @@ class Consumer:
         self.__abort = abort_flag
 
     def check(self, task):
-        abortres = pickle.dumps(
-            (False, Task(task.nodeid, task.name, None, None, None)))
-        if self.__abort.is_set():
-            return abortres
-        try:
-            start = time.time()
-            simp = pickle.loads(task.simp)
-            assert isinstance(simp, Simplification)
+        with profile_utils.Profiler():
+            abortres = pickle.dumps(
+                (False, Task(task.nodeid, task.name, None, None, None)))
             if self.__abort.is_set():
                 return abortres
-            exprs = apply_simp(pickle.loads(task.exprs), simp)
+            try:
+                start = time.time()
+                simp = pickle.loads(task.simp)
+                assert isinstance(simp, Simplification)
+                if self.__abort.is_set():
+                    return abortres
+                exprs = apply_simp(pickle.loads(task.exprs), simp)
 
-            if self.__abort.is_set():
-                return abortres
-            res = checker.check_exprs(exprs)
-            runtime = time.time() - start
-            if self.__abort.is_set():
-                return abortres
-            if res:
+                if self.__abort.is_set():
+                    return abortres
+                res = checker.check_exprs(exprs)
+                runtime = time.time() - start
+                if self.__abort.is_set():
+                    return abortres
+                if res:
+                    return pickle.dumps(
+                        (True, Task(task.nodeid, task.name, exprs, None, runtime)))
                 return pickle.dumps(
-                    (True, Task(task.nodeid, task.name, exprs, None, runtime)))
-            return pickle.dumps(
-                (False, Task(task.nodeid, task.name, None, None, runtime)))
-        except Exception as e:
-            logging.info(f'{type(e)} in check of {task.name}: {e}')
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
-        return abortres
+                    (False, Task(task.nodeid, task.name, None, None, runtime)))
+            except Exception as e:
+                logging.info(f'{type(e)} in check of {task.name}: {e}')
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
+            return abortres
 
 
 class MutatorStats:

@@ -18,8 +18,8 @@
 # You should have received a copy of the GNU General Public License
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
-import multiprocessing
 import collections
+import multiprocessing
 import logging
 import pickle
 import sys
@@ -32,6 +32,7 @@ from . import nodeio
 from . import nodes
 from . import node_utils
 from . import options
+from . import profile_utils
 from . import smtlib
 from .mutator_utils import Simplification, apply_simp
 
@@ -214,34 +215,35 @@ def _worker(task):
     global __cached_exprs_hash
     global __abort_flag
 
-    try:
-        if __abort_flag and __abort_flag.is_set():
-            logging.debug(f'Worker: Abort task {task.id}')
-            return Result(task.id, False, 0, [], 0)
+    with profile_utils.Profiler():
+        try:
+            if __abort_flag and __abort_flag.is_set():
+                logging.debug(f'Worker: Abort task {task.id}')
+                return Result(task.id, False, 0, [], 0)
 
-        if isinstance(task.exprs, bytes):
-            hashval = hash(task.exprs)
-            if __cached_exprs_hash != hashval:
-                __cached_exprs = pickle.loads(task.exprs)
-                __cached_exprs_hash = hashval
+            if isinstance(task.exprs, bytes):
+                hashval = hash(task.exprs)
+                if __cached_exprs_hash != hashval:
+                    __cached_exprs = pickle.loads(task.exprs)
+                    __cached_exprs_hash = hashval
 
-            exprs = __cached_exprs
-            substs = pickle.loads(task.simplifications)
-        else:
-            exprs = task.exprs
-            substs = task.simplifications
+                exprs = __cached_exprs
+                substs = pickle.loads(task.simplifications)
+            else:
+                exprs = task.exprs
+                substs = task.simplifications
 
-        ntests = 0
-        for mexprs in _simp(exprs, substs):
-            ntests += 1
-            if checker.check_exprs(mexprs):
-                nreduced = nodes.count_exprs(exprs) - nodes.count_exprs(mexprs)
-                return Result(task.id, True, nreduced, mexprs, ntests)
-        return Result(task.id, False, 0, [], ntests)
-    except Exception as e:
-        logging.info(f'{type(e)} in ddmin worker: {e}')
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
+            ntests = 0
+            for mexprs in _simp(exprs, substs):
+                ntests += 1
+                if checker.check_exprs(mexprs):
+                    nreduced = nodes.count_exprs(exprs) - nodes.count_exprs(mexprs)
+                    return Result(task.id, True, nreduced, mexprs, ntests)
+            return Result(task.id, False, 0, [], ntests)
+        except Exception as e:
+            logging.info(f'{type(e)} in ddmin worker: {e}')
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
 
 
 __last_msg = ""
