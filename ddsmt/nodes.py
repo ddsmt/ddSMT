@@ -162,9 +162,8 @@ class Node:
         visit = [self]
         while visit:
             expr = visit.pop()
-            if isinstance(expr, str):
-                assert expr == ')'
-                res.append(b')')
+            if isinstance(expr, bytes):
+                res.append(expr)
                 continue
             assert isinstance(expr, Node)
             if expr.is_leaf():
@@ -174,7 +173,7 @@ class Node:
             else:
                 res.append(b'(')
                 res.append(struct.pack("=iq", expr.id, expr.hash))
-                visit.append(')')
+                visit.append(b')')
                 visit.extend(reversed(expr.data))
 
         return b''.join(res)
