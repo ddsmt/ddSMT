@@ -14,4 +14,5 @@
    strategies
    mutators
    scenarios
+   faq
    references
