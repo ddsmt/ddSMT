@@ -171,7 +171,7 @@ def auto_detect_theories(exprs):
 
         # now check whether theory is relevant for any of the nodes
         enabled = False
-        for node in nodes.dfs(exprs):
+        for node in nodes.dfs(exprs, max_depth=1):
             if theory.is_relevant(node):
                 enabled = True
                 break
