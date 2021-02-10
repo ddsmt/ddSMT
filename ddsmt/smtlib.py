@@ -477,8 +477,11 @@ def get_sort(node):
 
     if node.id in __get_sort_cache:
         return __get_sort_cache[node.id]
+    if node in __get_sort_cache:
+        return __get_sort_cache[node]
     sort = _get_sort_aux(node)
     __get_sort_cache[node.id] = sort
+    __get_sort_cache[node] = sort
     return sort
 
 
