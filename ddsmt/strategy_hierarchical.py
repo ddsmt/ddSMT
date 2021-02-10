@@ -234,6 +234,7 @@ def reduce(exprs):
     nchecks = 0
     nreduce = 0
     stats = MutatorStats()
+    loop_checker = node_utils.NodeLoopChecker()
 
     # use one pool for the whole reduction
     with multiprocessing.Pool(options.args().jobs) as pool:
@@ -250,6 +251,7 @@ def reduce(exprs):
             while True:
                 reduction = False
                 start = time.time()
+                loop_checker.add(exprs)
                 smtlib.collect_information(exprs)
                 cnt = nodes.count_nodes(exprs)
                 progress.start(cnt)

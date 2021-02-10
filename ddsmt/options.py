@@ -131,6 +131,10 @@ def parse_options(mutators, cmdlineoptions=None):
                     choices=['ddmin', 'hierarchical', 'hybrid'],
                     default='hybrid',
                     help='minimization strategy')
+    ap.add_argument('--check-loops',
+                    action='store_true',
+                    default=False,
+                    help='check for loops in the minimization process')
 
     apcheck = ap.add_argument_group('checker arguments')
     apcheck.add_argument('--unchecked',

@@ -30,6 +30,7 @@ from . import checker
 from . import mutators
 from . import nodeio
 from . import nodes
+from . import node_utils
 from . import options
 from . import smtlib
 from .mutator_utils import Simplification, apply_simp
@@ -386,7 +387,10 @@ def reduce(exprs):
     passes = ddmin_passes()
 
     ntests_total = 0
+    loop_checker = node_utils.NodeLoopChecker()
+
     while True:
+        loop_checker.add(exprs)
         nreduced_round = 0
 
         # Apply top-level passes until fixed-point.
