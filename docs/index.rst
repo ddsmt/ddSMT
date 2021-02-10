@@ -10,10 +10,8 @@
    :maxdepth: 2
 
    installation
-   usage
-   strategies
-   mutators
-   scenarios
-   faq
+   quickstart
+   guide
    developers
+   faq
    references

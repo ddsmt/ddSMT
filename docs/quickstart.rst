@@ -1,4 +1,4 @@
-Basic usage
+Quick start
 ====================================
 
 The basic idea of ddSMT is that it runs some command with some input and records its behavior.
