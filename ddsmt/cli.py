@@ -153,19 +153,3 @@ def ddsmt_main():
             nreduced_exprs, nreduced_exprs / nexprs * 100))
     else:
         logging.warning("unable to minimize input file")
-
-
-def main():
-    try:
-        ddsmt_main()
-    except MemoryError:
-        sys.exit("[ddsmt] memory exhausted")
-    except KeyboardInterrupt:
-        sys.exit("[ddsmt] interrupted")
-    except DDSMTException as e:
-        sys.exit(e)
-    sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
