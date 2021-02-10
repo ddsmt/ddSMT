@@ -9,7 +9,7 @@ def test_help(capsys):
     with pytest.raises(SystemExit):
         options.parse_options(mutators, ['--help'])
     captured = capsys.readouterr()
-    assert 'usage: ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]' in captured.out
+    assert 'usage: ddsmt [<options>] <infile> <outfile> <cmd> [<cmd options>]' in captured.out
 
 
 def test_help_all(capsys):

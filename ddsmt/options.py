@@ -90,7 +90,7 @@ def parse_options(mutators, cmdlineoptions=None):
     ``sys.argv``, but is mostly useful for unit tests.
     """
 
-    usage = "ddsmt.py [<options>] <infile> <outfile> <cmd> [<cmd options>]"
+    usage = 'ddsmt [<options>] <infile> <outfile> <cmd> [<cmd options>]'
     ap = argparsemod.ModularArgumentParser(
         usage=usage,
         formatter_class=CustomFormatter,
