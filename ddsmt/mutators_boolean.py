@@ -3,7 +3,7 @@
 #
 # This file is part of ddSMT.
 #
-# Copyright (C) 2013-2021 by the authors listed in the AUTHORS file.
+# Copyright (C) 2013-2021 by the authors listed in AUTHORS file.
 #
 # ddSMT is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
