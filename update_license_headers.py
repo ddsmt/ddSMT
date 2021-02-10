@@ -47,6 +47,7 @@ def prepare_header():
 def list_files():
     """Iterable over all files that should get the copyright header."""
     yield f'{ARGS.basedir}/bin/ddsmt'
+    yield f'{ARGS.basedir}/bin/ddsmt-profile'
     yield from glob.iglob(f'{ARGS.basedir}/ddsmt/*.py')
 
 
