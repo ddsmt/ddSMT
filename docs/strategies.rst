@@ -9,6 +9,8 @@ ddSMT offers two fundamentally different strategies for minimization that we cal
 The default strategy ``hybrid`` thus uses ``ddmin`` first and then ``hierarchical`` on the already simplified input, which almost always combines the better performance characteristics of ``ddmin`` with the smaller results of ``hierarchical``.
 
 
+.. _ddmin-strategy:
+
 The ``ddmin`` strategy
 ----------------------
 

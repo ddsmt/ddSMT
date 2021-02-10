@@ -15,4 +15,5 @@
    mutators
    scenarios
    faq
+   developers
    references
