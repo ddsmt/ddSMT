@@ -7,13 +7,14 @@ def main():
     """Main entry point for ddsmt."""
     try:
         cli.ddsmt_main()
+        return 0
     except MemoryError:
-        sys.exit("[ddsmt] memory exhausted")
+        print("[ddsmt] memory exhausted")
     except KeyboardInterrupt:
-        sys.exit("[ddsmt] interrupted")
+        print("[ddsmt] interrupted")
     except cli.DDSMTException as e:
-        sys.exit(e)
-    sys.exit(0)
+        print(e)
+    return 1
 
 
 def main_profile():
@@ -22,7 +23,7 @@ def main_profile():
     import subprocess
     with cProfile.Profile() as pr:
         pr.enable()
-        main()
+        res = main()
         pr.disable()
         pr.dump_stats('profile.prof')
     subprocess.run([
@@ -32,7 +33,8 @@ def main_profile():
     ])
     subprocess.run(['dot', '-Tpng', '-o', 'profile.png', 'profile.dot'])
     print('profile information is stored at profile.(prof|dot|png)')
+    return res
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
