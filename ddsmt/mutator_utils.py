@@ -32,6 +32,5 @@ def apply_simp(exprs, simp):
     mexprs = nodes.substitute(exprs, simp.substs)
     if mexprs is not exprs and simp.fresh_vars:
         assert isinstance(mexprs, list)
-        vars = copy.deepcopy(simp.fresh_vars)
-        mexprs = smtlib.introduce_variables(mexprs, vars)
+        mexprs = smtlib.introduce_variables(mexprs, simp.fresh_vars)
     return mexprs

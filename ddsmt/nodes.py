@@ -296,7 +296,7 @@ def substitute(exprs, repl):
             if exprs.id and exprs.id in repl:
                 return repl[exprs.id]
             if exprs in repl:
-                return copy.deepcopy(repl[exprs])
+                return repl[exprs]
             return exprs
         visit = [(exprs, False)]
     else:
