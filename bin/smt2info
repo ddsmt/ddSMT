@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+#
+# ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
+#
+# This file is part of ddSMT.
+#
+# Copyright (C) 2013-2021 by the authors listed in AUTHORS file.
+#
+# ddSMT is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# ddSMT is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
+
+import json
+import os
+import sys
+import time
+
+__root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+sys.path.insert(0, __root_dir)
+
+from ddsmt import nodeio, nodes  # noqa: E402
+
+if len(sys.argv) < 2:
+    print('usage: smt2info <filename>')
+    sys.exit(1)
+
+filename = sys.argv[1]
+if not os.path.isfile(filename):
+    print(f'{filename} is not a file')
+    sys.exit(1)
+
+data = {}
+
+start_time = time.time()
+with open(sys.argv[1], 'r') as infile:
+    exprs = list(nodeio.parse_smtlib(infile.read()))
+
+data['parse-time'] = time.time() - start_time
+data['file-size'] = os.stat(filename).st_size
+data['num-expressions'] = nodes.count_exprs(exprs)
+data['num-nodes'] = nodes.count_nodes(exprs)
+
+print(json.dumps(data, indent=2))
