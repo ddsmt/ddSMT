@@ -30,6 +30,7 @@ from . import checker
 from . import mutators
 from . import nodeio
 from . import nodes
+from . import node_utils
 from . import options
 from . import progress
 from . import smtlib

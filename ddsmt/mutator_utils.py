@@ -19,7 +19,6 @@
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
 import collections
-import copy
 from . import smtlib
 from . import nodes
 
