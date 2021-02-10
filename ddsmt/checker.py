@@ -36,15 +36,19 @@ __GOLDEN = None
 __GOLDEN_CC = None
 
 
-def limit_resources(pid, timeout):
+def limit_resources(timeout, pid=None):
     """Apply resource limit given by ``--memout`` and timeout arguments."""
+    if pid:
+        setlimit = lambda *args: resource.prlimit(pid, *args)  # noqa: E731
+    else:
+        setlimit = lambda *args: resource.setrlimit(*args)  # noqa: E731
+
     if options.args().memout:
-        resource.prlimit(
-            pid, resource.RLIMIT_AS,
-            (options.args().memout * 1024 * 1024, resource.RLIM_INFINITY))
+        setlimit(resource.RLIMIT_AS,
+                 (options.args().memout * 1024 * 1024, resource.RLIM_INFINITY))
     if timeout:
         timeout = math.ceil(timeout)
-        resource.prlimit(pid, resource.RLIMIT_CPU, (timeout, timeout))
+        setlimit(resource.RLIMIT_CPU, (timeout, timeout))
 
 
 def execute(cmd, filename, timeout):
@@ -52,10 +56,16 @@ def execute(cmd, filename, timeout):
     if options.args().unchecked:
         return RunInfo(0, "unchecked", "unchecked", 0)
     start = time.time()
-    proc = subprocess.Popen(cmd + [filename],
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    limit_resources(proc.pid, timeout)
+    if hasattr(resource, 'prlimit'):
+        proc = subprocess.Popen(cmd + [filename],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        limit_resources(timeout, proc.pid)
+    else:
+        proc = subprocess.Popen(cmd + [filename],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                preexec_fn=lambda: limit_resources(timeout))
     try:
         out, err = proc.communicate(timeout=timeout)
         runtime = time.time() - start
