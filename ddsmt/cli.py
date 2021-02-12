@@ -31,7 +31,7 @@ from . import mutators
 from . import nodeio
 from . import nodes
 from . import options
-from . import profile_utils
+from . import debug_utils
 from . import tmpfiles
 
 
@@ -95,7 +95,7 @@ def ddsmt_main():
     check_options()
     tmpfiles.init()
 
-    with profile_utils.Profiler(True):
+    with debug_utils.Profiler(True):
         # show what we are going to do
         logging.info("input file:   '{}'".format(options.args().infile))
         logging.info("output file:  '{}'".format(options.args().outfile))

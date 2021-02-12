@@ -2,7 +2,7 @@ import sys
 
 from . import cli
 from . import options
-from . import profile_utils
+from . import debug_utils
 
 
 def main():
@@ -10,7 +10,7 @@ def main():
     try:
         cli.ddsmt_main()
         if options.args().profile:
-            profile_utils.render_profiles()
+            debug_utils.render_profiles()
         return 0
     except MemoryError:
         print("[ddsmt] memory exhausted")
@@ -19,7 +19,7 @@ def main():
     except cli.DDSMTException as e:
         print(e)
     if options.args().profile:
-        profile_utils.render_profiles()
+        debug_utils.render_profiles()
     return 1
 
 

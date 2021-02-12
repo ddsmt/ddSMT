@@ -30,9 +30,8 @@ from . import checker
 from . import mutators
 from . import nodeio
 from . import nodes
-from . import node_utils
 from . import options
-from . import profile_utils
+from . import debug_utils
 from . import progress
 from . import smtlib
 from .mutator_utils import Simplification, apply_simp
@@ -165,7 +164,7 @@ class Consumer:
         self.__abort = abort_flag
 
     def check(self, task):
-        with profile_utils.Profiler():
+        with debug_utils.Profiler():
             abortres = pickle.dumps(
                 (False, Task(task.nodeid, task.name, None, None, None)))
             if self.__abort.is_set():
@@ -237,7 +236,8 @@ def reduce(exprs):
     nchecks = 0
     nreduce = 0
     stats = MutatorStats()
-    loop_checker = node_utils.NodeLoopChecker()
+    loop_checker = debug_utils.NodeLoopChecker()
+    loop_checker.add(exprs)
 
     # use one pool for the whole reduction
     with multiprocessing.Pool(options.args().jobs) as pool:
@@ -254,7 +254,6 @@ def reduce(exprs):
             while True:
                 reduction = False
                 start = time.time()
-                loop_checker.add(exprs)
                 smtlib.collect_information(exprs)
                 cnt = nodes.count_nodes(exprs)
                 progress.start(cnt)
@@ -283,6 +282,7 @@ def reduce(exprs):
                         )
                         reduction = True
                         exprs = nodes.reduplicate(task.exprs)
+                        loop_checker.add(exprs)
                         skip = task.nodeid - 1
                         fresh_run = False
                         nodeio.write_smtlib_to_file(options.args().outfile,

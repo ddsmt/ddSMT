@@ -30,9 +30,8 @@ from . import checker
 from . import mutators
 from . import nodeio
 from . import nodes
-from . import node_utils
 from . import options
-from . import profile_utils
+from . import debug_utils
 from . import smtlib
 from .mutator_utils import Simplification, apply_simp
 
@@ -215,7 +214,7 @@ def _worker(task):
     global __cached_exprs_hash
     global __abort_flag
 
-    with profile_utils.Profiler():
+    with debug_utils.Profiler():
         try:
             if __abort_flag and __abort_flag.is_set():
                 logging.debug(f'Worker: Abort task {task.id}')
@@ -389,7 +388,7 @@ def reduce(exprs):
     passes = ddmin_passes()
 
     ntests_total = 0
-    loop_checker = node_utils.NodeLoopChecker()
+    loop_checker = debug_utils.NodeLoopChecker()
 
     while True:
         loop_checker.add(exprs)

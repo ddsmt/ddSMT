@@ -131,14 +131,6 @@ def parse_options(mutators, cmdlineoptions=None):
                     choices=['ddmin', 'hierarchical', 'hybrid'],
                     default='hybrid',
                     help='minimization strategy')
-    ap.add_argument('--check-loops',
-                    action='store_true',
-                    default=False,
-                    help='check for loops in the minimization process')
-    ap.add_argument('--profile',
-                    action='store_true',
-                    default=False,
-                    help='use cProfile for profiling')
 
     apcheck = ap.add_argument_group('checker arguments')
     apcheck.add_argument('--unchecked',
@@ -201,6 +193,16 @@ def parse_options(mutators, cmdlineoptions=None):
         help=
         "match string in stdout to identify failing input for cross check command"
     )
+
+    apdebug = ap.add_argument_group('debug arguments')
+    apdebug.add_argument('--check-loops',
+                    action='store_true',
+                    default=False,
+                    help='check for loops in the minimization process')
+    apdebug.add_argument('--profile',
+                    action='store_true',
+                    default=False,
+                    help='use cProfile for profiling')
 
     mutators.collect_mutator_options(ap)
 
