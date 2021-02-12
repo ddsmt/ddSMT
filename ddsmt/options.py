@@ -196,13 +196,17 @@ def parse_options(mutators, cmdlineoptions=None):
 
     apdebug = ap.add_argument_group('debug arguments')
     apdebug.add_argument('--check-loops',
-                    action='store_true',
-                    default=False,
-                    help='check for loops in the minimization process')
+                         action='store_true',
+                         default=False,
+                         help='check for loops in the minimization process')
     apdebug.add_argument('--profile',
-                    action='store_true',
-                    default=False,
-                    help='use cProfile for profiling')
+                         action='store_true',
+                         default=False,
+                         help='use cProfile for profiling')
+    apdebug.add_argument('--dump-diffs',
+                         action='store_true',
+                         default=False,
+                         help='dump a diff of every simplification')
 
     mutators.collect_mutator_options(ap)
 

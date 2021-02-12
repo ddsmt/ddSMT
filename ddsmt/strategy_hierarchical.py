@@ -184,8 +184,9 @@ class Consumer:
                 if self.__abort.is_set():
                     return abortres
                 if res:
-                    return pickle.dumps(
-                        (True, Task(task.nodeid, task.name, exprs, None, runtime)))
+                    return pickle.dumps((True,
+                                         Task(task.nodeid, task.name, exprs,
+                                              None, runtime)))
                 return pickle.dumps(
                     (False, Task(task.nodeid, task.name, None, None, runtime)))
             except Exception as e:
@@ -281,6 +282,7 @@ def reduce(exprs):
                             f'#{nreduce}: {task.name} ({runtime:.2f}s, {nodes.count_nodes(task.exprs)} expressions)'
                         )
                         reduction = True
+                        debug_utils.dump_diff(task.name, exprs, task.exprs)
                         exprs = nodes.reduplicate(task.exprs)
                         loop_checker.add(exprs)
                         skip = task.nodeid - 1
