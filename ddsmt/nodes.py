@@ -235,18 +235,22 @@ def reduplicate(exprs):
         expr, visited = visit.pop()
         assert isinstance(expr, Node)
 
-        if visited:
-            children = args.pop()
-            if any(map(lambda x: id(x[0]) != id(x[1]), zip(expr, children))):
-                node = Node(*children)
-                args[-1].append(node)
-                ids.add(id(node))
+        if expr.is_leaf():
+            if expr.id in ids:
+                args[-1].append(Node(expr.data))
             else:
                 args[-1].append(expr)
-                ids.add(id(expr))
+                ids.add(expr.id)
         else:
-            if expr.is_leaf():
-                args[-1].append(expr)
+            if visited:
+                children = args.pop()
+                if any(map(lambda x: x[0].id != x[1].id, zip(expr, children))):
+                    node = Node(*children)
+                    args[-1].append(node)
+                    ids.add(node.id)
+                else:
+                    args[-1].append(expr)
+                    ids.add(expr.id)
             else:
                 visit.append((expr, True))
                 visit.extend((x, False) for x in reversed(expr.data))
