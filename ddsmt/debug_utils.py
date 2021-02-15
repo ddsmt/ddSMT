@@ -42,28 +42,30 @@ class Profiler:
     function, this argument should never be set to True.
     """
 
+    enabled = options.args().profile
     # static profiler, global within one process
     profiler = None
 
     def __init__(self, is_main=False):
         """Create a profiler."""
-        if multiprocessing.parent_process() is None:
-            self.enabled = True
-            self.filename = '.profile.prof'
-        else:
-            self.enabled = True
-            self.filename = f'.profile-{os.getpid()}.prof'
-        if Profiler.profiler is None:
-            Profiler.profiler = cProfile.Profile()
+        if Profiler.enabled:
+            if multiprocessing.parent_process() is None:
+                self.enabled = True
+                self.filename = '.profile.prof'
+            else:
+                self.enabled = True
+                self.filename = f'.profile-{os.getpid()}.prof'
+            if Profiler.profiler is None:
+                Profiler.profiler = cProfile.Profile()
 
     def __enter__(self):
         """Start profiling, if ``--profile`` was given."""
-        if self.enabled and options.args().profile:
+        if Profiler.enabled and self.enabled:
             Profiler.profiler.enable()
 
     def __exit__(self, type, value, traceback):
         """Stop profiling and write results to file."""
-        if self.enabled and options.args().profile:
+        if Profiler.enabled and self.enabled:
             try:
                 Profiler.profiler.disable()
                 Profiler.profiler.dump_stats(self.filename)
