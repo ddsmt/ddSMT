@@ -93,13 +93,27 @@ class InlineDefinedFuns:
 class IntroduceFreshVariable:
     """Replace a term by a fresh variable of the appropriate type."""
     def filter(self, node):
-        if node.is_leaf():
-            # introducing a fresh variable for a leaf node and then inling it
-            # results in the same input and allows for loops
+        # introducing a fresh variable may lead to cycles in various cases,
+        # thus we exclude a variety of nodes here:
+        # - constants, leaf nodes
+        # - BV terms with a single variable and smaller bit-width.
+        if is_const(node) or node.is_leaf() or is_definition_node(node):
             return False
-        if is_definition_node(node):
+        sort = get_sort(node)
+        if sort is None:
             return False
-        return not is_const(node) and get_sort(node) is not None
+        if is_bv_sort(sort):
+            found = False
+            for n in nodes.dfs(node):
+                if is_var(n):
+                    if found:
+                        return True
+                    found = True
+                    bw = get_bv_width(n)
+                    if bw > int(sort[2].data):
+                        return True
+            return False
+        return True
 
     def global_mutations(self, linput, ginput):
         varname = Node(f'x{linput.id}__fresh')

@@ -97,17 +97,32 @@ def test_smtlib_introduce_fresh_variable():
     m = mutators_smtlib.IntroduceFreshVariable()
     assert isinstance(str(m), str)
 
-    decl = Node('declare-const', 'x', 'Bool')
-    smtlib.collect_information([decl])
+    decl = [
+        Node('declare-const', 'x', 'Bool'),
+        Node('declare-const', 'y', ('_', 'BitVec', 8)),
+        Node('declare-const', 'z', ('_', 'BitVec', 8)),
+    ]
+    smtlib.collect_information(decl)
     term = Node('not', 'x')
-    exprs = [decl, Node('assert', term)]
+    exprs = [*decl, Node('assert', term)]
     assert not m.filter(Node('false'))
     assert not m.filter(Node('x'))
     assert m.filter(term)
-    assert check_global_mutations(
-        m, term, exprs,
-        [[('declare-const', f'x{term.id}__fresh', 'Bool'), decl,
-          Node('assert', f'x{term.id}__fresh')]])
+    assert check_global_mutations(m, term, exprs, [[
+        Node('declare-const', f'x{term.id}__fresh', 'Bool'), *decl,
+        Node('assert', f'x{term.id}__fresh')
+    ]])
+
+    # actually, it is much more important to check that this mutator
+    # does *not* apply for various cases, as it quickly leads to cycles.
+    assert not m.filter(Node('false'))
+    assert not m.filter(Node('1.0'))
+    assert not m.filter(Node('_', 'bv123', '8'))
+    assert not m.filter(Node('y'))
+    assert not m.filter(Node(('_', 'zero_extend', '8'), 'y'))
+    assert not m.filter(Node(('_', 'zero_extend', '0'), 'y'))
+    assert m.filter(Node('bvor', 'y', 'z'))
+    assert m.filter(Node('bvor', 'y', 'y'))
 
 
 def test_smtlib_let_elimination():
