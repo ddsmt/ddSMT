@@ -38,6 +38,10 @@ __sort_lookup = {}
 __indices = set()
 # Caches calls to get_sort
 __get_sort_cache = {}
+# Stores constants for datatype sorts
+__datatypes_constants = {}
+# Stores the sorts of datatype constructors
+__datatypes_constructors = {}
 
 
 def collect_information(exprs):  # noqa: C901
@@ -48,6 +52,8 @@ def collect_information(exprs):  # noqa: C901
     global __definition_node_ids
     global __sort_lookup
     global __indices
+    global __datatypes_constants
+    global __datatypes_constructors
     reset_information()
 
     for cmd in exprs:
@@ -100,6 +106,37 @@ def collect_information(exprs):  # noqa: C901
             __definition_node_ids.add(cmd[1].id)
             __definition_node_ids.add(cmd[4].id)
             __sort_lookup[cmd[1].data] = cmd[3]
+        if name == 'declare-datatype':
+            if not len(cmd) == 3:
+                logging.trace(
+                    f'Ignored command: "{cmd}" should have three children.')
+                continue
+            if cmd[2].is_leaf():
+                logging.trace(f'Ignored command: "{cmd[2]}" is as leaf')
+                continue
+            sort = cmd[1]
+            for constr in cmd[2]:
+                __datatypes_constructors[constr[0]] = sort
+                if len(constr) == 1:
+                    __datatypes_constants.setdefault(sort, [])
+                    __datatypes_constants[sort].append(constr[0])
+
+        if name == 'declare-datatypes':
+            if not len(cmd) == 3:
+                logging.trace(
+                    f'Ignored command: "{cmd}" should have three children.')
+                continue
+            if cmd[1].is_leaf() or cmd[2].is_leaf():
+                logging.trace(f'Ignored command: "{cmd}" children are leafs')
+                continue
+            # we implicitly assume nullary sorts here
+            sorts = [s[0] for s in cmd[1]]
+            for id in range(len(sorts)):
+                for constr in cmd[2][id]:
+                    __datatypes_constructors[constr[0]] = sorts[id]
+                    if len(constr) == 1:
+                        __datatypes_constants.setdefault(sorts[id], [])
+                        __datatypes_constants[sorts[id]].append(constr[0])
 
     # Collect additional term level information.
     for node in nodes.dfs(exprs):
@@ -130,12 +167,16 @@ def reset_information():
     global __sort_lookup
     global __indices
     global __get_sort_cache
+    global __datatypes_constants
+    global __datatypes_constructors
     __constants = {}
     __defined_functions = {}
     __definition_node_ids = set()
     __sort_lookup = {}
     __indices = set()
     __get_sort_cache = {}
+    __datatypes_constants = {}
+    __datatypes_constructors = {}
 
 
 # General utilities
@@ -321,6 +362,8 @@ def get_default_constants(sort):
     if is_set_sort(sort):
         return [Node('as', 'emptyset', sort)] \
                + [Node('singleton', c) for c in get_default_constants(sort[1])]
+    if sort in __datatypes_constants:
+        return __datatypes_constants[sort]
     return []
 
 
@@ -455,6 +498,8 @@ def _get_sort_aux(node):  # noqa: C901
             return None
         if ident == 'store':
             return get_sort(node[1])
+        if ident in __datatypes_constructors:
+            return __datatypes_constructors[ident]
 
     # indexed operators
     if is_indexed_operator_app(node, 'divisible'):
