@@ -154,6 +154,15 @@ def collect_information(exprs):  # noqa: C901
                 if sym.is_leaf():
                     __sort_lookup[sym.data] = get_sort(term)
                     __definition_node_ids.add(sym.id)
+        # Determine sort of symbols introduced by quantifiers
+        if is_operator_app(node, 'exists') or is_operator_app(node, 'forall'):
+            for var in node[1]:
+                if len(var) != 2:
+                    continue
+                sym, term = var
+                if sym.is_leaf():
+                    __sort_lookup[sym.data] = term
+                    __definition_node_ids.add(sym.id)
 
 
 def reset_information():
