@@ -48,7 +48,7 @@ def get_passes():
                                           {'ident': 'assert'}), {
                                               'max_depth': 1
                                           }),
-        mutators.get_mutators(['BinaryReduction']),
+        mutators.get_mutators(['Constants', 'BinaryReduction']),
         mutators.get_mutators([
             'EraseNode',
             'Constants',
@@ -223,9 +223,9 @@ class MutatorStats:
         """Print cumulative results."""
         if self.__enabled:
             for name, data in sorted(self.data.items()):
-                logging.info(
-                    f'{name}: diff {data["diff"]:+} expressions, {data["tests"]} tests ({data["success"]}), {data["runtime"]:.1f}s'
-                )
+                logging.info(f'{name}: diff {data["diff"]:+} expressions, '
+                             f'{data["tests"]} tests ({data["success"]}), '
+                             f'{data["runtime"]:.1f}s')
 
 
 def reduce(exprs):
@@ -279,8 +279,8 @@ def reduce(exprs):
                         nreduce += 1
                         runtime = time.time() - start
                         logging.chat(
-                            f'#{nreduce}: {task.name} ({runtime:.2f}s, {nodes.count_nodes(task.exprs)} expressions)'
-                        )
+                            f'#{nreduce}: {task.name} ({runtime:.2f}s, '
+                            f'{nodes.count_nodes(task.exprs)} expressions)')
                         reduction = True
                         debug_utils.dump_diff(task.name, exprs, task.exprs)
                         exprs = nodes.reduplicate(task.exprs)

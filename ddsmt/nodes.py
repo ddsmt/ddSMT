@@ -19,7 +19,6 @@
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
 import collections
-import copy
 import multiprocessing
 import struct
 
@@ -58,8 +57,6 @@ class Node:
             else:
                 self.data = tuple(map(lambda a: self.__ensure_is_node(a),
                                       args))
-            #assert all(map(lambda t: isinstance(t, Node), self.data))
-        #assert isinstance(self.data, (str, tuple))
         self.hash = _hash if _hash else hash(self.data)
 
     def __deepcopy__(self, memo):
@@ -216,13 +213,12 @@ class Node:
     def has_ident(self):
         """Return true if this node has an identifier, i.e., it has children
         and its first child is a leaf node."""
-        return isinstance(self.data, tuple) \
-               and self.data \
-               and self.data[0].is_leaf()
+        return (isinstance(self.data, tuple) and self.data
+                and self.data[0].is_leaf())
 
     def get_ident(self):
         """Get the identifier of this, asserting that ``node.has_ident()``."""
-        assert (self.has_ident())
+        assert self.has_ident()
         return self.data[0]
 
 
@@ -286,7 +282,7 @@ def bfs(exprs, max_depth=None):
             yield expr
 
 
-def substitute(exprs, repl):
+def substitute(exprs, repl):  # noqa: C901
     """Performs (local and global) substitutions on exprs as specified in repl.
     repl may contain two types of entries:
 

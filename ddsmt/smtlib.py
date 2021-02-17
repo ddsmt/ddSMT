@@ -369,8 +369,10 @@ def get_default_constants(sort):
             Node('fp', signm, ones_ew, zero_sw)
         ]
     if is_set_sort(sort):
-        return [Node('as', 'emptyset', sort)] \
-               + [Node('singleton', c) for c in get_default_constants(sort[1])]
+        return [
+            Node('as', 'emptyset', sort),
+            *[Node('singleton', c) for c in get_default_constants(sort[1])]
+        ]
     if sort in __datatypes_constants:
         return __datatypes_constants[sort]
     return []
@@ -560,8 +562,8 @@ def is_arith_const(node):
     """Return true if ``node`` is an arithmetic constant."""
     if node.has_ident() and node.get_ident() == '/' and len(node) == 3:
         return is_int_const(node[1]) and is_int_const(node[2])
-    return node.is_leaf() \
-           and re.match('[0-9]+(\\.[0-9]*)?$', node.data) is not None
+    return (node.is_leaf()
+            and re.match('[0-9]+(\\.[0-9]*)?$', node.data) is not None)
 
 
 def is_int_const(node):
@@ -573,8 +575,8 @@ def is_real_const(node):
     """Return true if ``node`` is a real constant."""
     if node.has_ident() and node.get_ident() == '/' and len(node) == 3:
         return is_int_const(node[1]) and is_int_const(node[2])
-    return node.is_leaf() \
-           and re.match('^[0-9]+(\\.[0-9]*)?$', node.data) is not None
+    return (node.is_leaf()
+            and re.match('^[0-9]+(\\.[0-9]*)?$', node.data) is not None)
 
 
 # Arrays
@@ -634,7 +636,7 @@ def is_bv_neg(node):
     return node.has_ident() and node.get_ident() == 'bvneg'
 
 
-def get_bv_width(node):
+def get_bv_width(node):  # noqa: C901
     """Return the bit-width of a bit-vector node.
 
     Asserts that ``node`` is a bit-vector node. Requires that global

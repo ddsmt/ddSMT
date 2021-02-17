@@ -138,20 +138,20 @@ def ddsmt_main():
         if exprs != orig_exprs:
             ifilesize = os.path.getsize(options.args().infile)
             ofilesize = os.path.getsize(options.args().outfile)
-            nreduced_exprs = nodes.count_exprs(exprs)
+            exprcount = nodes.count_exprs(exprs)
+            proctime = time.process_time() - start_time_process
+            sizeperc = ofilesize / ifilesize * 100
+            exprperc = exprcount / nexprs * 100
 
-            logging.info("")
-            logging.info("runtime:         {:.2f} s".format(end_time - start_time))
-            logging.debug("main process:   {:.2f} s".format(time.process_time()
-                                                            - start_time_process))
-            logging.info("tests:           {}".format(ntests))
-            logging.info("input file:")
-            logging.info("  file size:     {} B".format(ifilesize))
-            logging.info("  s-expressions: {}".format(nexprs))
-            logging.info("reduced file:")
-            logging.info("  file size:     {} B ({:3.1f}%)".format(
-                ofilesize, ofilesize / ifilesize * 100))
-            logging.info("  s-expressions: {} ({:3.1f}%)".format(
-                nreduced_exprs, nreduced_exprs / nexprs * 100))
+            logging.info('')
+            logging.info(f'runtime:         {end_time - start_time:.2f} s')
+            logging.debug(f'main process:   {proctime:.2f} s')
+            logging.info(f'tests:           {ntests}')
+            logging.info(f'input file:')
+            logging.info(f'  file size:     {ifilesize} B')
+            logging.info(f'  s-expressions: {nexprs}')
+            logging.info(f'reduced file:')
+            logging.info(f'  file size:     {ofilesize} B ({sizeperc:3.1f}%)')
+            logging.info(f'  s-expressions: {exprcount} ({exprperc:3.1f}%)')
         else:
-            logging.warning("unable to minimize input file")
+            logging.warning('unable to minimize input file')

@@ -63,8 +63,11 @@ class BVConcatToZeroExtend:
 class BVDoubleNegation:
     """Elimination double bit-vector negations."""
     def filter(self, node):
-        return (is_bv_not(node) and is_bv_not(node[1])) \
-               or (is_bv_neg(node) and is_bv_neg(node[1]))
+        if is_bv_not(node) and is_bv_not(node[1]):
+            return True
+        if is_bv_neg(node) and is_bv_neg(node[1]):
+            return True
+        return False
 
     def mutations(self, node):
         return [Simplification({node.id: node[1][1]}, [])]
@@ -76,18 +79,19 @@ class BVDoubleNegation:
 class BVElimBVComp:
     """Replace ``bvcomp`` with a constant by a regular equality."""
     def filter(self, node):
-        return is_eq(node) \
-               and is_bv_const(node[1]) \
-               and get_bv_width(node[1]) == 1 \
-               and any(is_bv_comp(n) for n in node[2:])
+        return (is_eq(node) and is_bv_const(node[1])
+                and get_bv_width(node[1]) == 1
+                and any(is_bv_comp(n) for n in node[2:]))
 
     def mutations(self, node):
         val = get_bv_constant_value(node[1])[0]
         res = []
         for n in node[2:]:
             if is_bv_comp(n):
-                res.append(Node('=', *n[1:])) if val == 1 else \
-                res.append(Node('not', Node('=', *n[1:])))
+                if val == 1:
+                    res.append(Node('=', *n[1:]))
+                else:
+                    res.append(Node('not', Node('=', *n[1:])))
             else:
                 res.append(Node('=', node[1], n))
         if len(res) == 1:
@@ -103,9 +107,9 @@ class BVEvalExtend:
     """Evaluates a bit-vector ``(sign|zero)_extend`` if it is applied to a
     constant or another ``(sign|zero)_extend``."""
     def filter(self, node):
-        return (is_indexed_operator_app(node, 'zero_extend') \
-                or is_indexed_operator_app(node, 'sign_extend')) \
-               and is_bv_const(node[1])
+        return ((is_indexed_operator_app(node, 'zero_extend')
+                 or is_indexed_operator_app(node, 'sign_extend'))
+                and is_bv_const(node[1]))
 
     def mutations(self, node):
         (val, width) = get_bv_constant_value(node[1])
@@ -129,8 +133,8 @@ class BVEvalExtend:
 class BVExtractConstants:
     """Evaluates a bit-vector ``extract`` if it is applied to a constant."""
     def filter(self, node):
-        return is_indexed_operator_app(node, 'extract', 2) \
-               and is_bv_const(node[1])
+        return (is_indexed_operator_app(node, 'extract', 2)
+                and is_bv_const(node[1]))
 
     def mutations(self, node):
         if node[1].has_ident():
@@ -163,13 +167,14 @@ class BVExtractZeroExtend:
     ``collect_information``.
     """
     def filter(self, node):
-        return is_indexed_operator_app(node, 'extract', 2) \
-               and is_indexed_operator_app(node[1], 'zero_extend')
+        return (is_indexed_operator_app(node, 'extract', 2)
+                and is_indexed_operator_app(node[1], 'zero_extend'))
 
     def mutations(self, node):
         term = node[1][1]
         bw = get_bv_width(term)
-        if bw <= 0: return []
+        if bw <= 0:
+            return []
         idx = get_indices(node[0], 'extract', 2)
         upper = idx[0]
         lower = idx[1]
@@ -183,7 +188,8 @@ class BVExtractZeroExtend:
         if upper < bw:
             # we only extract from the variable
             return [Simplification({node.id: Node(node[0], term)}, [])]
-        # switch extract and zero_extend, reduce lengths of extract and zero_extend
+        # switch extract and zero_extend, reduce lengths of extract and
+        # zero_extend
         return [
             Simplification(
                 {
@@ -206,17 +212,15 @@ class BVIteToBVComp:
     def filter(self, node):
         if not is_operator_app(node, 'ite'):
             return False
-        if not node[1].has_ident() \
-           or node[1].get_ident() != '=' \
-           or len(node[1]) != 3 \
-           or get_sort(node[1][1]) == None \
-           or not is_bv_sort(get_sort(node[1][1])):
+        if (not is_operator_app(node[1], '=') or len(node[1]) != 3
+                or not is_bv_sort(get_sort(node[1][1]))
+                or get_sort(node[1][1]) is None):
             return False
-        if not is_bv_const(node[2]) \
-           or get_bv_constant_value(node[2]) != (1, 1):
+        if not is_bv_const(node[2]) or not is_bv_const(node[3]):
             return False
-        if not is_bv_const(node[3]) \
-           or get_bv_constant_value(node[3]) != (0, 1):
+        if get_bv_constant_value(node[2]) != (1, 1):
+            return False
+        if get_bv_constant_value(node[3]) != (0, 1):
             return False
         return True
 
@@ -233,10 +237,8 @@ class BVIteToBVComp:
 class BVReflexiveNand:
     """Replace a reflexive nand by bitwise negation."""
     def filter(self, node):
-        return node.has_ident() \
-               and node.get_ident() == 'bvnand' \
-               and len(node) == 3 \
-               and node[1] == node[2]
+        return (is_operator_app(node, 'bvnand') and len(node) == 3
+                and node[1] == node[2])
 
     def mutations(self, node):
         return [Simplification({node.id: Node('bvnot', node[1])}, [])]
@@ -248,8 +250,8 @@ class BVReflexiveNand:
 class BVSimplifyConstants:
     """Replace a bit-vector constant by a simpler constant of smaller value."""
     def filter(self, node):
-        return is_bv_const(node) \
-               and get_bv_constant_value(node)[0] not in [0, 1]
+        return (is_bv_const(node)
+                and get_bv_constant_value(node)[0] not in [0, 1])
 
     def mutations(self, node):
         val, width = get_bv_constant_value(node)
@@ -257,9 +259,11 @@ class BVSimplifyConstants:
             {node.id: Node('#b{{:0>{}b}}'.format(width).format(0))}, [])
         yield Simplification(
             {node.id: Node('#b{{:0>{}b}}'.format(width).format(1))}, [])
-        yield from [Simplification({node.id: Node('#b{{:0>{}b}}'.format(width).format(v))}, []) \
-                    for v in [val // 32, val // 8, val // 2] if v not in [0, 1]
-               ]
+        yield from [
+            Simplification(
+                {node.id: Node('#b{{:0>{}b}}'.format(width).format(v))}, [])
+            for v in [val // 32, val // 8, val // 2] if v not in [0, 1]
+        ]
 
     def global_mutations(self, linput, ginput):
         yield from [
@@ -280,16 +284,14 @@ class BVTransformToBool:
     repl = {'bvand': 'and', 'bvor': 'or', 'bvxor': 'xor'}
 
     def filter(self, node):
-        if not node.has_ident() \
-            or node.get_ident() != '=' \
-            or len(node) != 3:
+        if not is_operator_app(node, '=') or len(node) != 3:
             return False
 
         if is_bv_const(node[1]) and get_bv_width(node[1]) == 1:
             return node[2].has_ident() and node[2].get_ident() in self.repl
 
-        return is_bv_const(node[2]) and get_bv_width(node[2]) == 1 \
-                and node[1].has_ident() and node[1].get_ident() in self.repl
+        return (is_bv_const(node[2]) and get_bv_width(node[2]) == 1
+                and node[1].has_ident() and node[1].get_ident() in self.repl)
 
     def mutations(self, node):
         if is_bv_const(node[1]) and get_bv_width(node[1]) == 1:
@@ -302,8 +304,8 @@ class BVTransformToBool:
             Simplification(
                 {
                     node.id:
-                    Node(self.repl[n.get_ident()], *
-                         [Node('=', c, d) for d in n[1:]])
+                    Node(self.repl[n.get_ident()],
+                         *[Node('=', c, d) for d in n[1:]])
                 }, [])
         ]
 
@@ -375,11 +377,13 @@ class BVReduceBW:
     ``collect_information``.
     """
     def filter(self, node):
-        return node.has_ident() \
-               and (node.get_ident() == 'declare-const' or \
-                   (node.get_ident() == 'declare-fun' and len(node[2]) == 0)) \
-               and get_sort(node[1]) is not None \
-               and is_bv_sort(get_sort(node[1]))
+        if not node.has_ident():
+            return False
+        return ((node.get_ident() == 'declare-const'
+                 or (node.get_ident() == 'declare-fun'
+                     and len(node[2]) == 0))
+                and get_sort(node[1]) is not None
+                and is_bv_sort(get_sort(node[1])))
 
     def global_mutations(self, linput, ginput):
         bw = get_bv_width(linput[1])
@@ -416,17 +420,13 @@ class BVMergeReducedBW:
     Obsolete ``define-fun`` expressions will be removed later on.
     """
     def filter(self, node):
-        return node.has_ident() \
-               and node.get_ident() == 'define-fun' \
-               and len(node[2]) == 0 \
-               and get_sort(node[1]) is not None \
-               and is_bv_sort(get_sort(node[1])) \
-               and is_defined_fun(node[1]) \
-               and is_indexed_operator_app(
-                       get_defined_fun(node[1]), 'zero_extend', 1) \
-               and is_defined_fun(node[-1][-1]) \
-               and is_indexed_operator_app(
-                       get_defined_fun(node[-1][-1]), 'zero_extend', 1)
+        return (is_operator_app(node, 'define-fun') and len(node[2]) == 0
+                and get_sort(node[1]) is not None
+                and is_bv_sort(get_sort(node[1]))
+                and is_defined_fun(node[1]) and is_indexed_operator_app(
+                    get_defined_fun(node[1]), 'zero_extend', 1)
+                and is_defined_fun(node[-1][-1]) and is_indexed_operator_app(
+                    get_defined_fun(node[-1][-1]), 'zero_extend', 1))
 
     def mutations(self, node):
         name = node[1]

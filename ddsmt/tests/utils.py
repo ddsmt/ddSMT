@@ -1,5 +1,6 @@
 from .. import mutator_utils
 
+
 def check_mutations(mut, node, expected):
     assert hasattr(mut, 'mutations')
 

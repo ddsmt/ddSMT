@@ -35,8 +35,9 @@ class ModularArgumentParser(argparse.ArgumentParser):
     the form ``--help-group``.
     """
     def __init__(self, *args, **kwargs):
-        """As ``argparse.ArgumentParser.__init__()``, additionally ``modular_action_groups = []`` can be used to specify
-        the names of argument groups used for the custom help options."""
+        """As ``argparse.ArgumentParser.__init__()``, additionally
+        ``modular_action_groups = []`` can be used to specify the names of
+        argument groups used for the custom help options."""
         self._modular_action_groups = {}
         self._modular_active = False
         modular_help_groups = kwargs.pop('modular_help_groups', [])

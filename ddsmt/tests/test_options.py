@@ -9,7 +9,8 @@ def test_help(capsys):
     with pytest.raises(SystemExit):
         options.parse_options(mutators, ['--help'])
     captured = capsys.readouterr()
-    assert 'usage: ddsmt [<options>] <infile> <outfile> <cmd> [<cmd options>]' in captured.out
+    assert ('usage: ddsmt [<options>] <infile> <outfile> <cmd> [<cmd options>]'
+            in captured.out)
 
 
 def test_help_all(capsys):
@@ -33,7 +34,8 @@ def test_no_options(capsys):
     with pytest.raises(SystemExit):
         options.parse_options(mutators, [])
     captured = capsys.readouterr()
-    assert 'error: the following arguments are required: infile, outfile, cmd' in captured.err
+    assert ('error: the following arguments are required: infile, outfile, cmd'
+            in captured.err)
 
 
 def test_basic(capsys):

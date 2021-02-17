@@ -6,7 +6,6 @@ import logging
 import multiprocessing
 import os
 import subprocess
-import sys
 
 from . import nodeio
 from . import options
@@ -70,9 +69,8 @@ class Profiler:
                 Profiler.profiler.disable()
                 Profiler.profiler.dump_stats(self.filename)
             except KeyboardInterrupt as e:
-                logging.warn(
-                    f'Writing {self.filename} was interrupted. To avoid corrupted data, we remove this file.'
-                )
+                logging.warn(f'Writing {self.filename} was interrupted.'
+                             'To avoid corrupted data, we remove this file.')
                 os.unlink(self.filename)
                 raise e
 

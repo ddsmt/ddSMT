@@ -231,7 +231,8 @@ def write_smtlib_to_str(exprs: typing.List[Node]):
 
 
 def write_smtlib_for_checking(filename: str, exprs: typing.List[Node]):
-    """Slightly faster writing without wrapping or pretty-printing during checking."""
+    """Slightly faster writing without wrapping or pretty-printing during
+    checking."""
     with open(filename, 'w') as file:
         for expr in exprs:
             __write_smtlib(file, expr)

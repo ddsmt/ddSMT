@@ -146,11 +146,12 @@ def do_golden_runs():
     global __GOLDEN
     global __GOLDEN_CC
 
-    logging.info("")
-    logging.info(
-        f'starting initial run{", cross checking" if options.args().cmd_cc else ""}...'
-    )
-    logging.info("")
+    logging.info('')
+    if options.args().cmd_cc:
+        logging.info('starting initial run, cross checking...')
+    else:
+        logging.info('starting initial run...')
+    logging.info('')
 
     __GOLDEN = execute(options.args().cmd, options.args().infile, None)
 
@@ -184,7 +185,7 @@ def do_golden_runs():
         logging.info(f'golden exit (cc): {__GOLDEN_CC.exit}')
         logging.info(f'golden err (cc):\n{__GOLDEN_CC.err}')
         logging.info(f'golden out (cc):\n{__GOLDEN_CC.out}')
-        logging.info(f'golden runtime (cc): {__GOLDEN_CC.runtime:.2f} seconds')
+        logging.info(f'golden runtime (cc): {__GOLDEN_CC.runtime:.2f} s')
         if options.args().match_out_cc:
             logging.info(
                 f'match (cc) (stdout): "{options.args().match_out_cc}"')
@@ -196,5 +197,4 @@ def do_golden_runs():
             options.args().timeout_cc = round((__GOLDEN_CC.runtime + 1) * 1.5,
                                               2)
             logging.info(
-                f'automatic timeout (cc): {options.args().timeout_cc:.2f} seconds'
-            )
+                f'automatic timeout (cc): {options.args().timeout_cc:.2f} s')

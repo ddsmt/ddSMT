@@ -29,9 +29,8 @@ def stop_process(proc):
     try:
         proc.wait(timeout=0.5)
     except subprocess.TimeoutExpired:
-        print(
-            'Killing pid %d failed. Please check manually to avoid memory exhaustion.'
-            % proc.pid)
+        print(f'Killing pid {proc.pid} failed. '
+              'Please check manually to avoid memory exhaustion.')
 
 
 def handler(sig, frame):

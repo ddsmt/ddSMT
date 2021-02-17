@@ -236,7 +236,8 @@ def _worker(task):
             for mexprs in _simp(exprs, substs):
                 ntests += 1
                 if checker.check_exprs(mexprs):
-                    nreduced = nodes.count_exprs(exprs) - nodes.count_exprs(mexprs)
+                    nreduced = (nodes.count_exprs(exprs)
+                                - nodes.count_exprs(mexprs))
                     return Result(task.id, True, nreduced, mexprs, ntests)
             return Result(task.id, False, 0, [], ntests)
         except Exception as e:
@@ -285,10 +286,10 @@ def _check_seq(taskgen, nexprs, stats):
             smtlib.collect_information(taskgen.exprs)
 
         _print_progress(
-            f"{taskgen.mutator}: " \
-            f"nodes: {taskgen.num_filtered}, " \
-            f"gran: {taskgen.gran}, " \
-            f"subset {task.id} of {len(taskgen.subsets)}, " \
+            f"{taskgen.mutator}: "
+            f"nodes: {taskgen.num_filtered}, "
+            f"gran: {taskgen.gran}, "
+            f"subset {task.id} of {len(taskgen.subsets)}, "
             f"exprs: {nexprs - stats['reduced']}/{nexprs}",
             options.args().verbosity == 1)
 
@@ -328,18 +329,17 @@ def _check_par(taskgen, nexprs, stats):
                     start_index = result.task_id + 1
                     skip = True
                     logging.debug(
-                        f'Successful test with subset {result.task_id}: ' \
+                        f'Successful test with subset {result.task_id}: '
                         f'{result.reduced}')
                 elif result.success and skip:
-                    logging.debug(
-                        f'Skip test with subset {result.task_id}: ' \
-                        f'{result.reduced}')
+                    logging.debug(f'Skip test with subset {result.task_id}: '
+                                  f'{result.reduced}')
 
                 _print_progress(
-                    f"{taskgen.mutator}: " \
-                    f"nodes: {taskgen.num_filtered}, " \
-                    f"gran: {taskgen.gran}, " \
-                    f"subset {result.task_id} of {len(taskgen.subsets)}, " \
+                    f"{taskgen.mutator}: "
+                    f"nodes: {taskgen.num_filtered}, "
+                    f"gran: {taskgen.gran}, "
+                    f"subset {result.task_id} of {len(taskgen.subsets)}, "
                     f"exprs: {nexprs - stats['reduced']}/{nexprs}",
                     options.args().verbosity == 1)
 
@@ -373,9 +373,10 @@ def _apply_mutator(mutator, exprs, max_depth=None):
         taskgen = TaskGenerator(exprs, gran, mutator, max_depth)
 
     if stats['tests'] > 0 or options.args().verbosity >= 2:
-        _print_progress(f"{mutator}: diff {-stats['reduced']:+} exprs, " \
-                        f"{stats['tests']} tests ({stats['tests_success']}), " \
-                        f"{time.time() - start_time:.1f}s", False)
+        _print_progress(
+            f"{mutator}: diff {-stats['reduced']:+} exprs, "
+            f"{stats['tests']} tests ({stats['tests_success']}), "
+            f"{time.time() - start_time:.1f}s", False)
 
     return exprs, stats['tests'], stats['reduced']
 

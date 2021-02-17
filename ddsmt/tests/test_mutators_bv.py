@@ -55,7 +55,6 @@ def test_bv_concat_to_zero_extend():
     r = Node('r')
     x = Node('x')
     const = Node('declare-const', r, 'Real')
-    const8 = Node('declare-const', x, ('_', 'BitVec', 8))
     val8_0 = '#b00000000'
     val8_1 = '#b01011100'
     conc16_0 = Node('concat', x, val8_0)
@@ -163,7 +162,6 @@ def test_bv_eval_extend():
 def test_bv_extract_constants():
     m = mutators_bv.BVExtractConstants()
     assert isinstance(str(m), str)
-    x = Node('x')
     const0 = Node('#b011')
     const1 = Node('_', 'bv3', 3)
     const2 = Node('_', 'bv7', 3)
