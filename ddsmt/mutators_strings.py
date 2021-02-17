@@ -34,7 +34,7 @@ class StringSimplifyConstant:
         return is_string_const(node) and node != '""'
 
     def mutations(self, node):
-        yield Simplification({node.id: Node(f'""')}, [])
+        yield Simplification({node.id: Node('""')}, [])
         content = node[1:-1]
         for sec in nodes.binary_search(len(content)):
             start = self.__fix_escape_sequences(content, sec[0])

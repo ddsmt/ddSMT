@@ -320,7 +320,7 @@ def _check_par(taskgen, nexprs, stats):
 
                 if result.success and not skip:
                     __abort_flag.set()
-                    logging.debug(f'Main: Set abort flag')
+                    logging.debug('Main: Set abort flag')
                     taskgen.stop()
                     taskgen.update(result.exprs)
                     nodeio.write_smtlib_to_file(outfile, taskgen.exprs)

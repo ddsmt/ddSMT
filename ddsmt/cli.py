@@ -147,10 +147,10 @@ def ddsmt_main():
             logging.info(f'runtime:         {end_time - start_time:.2f} s')
             logging.debug(f'main process:   {proctime:.2f} s')
             logging.info(f'tests:           {ntests}')
-            logging.info(f'input file:')
+            logging.info('input file:')
             logging.info(f'  file size:     {ifilesize} B')
             logging.info(f'  s-expressions: {nexprs}')
-            logging.info(f'reduced file:')
+            logging.info('reduced file:')
             logging.info(f'  file size:     {ofilesize} B ({sizeperc:3.1f}%)')
             logging.info(f'  s-expressions: {exprcount} ({exprperc:3.1f}%)')
         else:

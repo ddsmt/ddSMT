@@ -104,16 +104,16 @@ def render_profiles():
     of all other processes. Uses ``gprof2dot`` and ``dot``, and will try
     to print helpful error messages if they are not available.
     """
-    logging.debug(f'Rendering profile data')
+    logging.debug('Rendering profile data')
     if __render_profile(['.profile.prof'], '.profile.dot', 'profile.png'):
-        logging.chat(f'Profile data for main process is in profile.png')
+        logging.chat('Profile data for main process is in profile.png')
 
     files = [f for f in glob.glob('.*.prof') if f != '.profile.prof']
     if files:
         if __render_profile(files, '.profile-workder.dot',
                             'profile-worker.png'):
             logging.chat(
-                f'Profile data for worker processes is in profile-worker.png')
+                'Profile data for worker processes is in profile-worker.png')
 
 
 __DIFF_ID = 0
