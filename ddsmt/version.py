@@ -55,9 +55,9 @@ def version_from_package_metadata():
     return metadata.version('ddSMT')
 
 
-__git_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..',
+__dot_git = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..',
                          '.git')
-if os.path.isdir(__git_dir):
-    VERSION = version_from_git(__git_dir)
+if os.path.isdir(__dot_git) or os.path.isfile(__dot_git):
+    VERSION = version_from_git(os.path.split(__dot_git)[0])
 else:
     VERSION = version_from_package_metadata()
