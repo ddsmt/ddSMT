@@ -130,8 +130,17 @@ def collect_information(exprs):  # noqa: C901
                 logging.trace(f'Ignored command: "{cmd}" children are leafs')
                 continue
             # we implicitly assume nullary sorts here
+            if any(map(lambda n: n.is_leaf(), cmd[1])):
+                logging.trace(
+                    f'Ignore declare-datatypes because sort declarations can not be leaf nodes: {cmd[1]}'
+                )
+                continue
             sorts = [s[0] for s in cmd[1]]
             for id in range(len(sorts)):
+                if id >= len(cmd[2]):
+                    logging.trace(
+                        f'Ignore "{sorts[id]}" as it lacks a constructor')
+                    continue
                 for constr in cmd[2][id]:
                     __datatypes_constructors[constr[0]] = sorts[id]
                     if len(constr) == 1:
