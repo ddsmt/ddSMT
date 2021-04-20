@@ -399,3 +399,9 @@ def binary_search(input_length):
             end = int((num + 1) / den * input_length)
             yield (start, end)
         den *= 2
+
+
+def contains(node, func):
+    """Checks whether ``func`` returns true for any of the nodes within
+    ``node``."""
+    return any(map(func, dfs(node)))
