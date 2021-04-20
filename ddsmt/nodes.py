@@ -257,6 +257,8 @@ def reduplicate(exprs):
 
 def dfs(exprs, max_depth=None):
     """DFS traversal of s-expressions in exprs up to a maximum depth."""
+    if isinstance(exprs, Node):
+        yield exprs
     visit = [(1, x) for x in reversed(exprs)]
     while visit:
         cur_depth, expr = visit.pop()
@@ -270,6 +272,8 @@ def dfs(exprs, max_depth=None):
 
 def bfs(exprs, max_depth=None):
     """BFS traversal of s-expressions in exprs up to a maximum depth."""
+    if isinstance(exprs, Node):
+        yield exprs
     visit = collections.deque()
     visit.extend([(1, x) for x in exprs])
     while visit:
