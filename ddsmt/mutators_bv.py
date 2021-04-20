@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
+from . import nodes
 from .nodes import Node
 from .smtlib import *
 from .mutator_utils import Simplification
@@ -475,9 +476,9 @@ def is_relevant(node):
     """Checks whether this theory might be relevant for this node."""
     if node.has_ident():
         if node.get_ident() in ['declare-const']:
-            if is_bv_sort(node[2]):
+            if nodes.contains(node[2], is_bv_sort):
                 return True
         elif node.get_ident() in ['declare-fun', 'define-fun', 'define-sort']:
-            if is_bv_sort(node[3]):
+            if nodes.contains(node[3], is_bv_sort):
                 return True
     return False

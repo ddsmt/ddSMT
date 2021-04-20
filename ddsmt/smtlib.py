@@ -801,6 +801,11 @@ def is_set_sort(node):
 # Strings
 
 
+def is_seq_type(node):
+    """Checks whether the ``node`` is a seq type."""
+    return is_operator_app(node, 'Seq')
+
+
 def is_string_const(node):
     """Checks whether the ``node`` is a string constant."""
     return node.is_leaf() and node[0] == '"' and node[-1] == '"'
