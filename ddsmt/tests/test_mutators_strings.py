@@ -7,7 +7,7 @@ from ..mutator_utils import *
 def test_strings_get_mutators():
     d = mutators_strings.get_mutators()
     assert isinstance(d, dict)
-    assert len(d) == 4
+    assert len(d) == 5
 
 
 def test_strings_is_relevant():
@@ -18,6 +18,15 @@ def test_strings_is_relevant():
         Node('declare-fun', 'x', (), 'Real'))
     assert not mutators_strings.is_relevant(Node())
     assert not mutators_strings.is_relevant(Node('assert', 'x'))
+
+
+def test_strings_seqnthunit():
+    expr = Node('seq.nth', ('seq.unit', 'x'), 'y')
+    target = Node('x')
+    m = mutators_strings.SeqNthUnit()
+    assert isinstance(str(m), str)
+    assert m.filter(expr)
+    assert check_mutations(m, expr, [target])
 
 
 def test_strings_simplify_constant():

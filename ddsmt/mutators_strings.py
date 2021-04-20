@@ -23,6 +23,19 @@ from .smtlib import *
 from .mutator_utils import Simplification
 
 
+class SeqNthUnit:
+    """Simplify ``(seq.nth (seq.unit t) 0)`` to ``t``."""
+    def filter(self, node):
+        return is_operator_app(node, 'seq.nth') and is_operator_app(
+            node[1], 'seq.unit')
+
+    def mutations(self, node):
+        yield Simplification({node.id: node[1][1]}, [])
+
+    def __str__(self):
+        return 'remove nth of unit seq'
+
+
 class StringSimplifyConstant:
     """Replace a string constant by a shorter constant."""
     def __fix_escape_sequences(self, s, end):
@@ -101,6 +114,7 @@ def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
     return {
+        'SeqNthUnit': 'seq-nth-unit',
         'StringContainsToConcat': 'str-contains-to-concat',
         'StringIndexOfNotFound': 'str-index-not-found',
         'StringReplaceAll': 'str-replace-all',
