@@ -8,7 +8,7 @@ from .utils import *
 def test_smtlib_get_mutators():
     d = mutators_smtlib.get_mutators()
     assert isinstance(d, dict)
-    assert len(d) == 9
+    assert len(d) == 10
 
 
 def test_smtlib_checksat_assuming():
@@ -159,6 +159,19 @@ def test_smtlib_let_substitution():
     n = Node('let', (('a', 'x'), ('b', 'y')))
     assert m.filter(n)
     assert check_mutations(m, n, [])
+
+
+def test_smtlib_remove_annotation():
+    m = mutators_smtlib.RemoveAnnotation()
+    assert isinstance(str(m), str)
+
+    assert not m.filter(Node('x'))
+    assert not m.filter(Node('and', 'x', 'y'))
+    assert m.filter(Node('!', 'x', ':foo'))
+    assert m.filter(Node('!', ('and', 'x', 'y'), ':foo', 'bar'))
+    assert check_mutations(m, Node('!', 'x', ':foo'), [('x')])
+    assert check_mutations(m, Node('!', ('and', 'x', 'y'), ':foo', 'bar'),
+                           [('and', 'x', 'y')])
 
 
 def test_smtlib_simplify_logic():

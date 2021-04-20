@@ -159,6 +159,18 @@ class LetSubstitution:
         return 'substitute variable into let body'
 
 
+class RemoveAnnotation:
+    """Remove an annotation ``(! t ...)`` from a term."""
+    def filter(self, node):
+        return is_operator_app(node, '!')
+
+    def mutations(self, node):
+        yield Simplification({node.id: node[1]}, [])
+
+    def __str__(self):
+        return 'remove annotation'
+
+
 class SimplifyLogic:
     """Replaces the logic specified in ``(check-logic ...)`` by a simpler
     one."""
@@ -277,6 +289,7 @@ def get_mutators():
         'IntroduceFreshVariable': 'introduce-fresh-variables',
         'LetElimination': 'let-elimination',
         'LetSubstitution': 'let-substitution',
+        'RemoveAnnotation': 'remove-annotation',
         'SimplifyLogic': 'simplify-logic',
         'SimplifyQuotedSymbols': 'simplify-quoted-symbols',
         'SimplifySymbolNames': 'simplify-symbol-names',
