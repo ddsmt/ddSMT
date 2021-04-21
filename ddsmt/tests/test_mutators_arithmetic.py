@@ -112,7 +112,7 @@ def test_arith_split_nary_relations():
 def test_arith_strengthen_relations():
     m = mutators_arithmetic.ArithmeticStrengthenRelation()
     assert isinstance(str(m), str)
-    notfilter = [Node('=', 'x', 'y'), Node('distinct', 'x', 'y')]
+    notfilter = [Node('=', 'x', 'y')]
     exprs = {
         Node('<', 'a', 'b'): [Node('=', 'a', 'b')],
         Node('>', 'a', 'b'): [Node('=', 'a', 'b')],
@@ -120,6 +120,7 @@ def test_arith_strengthen_relations():
                                Node('=', 'a', 'b')],
         Node('>=', 'a', 'b'): [Node('>', 'a', 'b'),
                                Node('=', 'a', 'b')],
+        Node('distinct', 'x', 'y'): [Node('=', 'x', 'y')],
     }
     for e in notfilter:
         assert not m.filter(e)

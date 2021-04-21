@@ -108,15 +108,21 @@ class ArithmeticStrengthenRelation:
     to ``>``."""
     def filter(self, node):
         return is_arithmetic_relation(node) and node.get_ident() in [
-            '<', '>', '<=', '>='
+            '<', '>', '<=', '>=', 'distinct'
         ]
 
     def mutations(self, node):
-        negator = {'<': ['='], '>': ['='], '<=': ['<', '='], '>=': ['>', '=']}
-        assert node[0] in negator
+        strengthen = {
+            '<': ['='],
+            '>': ['='],
+            '<=': ['<', '='],
+            '>=': ['>', '='],
+            'distinct': ['=']
+        }
+        assert node[0] in strengthen
         yield from [
             Simplification({node.id: Node(rel, *node.data[1:])}, [])
-            for rel in negator[node[0]]
+            for rel in strengthen[node[0]]
         ]
 
     def __str__(self):
