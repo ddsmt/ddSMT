@@ -19,19 +19,34 @@
   :target: https://github.com/ddsmt/ddSMT/blob/master/LICENSE
 
 
-ddSMT: delta debugging for SMT-LIBv2
+ddSMT: Delta Debugging for SMT-LIBv2
 ====================================
 
-ddSMT is a delta debugger for Sat Modulo Theories (SMT) benchmarks in
-SMT-LIB v2 format. It serves as an input minimizer for SMT benchmarks on
-which a given executable shows unexpected or faulty behavior and supports
-all SMT-LIB v2 logics. For more details on the SMT-LIB v2 format see http://www.smtlib.org.
+**ddSMT** is a delta debugger for input in the `SMT-LIB
+<http://www.smtlib.org>`_ language and its dialects and extensions.
+It serves as an **input minimizer** for SMT-LIB(-like) input that triggers
+unwanted behavior for a given command.
+Noteworthy examples for supported extensions of the SMT-LIB language are 
+the `SyGuS <https://sygus.org/>`_ input format and the extension for
+encoding `separation logic <https://sl-comp.github.io/docs/smtlib-sl.pdf>`_
+problems.
+For more details on the SMT-LIB language, see http://www.smtlib.org.
 
-ddSMT is implemented in Python 3 and developed on a Linux OS. ddSMT requires
-Python version 3.6 or later.
+**ddSMT** is implemented in Python 3 and developed on a Linux OS.
 
-ddSMT is free software released under the GPLv3. You should have received a
-copy of the GNU General Public License along with ddSMT (see file `LICENSE <https://github.com/ddsmt/ddSMT/blob/development/LICENSE>`_).
+**ddSMT** is free software released under the GPLv3.
+You should have received a copy of the GNU General Public License along with
+**ddSMT** (see file `LICENSE
+<https://github.com/ddsmt/ddSMT/blob/development/LICENSE>`_).
 If not, see http://www.gnu.org/licenses/.
 
-Documentation for ddSMT is available at https://ddsmt.readthedocs.io.
+Requirements:
+-------------
+
+* `Python <https://www.python.org/>`_ version 3.6 or later
+* `progressbar <https://pypi.org/project/progressbar>`_
+
+Documentation:
+--------------
+
+Documentation for **ddSMT** is available at https://ddsmt.readthedocs.io.
