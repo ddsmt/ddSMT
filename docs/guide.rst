@@ -1,4 +1,4 @@
-User guide
+User Guide
 ==========
 
 This guide covers some more advanced topics of using ddSMT.
@@ -10,4 +10,3 @@ This guide covers some more advanced topics of using ddSMT.
    guide-mutators
    guide-scenarios
    guide-performance
-   

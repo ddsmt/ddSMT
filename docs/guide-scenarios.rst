@@ -12,7 +12,7 @@ Sometimes bugs in solvers do not make the command crash or print an error messag
 This is a particular nasty case for delta-debuggin, as the solver itself oftentimes can not detect this issue. Relying on annotations in the input (i.e. the SMT-LIB status) is usually not a good idea, as mutating the input may very well change the correct output (i.e. flip from sat to unsat or vice-versa) but still retain the underlying error.
 
 A better approach is usually to use another solver as reference solver, for example using the builtin ``--cross-check`` option.
-If ``--cross-check`` is given, ddSMT not only checks whether the (main) command behaves :ref:`"the same" <Comparison with golden run>`, but does the same for another cross-check solver.
+If ``--cross-check`` is given, ddSMT not only checks whether the (main) command behaves :ref:`"the same" <How Behavior is Compared with the Golden Run>`, but does the same for another cross-check solver.
 Just as for the main solver, the cross-check solver comes with a set of options ``--ignore-output-cc``, ``--match-err-cc`` and ``--match-out-cc``.
 
 In some cases the ``--cross-check`` option just is not flexible enough: you may want to allow the input changing its satisfiability (as long as the main solver is still incorrect), compare the outputs of the two solvers, or do any other kind of analysis.
