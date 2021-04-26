@@ -12,7 +12,7 @@ sys.path.insert(0, __root_dir)
 import ddsmt.version  # noqa: E402
 
 # make sure we can see the last tag
-subprocess.call(['git', 'fetch', '--unshallow'])
+subprocess.call(['git', 'fetch'])
 
 # basic project information
 project = 'ddSMT'

@@ -1,0 +1,10 @@
+#! /bin/bash
+
+grep "declare-const" $2 > /dev/null 2>&1
+if [[ $? -eq 0 ]]
+then
+  echo "printing something to stdout"
+  >&2 echo "error: this message is printed to stderr"
+  exit 1
+fi
+exit 0

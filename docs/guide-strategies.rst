@@ -1,5 +1,5 @@
-Minimization strategies
-====================================
+Minimization Strategies
+=======================
 
 ddSMT offers two fundamentally different strategies for minimization that we call ``ddmin`` and ``hierarchical``, and a comined strategy ``hybrid``.
 ``ddmin`` employs the minimization strategy from :cite:`Zeller1999` and is the direct successor of what the original ``ddSMT`` from :cite:`Niemetz2013` does: it collects a set of simplifications and applies varying subsets at once.
