@@ -84,10 +84,10 @@ class ArithmeticSimplifyConstant:
             Simplification({node.id: Node(node.data[:-1])}, [])
         ]
 
-    def global_mutations(self, linput, ginput):
+    def global_mutations(self, node, input_):
         yield from [
-            Simplification({linput: simp.substs[linput.id]}, [])
-            for simp in self.mutations(linput)
+            Simplification({node: simp.substs[node.id]}, [])
+            for simp in self.mutations(node)
         ]
 
     def __str__(self):
