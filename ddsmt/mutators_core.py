@@ -25,11 +25,17 @@ from .mutator_utils import Simplification
 
 
 class BinaryReduction:
-    """Performs binary reduction on the top level node, essentially mimicing
-    what the ``ddmin`` strategy would do with
-    :class:`ddsmt.mutators_core.EraseNode`.
-    If additionally ``self.ident`` is set, only nodes with the specified
-    identifier are considered."""
+    """Binary reduction on the top level node.
+
+    This mutator mimics what strategy ``ddmin`` achieves when applying
+    mutator :class:`ddsmt.mutators_core.EraseNode`.
+
+    If ``self.ident`` is set, only nodes with the identifier specified as
+    ``self.ident`` are considered.
+
+    .. note::
+      This mutator is always disabled for strategy ``ddmin``.
+    """
     def mutations(self, node):
         if node.is_leaf() or len(node) < 8:
             return
@@ -61,16 +67,16 @@ class BinaryReduction:
 
 
 class Constants:
-    """Replaces any node by a constant (which depends on the type of ``code``).
+    """Replace given node with a default value of the same sort.
 
-    Requires that global information has been populated via
-    ``collect_information``.
+    Default values are defined in :func:`ddsmt.smtlib.get_default_constants`.
     """
+    # Requires that global information has been populated via
+    # ``collect_information``.
     def filter(self, node):
         return not is_definition_node(node) and get_sort(node) is not None
 
     def mutations(self, node):
-        """Return ``get_default_constants(get_sort(node))``."""
         t = get_sort(node)
         if t is None:
             return []
@@ -85,17 +91,15 @@ class Constants:
 
 
 class EraseNode:
-    """Erase any given node.
+    """Erase given given node.
 
-    If additionally ``self.ident`` is set, only erases nodes with this
-    identifier.
+    If ``self.ident`` is set, only nodes with the identifier specified as
+    ``self.ident`` are considered.
     """
     def filter(self, node):
         if not hasattr(self, 'ident'):
             return True
         return node.has_ident() and node.get_ident() == self.ident
-
-    """Erases the given node."""
 
     def mutations(self, node):
         return [Simplification({node.id: None}, [])]
@@ -107,9 +111,9 @@ class EraseNode:
 
 
 class MergeWithChildren:
-    """Merges a node with one of its children.
+    """Merge given node with one of its children.
 
-    This is possible for n-ary operators like ``and`` or ``+``.
+    This mutator can only be applied to n-ary operations like ``and`` or ``+``.
     """
     def filter(self, node):
         return has_nary_operator(node)
@@ -125,7 +129,7 @@ class MergeWithChildren:
 
 
 class ReplaceByChild:
-    """Replace a node by one of its children."""
+    """Replace given node with one of its children."""
     def filter(self, node):
         return not is_leaf(node) and not is_operator_app(node, 'let')
 
@@ -140,16 +144,20 @@ class ReplaceByChild:
 
 
 class ReplaceByVariable:
-    """Replace a node by another variable of the same type. Note that replacing
-    variables by other variables potentially introduces cycles. To avoid this,
-    we only substitute non-leaf nodes (and thus the input shrinks) or we
-    substitute with variables that are lexicographically smaller than the
-    current node. If ``--replace-by-variable-mode=dec`` is given (the default
-    is ``inc``), we instead replace with lexicograpically larger variables.
+    """Replace given node with an existing variable of the same type.
 
-    Requires that global information has been populated via
-    ``collect_information``.
+    .. note::
+      Replacing variables with other variables **potentially introduces
+      cycles**.
+      To avoid this, for leaf nodes we only allow substitutions with
+      variables that are lexicographically **smaller** (default)
+      or **larger** than the leaf mode.
+      Configure with option ``--replace-by-variable-mode`` (use ``inc`` for
+      substitution with smaller, and ``dec`` for substition with larger
+      variables).
     """
+    # Requires that global information has been populated via
+    # ``collect_information``.
     def filter(self, node):
         return not is_const(node) and not is_definition_node(
             node) and get_sort(node) is not None
@@ -178,12 +186,11 @@ class ReplaceByVariable:
 
 
 class SortChildren:
-    """Sort the children of a node by their size (the count of sub-nodes)."""
+    """Sort the children of a given node by size (count of sub-nodes)."""
     def filter(self, node):
         return not is_leaf(node)
 
     def mutations(self, node):
-        """Return ``sorted(node, key = count_nodes)``."""
         s = nodes.Node(*sorted(node, key=count_nodes))
         if s != node:
             return [Simplification({node.id: s}, [])]
@@ -203,7 +210,7 @@ def get_mutator_options(argparser):
 
 
 def get_mutators():
-    """Returns a mapping from mutator class names to the name of their config
+    """Return a mapping from mutator class names to the name of their config
     options."""
     return {
         'BinaryReduction': 'binary-reduction',
