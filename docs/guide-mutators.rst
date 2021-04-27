@@ -67,8 +67,8 @@ multiple times, or when simplifications require adding declarations of
 new symbols.
 
 .. note::
-  Please refer to section :ref:`writing new mutators` for details on how to
-  implement new mutators.
+  Please refer to section :ref:`writing new mutators` for details on **how to
+  implement new mutators**.
 
 Below follows a list of all available mutators, grouped by their main concern:
 :ref:`generic mutators <generic mutators>` that apply mutations based on the
@@ -128,19 +128,42 @@ String mutators
 Writing New Mutators
 --------------------
 
-If you need a certain simplification that is not covered by the existing mutators, feel free to implement your own mutator (and contribute it to ddSMT, if it actually helps). The following aims to be a guide on what needs to be done and what you should consider when writing a mutator.
+If you need a certain simplification that is not covered by existing mutators,
+it's easy to add your own mutator.
+If it is of general interest, we'd be happy if you contribute it back to
+**ddSMT**.
+The following instructions aim to provide a guide on what needs to be done and
+what you should consider when adding a new mutator.
 
-- The mutators are organized following mostly the SMT-LIB theories. Figure out which theory fits your simplification best.
-- Figure out whether you need to have a global view on the input, or whether seeing a single node suffices. Only do local simplifications, if you can!
+Generally, mutators are organized into mutators for general purpose
+(:ref:`generic <generic mutators>` and :ref:`SMT-LIB <smt-lib mutators>`
+mutators), and mutators for specific theories
+(:ref:`arithmetic <arithmetic mutators>`, :ref:`bit-vectors <bit-vector
+mutators>`, :ref:`boolean <boolean mutators>`, :ref:`floating-point arithmetic
+<floating-point mutators>` and :ref:`strings <string mutators>`).
 
+1. Identify into which **grou** your new mutator fits best.
 
-Some guidelines for the implementation:
+2. Determine if you need to have a **global** view on the input, or if
+   **local** mutations of a single node suffice. Prefer local mutations over
+   global mutations if possible.
 
-- Use the above ``Dummy`` class as a template.
-- Add your code to the corresponding ``mutators_<theory>.py`` file.
-- Register your mutator in the ``get_mutators`` function towards the end of the file.
-- Make sure your mutator is reasonably fast.
-- Make sure that your mutator (mostly) generates valid SMT-LIB constructs.
-- Make sure to return a list of ``nodes.Node`` objects.
-- If your mutator returns a large number of candidates, avoid returning them as a list from ``mutations`` and ``global_mutations``. Instead use ``yield`` to turn your mutator into a generator.
-- Add some unit tests (in ``ddsmt/tests/``). For your own sanity, test at least that it does what you expect and does not apply to unrelated nodes (i.e. ``filter`` returns ``False``).
+3. Implement the mutator following these guidelines:
+
+  - Use the above :code:`Mutator` class as a **template**.
+  - **Add** your code to the corresponding :code:`mutators_<group>.py` file.
+  - **Register** your mutator in the :code:`get_mutators` function towards the end
+    of the file.
+  - Make sure your mutator is reasonably **fast**.
+  - Make sure that your mutator (mostly) generates **valid** SMT-LIB constructs.
+  - Make sure to return a list of :code:`nodes.Node` objects.
+  - If your mutator returns a large number of candidates, avoid returning them
+    as a list from :code:`mutations` and :code:`global_mutations`. Instead use
+    :code:`yield` to turn your mutator into a **generator**.
+  - Add some **unit tests** in :code:`ddsmt/tests/`). For your own sanity, test
+    at least that it does what you expect and does not apply to unrelated nodes
+    (i.e., :code:`filter` returns :code:`False`).
+
+.. note::
+  Try do identify and **avoid** possible mutation **cycles**. Introducing such
+  cycles may result in **non-termination**.
