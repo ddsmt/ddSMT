@@ -22,7 +22,7 @@ For a more in-depth analysis of these minimization strategies, see
 
 .. _ddmin-strategy:
 
-The **ddmin** strategy
+The **ddmin** Strategy
 ----------------------
 
 Strategy **ddmin** tries to perform simplifications on multiple S-expressions
@@ -55,7 +55,7 @@ mutators in the second stage.
   :alt: Pseydo-code of the main algorithm of the ddmin strategy.
 
 
-The **hierarchical** strategy
+The **hierarchical** Strategy
 -----------------------------
 
 The main loop of the **hierarchical** strategy (as shown in pseudo code below)
@@ -82,8 +82,15 @@ subtrees of the input.
   :alt: Pseydo-code of the main algorithm of the hierarchical strategy.
 
 
-The **hybrid** strategy
+The **hybrid** Strategy
 -----------------------
 
-This strategy aims to combine the advantages of **ddmin** (generally better performance, in particular for the initial reduction) and **hierarchical** (smaller end results).
-It simply combines the two by first running **ddmin** and then applying **hierarchical** on the already reduced output.
+Strategy **hybrid** is the **default** strategy of **ddSMT**.
+It combines strategies **ddmin** and **hierarchical** in a sequential
+portfolio manner for a best of both worlds.
+
+Strategy **hybrid** first applies **ddmin** until a fixed point is reached, and
+then calls strategy **hierarchical** on the simplified input.
+This order of strategies is due to our observation that **ddmin**
+is usually faster in simplifying input, while **hierarchical** often
+yields smaller inputs.
