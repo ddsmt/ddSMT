@@ -25,6 +25,24 @@ For a more in-depth analysis of these minimization strategies, see
 The ``ddmin`` strategy
 ----------------------
 
+``ddmin`` implements a variant of the minimization strategy described in
+:cite:`Niemetz2013` and tries to perform simplifications on multiple
+S-expressions in the input in parallel. Algorithm 1 shows the main loop of this
+strategy. Foreach active mutatorM, the algorithm first collects all
+S-expressions in the inputthat can be simplified byM(Line 4). Simplifications
+are applied and checked in afashion similar to Zeller’s originalddminalgorithm
+[24]: the set of S-expressionssexprsis partitioned into subsets of sizesize;
+each S-expressione∈subsetissubstituted ininput(Line 7) with a simplification
+suggested byM; the resultingsimplified inputcandidateis then checked if it
+still triggers the original behavior(Line 8). Once all subsets of a given size
+are checked,sexprsis updated basedon the current input and partitioned into
+smaller subsets. As soon as all subsetsof size 1 were checked the algorithm
+repeats these steps with the next availablemutator. The main loop of
+strategyddminis run until a fixed point is reached,i.e., the input cannot be
+further simplified. Strategyddminapplies mutators intwo  stages.  The  first
+stage  targets  top-level  S-expressions  (e.g.,  specific  kindsof SMT-LIB
+commands) until a fixed point to aggressively simplify the inputbefore applying
+more expensive mutators in the second stage.
 
 
 The ``hierarchical`` strategy
