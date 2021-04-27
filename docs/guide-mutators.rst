@@ -43,7 +43,7 @@ Mutator classes must provide the following interface:
 Each mutator implements a :code:`filter` method, which checks if the
 mutator is applicable to the given S-expression.
 If it is, the mutator can be queried to suggest (a list of) possible local
-(:code:`mutations`) and global simplifications (:code:`global_mutations`).
+(:code:`mutations()`) and global simplifications (:code:`global_mutations()`).
 
 .. note::
   Mutators are not required to be equivalence or satisfiability
@@ -52,16 +52,15 @@ If it is, the mutator can be queried to suggest (a list of) possible local
   to infer the sort of a term, to query the set of declared or defined
   symbols, to extract indices of indexed operators, and more.
 
-Method :code:`mutations` constructs **local** replacements for a given
+Method :code:`mutations()` constructs **local** replacements for a given
 **node**.
-Method :code:`global_mutations` constructs **global** replacements for the
+Method :code:`global_mutations()` constructs **global** replacements for the
 **whole input**, given both a specific node and the current input.
-`Local mutations` are pretty much self-explanatory, a :code:`node` is replaced
-with a simpler node, for example, :code:`(neg (neg a))` is replaced with
-:code:`a`.
-The main idea of `global mutations`, on the other hand, is that some
-:code:`node` triggers a simplification that needs to be applied to the whole
-input at once.
+The concept of `local mutations` is pretty much self-explanatory, a
+:code:`node` is replaced with a simpler node, for example, :code:`(neg (neg
+a))` is replaced with :code:`a`.
+For `global mutations`, on the other hand, some :code:`node` triggers a
+simplification that needs to be applied to the whole input at once.
 For example, when renaming variables or replacing constants that occur
 multiple times, or when simplifications require adding declarations of
 new symbols.
@@ -152,17 +151,17 @@ mutators>`, :ref:`boolean <boolean mutators>`, :ref:`floating-point arithmetic
 
   - Use the above :code:`Mutator` class as a **template**.
   - **Add** your code to the corresponding :code:`mutators_<group>.py` file.
-  - **Register** your mutator in the :code:`get_mutators` function towards the end
-    of the file.
+  - **Register** your mutator in the :code:`get_mutators()` function towards
+    the end of the file.
   - Make sure your mutator is reasonably **fast**.
   - Make sure that your mutator (mostly) generates **valid** SMT-LIB constructs.
   - Make sure to return a list of :code:`nodes.Node` objects.
-  - If your mutator returns a large number of candidates, avoid returning them
-    as a list from :code:`mutations` and :code:`global_mutations`. Instead use
-    :code:`yield` to turn your mutator into a **generator**.
+  - If your mutator returns a large number of candidates, do not return them
+    as a list from :code:`mutations()` and :code:`global_mutations()`. Instead
+    use :code:`yield` to turn your mutator into a **generator**.
   - Add some **unit tests** in :code:`ddsmt/tests/`). For your own sanity, test
     at least that it does what you expect and does not apply to unrelated nodes
-    (i.e., :code:`filter` returns :code:`False`).
+    (i.e., :code:`filter()` returns :code:`False`).
 
 .. note::
   Try do identify and **avoid** possible mutation **cycles**. Introducing such
