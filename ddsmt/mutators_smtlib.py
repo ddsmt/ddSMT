@@ -51,8 +51,8 @@ class EliminateVariable:
         return is_eq(node) and len(node) > 1 and any(
             map(lambda n: n.is_leaf(), node[1:]))
 
-    def global_mutations(self, linput, ginput):
-        ops = linput[1:]
+    def global_mutations(self, node, input_):
+        ops = node[1:]
         targets = list(filter(lambda n: n.is_leaf(), ops))
         for t in targets:
             for c in ops:
@@ -62,7 +62,7 @@ class EliminateVariable:
                     # Avoid cycles (for example with core.ReplaceByChild)
                     continue
                 substs = {}
-                for n in nodes.dfs(ginput):
+                for n in nodes.dfs(input_):
                     if n == t and not is_definition_node(n):
                         substs[n.id] = c
                 if substs:
@@ -118,12 +118,12 @@ class IntroduceFreshVariable:
             return False
         return True
 
-    def global_mutations(self, linput, ginput):
-        varname = Node(f'x{linput.id}__fresh')
+    def global_mutations(self, node, input_):
+        varname = Node(f'x{node.id}__fresh')
         if is_var(varname):
             return []
-        var = Node('declare-const', varname, get_sort(linput))
-        return [Simplification({linput.id: varname}, [var])]
+        var = Node('declare-const', varname, get_sort(node))
+        return [Simplification({node.id: varname}, [var])]
 
     def __str__(self):
         return 'introduce fresh variable'
@@ -216,8 +216,8 @@ class SimplifyQuotedSymbols:
     def mutations(self, node):
         return [Simplification({node.id: get_piped_symbol(node)}, [])]
 
-    def global_mutations(self, linput, ginput):
-        return [Simplification({linput: get_piped_symbol(linput)}, [])]
+    def global_mutations(self, node, input_):
+        return [Simplification({node: get_piped_symbol(node)}, [])]
 
     def __str__(self):
         return 'simplify quoted symbol'
@@ -238,16 +238,16 @@ class SimplifySymbolNames:
             'declare-fun', 'declare-sort', 'define-fun', 'exists', 'forall'
         ] and not is_const(node[1])
 
-    def global_mutations(self, linput, ginput):
-        if linput.get_ident() in ['declare-datatype', 'declare-datatypes']:
-            for c in self.__flatten(Node(linput[1:])):
-                yield from self.__mutate_symbol(c, ginput)
+    def global_mutations(self, node, input_):
+        if node.get_ident() in ['declare-datatype', 'declare-datatypes']:
+            for c in self.__flatten(Node(node[1:])):
+                yield from self.__mutate_symbol(c, input_)
             return
-        if linput.get_ident() in ['exists', 'forall']:
-            for v in linput[1]:
-                yield from self.__mutate_symbol(v[0], ginput)
+        if node.get_ident() in ['exists', 'forall']:
+            for v in node[1]:
+                yield from self.__mutate_symbol(v[0], input_)
             return
-        yield from self.__mutate_symbol(linput[1], ginput)
+        yield from self.__mutate_symbol(node[1], input_)
 
     def __flatten(self, n):
         """Yield given node as flattened sequence."""
@@ -257,8 +257,8 @@ class SimplifySymbolNames:
             for e in n.data:
                 yield from self.__flatten(e)
 
-    def __mutate_symbol(self, symbol, ginput):
-        """Return a list of mutations of ginput based on simpler versions of
+    def __mutate_symbol(self, symbol, input_):
+        """Return a list of mutations of input_ based on simpler versions of
         symbol."""
         if is_piped_symbol(symbol):
             for s in self.__simpler(get_piped_symbol(symbol)):
