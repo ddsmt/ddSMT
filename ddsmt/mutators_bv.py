@@ -267,10 +267,10 @@ class BVSimplifyConstants:
             for v in [val // 32, val // 8, val // 2] if v not in [0, 1]
         ]
 
-    def global_mutations(self, linput, ginput):
+    def global_mutations(self, node, input_):
         yield from [
-            Simplification({linput: simp.substs[linput.id]}, [])
-            for simp in self.mutations(linput)
+            Simplification({node: simp.substs[node.id]}, [])
+            for simp in self.mutations(node)
         ]
 
     def __str__(self):
@@ -390,16 +390,16 @@ class BVReduceBW:
                   and len(node[2]) == 0)) and get_sort(node[1]) is not None
                 and is_bv_sort(get_sort(node[1])))
 
-    def global_mutations(self, linput, ginput):
-        bw = get_bv_width(linput[1])
+    def global_mutations(self, node, input_):
+        bw = get_bv_width(node[1])
         bws = sorted(set([bw - 1, bw // 2, 2, 1]))
         for b in bws:
             if 0 < b < bw:
-                varname = '_{}'.format(linput[1])
+                varname = '_{}'.format(node[1])
                 var = Node('declare-const', varname, Node('_', 'BitVec', b))
-                zext = Node('define-fun', linput[1], (), get_sort(linput[1]),
+                zext = Node('define-fun', node[1], (), get_sort(node[1]),
                             Node(Node('_', 'zero_extend', bw - b), varname))
-                yield Simplification({linput.id: zext}, [var])
+                yield Simplification({node.id: zext}, [var])
 
     def __str__(self):
         return 'reduce bit-width of variable'
