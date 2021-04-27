@@ -32,7 +32,10 @@ def is_arithmetic_relation(node):
 
 
 class ArithmeticNegateRelation:
-    """Replace a negated relation by the inverse relation."""
+    """Replace a negated relation by the corresponding inverse relation.
+
+    For example, ``(not (< a b))`` is replaced with ``(>= a b)``.
+    """
     def filter(self, node):
         return is_operator_app(
             node, 'not') and len(node) > 1 and is_arithmetic_relation(node[1])
@@ -59,8 +62,11 @@ class ArithmeticNegateRelation:
 
 
 class ArithmeticSimplifyConstant:
-    """Replace a constant by a simpler constant (smaller or fewer decimal
-    places)."""
+    """Replace a constant with a simpler constant.
+
+    We consider constants that are smaller (in value) or with fewer decimal
+    places as `simpler`.
+    """
     def filter(self, node):
         return is_arith_const(node) and float(node.data) not in [0, 1]
 
@@ -89,8 +95,10 @@ class ArithmeticSimplifyConstant:
 
 
 class ArithmeticSplitNaryRelation:
-    """Split an n-ary relation into the conjunction of multiple relations,
-    assuming the relation symbol is transitive."""
+    """Split an n-ary relation into the conjunction of multiple relations.
+
+    This assumes that the relation symbol is transitive.
+    """
     def filter(self, node):
         return is_arithmetic_relation(node) and len(node) > 3
 
@@ -105,8 +113,10 @@ class ArithmeticSplitNaryRelation:
 
 
 class ArithmeticStrengthenRelation:
-    """Replace a relation by a stronger relation, for example transform ``>=``
-    to ``>``."""
+    """Replace a relation by a stronger relation.
+
+    For example, ``>=`` is replaced by ``>``.
+    """
     def filter(self, node):
         return is_arithmetic_relation(node) and node.get_ident() in [
             '<', '>', '<=', '>=', 'distinct'
