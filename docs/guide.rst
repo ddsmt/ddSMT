@@ -1,7 +1,7 @@
 User Guide
 ==========
 
-This guide covers some more advanced topics of using ddSMT.
+This guide covers some more advanced topics of using **ddSMT**.
 
 .. toctree::
    :maxdepth: 2

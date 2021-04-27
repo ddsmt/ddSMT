@@ -1,13 +1,24 @@
 Minimization Strategies
 =======================
 
-ddSMT offers two fundamentally different strategies for minimization that we call ``ddmin`` and ``hierarchical``, and a comined strategy ``hybrid``.
-``ddmin`` employs the minimization strategy from :cite:`Zeller1999` and is the direct successor of what the original ``ddSMT`` from :cite:`Niemetz2013` does: it collects a set of simplifications and applies varying subsets at once.
-``hierarchical`` performs a simple depth-first walk through the input and applies one simplification at a time for the current node, similar to what is presented as "hierarchical delta-debugging" in :cite:`Brummayer2009`.
+**ddSMT** implements two fundamentally different strategies for input
+minimization (``ddmin`` and ``hierarchical``), which can be combined
+into the best of both worlds, strategy ``hybrid``.
 
-``ddmin`` is usually faster than ``hierarchical``, but produces larger output files.
-The default strategy ``hybrid`` thus uses ``ddmin`` first and then ``hierarchical`` on the already simplified input, which almost always combines the better performance characteristics of ``ddmin`` with the smaller results of ``hierarchical``.
+Strategy ``ddmin`` implements a variant of the minimization strategy from
+:cite:`Zeller1999`, and is the direct successor of what the original **ddSMT**
+from :cite:`Niemetz2013` implemented: it tries to perform mutations on multiple
+S-expressions in the input in parallel.
+Strategy ``hierarchical`` performs a simple breadth-first traversal through the
+input and applies mutations to every S-expression, one mutation at a time
+(similar to what is presented as "hierarchical delta-debugging" in
+:cite:`Brummayer2009`).
+Strategy ``hybrid`` is the **default** strategy of **ddSMT**.
+It first applies ``ddmin`` until a fixed point is reached, and then calls
+strategy ``hierarchical`` on the simplified input.
 
+For a more in-depth analysis of these minimization strategies, see
+:cite:`Kremer2021`.
 
 .. _ddmin-strategy:
 
