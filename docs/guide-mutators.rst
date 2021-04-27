@@ -28,7 +28,7 @@ Mutator classes must provide the following interface:
             """
             return []
 
-        def global_mutations(self, node, input):
+        def global_mutations(self, node, input_):
             """Create a list of mutations of the whole input.
             Default: []
             """
