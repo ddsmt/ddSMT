@@ -1,7 +1,7 @@
 Quickstart
 ==========
 
-The main purpose of **ddSMT** is to *minimize* input that triggers some
+The main purpose of **ddSMT** is to *minimize* an input that triggers some
 (erroneous) behavior when fed to a given command.
 **ddSMT** first executes the command on the given input and records its behavior
 (exit code, standard output and error channels).
@@ -29,8 +29,8 @@ by default computed based on the run time of the golden run.
 Optionally, **ddSMT** allows to configure this time limit, and to ignore
 output channels.
 
-**ddSMT** implements several :ref:`minimization strategies` to derive
-inputs by applying all enabled mutators.
+**ddSMT** implements several :ref:`minimization strategies <minimization
+strategies>` to derive inputs by applying all enabled mutators.
 After the golden run, it generates mutated inputs and executes the given
 command on these inputs.
 The first mutated input on which the command behaves the same as on the
@@ -133,7 +133,9 @@ We can achieve this with options :code:`--match-out` (for `stdout`) and
 
     $ ../bin/ddsmt -v --match-err error example/input.smt2 example/output.smt2 example/solver --option
 
-Comparing behavior against the golden run is implemented as follows:
+In case you are wondering how the comparison of a run on mutated input with the
+golden run is implemented, this is the actual code that is implemented in
+**ddSMT**:
 
 .. literalinclude:: ../ddsmt/checker.py
    :language: python3
