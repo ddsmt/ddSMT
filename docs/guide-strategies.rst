@@ -58,14 +58,28 @@ mutators in the second stage.
 The **hierarchical** strategy
 -----------------------------
 
-At its core, this strategy uses a depth-first traversal of the input and applies all mutators locally to the current node. This allows for multiple mutators to work simultaneously on the same node and thus a fast collaboration of multiple mutators.
+The main loop of the **hierarchical** strategy (as shown in pseudo code below)
+performs a simple breadth-first traversal
+of the S-expressions in the input, and applies all enabled mutators
+to every S-expression.
+Once a simplification is found (Line 7), all pending checks for the current
+S-expression are aborted and the breadth-first traversal continues with the
+simplified S-expression :code:`sexpr` (Line 9).
+This process is repeated until further simplifications are found.
 
-**hierarchical** proceeds in multiple stages: the first stages perform aggressive minimization using binary reduction or only a small set of selected mutators; the penulatimate state employs all but a few mutators that usually only have cosmetic effects; the final stage includes all available mutators.
-This approach aims to be reasonably fast in reducing the input initially, but then allowing for more complex and more detailed simplfications once the input is smaller.
+The main simplification loop (Line 3) is applied multiple times, with varying
+sets of mutators.
+In the initial stages, **hierarchical** aims for aggressive minimization
+using only a small set of selected mutators, in the next-to-last stage it
+employs all but a few mutators that usually only have cosmetic impact, and in
+the last stage it includes all mutators.
 
-Within a single run, **hierarchical** employs a fixed-point loop and only terminates when no simplification was successfull for a whole input traversal.
-For a single node, **hierarchical** iterates over all (currently active) mutators in an arbitrary order and simply checks all suggested simplifications, accepting the first successfull one.
-Once a simplification was accepted, **hierarchical** continues the input traversal (roughly) from the node it just simplified.
+Breadth-first traversal yields significantly better results than a depth-first
+traversal, most probably since it tends to favor simplifications on larger
+subtrees of the input.
+
+.. image:: img/hier.png
+  :alt: Pseydo-code of the main algorithm of the hierarchical strategy.
 
 
 The **hybrid** strategy
