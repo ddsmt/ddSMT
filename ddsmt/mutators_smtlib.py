@@ -25,8 +25,10 @@ from .mutator_utils import Simplification
 
 
 class CheckSatAssuming:
-    """Replaces a ``check-sat-assuming`` by a regular ``check-sat``, discarding
-    the assumption."""
+    """Replace ``check-sat-assuming`` with a regular ``check-sat``.
+
+    This discards any assumptions provided to ``check-sat-assuming``.
+    """
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'check-sat-assuming'
 
@@ -38,12 +40,12 @@ class CheckSatAssuming:
 
 
 class EliminateVariable:
-    """Eliminate a variable using an equality with this variable.
+    """Eliminate variables that occur as children of equalities.
 
-    Tries to globally replace every leaf node from an equality by every
-    other node from the same equality. For example, for ``(= x (* a b)
-    (+ c d))`` the variable ``x`` is replaced by either ``(* a b)`` or
-    ``(+ c d)``.
+    Globally replace every leaf node from an equality with every
+    other node from the same equality. For example, for
+    ``(= x (* a b) (+ c d))``, ``x`` is replaced with either
+    ``(* a b)`` or ``(+ c d)``.
     """
     def filter(self, node):
         return is_eq(node) and len(node) > 1 and any(
@@ -71,7 +73,7 @@ class EliminateVariable:
 
 
 class InlineDefinedFuns:
-    """Explicitly inlines a defined function."""
+    """Explicitly inline a defined function."""
     def filter(self, node):
         return is_defined_fun(node)
 
@@ -92,7 +94,7 @@ class InlineDefinedFuns:
 
 
 class IntroduceFreshVariable:
-    """Replace a term by a fresh variable of the appropriate type."""
+    """Replace a term by a fresh variable of the same sort."""
     def filter(self, node):
         # introducing a fresh variable may lead to cycles in various cases,
         # thus we exclude a variety of nodes here:
@@ -128,7 +130,7 @@ class IntroduceFreshVariable:
 
 
 class LetElimination:
-    """Substitutes a ``let`` expression with its body."""
+    """Substitute a ``let`` expression with its body."""
     def filter(self, node):
         return is_operator_app(node, 'let')
 
@@ -142,8 +144,7 @@ class LetElimination:
 
 
 class LetSubstitution:
-    """Substitutes a variable bound by a ``let`` binder into the nested
-    term."""
+    """Substitute a variable bound by a ``let`` binder into the nested term."""
     def filter(self, node):
         return is_operator_app(node, 'let')
 
@@ -173,8 +174,8 @@ class RemoveAnnotation:
 
 
 class SimplifyLogic:
-    """Replaces the logic specified in ``(check-logic ...)`` by a simpler
-    one."""
+    """Replace the logic specified in ``(check-logic ...)`` with a simpler one.
+    """
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'set-logic'
 
@@ -207,7 +208,7 @@ class SimplifyLogic:
 
 
 class SimplifyQuotedSymbols:
-    """Turns a quoted symbol into a simple symbol."""
+    """Turn a quoted symbol into a simple symbol."""
     def filter(self, node):
         return is_piped_symbol(node) and re.match(
             '\\|[a-zA-Z0-9~!@$%^&*_+=<>.?/-]+\\|', node.data) is not None
@@ -223,10 +224,11 @@ class SimplifyQuotedSymbols:
 
 
 class SimplifySymbolNames:
-    """Simplify variable names by making them smaller.
+    """Simplify variable names.
 
-    Should only have cosmetic impact, unless two variable names change
-    their order enabling :class:`ddsmt.mutators_core.ReplaceByVariable`.
+    This only has cosmetic impact except for cases where variable names
+    are compared/ordered lexicographically (it may enable, for example,
+    the application of mutator :class:`ddsmt.mutators_core.ReplaceByVariable`).
     """
     def filter(self, node):
         # check for is_const(node[1]) to avoid x -> false -> fals -> false
