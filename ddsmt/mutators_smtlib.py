@@ -230,7 +230,7 @@ class SimplifySymbolNames:
     def filter(self, node):
         # check for is_const(node[1]) to avoid x -> false -> fals -> false
         # if the variable is irrelevant, false may be accepted by the solver
-        return node.has_ident() and node.get_ident() in [
+        return node.has_ident() and len(node) >= 2 and node.get_ident() in [
             'declare-const', 'declare-datatype', 'declare-datatypes',
             'declare-fun', 'declare-sort', 'define-fun', 'exists', 'forall'
         ] and not is_const(node[1])
