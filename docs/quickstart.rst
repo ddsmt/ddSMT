@@ -1,7 +1,7 @@
 Quickstart
 ==========
 
-The main purpose of **ddSMT** is to *minimize* an input that triggers some
+The main purpose of **ddSMT** is to *minimize* input that triggers some
 (erroneous) behavior when fed to a given command.
 **ddSMT** first executes the command on the given input and records its behavior
 (exit code, standard output and error channels).
@@ -29,7 +29,8 @@ by default computed based on the run time of the golden run.
 Optionally, **ddSMT** allows to configure this time limit, and to ignore
 output channels.
 
-**ddSMT** implements several :ref:`minimization strategies <Minimization Strategies>` to derive inputs by applying all enabled mutators.
+**ddSMT** implements several :ref:`minimization strategies` to derive
+inputs by applying all enabled mutators.
 After the golden run, it generates mutated inputs and executes the given
 command on these inputs.
 The first mutated input on which the command behaves the same as on the
@@ -96,17 +97,17 @@ For example, assume that our example from above produces the following output:
 
 By default
 **ddSMT** will exactly match
-``printing something to stdout`` against what is printed on `stdout` and
-``error: this message is printed to stderr`` against what is printed on
-`stderr` for mutated inputs, and check if the exit code is ``1``.
-When increasing the verbosity level with ``-v``, it will print some
+:code:`printing something to stdout` against what is printed on `stdout` and
+:code:`error: this message is printed to stderr` against what is printed on
+`stderr` for mutated inputs, and check if the exit code is :code:`1`.
+When increasing the verbosity level with :code:`-v`, it will print some
 information about the golden run and progress:
 
 .. command-output:: ../bin/ddsmt -v example/input.smt2 example/output.smt2 example/solver --option
    :ellipsis: 17
 
-Now, let's assume we want to ignore output on `stdout` and `stderr` and only
-use the exit code, we enable option ``--ignore-output``:
+Now, let's assume we want to ignore output on `stdout` and `stderr`, we enable
+option `--ignore-output`:
 
 .. code:: bash
 
@@ -115,16 +116,16 @@ use the exit code, we enable option ``--ignore-output``:
 .. note::
 
   With option :code:`--ignore-output` enabled, **ddSMT** will still report
-  output on both channels for the golden run with option ``-v``.
+  output on both channels for the golden run with option code:`-v`.
   When comparing behavior, however, this output is ignored, and only the
   exit code is matched.
 
-Now, let's assume our command yields output on `stdout` or `stderr` that
-contains information that depends on the actual execution, e.g., a stack trace
-with memory addresses. In this case, matching against the full output will never
-be successful, and we rather only want to check if a phrase occurs in the
-output. We can achieve this with options ``--match-out`` (for `stdout`) and
-``--match-err`` (for `stderr`) as follows:
+Now, let's assume our command yields output on`stdout` or `stderr` that
+contains information that depends on the actual execution, e.g., a stack trace.
+In this case, matching against the full output will never be successful,
+and we rather only want to check if a phrase occurs in the output.
+We can achieve this with options :code:`--match-out` (for `stdout`) and
+:code:`--match-err` (for `stderr`) as follows:
 
 .. code:: bash
 
@@ -132,8 +133,7 @@ output. We can achieve this with options ``--match-out`` (for `stdout`) and
 
     $ ../bin/ddsmt -v --match-err error example/input.smt2 example/output.smt2 example/solver --option
 
-In case you are wondering how the comparison of a new run with the golden run is
-implemented exactly, this is the actual code that is implemented in **ddSMT**:
+Comparing behavior against the golden run is implemented as follows:
 
 .. literalinclude:: ../ddsmt/checker.py
    :language: python3
