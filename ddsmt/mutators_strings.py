@@ -58,9 +58,9 @@ class StringSimplifyConstant:
         yield Simplification({node.id: Node(f'"{content[1:]}"')}, [])
         yield Simplification({node.id: Node(f'"{content[:-1]}"')}, [])
 
-    def global_mutations(self, linput, ginput):
-        for simp in self.mutations(linput):
-            yield Simplification({linput: simp.substs[linput.id]}, [])
+    def global_mutations(self, node, input_):
+        for simp in self.mutations(node):
+            yield Simplification({node: simp.substs[node.id]}, [])
 
     def __str__(self):
         return 'simplify string constant'
@@ -96,16 +96,16 @@ class StringContainsToConcat:
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.contains'
 
-    def global_mutations(self, linput, ginput):
-        var = linput[1]
+    def global_mutations(self, node, input_):
+        var = node[1]
         k1 = f'{var}_prefix'
         k2 = f'{var}_suffix'
         vars = [
             Node('declare-const', k1, 'String'),
             Node('declare-const', k2, 'String'),
         ]
-        eq = Node('=', var, ('str.++', k1, linput[2], k2))
-        return [Simplification({linput: eq}, vars)]
+        eq = Node('=', var, ('str.++', k1, node[2], k2))
+        return [Simplification({node: eq}, vars)]
 
     def __str__(self):
         return 'eliminate str.contains by ++'
