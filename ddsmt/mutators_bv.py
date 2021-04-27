@@ -62,7 +62,7 @@ class BVConcatToZeroExtend:
 
 
 class BVDoubleNegation:
-    """Elimination double bit-vector negations."""
+    """Eliminate double bit-vector negations."""
     def filter(self, node):
         if is_bv_not(node) and len(node) > 1 and is_bv_not(node[1]):
             return True
@@ -78,7 +78,10 @@ class BVDoubleNegation:
 
 
 class BVElimBVComp:
-    """Replace ``bvcomp`` with a constant by a regular equality."""
+    """Replace equality over ``bvcomp`` and constant with a regular equality.
+
+    For example, ``(= (bvcomp a b) #b1)`` is replaced with ``(= a b)``.
+    """
     def filter(self, node):
         return (is_eq(node) and len(node) > 2 and is_bv_const(node[1])
                 and get_bv_width(node[1]) == 1
@@ -105,7 +108,7 @@ class BVElimBVComp:
 
 
 class BVEvalExtend:
-    """Evaluates a bit-vector ``(sign|zero)_extend`` if it is applied to a
+    """Evaluate a bit-vector ``(sign|zero)_extend`` if it is applied to a
     constant or another ``(sign|zero)_extend``."""
     def filter(self, node):
         return ((is_indexed_operator_app(node, 'zero_extend')
@@ -132,7 +135,7 @@ class BVEvalExtend:
 
 
 class BVExtractConstants:
-    """Evaluates a bit-vector ``extract`` if it is applied to a constant."""
+    """Evaluate a bit-vector ``extract`` if it is applied to a constant."""
     def filter(self, node):
         return (is_indexed_operator_app(node, 'extract', 2) and len(node) > 1
                 and is_bv_const(node[1]))
@@ -161,12 +164,11 @@ class BVExtractConstants:
 
 
 class BVExtractZeroExtend:
-    """Simplifies an ``extract`` of a ``zero_extend`` by pushing the
+    """Simplify an ``extract`` of a ``zero_extend`` by pushing the
     ``zero_extend`` to the outside and reducing the bit-width, if possible.
-
-    Requires that global information has been populated via
-    ``collect_information``.
     """
+    #Requires that global information has been populated via
+    #``collect_information``.
     def filter(self, node):
         return (is_indexed_operator_app(node, 'extract', 2) and len(node) > 1
                 and is_indexed_operator_app(node[1], 'zero_extend'))
@@ -205,11 +207,9 @@ class BVExtractZeroExtend:
 
 
 class BVIteToBVComp:
-    """Replace an ``ite`` of bit-width one with ``bvcomp``.
-
-    Requires that global information has been populated via
-    ``collect_information``.
-    """
+    """Replace an ``ite`` of bit-width one with ``bvcomp``."""
+    #Requires that global information has been populated via
+    #``collect_information``.
     def filter(self, node):
         if not is_operator_app(node, 'ite'):
             return False
@@ -236,7 +236,7 @@ class BVIteToBVComp:
 
 
 class BVReflexiveNand:
-    """Replace a reflexive nand by bitwise negation."""
+    """Replace a reflexive ``bvnand`` by bitwise negation."""
     def filter(self, node):
         return (is_operator_app(node, 'bvnand') and len(node) == 3
                 and node[1] == node[2])
@@ -249,7 +249,8 @@ class BVReflexiveNand:
 
 
 class BVSimplifyConstants:
-    """Replace a bit-vector constant by a simpler constant of smaller value."""
+    """Replace a bit-vector constant with a simpler constant of smaller value.
+    """
     def filter(self, node):
         return (is_bv_const(node)
                 and get_bv_constant_value(node)[0] not in [0, 1])
@@ -315,8 +316,8 @@ class BVTransformToBool:
 
 
 class BVZeroExtendPredicate():
-    """Eliminate zero_extend when both operands of an equality, disequality
-    of inequality are zero extended.
+    """Eliminate ``zero_extend`` when both operands of an equality, disequality
+    or inequality are zero extended.
 
     For example, transform ``(= ((_ zero_extend 2) a) ((_ zero_extend 2) b))``
     into ``(= a b)``, and ``(= ((_ zero_extend 2) a) ((_ zero_extend 4) b))``
@@ -367,20 +368,18 @@ class BVZeroExtendPredicate():
 
 
 class BVReduceBW:
-    """Reduce the bit-width of a variable by introducing an extract and zero
-    extension on that variable, e.g.,
+    """Reduce the bit-width of a variable by introducing an ``extract`` and
+    ``zero_extend`` on that variable.
+
+    For example, ``(declare-const v (_ BitVec 32))`` is transformed into
 
     .. code-block:: common-lisp
 
-        (declare-const v (_ BitVec 32)) is transformed into
-        (define-fun v () (_ BitVec 32) ((_ zero_extend 31) _v)) with
         (declare-const _v (_BitVec 1))
-
-    This mutator generates all possible mutations for a variable.
-
-    Requires that global information has been populated via
-    ``collect_information``.
+        (define-fun v () (_ BitVec 32) ((_ zero_extend 31) _v))
     """
+    #Requires that global information has been populated via
+    #``collect_information``.
     def filter(self, node):
         if not node.has_ident():
             return False
