@@ -46,7 +46,8 @@ class EliminateVariable:
     ``(+ c d)``.
     """
     def filter(self, node):
-        return is_eq(node) and any(map(lambda n: n.is_leaf(), node[1:]))
+        return is_eq(node) and len(node) > 1 and any(
+            map(lambda n: n.is_leaf(), node[1:]))
 
     def global_mutations(self, linput, ginput):
         ops = linput[1:]

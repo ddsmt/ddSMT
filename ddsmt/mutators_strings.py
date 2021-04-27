@@ -26,8 +26,9 @@ from .mutator_utils import Simplification
 class SeqNthUnit:
     """Simplify ``(seq.nth (seq.unit t) 0)`` to ``t``."""
     def filter(self, node):
-        return is_operator_app(node, 'seq.nth') and is_operator_app(
-            node[1], 'seq.unit')
+        return is_operator_app(
+            node, 'seq.nth') and len(node) > 1 and is_operator_app(
+                node[1], 'seq.unit')
 
     def mutations(self, node):
         yield Simplification({node.id: node[1][1]}, [])

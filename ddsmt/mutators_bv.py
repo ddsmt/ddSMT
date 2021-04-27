@@ -64,7 +64,7 @@ class BVConcatToZeroExtend:
 class BVDoubleNegation:
     """Elimination double bit-vector negations."""
     def filter(self, node):
-        if is_bv_not(node) and is_bv_not(node[1]):
+        if is_bv_not(node) and len(node) > 1 and is_bv_not(node[1]):
             return True
         if is_bv_neg(node) and is_bv_neg(node[1]):
             return True
@@ -80,7 +80,7 @@ class BVDoubleNegation:
 class BVElimBVComp:
     """Replace ``bvcomp`` with a constant by a regular equality."""
     def filter(self, node):
-        return (is_eq(node) and is_bv_const(node[1])
+        return (is_eq(node) and len(node) > 2 and is_bv_const(node[1])
                 and get_bv_width(node[1]) == 1
                 and any(is_bv_comp(n) for n in node[2:]))
 
@@ -110,7 +110,7 @@ class BVEvalExtend:
     def filter(self, node):
         return ((is_indexed_operator_app(node, 'zero_extend')
                  or is_indexed_operator_app(node, 'sign_extend'))
-                and is_bv_const(node[1]))
+                and len(node) > 1 and is_bv_const(node[1]))
 
     def mutations(self, node):
         (val, width) = get_bv_constant_value(node[1])
@@ -134,7 +134,7 @@ class BVEvalExtend:
 class BVExtractConstants:
     """Evaluates a bit-vector ``extract`` if it is applied to a constant."""
     def filter(self, node):
-        return (is_indexed_operator_app(node, 'extract', 2)
+        return (is_indexed_operator_app(node, 'extract', 2) and len(node) > 1
                 and is_bv_const(node[1]))
 
     def mutations(self, node):
@@ -168,7 +168,7 @@ class BVExtractZeroExtend:
     ``collect_information``.
     """
     def filter(self, node):
-        return (is_indexed_operator_app(node, 'extract', 2)
+        return (is_indexed_operator_app(node, 'extract', 2) and len(node) > 1
                 and is_indexed_operator_app(node[1], 'zero_extend'))
 
     def mutations(self, node):
@@ -305,8 +305,8 @@ class BVTransformToBool:
             Simplification(
                 {
                     node.id:
-                    Node(self.repl[n.get_ident()],
-                         *[Node('=', c, d) for d in n[1:]])
+                    Node(self.repl[n.get_ident()], *
+                         [Node('=', c, d) for d in n[1:]])
                 }, [])
         ]
 
@@ -365,6 +365,7 @@ class BVZeroExtendPredicate():
         return 'eliminate zero_extend when both operands of a predicate are \
                 zero extended'
 
+
 class BVReduceBW:
     """Reduce the bit-width of a variable by introducing an extract and zero
     extension on that variable, e.g.,
@@ -383,11 +384,9 @@ class BVReduceBW:
     def filter(self, node):
         if not node.has_ident():
             return False
-        return (((node.get_ident() == 'declare-const' and len(node) == 2)
-                 or (node.get_ident() == 'declare-fun'
-                     and len(node == 3)
-                     and len(node[2]) == 0))
-                and get_sort(node[1]) is not None
+        return (((node.get_ident() == 'declare-const' and len(node) == 2) or
+                 (node.get_ident() == 'declare-fun' and len(node == 3)
+                  and len(node[2]) == 0)) and get_sort(node[1]) is not None
                 and is_bv_sort(get_sort(node[1])))
 
     def global_mutations(self, linput, ginput):

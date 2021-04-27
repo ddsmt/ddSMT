@@ -42,8 +42,8 @@ def make_and(children):
 class BoolDeMorgan:
     """Use de Morgans rules to push negations inside."""
     def filter(self, node):
-        return is_operator_app(node, 'not') and (is_operator_app(
-            node[1], 'and') or is_operator_app(node[1], 'or'))
+        return is_operator_app(node, 'not') and len(node) > 1 and (
+            is_operator_app(node[1], 'and') or is_operator_app(node[1], 'or'))
 
     def mutations(self, node):
         negated = [Node('not', t) for t in node[1][1:]]
@@ -59,7 +59,8 @@ class BoolDeMorgan:
 class BoolDoubleNegation:
     """Eliminate double negations."""
     def filter(self, node):
-        return is_operator_app(node, 'not') and is_operator_app(node[1], 'not')
+        return is_operator_app(
+            node, 'not') and len(node) > 1 and is_operator_app(node[1], 'not')
 
     def mutations(self, node):
         return [Simplification({node.id: node[1][1]}, [])]
@@ -104,7 +105,8 @@ class BoolEliminateImplication:
 class BoolNegateQuantifier:
     """Push negations inside quantifiers."""
     def filter(self, node):
-        return is_operator_app(node, 'not') and is_quantifier(node[1])
+        return is_operator_app(
+            node, 'not') and len(node) > 1 and is_quantifier(node[1])
 
     def mutations(self, node):
         if node[1].get_ident() == 'exists':
