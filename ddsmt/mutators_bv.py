@@ -361,6 +361,9 @@ class BVZeroExtendPredicate():
                 }, [])
         ]
 
+    def __str__(self):
+        return 'eliminate zero_extend when both operands of a predicate are \
+                zero extended'
 
 class BVReduceBW:
     """Reduce the bit-width of a variable by introducing an extract and zero
