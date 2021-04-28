@@ -16,8 +16,8 @@ subprocess.call(['git', 'fetch'])
 
 # basic project information
 project = 'ddSMT'
-copyright = '2020, Aina Niemetz'
-author = 'Aina Niemetz'
+copyright = '2013-2021, the authors of ddSMT'
+author = 'The authors of ddSMT'
 version = ddsmt.version.VERSION
 release = ddsmt.version.VERSION
 
