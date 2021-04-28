@@ -2,7 +2,7 @@
   :alt: GitHub Workflow Status
   :target: https://github.com/ddsmt/ddSMT/actions
 
-.. image:: https://img.shields.io/readthedocs/ddsmt/development
+.. image:: https://img.shields.io/readthedocs/ddsmt/master
   :alt: Read the Docs
   :target: https://ddsmt.readthedocs.io
 
@@ -37,7 +37,7 @@ For more details on the SMT-LIB language, see http://www.smtlib.org.
 **ddSMT** is free software released under the GPLv3.
 You should have received a copy of the GNU General Public License along with
 **ddSMT** (see file `LICENSE
-<https://github.com/ddsmt/ddSMT/blob/development/LICENSE>`_).
+<https://github.com/ddsmt/ddSMT/blob/master/LICENSE>`_).
 If not, see http://www.gnu.org/licenses/.
 
 Requirements:
