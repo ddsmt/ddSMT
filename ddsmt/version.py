@@ -38,10 +38,11 @@ def version_from_git(gitdir):
     if re.match('^v[0-9.]+$', GIT_VERSION) is not None:
         return GIT_VERSION[1:]
     else:
-        m = re.match('v([0-9]+)\\.([0-9]+)-([0-9]+)-g[a-z0-9]+', GIT_VERSION)
+        m = re.match('v([0-9]+)\\.([0-9]+)\\.([0-9]+)-([0-9]+)-g[a-z0-9]+',
+                     GIT_VERSION)
         if m is not None:
-            return '{}.{}.dev{}'.format(m.group(1),
-                                        int(m.group(2)) + 1, m.group(3))
+            return '{}.{}.{}.dev{}'.format(m.group(1), m.group(2),
+                                           int(m.group(3)) + 1, m.group(4))
     return GIT_VERSION
 
 
