@@ -48,9 +48,9 @@ output written to the specified output file.
 How to run ddSMT
 ----------------
 
-Given an input file :code:`input.smt2` and a command :code:`solver
---option`, **ddSMT** is executed to write minimized input to
-:code:`output.smt2` as follows:
+Given an input file :download:`example/input.smt2` and a call to
+:download:`example/solver` with command line option :code:`--option`, **ddSMT**
+is executed to write minimized input to :code:`output.smt2` as follows:
 
 .. code-block:: bash
 
