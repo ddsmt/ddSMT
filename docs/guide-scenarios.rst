@@ -80,27 +80,54 @@ compare models or error messages.
    :linenos:
 
 
-Debugging performance issues
+Debugging Performance Issues
 ----------------------------
 
-Similarly nasty are performance issues, and as for soundness issues it usually only makes sense to assess performance relative to another solver. Again a wrapper script for this purpose is provided in :download:`scripts/compare_time.py <../scripts/compare_time.py>`. This script runs two solvers (``'A'`` and ``'B'``) and checks whether the slower one is (still) much slower than the faster one.
-As it outputs some information about the timings, it should be used in combination with ``--ignore-output``.
+Performance issues are issues where a solver performs significantly worse
+than a reference solver.
+Typically, this means that the solver under test terminates successfully but
+with a significantly higher run time, or doesn't terminate at all within a
+given time limit.
+Performance issues are similarly nasty to delta debug as unsoundness issues.
+And as with unsoundness, it usually only makes sense to debug performance
+issues with respect to a reference solver.
+
+**ddSMT** provides a wrapper script
+:download:`scripts/compare_time.py <../scripts/compare_time.py>`
+for debugging performance issues.
+It runs two solvers :code:`A` and :code:`B` and checks whether the slower one
+is (still) much slower than the faster one.
+Since it outputs some information about the run time of the two solvers, it
+should be used in combination with option :code:`--ignore-output`.
 
 .. literalinclude:: ../scripts/compare_time.py
    :language: python3
    :linenos:
 
 
-Eliminate let binders
----------------------
-SMT-LIB let binders are notorious for impeding simplification during delta debugging. While the respective mutators, :class:`ddsmt.mutators_smtlib.LetElimination` and :class:`ddsmt.mutators_smtlib.LetSubstitution`, take care of them eventually, it can take a long time.
-If the input contains a lot of let binders, it is often useful to first eliminate them by running with only these two mutators enabled and then debug the resulting files without let binders.
+Eliminate :code:`let` Binders
+-----------------------------
+
+SMT-LIB :code:`let` binders are notorious for impeding simplification during
+delta debugging.
+While the mutators that target :code:`let` binders
+(:class:`ddsmt.mutators_smtlib.LetElimination` and
+:class:`ddsmt.mutators_smtlib.LetSubstitution`) are applied in an early stage
+for both strategies **ddmin** and **hierarchical**,
+it may still take a while until they are taken care of.
+If the input contains a lot of :code:`let` binders, it is sometimes useful to
+first eliminate them by using only these two mutators, and then delta debug the
+resulting files without let binders.
 
 .. code-block:: bash
 
     $ ddsmt --disable-all --let-elimination --let-substitution <input> <output> <solver>
 
-If you are reasonably sure that the issue is unrelated to let binders itself, you can use ``--unchecked`` to not even call the solver. Note that you should do substitution and elimination in separate runs in this case:
+If you are reasonably sure that the issue is unrelated to let binders itself,
+you can use option :code:`--unchecked` to not even execute the command under
+test.
+Note that you should do two separate runs for :code:`let` substitution and
+:code:`let` elimination in this case:
 
 .. code-block:: bash
 
