@@ -1,22 +1,79 @@
-Common scenarios
-====================================
+Common Scenarios
+================
 
-By default, ddSMT enables all mutators and allows to disable (and enable) all mutators individually.
-Here, we list approaches for some common scenarios that users face.
+Within the SMT community, the notion of **failure** is generally defined as
+one of the following:
+
+* **abnormal termination** or **crashes** (including segmentation
+  faults and assertion failures)
+* **performance regressions** (solver performs significantly worse on an
+  input than reference solver)
+* **unsoundness** (solver answers `sat` instead of `unsat` and vice versa)
+* **model unsoundness** (the determined satisfiability model is incorrect)
+* **conflict unsoundness** (the determined proof of unsatisfiability is
+  incorrect)
+
+`Abnormal termination` and `crashes` are the most common and the default
+use case of **ddSMT**.
+
+`Model unsoundness` and `conflict unsoundness` issues, on the other hand, are
+more involved since they typically require some checking mechanism to determine
+if a generated model or proof is incorrect.
+Most SMT solvers implement such mechanisms and will throw an assertion failure
+in debug mode when such a failure is detected, and in that case, these failures
+fall into the first category.
+However, if they don't, external checking tools are required.
+**ddSMT** does not provide such tools.
+
+For `perfomance regressions` and `unsoundness` issues, **ddSMT** provides
+easy-to-use and easy-to-adapt wrapper scripts in directory :code:`scripts`.
+In this guide, we show how to debug issues that fall into these two categories
+and address how to approach other common scenarios users may face.
 
 
-Debugging unsoundness
+Debugging Unsoundness
 ---------------------
 
-Sometimes bugs in solvers do not make the command crash or print an error message, but simply provide an incorrect result.
-This is a particular nasty case for delta-debuggin, as the solver itself oftentimes can not detect this issue. Relying on annotations in the input (i.e. the SMT-LIB status) is usually not a good idea, as mutating the input may very well change the correct output (i.e. flip from sat to unsat or vice-versa) but still retain the underlying error.
+Unsoundness issues are issues where a solver terminates successfully, but
+with the wrong answer (`sat` instead of `unsat` and vice versa).
+This is a particular nasty case for delta debugging if the solver cannot detect
+the issue (for example, by checking the generated model or proof).
+Some solvers check their answer against the expected status of an SMT-LIB input
+if it is provided via :code:`(set-info :status ...)`, but for delta debugging
+purposes, it is a bad idea to rely on this status to check for soundness since
+mutations can flip this status but still reveal the underlying problem.
 
-A better approach is usually to use another solver as reference solver, for example using the builtin ``--cross-check`` option.
-If ``--cross-check`` is given, ddSMT not only checks whether the (main) command behaves :ref:`"the same" <How Behavior is Compared with the Golden Run>`, but does the same for another cross-check solver.
-Just as for the main solver, the cross-check solver comes with a set of options ``--ignore-output-cc``, ``--match-err-cc`` and ``--match-out-cc``.
+A better approach is to check the answer against the answer of a reference
+solver.
+This can be achieved by either using the builtin ``--cross-check`` option, or
+the provided :download:`scripts/results_differs.py
+<../scripts/result_differs.py>` script.
 
-In some cases the ``--cross-check`` option just is not flexible enough: you may want to allow the input changing its satisfiability (as long as the main solver is still incorrect), compare the outputs of the two solvers, or do any other kind of analysis.
-This can be done within a wrapper script that is then used instead of the main solver. A model wrapper script is provided in :download:`scripts/result_differs.py <../scripts/result_differs.py>` and can serve as a basis for whatever more complex comparisons are necessary. It runs two solvers (``'A'`` and ``'B'``) and compares their outputs. Note that this script expects the solver to only output ``sat`` or ``unsat``.
+Using Option ``--cross-check``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+If ``--cross-check`` is given, **ddSMT** checks whether the command
+under test and the reference command behave the same as their respective golden
+runs (see :ref:`How Behavior is Compared with the Golden Run`),
+As with the default use case, cross checking can be refined in terms of what
+output to consider via
+:code:`--ignore-output-cc` (both `stdout` and `stderr` channels are ignored),
+:code:`--match-err-cc` (pattern match `stderr` against a given string)
+and :code:`--match-out-cc` (pattern match `stdout` against a given string).
+
+Using Wrapper Script ``result_differs.py``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For cases where the ``--cross-check`` option is not be flexible enough,
+**ddSMT** provides a wrapper script :download:`scripts/result_differs.py
+<../scripts/result_differs.py>`.
+The script runs two solvers :code:`A` and :code:`B`, expects them to output
+`sat` or `unsat` and compares their output.
+This can be useful if you want to allow that the input flips from `sat`
+to `unsat` (or vice versa) as long as the solver under test still disagrees.
+
+This script can be adapted to any other kind of further analysis that you
+might need but is not supported by the cross check option, for example, if you
+want to compare the output of the two solvers and want to allow any output to
+compare models or error messages.
 
 .. literalinclude:: ../scripts/result_differs.py
    :language: python3
