@@ -12,6 +12,6 @@
    installation
    quickstart
    guide
-   developers
+   guide-developers
    faq
    references
