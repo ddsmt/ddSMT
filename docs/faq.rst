@@ -2,7 +2,8 @@ FAQ
 ===
 
 Delta debugging is slow
-    Read the section about :ref:`speeding up delta debugging <Speeding up delta debugging>`.
+    Read the section about :ref:`how to speed up delta debugging <how to speed
+    up delta debugging>`.
 
 ddSMT seems to be stuck in an infinite loop
     All modifications performed by ddSMT should simplify the input, or more formally, all mutations should make the input smaller with respect to an appropriate ranking function.
