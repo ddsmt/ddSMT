@@ -165,8 +165,9 @@ class Node:
             assert isinstance(expr, Node)
             if expr.is_leaf():
                 res.append(b'L')
-                res.append(struct.pack("=ii", expr.id, len(expr.data)))
-                res.append(expr.data.encode())
+                data = expr.data.encode()
+                res.append(struct.pack("=ii", expr.id, len(data)))
+                res.append(data)
             else:
                 res.append(b'(')
                 res.append(struct.pack("=iq", expr.id, expr.hash))
