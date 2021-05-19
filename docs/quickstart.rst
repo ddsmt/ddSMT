@@ -111,7 +111,7 @@ option :code:`--ignore-output`:
 
 .. code:: bash
 
-    $ ../bin/ddsmt -v --ignore-output example/input.smt2 example/output.smt2 example/solver --option
+    $ ddsmt -v --ignore-output example/input.smt2 example/output.smt2 example/solver --option
 
 .. note::
 
@@ -129,9 +129,9 @@ We can achieve this with options :code:`--match-out` (for `stdout`) and
 
 .. code:: bash
 
-    $ ../bin/ddsmt -v --match-out things example/input.smt2 example/output.smt2 example/solver --option
+    $ ddsmt -v --match-out things example/input.smt2 example/output.smt2 example/solver --option
 
-    $ ../bin/ddsmt -v --match-err error example/input.smt2 example/output.smt2 example/solver --option
+    $ ddsmt -v --match-err error example/input.smt2 example/output.smt2 example/solver --option
 
 In case you are wondering how the comparison of a run on mutated input with the
 golden run is implemented, this is the actual code that is implemented in
