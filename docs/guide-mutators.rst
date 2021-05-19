@@ -129,7 +129,7 @@ Writing New Mutators
 
 If you need a certain simplification that is not covered by existing mutators,
 it's easy to add your own mutator.
-If it is of general interest, we'd be happy if you contribute it back to
+If it is of general interest, we'd be happy if you contributed it back to
 **ddSMT**.
 The following instructions aim to provide a guide on what needs to be done and
 what you should consider when adding a new mutator.
@@ -141,7 +141,7 @@ mutators), and mutators for specific theories
 mutators>`, :ref:`boolean <boolean mutators>`, :ref:`floating-point arithmetic
 <floating-point mutators>` and :ref:`strings <string mutators>`).
 
-1. Identify into which **grou** your new mutator fits best.
+1. Identify into which **group** your new mutator fits best.
 
 2. Determine if you need to have a **global** view on the input, or if
    **local** mutations of a single node suffice. Prefer local mutations over

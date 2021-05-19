@@ -91,7 +91,7 @@ class Constants:
 
 
 class EraseNode:
-    """Erase given given node.
+    """Erase given node.
 
     If ``self.ident`` is set, only nodes with the identifier specified as
     ``self.ident`` are considered.
