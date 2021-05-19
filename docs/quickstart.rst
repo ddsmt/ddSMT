@@ -107,7 +107,7 @@ information about the golden run and progress:
    :ellipsis: 17
 
 Now, let's assume we want to ignore output on `stdout` and `stderr`, we enable
-option `--ignore-output`:
+option :code:`--ignore-output`:
 
 .. code:: bash
 
@@ -116,11 +116,11 @@ option `--ignore-output`:
 .. note::
 
   With option :code:`--ignore-output` enabled, **ddSMT** will still report
-  output on both channels for the golden run with option code:`-v`.
+  output on both channels for the golden run with option :code:`-v`.
   When comparing behavior, however, this output is ignored, and only the
   exit code is matched.
 
-Now, let's assume our command yields output on`stdout` or `stderr` that
+Now, let's assume our command yields output on `stdout` or `stderr` that
 contains information that depends on the actual execution, e.g., a stack trace.
 In this case, matching against the full output will never be successful,
 and we rather only want to check if a phrase occurs in the output.
