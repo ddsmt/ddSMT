@@ -159,9 +159,10 @@ mutators>`, :ref:`boolean <boolean mutators>`, :ref:`floating-point arithmetic
   - If your mutator returns a large number of candidates, do not return them
     as a list from :code:`mutations()` and :code:`global_mutations()`. Instead
     use :code:`yield` to turn your mutator into a **generator**.
-  - Add some **unit tests** in :code:`ddsmt/tests/`). For your own sanity, test
-    at least that it does what you expect and does not apply to unrelated nodes
-    (i.e., :code:`filter()` returns :code:`False`).
+  - Add some **unit tests** in :code:`ddsmt/tests/`). This way you can document
+    what your mutator does, and ensure that it keeps working in the future.
+    Also, test that it does not apply to unrelated nodes (i.e.,
+    :code:`filter()` returns :code:`False`).
 
 .. note::
   Try do identify and **avoid** possible mutation **cycles**. Introducing such

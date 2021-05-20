@@ -25,7 +25,7 @@ ddSMT: Delta Debugging for SMT-LIBv2
 **ddSMT** is a delta debugger for input in the `SMT-LIB
 <http://www.smtlib.org>`_ language and its dialects and extensions.
 It serves as an **input minimizer** for SMT-LIB(-like) input that triggers
-unwanted behavior for a given command.
+interesting behavior for a given command.
 Noteworthy examples for supported extensions of the SMT-LIB language are 
 the `SyGuS <https://sygus.org/>`_ input format and the extension for
 encoding `separation logic <https://sl-comp.github.io/docs/smtlib-sl.pdf>`_
