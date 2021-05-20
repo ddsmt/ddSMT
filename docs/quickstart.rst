@@ -103,7 +103,7 @@ By default
 When increasing the verbosity level with :code:`-v`, it will print some
 information about the golden run and progress:
 
-.. command-output:: ../bin/ddsmt -v example/input.smt2 example/output.smt2 example/solver --option
+.. command-output:: ddsmt -v example/input.smt2 example/output.smt2 example/solver --option
    :ellipsis: 17
 
 Now, let's assume we want to ignore output on `stdout` and `stderr`, we enable
@@ -146,4 +146,4 @@ golden run is implemented, this is the actual code that is implemented in
 Full Option Listing
 -------------------
 
-.. command-output:: ../bin/ddsmt --help-all
+.. command-output:: ddsmt --help-all
