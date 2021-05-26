@@ -703,8 +703,7 @@ def get_bv_width(node):  # noqa: C901
         ]:
             return get_bv_width(node[1])
         if ident == 'concat':
-            assert len(node) == 3
-            return get_bv_width(node[1]) + get_bv_width(node[2])
+            return sum(map(get_bv_width, node[1:]))
         if ident == 'bvcomp':
             return 1
         if ident == 'ite':
