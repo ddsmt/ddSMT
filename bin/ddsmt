@@ -19,12 +19,18 @@
 # You should have received a copy of the GNU General Public License
 # along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
 
+import multiprocessing
 import os
 import sys
 
-__root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
-sys.path.insert(0, __root_dir)
+if __name__ == '__main__':
+    # Ensure that child processes are forked. Some platforms, e.g., macOS,
+    # default to spawning child processes, which does not preserve the value of
+    # global variables.
+    multiprocessing.set_start_method('fork')
 
-from ddsmt import __main__  # noqa: E402
+    __root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+    sys.path.insert(0, __root_dir)
 
-__main__.main()
+    from ddsmt import __main__  # noqa: E402
+    __main__.main()
