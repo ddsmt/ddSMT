@@ -588,6 +588,16 @@ def is_real_const(node):
             and re.match('^[0-9]+(\\.[0-9]*)?$', node.data) is not None)
 
 
+def get_arith_const(node):
+    """Return the arithmetic constant as a float."""
+    if node.has_ident() and node.get_ident() == '/' and len(node) == 3:
+        denom = get_arith_const(node[2])
+        if denom == 0:
+            return get_arith_const(node[1])
+        return get_arith_const(node[1]) / denom
+    return float(node.data)
+
+
 # Arrays
 
 

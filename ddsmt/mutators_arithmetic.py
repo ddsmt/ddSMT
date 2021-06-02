@@ -68,10 +68,10 @@ class ArithmeticSimplifyConstant:
     places as `simpler`.
     """
     def filter(self, node):
-        return is_arith_const(node) and float(node.data) not in [0, 1]
+        return is_arith_const(node) and get_arith_const(node) not in [0, 1]
 
     def mutations(self, node):
-        f = float(node.data)
+        f = get_arith_const(node)
         if int(f) == f:
             i = int(f)
             yield from [
