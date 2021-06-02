@@ -129,7 +129,7 @@ Writing New Mutators
 
 If you need a certain simplification that is not covered by existing mutators,
 it's easy to add your own mutator.
-If it is of general interest, we'd be happy if you contribute it back to
+If it is of general interest, we'd be happy if you contributed it back to
 **ddSMT**.
 The following instructions aim to provide a guide on what needs to be done and
 what you should consider when adding a new mutator.
@@ -141,7 +141,7 @@ mutators), and mutators for specific theories
 mutators>`, :ref:`boolean <boolean mutators>`, :ref:`floating-point arithmetic
 <floating-point mutators>` and :ref:`strings <string mutators>`).
 
-1. Identify into which **grou** your new mutator fits best.
+1. Identify into which **group** your new mutator fits best.
 
 2. Determine if you need to have a **global** view on the input, or if
    **local** mutations of a single node suffice. Prefer local mutations over
@@ -159,9 +159,10 @@ mutators>`, :ref:`boolean <boolean mutators>`, :ref:`floating-point arithmetic
   - If your mutator returns a large number of candidates, do not return them
     as a list from :code:`mutations()` and :code:`global_mutations()`. Instead
     use :code:`yield` to turn your mutator into a **generator**.
-  - Add some **unit tests** in :code:`ddsmt/tests/`). For your own sanity, test
-    at least that it does what you expect and does not apply to unrelated nodes
-    (i.e., :code:`filter()` returns :code:`False`).
+  - Add some **unit tests** in :code:`ddsmt/tests/`). This way you can document
+    what your mutator does, and ensure that it keeps working in the future.
+    Also, test that it does not apply to unrelated nodes (i.e.,
+    :code:`filter()` returns :code:`False`).
 
 .. note::
   Try do identify and **avoid** possible mutation **cycles**. Introducing such

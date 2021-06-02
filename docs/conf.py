@@ -112,3 +112,6 @@ def autodoc_mutators_skip_member(app, what, name, obj, skip, options):
 
 def setup(app):
     app.connect('autodoc-skip-member', autodoc_mutators_skip_member)
+
+# Allow to use "ddsmt" in "command-output" directives.
+os.environ['PATH'] = os.path.join(__root_dir, "bin") + os.pathsep + os.environ['PATH']

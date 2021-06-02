@@ -103,24 +103,24 @@ By default
 When increasing the verbosity level with :code:`-v`, it will print some
 information about the golden run and progress:
 
-.. command-output:: ../bin/ddsmt -v example/input.smt2 example/output.smt2 example/solver --option
+.. command-output:: ddsmt -v example/input.smt2 example/output.smt2 example/solver --option
    :ellipsis: 17
 
 Now, let's assume we want to ignore output on `stdout` and `stderr`, we enable
-option `--ignore-output`:
+option :code:`--ignore-output`:
 
 .. code:: bash
 
-    $ ../bin/ddsmt -v --ignore-output example/input.smt2 example/output.smt2 example/solver --option
+    $ ddsmt -v --ignore-output example/input.smt2 example/output.smt2 example/solver --option
 
 .. note::
 
   With option :code:`--ignore-output` enabled, **ddSMT** will still report
-  output on both channels for the golden run with option code:`-v`.
+  output on both channels for the golden run with option :code:`-v`.
   When comparing behavior, however, this output is ignored, and only the
   exit code is matched.
 
-Now, let's assume our command yields output on`stdout` or `stderr` that
+Now, let's assume our command yields output on `stdout` or `stderr` that
 contains information that depends on the actual execution, e.g., a stack trace.
 In this case, matching against the full output will never be successful,
 and we rather only want to check if a phrase occurs in the output.
@@ -129,9 +129,9 @@ We can achieve this with options :code:`--match-out` (for `stdout`) and
 
 .. code:: bash
 
-    $ ../bin/ddsmt -v --match-out things example/input.smt2 example/output.smt2 example/solver --option
+    $ ddsmt -v --match-out things example/input.smt2 example/output.smt2 example/solver --option
 
-    $ ../bin/ddsmt -v --match-err error example/input.smt2 example/output.smt2 example/solver --option
+    $ ddsmt -v --match-err error example/input.smt2 example/output.smt2 example/solver --option
 
 In case you are wondering how the comparison of a run on mutated input with the
 golden run is implemented, this is the actual code that is implemented in
@@ -146,4 +146,4 @@ golden run is implemented, this is the actual code that is implemented in
 Full Option Listing
 -------------------
 
-.. command-output:: ../bin/ddsmt --help-all
+.. command-output:: ddsmt --help-all
