@@ -140,7 +140,7 @@ def parse_options(mutators, cmdlineoptions=None):
                          '--jobs',
                          type=int,
                          metavar='n',
-                         default=os.cpu_count() - 2,
+                         default=1,
                          help='number of parallel checks')
     apcheck.add_argument('--memout',
                          type=int,
