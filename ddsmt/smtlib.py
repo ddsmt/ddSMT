@@ -754,6 +754,13 @@ def is_fp_const(node):
     return is_operator_app(node, 'fp')
 
 
+def is_rm_sort(node):
+    """Return true if ``node`` is a RoundingMode sort."""
+    if is_leaf(node) and node.data == 'RoundingMode':
+        return True
+    return false
+
+
 # Functions
 
 
