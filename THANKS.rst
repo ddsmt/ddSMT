@@ -8,3 +8,9 @@ Many thanks to our contributors:
 - Andres Noetzli
 
   - `9a04abb <https://github.com/ddsmt/ddSMT/commit/9a04abb>`_: Fixing multiprocessing on MacOS
+
+We also thank the following people for their contributions to previous
+versions of ddSMT:
+
+- Jane Lange (2018)
+- Andres Noetzli (2018)
