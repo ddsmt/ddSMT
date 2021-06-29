@@ -63,10 +63,32 @@ class RemoveDatatype:
         return 'remove datatype'
 
 
+class RemoveDatatypeIdentity:
+    """Remove a datatype constructor and selector that are nested to function
+    as the identify. For ``(declare-datatype (A 0) ((C (s A))))`` we have the
+    datatype ``A`` with a constructor ``C`` that has the selector ``s``.
+    Nesting ``C`` and ``s`` like ``(s (C x))`` returns ``x`` unchanged and we
+    can thus usually replace this expression by ``x``.
+    """
+    def filter(self, node):
+        return len(node) == 2 and is_dt_selector(node) and is_dt_constructor(
+            node[1]) and get_dt_selector(node)[0] == node[1].get_ident()
+
+    def mutations(self, node):
+        selid = get_dt_selector(node)[1]
+        if len(node[1]) <= selid + 1:
+            return
+        yield Simplification({node.id: node[1][selid + 1]}, [])
+
+    def __str__(self):
+        return 'remove datatype identity'
+
+
 def get_mutators():
     """Returns a mapping from mutator class names to the name of their config
     options."""
     return {
         'RemoveConstructor': 'dt-rm-constructor',
         'RemoveDatatype': 'dt-rm-datatype',
+        'RemoveDatatypeIdentity': 'dt-rm-identity',
     }

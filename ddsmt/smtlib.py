@@ -42,6 +42,8 @@ __get_sort_cache = {}
 __datatypes_constants = {}
 # Stores the sorts of datatype constructors
 __datatypes_constructors = {}
+# Stores datatypes selectors, mapping to their constructor and their ids
+__datatypes_selectors = {}
 
 
 def collect_information(exprs):  # noqa: C901
@@ -54,6 +56,7 @@ def collect_information(exprs):  # noqa: C901
     global __indices
     global __datatypes_constants
     global __datatypes_constructors
+    global __datatypes_selectors
     reset_information()
 
     for cmd in exprs:
@@ -120,6 +123,9 @@ def collect_information(exprs):  # noqa: C901
                 if len(constr) == 1:
                     __datatypes_constants.setdefault(sort, [])
                     __datatypes_constants[sort].append(constr[0])
+                else:
+                    for id, sel in enumerate(constr[1:]):
+                        __datatypes_selectors[sel[0]] = (constr[0], id)
 
         if name == 'declare-datatypes':
             if not len(cmd) == 3:
@@ -146,6 +152,9 @@ def collect_information(exprs):  # noqa: C901
                     if len(constr) == 1:
                         __datatypes_constants.setdefault(sorts[id], [])
                         __datatypes_constants[sorts[id]].append(constr[0])
+                    else:
+                        for id, sel in enumerate(constr[1:]):
+                            __datatypes_selectors[sel[0]] = (constr[0], id)
 
     # Collect additional term level information.
     for node in nodes.dfs(exprs):
@@ -187,6 +196,7 @@ def reset_information():
     global __get_sort_cache
     global __datatypes_constants
     global __datatypes_constructors
+    global __datatypes_selectors
     __constants = {}
     __defined_functions = {}
     __definition_node_ids = set()
@@ -195,6 +205,7 @@ def reset_information():
     __get_sort_cache = {}
     __datatypes_constants = {}
     __datatypes_constructors = {}
+    __datatypes_selectors = {}
 
 
 # General utilities
@@ -733,6 +744,22 @@ def get_bv_constant_value(node):
         assert node.data.startswith('#x')
         return (int(node[2:], 16), len(node[2:]) * 4)
     return (int(node[1][2:]), int(node[2].data))
+
+
+# DT
+
+
+def is_dt_constructor(node):
+    return node.has_ident() and node.get_ident() in __datatypes_constructors
+
+
+def is_dt_selector(node):
+    return node.has_ident() and node.get_ident() in __datatypes_selectors
+
+
+def get_dt_selector(node):
+    assert is_dt_selector(node)
+    return __datatypes_selectors[node.get_ident()]
 
 
 # FP
