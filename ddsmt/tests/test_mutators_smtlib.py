@@ -8,7 +8,7 @@ from .utils import *
 def test_smtlib_get_mutators():
     d = mutators_smtlib.get_mutators()
     assert isinstance(d, dict)
-    assert len(d) == 10
+    assert len(d) == 11
 
 
 def test_smtlib_checksat_assuming():
@@ -237,4 +237,44 @@ def test_smtlib_simplify_symbol_names():
     assert check_global_mutations(m, exprs[3][1], exprs, [
         apply_simp(exprs, Simplification({Node('xy'): Node('x')}, [])),
         apply_simp(exprs, Simplification({Node('xy'): Node('y')}, []))
+    ])
+
+
+def test_smtlib_remove_recursive_definition():
+    m = mutators_smtlib.RemoveRecursiveDefinition()
+    assert isinstance(str(m), str)
+    assert not m.filter(Node('x'))
+
+    n = Node(
+        'declare-datatypes',
+        (
+            ('Yin', '0'),
+            ('Yang', '0'),
+        ),
+        (
+            ('yin', ),
+            ('yang', ),
+        ),
+    )
+    assert m.filter(n)
+    assert check_mutations(m, n, [
+        ('declare-datatypes', (('Yang', '0'), ), (('yang', ), )),
+        ('declare-datatypes', (('Yin', '0'), ), (('yin', ), )),
+    ])
+
+    n = Node(
+        'define-funs-rec',
+        (
+            ('a', (), 'Bool'),
+            ('b', (), 'Bool'),
+        ),
+        (
+            'true',
+            'a',
+        ),
+    )
+    assert m.filter(n)
+    assert check_mutations(m, n, [
+        Node('define-funs-rec', (('b', (), 'Bool'), ), ('a', )),
+        Node('define-funs-rec', (('a', (), 'Bool'), ), ('true', )),
     ])
