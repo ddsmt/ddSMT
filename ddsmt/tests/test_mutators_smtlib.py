@@ -240,28 +240,10 @@ def test_smtlib_simplify_symbol_names():
     ])
 
 
-def test_smtlib_remove_recursive_definition():
-    m = mutators_smtlib.RemoveRecursiveDefinition()
+def test_smtlib_remove_recursive_function():
+    m = mutators_smtlib.RemoveRecursiveFunction()
     assert isinstance(str(m), str)
     assert not m.filter(Node('x'))
-
-    n = Node(
-        'declare-datatypes',
-        (
-            ('Yin', '0'),
-            ('Yang', '0'),
-        ),
-        (
-            ('yin', ),
-            ('yang', ),
-        ),
-    )
-    assert m.filter(n)
-    assert check_mutations(m, n, [
-        ('declare-datatypes', (('Yang', '0'), ), (('yang', ), )),
-        ('declare-datatypes', (('Yin', '0'), ), (('yin', ), )),
-    ])
-
     n = Node(
         'define-funs-rec',
         (

@@ -25,6 +25,7 @@ from . import mutators_arithmetic
 from . import mutators_bv
 from . import mutators_boolean
 from . import mutators_core
+from . import mutators_datatypes
 from . import mutators_fp
 from . import mutators_smtlib
 from . import mutators_strings
@@ -40,6 +41,7 @@ def get_all_mutators():
         (mutators_arithmetic, mutators_arithmetic.get_mutators()),
         'bv': (mutators_bv, mutators_bv.get_mutators()),
         'boolean': (mutators_boolean, mutators_boolean.get_mutators()),
+        'datatypes': (mutators_datatypes, mutators_datatypes.get_mutators()),
         'fp': (mutators_fp, mutators_fp.get_mutators()),
         'smtlib': (mutators_smtlib, mutators_smtlib.get_mutators()),
         'strings': (mutators_strings, mutators_strings.get_mutators()),

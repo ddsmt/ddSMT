@@ -173,28 +173,22 @@ class RemoveAnnotation:
         return 'remove annotation'
 
 
-class RemoveRecursiveDefinition:
-    """Remove a datatype or function definition from a node that defines
-    mutually-recursive datatypes or functions."""
+class RemoveRecursiveFunction:
+    """Remove a function from a recursive function definition."""
     def filter(self, node):
-        return node.has_ident() and node.get_ident() in [
-            'declare-datatypes', 'define-funs-rec'
-        ]
+        return is_operator_app(node, 'define-funs-rec')
 
     def mutations(self, node):
-        head = node[0]
-        declarations = node[1]
-        definitions = node[2]
-        if len(declarations) != len(definitions):
+        if len(node) != 3 or len(node[1]) != len(node[2]):
             return
-        for i in range(len(declarations)):
-            all_other_decls = declarations[:i] + declarations[i + 1:]
-            all_other_defns = definitions[:i] + definitions[i + 1:]
-            new = Node(head, all_other_decls, all_other_defns)
-            yield Simplification({node.id: new}, [])
+        for i in range(len(node[1])):
+            yield Simplification({
+                node[1][i].id: None,
+                node[2][i].id: None
+            }, [])
 
     def __str__(self):
-        return 'remove recursive definition'
+        return 'remove recursive function'
 
 
 class SimplifyLogic:
@@ -317,7 +311,7 @@ def get_mutators():
         'LetElimination': 'let-elimination',
         'LetSubstitution': 'let-substitution',
         'RemoveAnnotation': 'remove-annotation',
-        'RemoveRecursiveDefinition': 'remove-recursive-definition',
+        'RemoveRecursiveFunction': 'remove-recursive-function',
         'SimplifyLogic': 'simplify-logic',
         'SimplifyQuotedSymbols': 'simplify-quoted-symbols',
         'SimplifySymbolNames': 'simplify-symbol-names',
