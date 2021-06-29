@@ -13,5 +13,6 @@
    quickstart
    guide
    guide-developers
+   contributing
    faq
    references
