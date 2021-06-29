@@ -115,6 +115,10 @@ Boolean Mutators
 ----------------
 .. automodule:: ddsmt.mutators_boolean
 
+Datatype Mutators
+-----------------
+.. automodule:: ddsmt.mutators_datatypes
+
 Floating-Point mutators
 -----------------------
 .. automodule:: ddsmt.mutators_fp
