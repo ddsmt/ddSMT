@@ -161,7 +161,7 @@ def collect_information(exprs):  # noqa: C901
         # Mark indices of indexed terms.
         if not node.is_leaf() and len(node) > 2 and node[0] == '_':
             for num in node[2:]:
-                if num.data.isdigit():
+                if isinstance(num.data, str) and num.data.isdigit():
                     __indices.add(num.id)
         # Determine sort of symbols introduced by let.
         if is_operator_app(node, 'let'):
