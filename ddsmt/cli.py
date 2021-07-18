@@ -141,7 +141,10 @@ def ddsmt_main():
             exprcount = nodes.count_exprs(exprs)
             proctime = time.process_time() - start_time_process
             sizeperc = ofilesize / ifilesize * 100
-            exprperc = exprcount / nexprs * 100
+            if nexprs != 0:
+                exprperc = exprcount / nexprs * 100
+            else:
+                exprperc = float('inf')
 
             logging.info('')
             logging.info(f'runtime:         {end_time - start_time:.2f} s')
