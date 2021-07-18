@@ -92,3 +92,9 @@ def get_mutators():
         'RemoveDatatype': 'dt-rm-datatype',
         'RemoveDatatypeIdentity': 'dt-rm-identity',
     }
+
+def is_relevant(node):
+    """Checks whether this theory might be relevant for this node."""
+    if node.has_ident():
+        return node.get_ident() in ['declare-datatypes', 'declare-datatype']
+    return False
