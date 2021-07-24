@@ -11,6 +11,17 @@ def test_datatypes_get_mutators():
     assert len(d) == 3
 
 
+def test_strings_is_relevant():
+    color_dt = (Node('Color 0'), Node('red', 'green', 'blue'))
+    assert mutators_datatypes.is_relevant(Node('declare-datatypes', color_dt))
+    assert mutators_datatypes.is_relevant(Node('declare-datatype', color_dt))
+    assert not mutators_datatypes.is_relevant(Node('declare-const', 'x', 'Real'))
+    assert not mutators_datatypes.is_relevant(
+        Node('declare-fun', 'x', (), 'Real'))
+    assert not mutators_datatypes.is_relevant(Node())
+    assert not mutators_datatypes.is_relevant(Node('assert', 'x'))
+
+
 def test_datatypes_remove_constructor():
     m = mutators_datatypes.RemoveConstructor()
     assert isinstance(str(m), str)
