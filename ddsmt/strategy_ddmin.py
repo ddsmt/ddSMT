@@ -239,11 +239,11 @@ def _worker(task):
                     nreduced = (nodes.count_exprs(exprs)
                                 - nodes.count_exprs(mexprs))
                     return Result(task.id, True, nreduced, mexprs, ntests)
-            return Result(task.id, False, 0, [], ntests)
         except Exception as e:
             logging.info(f'{type(e)} in ddmin worker: {e}')
             exc_type, exc_value, exc_traceback = sys.exc_info()
             traceback.print_tb(exc_traceback, limit=10, file=sys.stderr)
+        return Result(task.id, False, 0, [], ntests)
 
 
 __last_msg = ""
