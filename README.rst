@@ -40,13 +40,40 @@ You should have received a copy of the GNU General Public License along with
 <https://github.com/ddsmt/ddSMT/blob/master/LICENSE>`_).
 If not, see http://www.gnu.org/licenses/.
 
-Requirements:
--------------
+Requirements
+------------
 
 * `Python <https://www.python.org/>`_ version 3.6 or later
 * `progressbar <https://pypi.org/project/progressbar>`_
 
-Documentation:
---------------
+Bibtex
+------
+
+For citing **ddSMT**, please use the following BibTex entry:
+
+.. code-block:: text
+
+  @inproceedings{DBLP:conf/cav/KremerNP20,
+    author    = {Gereon Kremer and
+                 Aina Niemetz and
+                 Mathias Preiner},
+    title     = {ddSMT 2.0: Better Delta Debugging for the SMT-LIBv2 Language and Friends},
+    booktitle = {{CAV} {(2)}},
+    series    = {Lecture Notes in Computer Science},
+    volume    = {12760},
+    pages     = {231--242},
+    publisher = {Springer},
+    year      = {2021}
+  }
+
+Publications
+------------
+
+* Gereon Kremer, Aina Niemetz, Mathias Preiner. :download:`ddSMT 2.0: Better Delta Debugging for the SMT-LIBv2 Language and Friends <publications/KremerNiemetzPreiner-CAV21.pdf>`. CAV: 231-242. (2021)
+* Aina Niemetz, Armin Biere. :download:`ddSMT: A Delta Debugger for the SMT-LIB v2 Format. SMT 2013 <publications/NiemetzBiere-SMT13.pdf>`. (2013)
+
+Documentation
+-------------
 
 Documentation for **ddSMT** is available at https://ddsmt.readthedocs.io.
+
