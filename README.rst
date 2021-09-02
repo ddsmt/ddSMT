@@ -57,14 +57,23 @@ For citing **ddSMT**, please use the following BibTex entry:
     author    = {Gereon Kremer and
                  Aina Niemetz and
                  Mathias Preiner},
+    editor    = {Alexandra Silva and
+                 K. Rustan M. Leino},
     title     = {ddSMT 2.0: Better Delta Debugging for the SMT-LIBv2 Language and Friends},
-    booktitle = {{CAV} {(2)}},
+    booktitle = {Computer Aided Verification - 33rd International Conference, {CAV}
+                 2021, Virtual Event, July 20-23, 2021, Proceedings, Part {II}},
     series    = {Lecture Notes in Computer Science},
     volume    = {12760},
     pages     = {231--242},
     publisher = {Springer},
-    year      = {2021}
+    year      = {2021},
+    url       = {https://doi.org/10.1007/978-3-030-81688-9\_11},
+    doi       = {10.1007/978-3-030-81688-9\_11},
+    timestamp = {Thu, 29 Jul 2021 13:41:58 +0200},
+    biburl    = {https://dblp.org/rec/conf/cav/KremerNP20.bib},
+    bibsource = {dblp computer science bibliography, https://dblp.org}
   }
+
 
 Publications
 ------------
