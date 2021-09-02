@@ -69,8 +69,12 @@ For citing **ddSMT**, please use the following BibTex entry:
 Publications
 ------------
 
-* Gereon Kremer, Aina Niemetz, Mathias Preiner. :download:`ddSMT 2.0: Better Delta Debugging for the SMT-LIBv2 Language and Friends <publications/KremerNiemetzPreiner-CAV21.pdf>`. CAV: 231-242. (2021)
-* Aina Niemetz, Armin Biere. :download:`ddSMT: A Delta Debugger for the SMT-LIB v2 Format. SMT 2013 <publications/NiemetzBiere-SMT13.pdf>`. (2013)
+* Gereon Kremer, Aina Niemetz, Mathias Preiner.
+  `ddSMT 2.0: Better Delta Debugging for the SMT-LIBv2 Language and Friends <https://github.com/ddsmt/ddsmt/tree/master/docs/publications/KremerNiemetzPreiner-CAV21.pdf>`_.
+  CAV: 231-242. (2021)
+* Aina Niemetz, Armin Biere.
+  `ddSMT: A Delta Debugger for the SMT-LIB v2 Format. SMT 2013 <https://github.com/ddsmt/ddsmt/tree/master/docs/publications/NiemetzBiere-SMT13.pdf>`_.
+  (2013)
 
 Documentation
 -------------
