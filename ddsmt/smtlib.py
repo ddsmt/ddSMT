@@ -153,8 +153,8 @@ def collect_information(exprs):  # noqa: C901
                         __datatypes_constants.setdefault(sorts[id], [])
                         __datatypes_constants[sorts[id]].append(constr[0])
                     else:
-                        for id, sel in enumerate(constr[1:]):
-                            __datatypes_selectors[sel[0]] = (constr[0], id)
+                        for i, sel in enumerate(constr[1:]):
+                            __datatypes_selectors[sel[0]] = (constr[0], i)
 
     # Collect additional term level information.
     for node in nodes.dfs(exprs):
