@@ -248,7 +248,9 @@ def reduce(exprs):
         # iterate over all passes
         for passid in range(len(passes)):
             cur_passes, params = get_pass(passes, passid)
-            logging.chat(f'pass {passid + 1} / {len(passes)}')
+            if not cur_passes:
+                # no passes enabled
+                continue
             skip = 0
             fresh_run = True
             # repeat until no further reduction is found
@@ -290,14 +292,14 @@ def reduce(exprs):
                         nodeio.write_smtlib_to_file(options.args().outfile,
                                                     exprs)
                 if not reduction:
-                    progress.finish()
-                    logging.info('No further simplification found')
                     if fresh_run:
                         # this was a fresh run, continue with next pass
                         break
+                    progress.finish()
                     logging.info('Starting over')
                     skip = 0
                     fresh_run = True
+        logging.info('No further simplification found')
 
     stats.print()
 
