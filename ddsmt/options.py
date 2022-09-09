@@ -155,6 +155,12 @@ def parse_options(mutators, cmdlineoptions=None):
         '--ignore-output',
         action='store_true',
         help='ignore stdout and stderr, only consider exit code')
+    apcheck.add_argument('--ignore-out',
+                         action='store_true',
+                         help='ignore stdout')
+    apcheck.add_argument('--ignore-err',
+                         action='store_true',
+                         help='ignore stderr')
     apcheck.add_argument(
         '--match-err',
         metavar='str',

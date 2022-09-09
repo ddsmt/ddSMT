@@ -76,32 +76,34 @@ def execute(cmd, filename, timeout):
     return RunInfo(proc.returncode, out.decode(), err.decode(), runtime)
 
 
-def matches_golden(golden, run, ignore_out, match_out, match_err):
+def matches_golden(golden, run, ignore_out, ignore_err, match_out, match_err):
     """Checks whether the ``run`` result matches the golden run, considering
-    ``ignore_out``, ``match_out`` and ``match_err``.
+    ``ignore_out``, ``ignore_err``, ``match_out`` and ``match_err``.
 
-    If ``ignore_out`` is true, only the exit code is compared.
-    Otherwise, if either ``match_out`` or ``match_err`` are given, they
-    need to match. Otherwise, both stdout and stderr must be the same.
+    If ``ignore_out`` and ``ignore_err`` are true, only the exit code is
+    compared. Else, if ``ignore_out`` is true, only stderr is considered, and
+    if ``ignore_err`` is true, only stdout is considere. If either
+    ``match_out`` or ``match_err`` are given, they need to match. Otherwise,
+    both stdout and stderr must be the same.
     """
     if run.exit != golden.exit:
         return False
 
-    if not ignore_out:
-        if match_out or match_err:
-            # we have --match-out or --match-err
+    if not ignore_out or not ignore_err:
+        if not ignore_out:
             if match_out:
                 if match_out not in run.out:
                     return False
+            else:
+                if golden.out != run.out:
+                    return False;
+        if not ignore_err:
             if match_err:
                 if match_err not in run.err:
                     return False
-        else:
-            if golden.out != run.out:
-                return False
-            if golden.err != run.err:
-                return False
-
+            else:
+                if golden.err != run.err:
+                    return False;
     return True
 
 
@@ -112,16 +114,20 @@ def check(filename):
     cross-check command is specified, do the same for that one as well.
     """
     ri = execute(options.args().cmd, filename, options.args().timeout)
-    if not matches_golden(__GOLDEN, ri,
-                          options.args().ignore_output,
-                          options.args().match_out,
-                          options.args().match_err):
+    if not matches_golden(
+            __GOLDEN,
+            ri,
+            options.args().ignore_output or options.args().ignore_out,
+            options.args().ignore_output or options.args().ignore_err,
+            options.args().match_out,
+            options.args().match_err):
         return False
 
     if options.args().cmd_cc:
         ri = execute(options.args().cmd_cc, filename,
                      options.args().timeout_cc)
         if not matches_golden(__GOLDEN_CC, ri,
+                              options.args().ignore_output_cc,
                               options.args().ignore_output_cc,
                               options.args().match_out_cc,
                               options.args().match_err_cc):
@@ -159,6 +165,10 @@ def do_golden_runs():
     logging.info(f'golden err:\n{__GOLDEN.err}')
     logging.info(f'golden out:\n{__GOLDEN.out}')
     logging.info(f'golden runtime: {__GOLDEN.runtime:.2f} seconds')
+    if options.args().ignore_output or options.args().ignore_out:
+        logging.info(f'ignoring stdout')
+    if options.args().ignore_output or options.args().ignore_err:
+        logging.info(f'ignoring stderr')
     if options.args().match_out:
         logging.info(f'match (stdout): "{options.args().match_out}"')
         if options.args().match_out not in __GOLDEN.out:
