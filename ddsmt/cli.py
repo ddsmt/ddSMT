@@ -97,14 +97,21 @@ def ddsmt_main():
 
     with debug_utils.Profiler(True):
         # show what we are going to do
-        logging.info("input file:   '{}'".format(options.args().infile))
-        logging.info("output file:  '{}'".format(options.args().outfile))
-        logging.info("command:      '{}'".format(" ".join(
+        logging.info("input file:      '{}'".format(options.args().infile))
+        logging.info("output file:     '{}'".format(options.args().outfile))
+        logging.info("command:         '{}'".format(" ".join(
             map(str,
                 options.args().cmd))))
         if options.args().cmd_cc:
-            logging.info("command (cc): '{}'".format(" ".join(
+            logging.info("command (cc):    '{}'".format(" ".join(
                 map(str, options.args().cmd_cc))))
+        if options.args().timeout:
+            logging.info(
+                    "time limit:      {} seconds".format(options.args().timeout))
+        if options.args().timeout_cc:
+            logging.info(
+                    "time limit (cc): {} seconds".format(
+                        options.args().timeout_cc))
 
         # parse the input
         start_time = time.time()
