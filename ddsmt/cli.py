@@ -103,7 +103,8 @@ def ddsmt_main():
             map(str,
                 options.args().cmd))))
         if options.args().cmd_cc:
-            logging.info("command (cc): '{}'".format(options.args().cmd_cc))
+            logging.info("command (cc): '{}'".format(" ".join(
+                map(str, options.args().cmd_cc))))
 
         # parse the input
         start_time = time.time()
