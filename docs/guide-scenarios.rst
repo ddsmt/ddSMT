@@ -62,7 +62,7 @@ and :code:`--match-out-cc` (pattern match `stdout` against a given string).
 
 Using Wrapper Script ``result_differs.py``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For cases where the ``--cross-check`` option is not be flexible enough,
+For cases where the ``--cross-check`` option is not flexible enough,
 **ddSMT** provides a wrapper script :download:`scripts/result_differs.py
 <../scripts/result_differs.py>`.
 The script runs two solvers :code:`A` and :code:`B`, expects them to output
