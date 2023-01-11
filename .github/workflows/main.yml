@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9, 3.10.0-alpha.5, pypy-3.6, pypy-3.7]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "pypy-3.6", "pypy-3.7"]
 
     steps:
     - uses: actions/checkout@v2
@@ -33,7 +33,7 @@ jobs:
       run: |
         coverage run -m pytest
         coverage report
-  
+
   package:
     if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
     needs: test
@@ -66,7 +66,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9, 3.10.0-alpha.5]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
     - name: set up python ${{ matrix.python-version }}
