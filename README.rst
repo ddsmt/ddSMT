@@ -1,4 +1,4 @@
-.. image:: https://img.shields.io/github/workflow/status/ddsmt/ddSMT/main
+.. image:: https://img.shields.io/github/actions/workflow/status/ddsmt/ddSMT/main.yml
   :alt: GitHub Workflow Status
   :target: https://github.com/ddsmt/ddSMT/actions
 
