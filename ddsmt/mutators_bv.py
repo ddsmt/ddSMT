@@ -444,6 +444,42 @@ class BVMergeReducedBW:
         return 'merge previous bit-width reductions'
 
 
+class BvMergeExtend:
+    """Merge nested zero_extend/sign_extend terms.
+
+    For example, ``((_ zero_extend 5) ((_ zero_extend 4) x))`` is transformed
+    into ``((zero_extend 9) x)``.
+    """
+    def filter(self, node):
+        return (is_indexed_operator_app(node, 'zero_extend') and \
+                is_indexed_operator_app(node[1], 'zero_extend')) or \
+               (is_indexed_operator_app(node, 'sign_extend') and
+                is_indexed_operator_app(node[1], 'sign_extend'))
+
+    def mutations(self, node):
+        op = 'sign_extend'
+        if is_indexed_operator_app(node, 'zero_extend'):
+            op = 'zero_extend'
+
+        n = node
+        ext = 0
+        while is_indexed_operator_app(n, op):
+            indices = get_indices(n[0], op)
+            ext += indices[0]
+            n = n[1]
+
+        return [
+            Simplification(
+                {
+                    node.id:
+                    Node(('_', op, ext), n)
+                }, [])
+        ]
+
+    def __str__(self):
+        return 'merge nested zero_extend/sign_extend'
+
+
 def get_mutators():
     """Return mapping from mutator class names to the name of their config
     options."""
@@ -462,6 +498,7 @@ def get_mutators():
         'BVTransformToBool': 'bv-to-bool',
         'BVZeroExtendPredicate': 'bv-zeroextend-pred',
         'BVReduceBW': 'bv-reduce-bitwidth',
+        'BvMergeExtend': 'bv-merge-extend',
     }
 
 
