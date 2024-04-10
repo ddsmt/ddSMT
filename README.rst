@@ -34,11 +34,8 @@ For more details on the SMT-LIB language, see http://www.smtlib.org.
 
 **ddSMT** is implemented in Python 3 and developed on a Linux OS.
 
-**ddSMT** is free software released under the GPLv3.
-You should have received a copy of the GNU General Public License along with
-**ddSMT** (see file `LICENSE
+**ddSMT** is released under the MIT (see file LICENSE`
 <https://github.com/ddsmt/ddSMT/blob/master/LICENSE>`_).
-If not, see http://www.gnu.org/licenses/.
 
 Requirements
 ------------

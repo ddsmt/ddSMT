@@ -1,3 +1,9 @@
-Copyright (C) 2013-2021, Aina Niemetz.
-Copyright (C) 2016-2021, Mathias Preiner.
-Copyright (C) 2020-2021, Gereon Kremer.
+The main authors and developers of ddSMT are:
+
+  Aina Niemetz     -- Johannes Kepler University, Linz (2013-2017), Stanford University (since 2017).
+  Mathias Preiner  -- Johannes Kepler University, Linz (2013-2017), Stanford University (since 2017).
+  Gereon Kremer    -- Stanford University (2020-2022).
+
+ddSMT's copyright is held by these individuals and the affiliated institutions
+at the time of their contributions.  See the file LICENSE for details on the
+copyright and licensing of ddSMT.

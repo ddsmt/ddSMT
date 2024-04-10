@@ -1,3 +1,14 @@
+#
+# ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
+#
+# This file is part of ddSMT.
+#
+# Copyright (C) 2013-2024 by the authors listed in the AUTHORS file
+# at https://github.com/ddsmt/ddSMT/blob/master/AUTHORS.
+#
+# This file is part of ddSMT under the MIT license. See LICENSE for more
+# information at https://github.com/ddsmt/ddSMT/blob/master/LICENSE.
+
 import cProfile
 import difflib
 import glob

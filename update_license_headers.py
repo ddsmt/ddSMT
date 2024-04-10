@@ -10,20 +10,11 @@ ddSMT: A delta debugger for SMT benchmarks in SMT-Lib v2 format.
 
 This file is part of ddSMT.
 
-Copyright (C) 2013-2021 by the authors listed in AUTHORS file.
+Copyright (C) 2013-2024 by the authors listed in the AUTHORS file
+at https://github.com/ddsmt/ddSMT/blob/master/AUTHORS.
 
-ddSMT is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-ddSMT is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with ddSMT.  If not, see <https://www.gnu.org/licenses/>.
+This file is part of ddSMT under the MIT license. See LICENSE for more
+information at https://github.com/ddsmt/ddSMT/blob/master/LICENSE.
 """
 
 
@@ -48,6 +39,7 @@ def list_files():
     """Iterable over all files that should get the copyright header."""
     yield f'{ARGS.basedir}/bin/ddsmt'
     yield f'{ARGS.basedir}/bin/ddsmt-profile'
+    yield f'{ARGS.basedir}/bin/smt2info'
     yield from glob.iglob(f'{ARGS.basedir}/ddsmt/*.py')
 
 
