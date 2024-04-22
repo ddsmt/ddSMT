@@ -20,7 +20,8 @@ if __name__ == '__main__':
     # global variables.
     multiprocessing.set_start_method('fork')
 
-    __root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
+    __root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                              '..')
     sys.path.insert(0, __root_dir)
 
     from ddsmt import __main__  # noqa: E402
