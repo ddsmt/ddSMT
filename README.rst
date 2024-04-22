@@ -1,8 +1,8 @@
 |CI Status| |Docs Status| |PyPi Status| |Python Versions| |License Badge|
 
-.. |CI Status| image:: https://github.com/ddsmt/ddSMT/actions/workflows/main.yml/badge.svg
+.. |CI Status| image:: https://github.com/ddsmt/ddSMT/actions/workflows/ci.yml/badge.svg
   :alt: GitHub Workflow Status
-  :target: https://github.com/ddsmt/ddSMT/actions/workflows/main.yml
+  :target: https://github.com/ddsmt/ddSMT/actions/workflows/ci.yml
 .. |Docs Status| image:: https://img.shields.io/readthedocs/ddsmt/master
   :alt: Read the Docs
   :target: https://ddsmt.readthedocs.io
