@@ -14,7 +14,7 @@
   :alt: PyPI - Python Version
   :target: https://pypi.org/project/ddSMT/
 
-.. image:: https://img.shields.io/pypi/l/ddsmt
+.. image:: https://img.shields.io/pypi/l/ddSMT
   :alt: PyPI - License
   :target: https://github.com/ddsmt/ddSMT/blob/master/LICENSE
 
