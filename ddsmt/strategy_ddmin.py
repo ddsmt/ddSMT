@@ -39,6 +39,7 @@ def _partition(exprs, gran):
 
 class TaskGenerator:
     """Filter ``exprs`` based on ``mutator`` and generates tasks."""
+
     def __init__(self, exprs, gran, mutator, max_depth=None):
         self.exprs = exprs
         self.mutator = mutator

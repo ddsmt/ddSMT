@@ -14,6 +14,7 @@ import argparse
 
 class _ModularHelpEnabler(argparse.Action):
     """A custom action that enables help for a single argument group."""
+
     def __call__(self, parser, namespace, values, option_string=None):
         parser.enable_modular_help(self.const)
 
@@ -25,6 +26,7 @@ class ModularArgumentParser(argparse.ArgumentParser):
     A new variant of ``add_argument_groups()`` allows adding commands of
     the form ``--help-group``.
     """
+
     def __init__(self, *args, **kwargs):
         """As ``argparse.ArgumentParser.__init__()``, additionally
         ``modular_action_groups = []`` can be used to specify the names of

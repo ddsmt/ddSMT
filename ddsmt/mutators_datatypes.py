@@ -15,6 +15,7 @@ from .mutator_utils import Simplification
 
 class RemoveConstructor:
     """Remove a single datatype constructor."""
+
     def filter(self, node):
         return is_operator_app(node, 'declare-datatype') or is_operator_app(
             node, 'declare-datatypes')
@@ -38,6 +39,7 @@ class RemoveConstructor:
 
 class RemoveDatatype:
     """Remove a datatype from a recursive datatype declaration."""
+
     def filter(self, node):
         return is_operator_app(node, 'declare-datatypes')
 
@@ -61,6 +63,7 @@ class RemoveDatatypeIdentity:
     Nesting ``C`` and ``s`` like ``(s (C x))`` returns ``x`` unchanged and we
     can thus usually replace this expression by ``x``.
     """
+
     def filter(self, node):
         return len(node) == 2 and is_dt_selector(node) and is_dt_constructor(
             node[1]) and get_dt_selector(node)[0] == node[1].get_ident()
@@ -83,6 +86,7 @@ def get_mutators():
         'RemoveDatatype': 'dt-rm-datatype',
         'RemoveDatatypeIdentity': 'dt-rm-identity',
     }
+
 
 def is_relevant(node):
     """Checks whether this theory might be relevant for this node."""

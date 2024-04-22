@@ -89,6 +89,7 @@ def toggle_all_theories(namespace, value):
 class TheoryToggleAction(options.ToggleAction):
     """A specialization of ``ToggleAction`` that disables (or enables) all
     mutators of a given theory."""
+
     def __init__(self, theory, *args, **kwargs):
         """Expects an additional option with the name of the theory."""
         self.__theory = theory
@@ -103,6 +104,7 @@ class TheoryToggleAction(options.ToggleAction):
 
 class DisableAllTheoriesAction(argparse.Action):
     """Disables all mutators from all theories when called."""
+
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, True)
         toggle_all_theories(namespace, False)

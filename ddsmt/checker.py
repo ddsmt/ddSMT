@@ -87,14 +87,14 @@ def matches_golden(golden, run, ignore_out, ignore_err, match_out, match_err):
                     return False
             else:
                 if golden.out != run.out:
-                    return False;
+                    return False
         if not ignore_err:
             if match_err:
                 if match_err not in run.err:
                     return False
             else:
                 if golden.err != run.err:
-                    return False;
+                    return False
     return True
 
 
@@ -106,8 +106,7 @@ def check(filename):
     """
     ri = execute(options.args().cmd, filename, options.args().timeout)
     if not matches_golden(
-            __GOLDEN,
-            ri,
+            __GOLDEN, ri,
             options.args().ignore_output or options.args().ignore_out,
             options.args().ignore_output or options.args().ignore_err,
             options.args().match_out,

@@ -20,6 +20,7 @@ class CheckSatAssuming:
 
     This discards any assumptions provided to ``check-sat-assuming``.
     """
+
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'check-sat-assuming'
 
@@ -38,6 +39,7 @@ class EliminateVariable:
     ``(= x (* a b) (+ c d))``, ``x`` is replaced with either
     ``(* a b)`` or ``(+ c d)``.
     """
+
     def filter(self, node):
         return is_eq(node) and len(node) > 1 and any(
             map(lambda n: n.is_leaf(), node[1:]))
@@ -65,6 +67,7 @@ class EliminateVariable:
 
 class InlineDefinedFuns:
     """Explicitly inline a defined function."""
+
     def filter(self, node):
         return is_defined_fun(node)
 
@@ -86,6 +89,7 @@ class InlineDefinedFuns:
 
 class IntroduceFreshVariable:
     """Replace a term by a fresh variable of the same sort."""
+
     def filter(self, node):
         # introducing a fresh variable may lead to cycles in various cases,
         # thus we exclude a variety of nodes here:
@@ -122,6 +126,7 @@ class IntroduceFreshVariable:
 
 class LetElimination:
     """Substitute a ``let`` expression with its body."""
+
     def filter(self, node):
         return is_operator_app(node, 'let')
 
@@ -136,6 +141,7 @@ class LetElimination:
 
 class LetSubstitution:
     """Substitute a variable bound by a ``let`` binder into the nested term."""
+
     def filter(self, node):
         return is_operator_app(node, 'let')
 
@@ -154,6 +160,7 @@ class LetSubstitution:
 
 class RemoveAnnotation:
     """Remove an annotation ``(! t ...)`` from a term."""
+
     def filter(self, node):
         return is_operator_app(node, '!')
 
@@ -166,6 +173,7 @@ class RemoveAnnotation:
 
 class RemoveRecursiveFunction:
     """Remove a function from a recursive function definition."""
+
     def filter(self, node):
         return is_operator_app(node, 'define-funs-rec')
 
@@ -185,6 +193,7 @@ class RemoveRecursiveFunction:
 class SimplifyLogic:
     """Replace the logic specified in ``(check-logic ...)`` with a simpler one.
     """
+
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'set-logic'
 
@@ -218,6 +227,7 @@ class SimplifyLogic:
 
 class SimplifyQuotedSymbols:
     """Turn a quoted symbol into a simple symbol."""
+
     def filter(self, node):
         return is_piped_symbol(node) and re.match(
             '\\|[a-zA-Z0-9~!@$%^&*_+=<>.?/-]+\\|', node.data) is not None
@@ -239,6 +249,7 @@ class SimplifySymbolNames:
     are compared/ordered lexicographically (it may enable, for example,
     the application of mutator :class:`ddsmt.mutators_core.ReplaceByVariable`).
     """
+
     def filter(self, node):
         # check for is_const(node[1]) to avoid x -> false -> fals -> false
         # if the variable is irrelevant, false may be accepted by the solver

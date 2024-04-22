@@ -27,6 +27,7 @@ from . import tmpfiles
 
 
 class DDSMTException(Exception):
+
     def __init__(self, msg):
         self.__msg = msg
 
@@ -95,14 +96,14 @@ def ddsmt_main():
                 options.args().cmd))))
         if options.args().cmd_cc:
             logging.info("command (cc):    '{}'".format(" ".join(
-                map(str, options.args().cmd_cc))))
+                map(str,
+                    options.args().cmd_cc))))
         if options.args().timeout:
-            logging.info(
-                    "time limit:      {} seconds".format(options.args().timeout))
+            logging.info("time limit:      {} seconds".format(
+                options.args().timeout))
         if options.args().timeout_cc:
-            logging.info(
-                    "time limit (cc): {} seconds".format(
-                        options.args().timeout_cc))
+            logging.info("time limit (cc): {} seconds".format(
+                options.args().timeout_cc))
 
         # parse the input
         start_time = time.time()

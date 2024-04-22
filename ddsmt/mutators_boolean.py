@@ -32,6 +32,7 @@ def make_and(children):
 
 class BoolDeMorgan:
     """Use de Morgans rules to push negations inside."""
+
     def filter(self, node):
         return is_operator_app(node, 'not') and len(node) > 1 and (
             is_operator_app(node[1], 'and') or is_operator_app(node[1], 'or'))
@@ -49,6 +50,7 @@ class BoolDeMorgan:
 
 class BoolDoubleNegation:
     """Eliminate double negations."""
+
     def filter(self, node):
         return is_operator_app(
             node, 'not') and len(node) > 1 and is_operator_app(node[1], 'not')
@@ -65,6 +67,7 @@ class BoolEliminateFalseEquality:
 
     For example, transform ``(= false X)`` into ``(not X)``.
     """
+
     def filter(self, node):
         return is_eq(node) and Node('false') in node
 
@@ -78,6 +81,7 @@ class BoolEliminateFalseEquality:
 
 class BoolEliminateImplication:
     """Replace (possibly n-ary) implications by disjunctions."""
+
     def filter(self, node):
         return is_operator_app(node, '=>')
 
@@ -95,6 +99,7 @@ class BoolEliminateImplication:
 
 class BoolNegateQuantifier:
     """Push negations inside quantifiers."""
+
     def filter(self, node):
         return is_operator_app(
             node, 'not') and len(node) > 1 and is_quantifier(node[1])
@@ -118,6 +123,7 @@ class BoolNegateQuantifier:
 
 class BoolXOREliminateBinary:
     """Eliminate binary ``xor`` by ``distinct``."""
+
     def filter(self, node):
         return is_operator_app(node, 'xor') and len(node) == 3
 
@@ -132,6 +138,7 @@ class BoolXOREliminateBinary:
 
 class BoolXORRemoveConstant:
     """Eliminate constant children from ``xor``."""
+
     def filter(self, node):
         return is_operator_app(node, 'xor')
 

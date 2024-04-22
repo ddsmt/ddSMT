@@ -16,6 +16,7 @@ from .mutator_utils import Simplification
 
 class SeqNthUnit:
     """Simplify ``(seq.nth (seq.unit t) 0)`` to ``t``."""
+
     def filter(self, node):
         return is_operator_app(
             node, 'seq.nth') and len(node) > 1 and is_operator_app(
@@ -30,6 +31,7 @@ class SeqNthUnit:
 
 class StringSimplifyConstant:
     """Replace a string constant by a shorter constant."""
+
     def __fix_escape_sequences(self, s, end):
         id = s.rfind('\\', end - 8, end)
         if id != -1:
@@ -59,6 +61,7 @@ class StringSimplifyConstant:
 
 class StringReplaceAll:
     """Replace ``str.replace_all`` by ``str.replace``."""
+
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.replace_all'
 
@@ -72,6 +75,7 @@ class StringReplaceAll:
 class StringIndexOfNotFound:
     """Replace ``str.indexof`` by special value ``(- 1)`` indicating that the
     substring was not found."""
+
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.indexof'
 
@@ -84,6 +88,7 @@ class StringIndexOfNotFound:
 
 class StringContainsToConcat:
     """Replace ``str.contains`` by concatenation."""
+
     def filter(self, node):
         return node.has_ident() and node.get_ident() == 'str.contains'
 

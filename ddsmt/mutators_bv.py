@@ -18,6 +18,7 @@ from .mutator_utils import Simplification
 class BVNormalizeConstants:
     """Normalize bit-vector constants to be represented using the ``(_ bvN M)``
     notation."""
+
     def filter(self, node):
         return node.is_leaf() and is_bv_const(node)
 
@@ -31,6 +32,7 @@ class BVNormalizeConstants:
 
 class BVConcatToZeroExtend:
     """Replace a ``concat`` with zero by ``zero_extend``."""
+
     def filter(self, node):
         if not node.has_ident() or node.get_ident() != 'concat':
             return False
@@ -54,6 +56,7 @@ class BVConcatToZeroExtend:
 
 class BVDoubleNegation:
     """Eliminate double bit-vector negations."""
+
     def filter(self, node):
         if is_bv_not(node) and len(node) > 1 and is_bv_not(node[1]):
             return True
@@ -73,6 +76,7 @@ class BVElimBVComp:
 
     For example, ``(= (bvcomp a b) #b1)`` is replaced with ``(= a b)``.
     """
+
     def filter(self, node):
         return (is_eq(node) and len(node) > 2 and is_bv_const(node[1])
                 and get_bv_width(node[1]) == 1
@@ -101,6 +105,7 @@ class BVElimBVComp:
 class BVEvalExtend:
     """Evaluate a bit-vector ``(sign|zero)_extend`` if it is applied to a
     constant or another ``(sign|zero)_extend``."""
+
     def filter(self, node):
         return ((is_indexed_operator_app(node, 'zero_extend')
                  or is_indexed_operator_app(node, 'sign_extend'))
@@ -127,6 +132,7 @@ class BVEvalExtend:
 
 class BVExtractConstants:
     """Evaluate a bit-vector ``extract`` if it is applied to a constant."""
+
     def filter(self, node):
         return (is_indexed_operator_app(node, 'extract', 2) and len(node) > 1
                 and is_bv_const(node[1]))
@@ -158,6 +164,7 @@ class BVExtractZeroExtend:
     """Simplify an ``extract`` of a ``zero_extend`` by pushing the
     ``zero_extend`` to the outside and reducing the bit-width, if possible.
     """
+
     #Requires that global information has been populated via
     #``collect_information``.
     def filter(self, node):
@@ -199,6 +206,7 @@ class BVExtractZeroExtend:
 
 class BVIteToBVComp:
     """Replace an ``ite`` of bit-width one with ``bvcomp``."""
+
     #Requires that global information has been populated via
     #``collect_information``.
     def filter(self, node):
@@ -228,6 +236,7 @@ class BVIteToBVComp:
 
 class BVReflexiveNand:
     """Replace a reflexive ``bvnand`` by bitwise negation."""
+
     def filter(self, node):
         return (is_operator_app(node, 'bvnand') and len(node) == 3
                 and node[1] == node[2])
@@ -242,6 +251,7 @@ class BVReflexiveNand:
 class BVSimplifyConstants:
     """Replace a bit-vector constant with a simpler constant of smaller value.
     """
+
     def filter(self, node):
         return (is_bv_const(node)
                 and get_bv_constant_value(node)[0] not in [0, 1])
@@ -314,6 +324,7 @@ class BVZeroExtendPredicate():
     into ``(= a b)``, and ``(= ((_ zero_extend 2) a) ((_ zero_extend 4) b))``
     into ``(= a ((_ zero_extend 2 b)))``.
     """
+
     def filter(self, node):
         return node.has_ident() and len(node) == 3 and node.get_ident() in [
             '=', 'distinct', 'bvult', 'bvule', 'bvugt', 'bvuge', 'bvslt',
@@ -369,6 +380,7 @@ class BVReduceBW:
         (declare-const _v (_BitVec 1))
         (define-fun v () (_ BitVec 32) ((_ zero_extend 31) _v))
     """
+
     #Requires that global information has been populated via
     #``collect_information``.
     def filter(self, node):
@@ -413,6 +425,7 @@ class BVMergeReducedBW:
 
     Obsolete ``define-fun`` expressions will be removed later on.
     """
+
     def filter(self, node):
         return (is_operator_app(node, 'define-fun') and len(node[2]) == 0
                 and get_sort(node[1]) is not None
@@ -450,6 +463,7 @@ class BvMergeExtend:
     For example, ``((_ zero_extend 5) ((_ zero_extend 4) x))`` is transformed
     into ``((zero_extend 9) x)``.
     """
+
     def filter(self, node):
         return (is_indexed_operator_app(node, 'zero_extend') and \
                 is_indexed_operator_app(node[1], 'zero_extend')) or \
@@ -468,13 +482,7 @@ class BvMergeExtend:
             ext += indices[0]
             n = n[1]
 
-        return [
-            Simplification(
-                {
-                    node.id:
-                    Node(('_', op, ext), n)
-                }, [])
-        ]
+        return [Simplification({node.id: Node(('_', op, ext), n)}, [])]
 
     def __str__(self):
         return 'merge nested zero_extend/sign_extend'

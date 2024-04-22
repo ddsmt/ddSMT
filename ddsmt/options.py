@@ -19,6 +19,7 @@ from . import version
 class ToggleAction(argparse.Action):
     '''A simple ``argparse.Action`` class that is used for option pairs of the
     form ``--option`` and ``--no-option``.'''
+
     def __init__(self, opt_name, default=True, dest=None, help=None):
         super(ToggleAction,
               self).__init__([f'--{opt_name}', f'--no-{opt_name}'],
@@ -45,6 +46,7 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
     ``None`` defaults. Furthermore uses the ``argparse.HelpFormatter``,
     to slightly increase the width reserved for the options.
     '''
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, max_help_position=35)
 
@@ -68,6 +70,7 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
 
 class DumpConfigAction(argparse.Action):
     '''Dump the current config using ``pprint``.'''
+
     def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, True)
         import pprint

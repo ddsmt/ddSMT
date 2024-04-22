@@ -27,6 +27,7 @@ class ArithmeticNegateRelation:
 
     For example, ``(not (< a b))`` is replaced with ``(>= a b)``.
     """
+
     def filter(self, node):
         return is_operator_app(
             node, 'not') and len(node) > 1 and is_arithmetic_relation(node[1])
@@ -58,6 +59,7 @@ class ArithmeticSimplifyConstant:
     We consider constants that are smaller (in value) or with fewer decimal
     places as `simpler`.
     """
+
     def filter(self, node):
         return is_arith_const(node) and get_arith_const(node) not in [0, 1]
 
@@ -90,6 +92,7 @@ class ArithmeticSplitNaryRelation:
 
     This assumes that the relation symbol is transitive.
     """
+
     def filter(self, node):
         return is_arithmetic_relation(node) and len(node) > 3
 
@@ -108,6 +111,7 @@ class ArithmeticStrengthenRelation:
 
     For example, ``>=`` is replaced by ``>``.
     """
+
     def filter(self, node):
         return is_arithmetic_relation(node) and node.get_ident() in [
             '<', '>', '<=', '>=', 'distinct'

@@ -27,6 +27,7 @@ class BinaryReduction:
     .. note::
       This mutator is always disabled for strategy ``ddmin``.
     """
+
     def mutations(self, node):
         if node.is_leaf() or len(node) < 8:
             return
@@ -62,6 +63,7 @@ class Constants:
 
     Default values are defined in :func:`ddsmt.smtlib.get_default_constants`.
     """
+
     # Requires that global information has been populated via
     # ``collect_information``.
     def filter(self, node):
@@ -87,6 +89,7 @@ class EraseNode:
     If ``self.ident`` is set, only nodes with the identifier specified as
     ``self.ident`` are considered.
     """
+
     def filter(self, node):
         if not hasattr(self, 'ident'):
             return True
@@ -106,6 +109,7 @@ class MergeWithChildren:
 
     This mutator can only be applied to n-ary operations like ``and`` or ``+``.
     """
+
     def filter(self, node):
         return has_nary_operator(node)
 
@@ -121,6 +125,7 @@ class MergeWithChildren:
 
 class ReplaceByChild:
     """Replace given node with one of its children."""
+
     def filter(self, node):
         return not is_leaf(node) and not is_operator_app(node, 'let')
 
@@ -147,6 +152,7 @@ class ReplaceByVariable:
       substitution with smaller, and ``dec`` for substition with larger
       variables).
     """
+
     # Requires that global information has been populated via
     # ``collect_information``.
     def filter(self, node):
@@ -178,6 +184,7 @@ class ReplaceByVariable:
 
 class SortChildren:
     """Sort the children of a given node by size (count of sub-nodes)."""
+
     def filter(self, node):
         return not is_leaf(node)
 

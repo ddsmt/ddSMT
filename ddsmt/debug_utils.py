@@ -23,6 +23,7 @@ from . import options
 
 
 class NodeLoopChecker:
+
     def __init__(self):
         self.__seen = set()
 

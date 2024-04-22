@@ -95,6 +95,7 @@ class Producer:
     nodes. As soon as ``abort_flag`` is triggered, stops generation as
     soon as possible.
     """
+
     def __init__(self, mutators, abort_flag, original):
         self.__node_count = 0
         self.__mutators = mutators
@@ -151,6 +152,7 @@ class Consumer:
     Uses the ``abort_flag`` to stop as soon as a valid simplification
     has been found.
     """
+
     def __init__(self, abort_flag):
         self.__abort = abort_flag
 
@@ -189,6 +191,7 @@ class Consumer:
 
 class MutatorStats:
     """Gather information about the performance of the individual mutators."""
+
     def __init__(self):
         self.data = {}
         self.__enabled = logging.getLogger().isEnabledFor(logging.INFO)

@@ -25,6 +25,7 @@ class FPShortSort:
         (_ FloatingPoint 11 53)  --> Float64
         (_ FloatingPoint 15 113) --> Float128
     """
+
     def filter(self, node):
         return is_fp_sort(node) and len(node) == 4
 
