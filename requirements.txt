@@ -1,7 +1,6 @@
 # for regular operation
 gprof2dot>=2019.11
 importlib-metadata>=1.7 ; python_version<"3.8"
-progressbar>=2.5
 # for CI
 coverage>=4.5
 docformatter>=1.4

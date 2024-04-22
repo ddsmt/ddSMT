@@ -41,7 +41,6 @@ Requirements
 ------------
 
 * `Python <https://www.python.org/>`_ version 3.6 or later
-* `progressbar <https://pypi.org/project/progressbar>`_
 
 Bibtex
 ------

@@ -10,10 +10,20 @@
 # information at https://github.com/ddsmt/ddSMT/blob/master/LICENSE.
 
 import logging
-import progressbar
 import sys
+import itertools
 
-__BAR = None
+__MAX_VAL = None
+__CUR_VAL = 0
+__SPINNER = itertools.cycle(['-', '/', '|', '\\'])
+
+
+def __print():
+    global __CUR_VAL, __MAX_VAL
+    print('{} {} / {}'.format(next(__SPINNER), __CUR_VAL, __MAX_VAL),
+          end='\r',
+          flush=True,
+          file=sys.stderr)
 
 
 def start(max):
@@ -22,15 +32,14 @@ def start(max):
     Only initialize if the current log level is at least
     ``logging.INFO``.
     """
-    global __BAR
+    global __CUR_VAL, __MAX_VAL
     if not sys.stdout.isatty():
         return
     if logging.getLogger().level > logging.INFO:
         return
-    widgets = [progressbar.Bar(), ' ', progressbar.Counter(), ' / ', str(max)]
-    __BAR = progressbar.ProgressBar(maxval=max, widgets=widgets)
-    __BAR.start()
-    __BAR.update_interval = 1
+    __MAX_VAL = max
+    __CUR_VAL = 0
+    __print()
 
 
 def update(newval=None):
@@ -39,12 +48,17 @@ def update(newval=None):
     The value is incremented by one, or set to newval if newval is not
     ``None``.
     """
-    global __BAR
-    if __BAR:
-        if newval is not None:
-            __BAR.update(min(newval, __BAR.maxval))
-        else:
-            __BAR.update(__BAR.currval + 1)
+    global __CUR_VAL, __MAX_VAL
+    if __MAX_VAL is not None:
+        if __CUR_VAL < __MAX_VAL:
+            if newval is not None:
+                if __CUR_VAL + newval >= __MAX_VAL:
+                    __CUR_VAL = __MAX_VAL
+                else:
+                    __CUR_VAL += newval
+            else:
+                __CUR_VAL += 1
+        __print()
 
 
 def finish():
@@ -52,7 +66,7 @@ def finish():
 
     Delete the object and write a newline.
     """
-    global __BAR
-    if __BAR:
-        __BAR = None
+    global __MAX_VAL
+    if __MAX_VAL is not None:
+        __MAX_VAL = None
         sys.stdout.write('\n')
