@@ -1,20 +1,18 @@
-.. image:: https://img.shields.io/github/actions/workflow/status/ddsmt/ddSMT/main.yml
-  :alt: GitHub Workflow Status
-  :target: https://github.com/ddsmt/ddSMT/actions
+|CI Status| |Docs Status| |PyPi Status| |Python Versions| |License Badge|
 
-.. image:: https://img.shields.io/readthedocs/ddsmt/master
+.. |CI Status| image:: https://github.com/ddsmt/ddSMT/actions/workflows/main.yml/badge.svg
+  :alt: GitHub Workflow Status
+  :target: https://github.com/ddsmt/ddSMT/actions/workflows/main.yml
+.. |Docs Status| image:: https://img.shields.io/readthedocs/ddsmt/master
   :alt: Read the Docs
   :target: https://ddsmt.readthedocs.io
-
-.. image:: https://img.shields.io/pypi/v/ddsmt
+.. |PyPi Status| image:: https://img.shields.io/pypi/v/ddsmt
   :alt: PyPI
   :target: https://pypi.org/project/ddSMT/
-
-.. image:: https://img.shields.io/pypi/pyversions/ddsmt
+.. |Python Versions| image:: https://img.shields.io/pypi/pyversions/ddsmt
   :alt: PyPI - Python Version
   :target: https://pypi.org/project/ddSMT/
-
-.. image:: https://img.shields.io/pypi/l/ddSMT
+.. |License Badge| image:: https://img.shields.io/pypi/l/ddSMT
   :alt: PyPI - License
   :target: https://github.com/ddsmt/ddSMT/blob/master/LICENSE
 
