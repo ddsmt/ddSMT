@@ -34,7 +34,7 @@ For more details on the SMT-LIB language, see http://www.smtlib.org.
 
 **ddSMT** is implemented in Python 3 and developed on a Linux OS.
 
-**ddSMT** is released under the MIT (see file LICENSE`
+**ddSMT** is released under the MIT (see file `LICENSE
 <https://github.com/ddsmt/ddSMT/blob/master/LICENSE>`_).
 
 Requirements
