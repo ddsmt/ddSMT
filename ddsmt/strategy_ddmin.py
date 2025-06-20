@@ -153,8 +153,10 @@ def ddmin_passes():
 
     # Passes applied to top-level nodes (DFS max-depth 1)
     stage1_names = ['EraseNode', 'CheckSatAssuming']
-
-    stage1 = mutators.get_initialized_mutator('EraseNode', {'ident': 'assert'})
+    stage1 = []
+    for ident in ('check-sat', 'check-sat-assuming', 'assert'):
+        stage1.extend(mutators.get_initialized_mutator('EraseNode',
+                                                       {'ident': ident}))
     stage1.extend(mutators.get_mutators(stage1_names))
 
     # Use mutators that promise maximum reduction first
