@@ -34,7 +34,7 @@ def test_no_options(capsys):
     with pytest.raises(SystemExit):
         options.parse_options(mutators, [])
     captured = capsys.readouterr()
-    assert ('error: the following arguments are required: infile, outfile, cmd'
+    assert ('error: the following arguments are required: infile, outfile'
             in captured.err)
 
 
