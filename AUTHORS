@@ -1,8 +1,15 @@
-The main authors and developers of ddSMT are:
+ddSMT version 2.0 is the successor of ddSMT versions 1.x (ddSMT v1). It is a
+from scratch rewrite and does not share code with ddSMTv1.
 
-  Aina Niemetz     -- Johannes Kepler University, Linz (2013-2017), Stanford University (since 2017).
-  Mathias Preiner  -- Johannes Kepler University, Linz (2013-2017), Stanford University (since 2017).
+The main authors and developers of ddSMT from version 2.0 onwards are:
+
+  Aina Niemetz     -- Stanford University (since 2020).
+  Mathias Preiner  -- Stanford University (since 2020).
   Gereon Kremer    -- Stanford University (2020-2022).
+
+The main authors and developers of ddSMT for versions prior to 2.0 are:
+  Aina Niemetz     -- Johannes Kepler University, Linz (2013-2017), Stanford University (2017-2020).
+  Mathias Preiner  -- Johannes Kepler University, Linz (2016-2017), Stanford University (2017-2020).
 
 ddSMT's copyright is held by these individuals and the affiliated institutions
 at the time of their contributions.  See the file LICENSE for details on the

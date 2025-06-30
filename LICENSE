@@ -1,8 +1,12 @@
 ddSMT is a delta debugger for input in the SMT-LIB language and its dialects
 and extensions.
 
-Copyright (C) 2013-2024 by its authors and contributors and their institutional
+Copyright (C) 2020-2024 by its authors and contributors and their institutional
 affiliations as listed in file AUTHORS.
+
+Since version 2.0.4, ddSMT is licensed under the MIT license (see license text
+below). Versions prior to 2.0.4 are licensed under the GPLv3 license.
+
 
 MIT License
 
