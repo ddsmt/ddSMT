@@ -155,8 +155,8 @@ def ddmin_passes():
     stage1_names = ['EraseNode', 'CheckSatAssuming']
     stage1 = []
     for ident in ('check-sat', 'check-sat-assuming', 'assert'):
-        stage1.extend(mutators.get_initialized_mutator('EraseNode',
-                                                       {'ident': ident}))
+        stage1.extend(
+            mutators.get_initialized_mutator('EraseNode', {'ident': ident}))
     stage1.extend(mutators.get_mutators(stage1_names))
 
     # Use mutators that promise maximum reduction first
