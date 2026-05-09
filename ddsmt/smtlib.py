@@ -414,6 +414,11 @@ def _get_sort_aux(node):  # noqa: C901
         if is_operator_app(node, 'ite') and len(node) > 2:
             return get_sort(node[2])
         ident = node.get_ident()
+        # user-declared datatype constructors may legally shadow
+        # built-in operator names (e.g. a constructor named `fp`);
+        # resolve them first.
+        if ident in __datatypes_constructors:
+            return __datatypes_constructors[ident]
         # operators that return Bool
         if ident in [
                 # core theory
@@ -520,8 +525,6 @@ def _get_sort_aux(node):  # noqa: C901
             return None
         if ident == 'store':
             return get_sort(node[1])
-        if ident in __datatypes_constructors:
-            return __datatypes_constructors[ident]
 
     # indexed operators
     if is_indexed_operator_app(node, 'divisible'):
