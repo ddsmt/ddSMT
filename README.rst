@@ -35,6 +35,11 @@ For more details on the SMT-LIB language, see http://www.smtlib.org.
 **ddSMT** is released under the MIT (see file `LICENSE
 <https://github.com/ddsmt/ddSMT/blob/master/LICENSE>`_).
 
+Quick Install
+-------------
+
+With the awesome `uv <https://docs.astral.sh/uv/getting-started/installation/>`_ package manager: ``uvx ddsmt --help``
+
 Requirements
 ------------
 
